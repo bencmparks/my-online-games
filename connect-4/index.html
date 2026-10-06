@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Connect 4 | My Online Games</title>
+  <style>
+    :root {
+      font-family: Arial, sans-serif;
+      background: #101827;
+      color: #f8fafc;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      display: grid;
+      place-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 1.5rem;
+      background: linear-gradient(135deg, #101827, #1e3a5f);
+    }
+
+    main {
+      width: min(100%, 42rem);
+      text-align: center;
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-bottom: 1.5rem;
+      color: #cbd5e1;
+    }
+
+    h1 {
+      margin: 0;
+      color: #facc15;
+      font-size: clamp(2.25rem, 8vw, 4rem);
+    }
+
+    #status {
+      min-height: 1.5rem;
+      margin: 0.75rem 0 1.25rem;
+      font-size: 1.125rem;
+      font-weight: bold;
+    }
+
+    .mode-picker {
+      display: flex;
+      justify-content: center;
+      gap: 0.75rem;
+      margin: 1.25rem 0;
+    }
+
+    .mode-picker label {
+      cursor: pointer;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: clamp(0.25rem, 1vw, 0.5rem);
+      padding: clamp(0.5rem, 2vw, 1rem);
+      border-radius: 1rem;
+      background: #2563eb;
+      box-shadow: 0 0.75rem 0 #153e90;
+    }
+
+    .cell {
+      aspect-ratio: 1;
+      border: 0;
+      border-radius: 50%;
+      background: #e2e8f0;
+      box-shadow: inset 0 0.25rem 0.25rem rgb(15 23 42 / 25%);
+      cursor: pointer;
+      transition: transform 100ms ease, background-color 100ms ease;
+    }
+
+    .cell:hover:not(:disabled),
+    .cell:focus-visible:not(:disabled) {
+      outline: 0.2rem solid #facc15;
+      outline-offset: 0.1rem;
+      transform: scale(1.08);
+    }
+
+    .cell:disabled {
+      cursor: default;
+    }
+
+    .cell.red {
+      background: #ef4444;
+    }
+
+    .cell.yellow {
+      background: #facc15;
+    }
+
+    #restart {
+      margin-top: 2rem;
+      padding: 0.75rem 1.25rem;
+      border: 0;
+      border-radius: 0.5rem;
+      background: #facc15;
+      color: #17243a;
+      cursor: pointer;
+      font: inherit;
+      font-weight: bold;
+    }
+
+    #restart:hover,
+    #restart:focus-visible {
+      background: #fde047;
+      outline: 0.2rem solid #f8fafc;
+      outline-offset: 0.15rem;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <a class="back-link" href="../">← All games</a>
+    <h1>Connect 4</h1>
+    <div class="mode-picker" aria-label="Game mode">
+      <label><input type="radio" name="mode" value="robot" checked> Face the robot</label>
+      <label><input type="radio" name="mode" value="local"> Two players</label>
+    </div>
+    <p id="status" aria-live="polite">Red's turn</p>
+    <div class="board" id="board" role="grid" aria-label="Connect 4 board"></div>
+    <button id="restart" type="button">New game</button>
+  </main>
+
+  <script>
+    const rows = 6;
+    const columns = 7;
+    const boardElement = document.querySelector("#board");
+    const statusElement = document.querySelector("#status");
+    const restartButton = document.querySelector("#restart");
+    const modeInputs = document.querySelectorAll('input[name="mode"]');
+    let board;
+    let currentPlayer;
+    let gameOver;
+    let robotMoveTimeout;
+
+    function playerName(player) {
+      return player === "red" ? "Red" : "Yellow";
+    }
+
+    function createBoard() {
+      board = Array.from({ length: rows }, () => Array(columns).fill(null));
+      currentPlayer = "red";
+      gameOver = false;
+      clearTimeout(robotMoveTimeout);
+      boardElement.replaceChildren();
+
+      for (let row = 0; row < rows; row += 1) {
+        for (let column = 0; column < columns; column += 1) {
+          const cell = document.createElement("button");
+          cell.className = "cell";
+          cell.type = "button";
+          cell.dataset.row = row;
+          cell.dataset.column = column;
+          cell.setAttribute("role", "gridcell");
+          cell.setAttribute("aria-label", `Column ${column + 1}, row ${row + 1}`);
+          cell.addEventListener("click", () => placePiece(column));
+          boardElement.append(cell);
+        }
+      }
+
+      statusElement.textContent = "Red's turn";
+    }
+
+    function getCell(row, column) {
+      return boardElement.children[row * columns + column];
+    }
+
+    function placePiece(column, isRobotMove = false) {
+      if (gameOver || (isRobotMode() && currentPlayer === "yellow" && !isRobotMove)) {
+        return;
+      }
+
+      const row = getOpenRow(column);
+      if (row === -1) {
+        statusElement.textContent = `Column ${column + 1} is full. Choose another column.`;
+        return;
+      }
+
+      board[row][column] = currentPlayer;
+      const cell = getCell(row, column);
+      cell.classList.add(currentPlayer);
+      cell.setAttribute("aria-label", `${playerName(currentPlayer)} piece in column ${column + 1}, row ${row + 1}`);
+
+      if (hasWon(row, column)) {
+        gameOver = true;
+        statusElement.textContent = `${playerName(currentPlayer)} wins!`;
+        disableBoard();
+        return;
+      }
+
+      if (board.every((boardRow) => boardRow.every(Boolean))) {
+        gameOver = true;
+        statusElement.textContent = "It's a draw!";
+        return;
+      }
+
+      currentPlayer = currentPlayer === "red" ? "yellow" : "red";
+      statusElement.textContent = `${playerName(currentPlayer)}'s turn`;
+
+      if (isRobotMode() && currentPlayer === "yellow") {
+        statusElement.textContent = "Robot is thinking...";
+        robotMoveTimeout = setTimeout(() => {
+          placePiece(chooseRobotColumn(), true);
+        }, 450);
+      }
+    }
+
+    function getOpenRow(column) {
+      for (let row = rows - 1; row >= 0; row -= 1) {
+        if (board[row][column] === null) {
+          return row;
+        }
+      }
+
+      return -1;
+    }
+
+    function hasWon(row, column, player = currentPlayer) {
+      const directions = [[0, 1], [1, 0], [1, 1], [1, -1]];
+      return directions.some(([rowStep, columnStep]) =>
+        countPieces(row, column, rowStep, columnStep, player) +
+        countPieces(row, column, -rowStep, -columnStep, player) - 1 >= 4
+      );
+    }
+
+    function countPieces(row, column, rowStep, columnStep, player) {
+      let count = 0;
+      let currentRow = row;
+      let currentColumn = column;
+
+      while (
+        currentRow >= 0 &&
+        currentRow < rows &&
+        currentColumn >= 0 &&
+        currentColumn < columns &&
+        board[currentRow][currentColumn] === player
+      ) {
+        count += 1;
+        currentRow += rowStep;
+        currentColumn += columnStep;
+      }
+
+      return count;
+    }
+
+    function disableBoard() {
+      for (const cell of boardElement.children) {
+        cell.disabled = true;
+      }
+    }
+
+    function isRobotMode() {
+      return document.querySelector('input[name="mode"]:checked').value === "robot";
+    }
+
+    function wouldWin(column, player) {
+      const row = getOpenRow(column);
+      if (row === -1) {
+        return false;
+      }
+
+      board[row][column] = player;
+      const wins = hasWon(row, column, player);
+      board[row][column] = null;
+      return wins;
+    }
+
+    function chooseRobotColumn() {
+      const openColumns = Array.from({ length: columns }, (_, column) => column)
+        .filter((column) => getOpenRow(column) !== -1);
+      const winningColumn = openColumns.find((column) => wouldWin(column, "yellow"));
+      if (winningColumn !== undefined) {
+        return winningColumn;
+      }
+
+      const blockingColumn = openColumns.find((column) => wouldWin(column, "red"));
+      if (blockingColumn !== undefined) {
+        return blockingColumn;
+      }
+
+      const preferredColumns = [3, 2, 4, 1, 5, 0, 6];
+      return preferredColumns.find((column) => openColumns.includes(column));
+    }
+
+    restartButton.addEventListener("click", createBoard);
+    for (const modeInput of modeInputs) {
+      modeInput.addEventListener("change", createBoard);
+    }
+    createBoard();
+  </script>
+</body>
+</html>

@@ -4,9 +4,85 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>My Online Games</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Arial, sans-serif;
+      background: #101827;
+      color: #f8fafc;
+    }
+
+    body {
+      display: grid;
+      place-items: center;
+      min-height: 100vh;
+      margin: 0;
+      background: linear-gradient(135deg, #101827, #1e3a5f);
+    }
+
+    main {
+      width: min(90%, 48rem);
+      padding: 3rem;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2rem, 6vw, 3.5rem);
+    }
+
+    .intro {
+      color: #cbd5e1;
+      font-size: 1.125rem;
+      line-height: 1.6;
+    }
+
+    .games {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+      gap: 1.25rem;
+      margin-top: 2rem;
+    }
+
+    .game-card {
+      display: block;
+      padding: 1.5rem;
+      border: 1px solid #4b6382;
+      border-radius: 1rem;
+      background: #17243a;
+      color: inherit;
+      text-decoration: none;
+      transition: transform 150ms ease, border-color 150ms ease;
+    }
+
+    .game-card:hover,
+    .game-card:focus-visible {
+      border-color: #facc15;
+      outline: none;
+      transform: translateY(-0.25rem);
+    }
+
+    .game-card h2 {
+      margin: 0 0 0.5rem;
+      color: #facc15;
+    }
+
+    .game-card p {
+      margin: 0;
+      color: #cbd5e1;
+      line-height: 1.5;
+    }
+  </style>
 </head>
 <body>
-  <h1>Hello, World!</h1>
-  <p>Welcome to my online games project.</p>
+  <main>
+    <h1>My Online Games</h1>
+    <p class="intro">Pick a game and start playing.</p>
+    <section class="games" aria-label="Games">
+      <a class="game-card" href="connect-4/">
+        <h2>Connect 4</h2>
+        <p>Take turns dropping pieces and be the first to make four in a row.</p>
+      </a>
+    </section>
+  </main>
 </body>
 </html>
