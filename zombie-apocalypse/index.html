@@ -1,0 +1,589 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Zombie Apocalypse | My Online Games</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Arial, sans-serif;
+      background: #101827;
+      color: #f8fafc;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      display: grid;
+      place-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 1.5rem;
+      background:
+        radial-gradient(circle at 10% 15%, rgb(74 222 128 / 16%) 0 5rem, transparent 5.2rem),
+        radial-gradient(circle at 88% 85%, rgb(239 68 68 / 18%) 0 6rem, transparent 6.2rem),
+        linear-gradient(135deg, #101827 20%, #1b3427 100%);
+    }
+
+    main {
+      width: min(100%, 48rem);
+      padding: clamp(1rem, 4vw, 2rem);
+      border: 1px solid rgb(148 163 184 / 25%);
+      border-radius: 1.5rem;
+      background: rgb(15 23 42 / 82%);
+      box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 30%);
+      text-align: center;
+      backdrop-filter: blur(0.5rem);
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-bottom: 1rem;
+      color: #cbd5e1;
+    }
+
+    h1 {
+      margin: 0;
+      color: #86efac;
+      font-size: clamp(2rem, 7vw, 3.5rem);
+    }
+
+    .instructions {
+      margin: 0.75rem 0 1rem;
+      color: #cbd5e1;
+      line-height: 1.5;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      border: 0.3rem solid #36543b;
+      border-radius: 0.75rem;
+      background: #122017;
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    #status {
+      min-height: 1.5rem;
+      margin: 1rem 0 0;
+      font-weight: bold;
+    }
+
+    .touch-controls {
+      display: grid;
+      grid-template-columns: repeat(3, 3rem);
+      justify-content: center;
+      gap: 0.35rem;
+      margin: 1rem 0;
+    }
+
+    .touch-controls button,
+    .game-actions button {
+      border: 1px solid #4b6382;
+      border-radius: 0.5rem;
+      background: #17243a;
+      color: #f8fafc;
+      cursor: pointer;
+      font: inherit;
+      font-weight: bold;
+    }
+
+    .touch-controls button {
+      min-height: 2.75rem;
+      font-size: 1.25rem;
+    }
+
+    .touch-controls .spacer {
+      visibility: hidden;
+    }
+
+    .game-actions {
+      display: flex;
+      justify-content: center;
+      gap: 0.75rem;
+    }
+
+    .game-actions button {
+      padding: 0.75rem 1.25rem;
+    }
+
+    #restart {
+      background: #86efac;
+      color: #102019;
+    }
+
+    button:hover,
+    button:focus-visible {
+      border-color: #f8fafc;
+      outline: 0.15rem solid #f8fafc;
+      outline-offset: 0.1rem;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <a class="back-link" href="../">← All games</a>
+    <h1>Zombie Apocalypse</h1>
+    <p class="instructions">Move with WASD or arrow keys. Click or tap to fire. Watch for fast runners, tough brutes, and valuable boosts.</p>
+    <canvas id="game" width="720" height="480" aria-label="Zombie Apocalypse game"></canvas>
+    <p id="status" aria-live="polite">The horde is approaching.</p>
+    <div class="touch-controls" aria-label="Touch movement controls">
+      <span class="spacer"></span>
+      <button type="button" data-key="ArrowUp" aria-label="Move up">↑</button>
+      <span class="spacer"></span>
+      <button type="button" data-key="ArrowLeft" aria-label="Move left">←</button>
+      <button type="button" data-key="Space" aria-label="Fire at nearest zombie">🔥</button>
+      <button type="button" data-key="ArrowRight" aria-label="Move right">→</button>
+      <span class="spacer"></span>
+      <button type="button" data-key="ArrowDown" aria-label="Move down">↓</button>
+      <span class="spacer"></span>
+    </div>
+    <div class="game-actions">
+      <button id="restart" type="button">Start new run</button>
+      <button id="pause" type="button">Pause</button>
+    </div>
+  </main>
+
+  <script>
+    const canvas = document.querySelector("#game");
+    const context = canvas.getContext("2d");
+    const statusElement = document.querySelector("#status");
+    const restartButton = document.querySelector("#restart");
+    const pauseButton = document.querySelector("#pause");
+    const controlButtons = document.querySelectorAll("[data-key]");
+    const keys = new Set();
+    const player = { x: 360, y: 240, radius: 18, health: 100, speed: 260 };
+    let zombies;
+    let bullets;
+    let boosts;
+    let particles;
+    let score;
+    let level;
+    let nextBoostScore;
+    let activeBoosts;
+    let running;
+    let paused;
+    let lastFrame;
+    let spawnTimer;
+    let fireTimer;
+    let damageFlash;
+    let animationFrame;
+
+    function startGame() {
+      player.x = canvas.width / 2;
+      player.y = canvas.height / 2;
+      player.health = 100;
+      zombies = [];
+      bullets = [];
+      boosts = [];
+      particles = [];
+      score = 0;
+      level = 1;
+      nextBoostScore = 12;
+      activeBoosts = { rapid: 0, speed: 0 };
+      running = true;
+      paused = false;
+      lastFrame = performance.now();
+      spawnTimer = 0;
+      fireTimer = 0;
+      damageFlash = 0;
+      keys.clear();
+      pauseButton.disabled = false;
+      pauseButton.textContent = "Pause";
+      statusElement.textContent = "The horde is approaching.";
+      if (animationFrame) {
+        cancelAnimationFrame(animationFrame);
+      }
+      animationFrame = requestAnimationFrame(gameLoop);
+    }
+
+    function gameLoop(timestamp) {
+      if (!running) {
+        animationFrame = null;
+        return;
+      }
+
+      if (paused) {
+        draw();
+        animationFrame = requestAnimationFrame(gameLoop);
+        return;
+      }
+
+      const deltaTime = Math.min((timestamp - lastFrame) / 1000, 0.05);
+      lastFrame = timestamp;
+      update(deltaTime);
+      draw();
+      animationFrame = requestAnimationFrame(gameLoop);
+    }
+
+    function update(deltaTime) {
+      movePlayer(deltaTime);
+      spawnTimer -= deltaTime;
+      fireTimer -= deltaTime;
+      activeBoosts.rapid = Math.max(0, activeBoosts.rapid - deltaTime);
+      activeBoosts.speed = Math.max(0, activeBoosts.speed - deltaTime);
+      damageFlash = Math.max(0, damageFlash - deltaTime);
+
+      if (spawnTimer <= 0) {
+        spawnZombie();
+        spawnTimer = Math.max(0.28, 1.15 - (level - 1) * 0.1);
+      }
+
+      if (keys.has("Space")) {
+        fireAtNearestZombie();
+      }
+
+      for (const zombie of zombies) {
+        const distance = Math.hypot(player.x - zombie.x, player.y - zombie.y) || 1;
+        zombie.x += ((player.x - zombie.x) / distance) * zombie.speed * deltaTime;
+        zombie.y += ((player.y - zombie.y) / distance) * zombie.speed * deltaTime;
+
+        if (distance < player.radius + zombie.radius) {
+          player.health -= zombie.damage * deltaTime;
+          damageFlash = 0.25;
+        }
+      }
+
+      for (const bullet of bullets) {
+        bullet.x += bullet.vx * deltaTime;
+        bullet.y += bullet.vy * deltaTime;
+      }
+
+      for (const particle of particles) {
+        particle.x += particle.vx * deltaTime;
+        particle.y += particle.vy * deltaTime;
+        particle.life -= deltaTime;
+      }
+      particles = particles.filter((particle) => particle.life > 0);
+
+      bullets = bullets.filter((bullet) =>
+        bullet.x >= 0 && bullet.x <= canvas.width && bullet.y >= 0 && bullet.y <= canvas.height
+      );
+
+      for (let boostIndex = boosts.length - 1; boostIndex >= 0; boostIndex -= 1) {
+        const boost = boosts[boostIndex];
+        if (Math.hypot(player.x - boost.x, player.y - boost.y) < player.radius + boost.radius) {
+          collectBoost(boost);
+          boosts.splice(boostIndex, 1);
+        }
+      }
+
+      for (let bulletIndex = bullets.length - 1; bulletIndex >= 0; bulletIndex -= 1) {
+        for (let zombieIndex = zombies.length - 1; zombieIndex >= 0; zombieIndex -= 1) {
+          const bullet = bullets[bulletIndex];
+          const zombie = zombies[zombieIndex];
+          if (Math.hypot(bullet.x - zombie.x, bullet.y - zombie.y) < bullet.radius + zombie.radius) {
+            bullets.splice(bulletIndex, 1);
+            zombie.health -= bullet.damage;
+            createParticles(zombie.x, zombie.y, zombie.color, 5);
+            if (zombie.health <= 0) {
+              zombies.splice(zombieIndex, 1);
+              score += zombie.score;
+              createParticles(zombie.x, zombie.y, zombie.color, 14);
+              checkLevel();
+              if (score >= nextBoostScore) {
+                spawnBoost();
+                nextBoostScore += 12 + Math.floor(Math.random() * 9);
+              }
+            }
+            break;
+          }
+        }
+      }
+
+      if (player.health <= 0) {
+        player.health = 0;
+        running = false;
+        pauseButton.disabled = true;
+        statusElement.textContent = `Game over — you reached level ${level} and eliminated ${score} zombies.`;
+      }
+    }
+
+    function movePlayer(deltaTime) {
+      let horizontal = 0;
+      let vertical = 0;
+      if (keys.has("ArrowLeft") || keys.has("a")) horizontal -= 1;
+      if (keys.has("ArrowRight") || keys.has("d")) horizontal += 1;
+      if (keys.has("ArrowUp") || keys.has("w")) vertical -= 1;
+      if (keys.has("ArrowDown") || keys.has("s")) vertical += 1;
+
+      const distance = Math.hypot(horizontal, vertical) || 1;
+      const speedMultiplier = activeBoosts.speed > 0 ? 1.5 : 1;
+      player.x = clamp(player.x + (horizontal / distance) * player.speed * speedMultiplier * deltaTime, player.radius, canvas.width - player.radius);
+      player.y = clamp(player.y + (vertical / distance) * player.speed * speedMultiplier * deltaTime, player.radius, canvas.height - player.radius);
+    }
+
+    function spawnZombie() {
+      const side = Math.floor(Math.random() * 4);
+      const position = Math.random();
+      const padding = 30;
+      const types = [
+        { name: "walker", emoji: "🧟", radius: 20, speed: 35, health: 1, score: 1, damage: 20, color: "#4ade80" }
+      ];
+      if (level >= 2) {
+        types.push({ name: "runner", emoji: "🧟‍♂️", radius: 17, speed: 65, health: 1, score: 2, damage: 16, color: "#facc15" });
+      }
+      if (level >= 3) {
+        types.push({ name: "brute", emoji: "🧟‍♀️", radius: 28, speed: 28, health: 3, score: 4, damage: 32, color: "#ef4444" });
+      }
+      const type = types[Math.floor(Math.random() * types.length)];
+      const zombie = {
+        ...type,
+        speed: type.speed + (level - 1) * 8,
+        maxHealth: type.health
+      };
+
+      if (side === 0) Object.assign(zombie, { x: position * canvas.width, y: -padding });
+      if (side === 1) Object.assign(zombie, { x: canvas.width + padding, y: position * canvas.height });
+      if (side === 2) Object.assign(zombie, { x: position * canvas.width, y: canvas.height + padding });
+      if (side === 3) Object.assign(zombie, { x: -padding, y: position * canvas.height });
+      zombies.push(zombie);
+    }
+
+    function checkLevel() {
+      const newLevel = 1 + Math.floor(score / 10);
+      if (newLevel > level) {
+        level = newLevel;
+        statusElement.textContent = `Level ${level}! The horde is faster and deadlier.`;
+      }
+    }
+
+    function spawnBoost() {
+      const types = ["health", "rapid", "speed"];
+      const type = player.health < 45 ? "health" : types[Math.floor(Math.random() * types.length)];
+      boosts.push({
+        x: 50 + Math.random() * (canvas.width - 100),
+        y: 80 + Math.random() * (canvas.height - 130),
+        radius: 16,
+        type
+      });
+    }
+
+    function collectBoost(boost) {
+      if (boost.type === "health") {
+        player.health = Math.min(100, player.health + 30);
+        statusElement.textContent = "❤️ Health boost collected!";
+      } else if (boost.type === "rapid") {
+        activeBoosts.rapid = 8;
+        statusElement.textContent = "⚡ Rapid fire active for 8 seconds!";
+      } else {
+        activeBoosts.speed = 8;
+        statusElement.textContent = "👟 Speed boost active for 8 seconds!";
+      }
+    }
+
+    function fireAt(targetX, targetY) {
+      if (!running || fireTimer > 0) {
+        return;
+      }
+
+      const distance = Math.hypot(targetX - player.x, targetY - player.y) || 1;
+      bullets.push({
+        x: player.x,
+        y: player.y,
+        vx: ((targetX - player.x) / distance) * 500,
+        vy: ((targetY - player.y) / distance) * 500,
+        radius: 5,
+        damage: 1
+      });
+      fireTimer = activeBoosts.rapid > 0 ? 0.1 : 0.25;
+    }
+
+    function fireAtNearestZombie() {
+      if (zombies.length === 0) {
+        return;
+      }
+
+      const target = zombies.reduce((nearest, zombie) =>
+        Math.hypot(zombie.x - player.x, zombie.y - player.y) < Math.hypot(nearest.x - player.x, nearest.y - player.y)
+          ? zombie
+          : nearest
+      );
+      fireAt(target.x, target.y);
+    }
+
+    function draw() {
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      drawGrid();
+
+      for (const bullet of bullets) {
+        context.fillStyle = "#facc15";
+        context.beginPath();
+        context.arc(bullet.x, bullet.y, bullet.radius, 0, Math.PI * 2);
+        context.fill();
+      }
+
+      for (const particle of particles) {
+        context.globalAlpha = particle.life / particle.maxLife;
+        context.fillStyle = particle.color;
+        context.beginPath();
+        context.arc(particle.x, particle.y, 3, 0, Math.PI * 2);
+        context.fill();
+      }
+      context.globalAlpha = 1;
+
+      context.font = "32px sans-serif";
+      context.textAlign = "center";
+      context.textBaseline = "middle";
+      for (const zombie of zombies) {
+        context.fillStyle = zombie.color;
+        context.globalAlpha = 0.3;
+        context.beginPath();
+        context.arc(zombie.x, zombie.y, zombie.radius, 0, Math.PI * 2);
+        context.fill();
+        context.globalAlpha = 1;
+        context.fillText(zombie.emoji, zombie.x, zombie.y);
+        if (zombie.maxHealth > 1) {
+          context.fillStyle = "#0f172a";
+          context.fillRect(zombie.x - 16, zombie.y - zombie.radius - 9, 32, 4);
+          context.fillStyle = zombie.color;
+          context.fillRect(zombie.x - 16, zombie.y - zombie.radius - 9, 32 * (zombie.health / zombie.maxHealth), 4);
+        }
+      }
+
+      for (const boost of boosts) {
+        const icon = boost.type === "health" ? "❤️" : boost.type === "rapid" ? "⚡" : "👟";
+        context.fillText(icon, boost.x, boost.y);
+      }
+
+      context.font = "36px sans-serif";
+      context.fillText("🧑", player.x, player.y);
+      context.textAlign = "left";
+      context.textBaseline = "alphabetic";
+      context.font = "bold 18px Arial";
+      context.fillStyle = "#f8fafc";
+      context.fillText(`Score: ${score}`, 16, 28);
+      context.fillText(`Level: ${level}`, 16, 84);
+      context.fillText("Health", 16, 56);
+      context.fillStyle = "#334155";
+      context.fillRect(82, 42, 150, 16);
+      context.fillStyle = player.health > 35 ? "#4ade80" : "#ef4444";
+      context.fillRect(82, 42, player.health * 1.5, 16);
+      drawActiveBoosts();
+      drawOverlay();
+    }
+
+    function drawActiveBoosts() {
+      const labels = [];
+      if (activeBoosts.rapid > 0) labels.push(`⚡ ${Math.ceil(activeBoosts.rapid)}s`);
+      if (activeBoosts.speed > 0) labels.push(`👟 ${Math.ceil(activeBoosts.speed)}s`);
+      if (labels.length > 0) {
+        context.fillStyle = "#facc15";
+        context.fillText(labels.join("  "), 16, 110);
+      }
+    }
+
+    function drawOverlay() {
+      if (!paused && running) {
+        if (damageFlash > 0) {
+          context.fillStyle = `rgb(239 68 68 / ${damageFlash})`;
+          context.fillRect(0, 0, canvas.width, canvas.height);
+        }
+        return;
+      }
+
+      context.fillStyle = "rgb(15 23 42 / 78%)";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.fillStyle = "#f8fafc";
+      context.textAlign = "center";
+      context.textBaseline = "middle";
+      context.font = "bold 42px Arial";
+      context.fillText(paused ? "Paused" : "Game over", canvas.width / 2, canvas.height / 2 - 18);
+      context.font = "20px Arial";
+      context.fillText(paused ? "Press Pause to continue" : "Start a new run to try again", canvas.width / 2, canvas.height / 2 + 24);
+      context.textAlign = "left";
+      context.textBaseline = "alphabetic";
+    }
+
+    function createParticles(x, y, color, count) {
+      for (let index = 0; index < count; index += 1) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 40 + Math.random() * 100;
+        particles.push({
+          x,
+          y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          color,
+          life: 0.25 + Math.random() * 0.35,
+          maxLife: 0.6
+        });
+      }
+    }
+
+    function togglePause() {
+      if (!running) {
+        return;
+      }
+
+      paused = !paused;
+      lastFrame = performance.now();
+      pauseButton.textContent = paused ? "Resume" : "Pause";
+      statusElement.textContent = paused ? "Paused." : "Back to survival.";
+    }
+
+    function drawGrid() {
+      context.fillStyle = "#122017";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.strokeStyle = "rgb(134 239 172 / 10%)";
+      context.lineWidth = 1;
+      for (let x = 0; x <= canvas.width; x += 40) {
+        context.beginPath();
+        context.moveTo(x, 0);
+        context.lineTo(x, canvas.height);
+        context.stroke();
+      }
+      for (let y = 0; y <= canvas.height; y += 40) {
+        context.beginPath();
+        context.moveTo(0, y);
+        context.lineTo(canvas.width, y);
+        context.stroke();
+      }
+    }
+
+    function clamp(value, minimum, maximum) {
+      return Math.max(minimum, Math.min(maximum, value));
+    }
+
+    function setKey(key, isPressed) {
+      keys[isPressed ? "add" : "delete"](key);
+    }
+
+    canvas.addEventListener("pointerdown", (event) => {
+      const bounds = canvas.getBoundingClientRect();
+      fireAt(
+        (event.clientX - bounds.left) * (canvas.width / bounds.width),
+        (event.clientY - bounds.top) * (canvas.height / bounds.height)
+      );
+    });
+
+    document.addEventListener("keydown", (event) => {
+      const key = event.key === " " ? "Space" : event.key;
+      if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "w", "a", "s", "d", "Space"].includes(key)) {
+        event.preventDefault();
+        setKey(key, true);
+      }
+    });
+
+    document.addEventListener("keyup", (event) => {
+      setKey(event.key === " " ? "Space" : event.key, false);
+    });
+
+    for (const button of controlButtons) {
+      button.addEventListener("pointerdown", () => setKey(button.dataset.key, true));
+      button.addEventListener("pointerup", () => setKey(button.dataset.key, false));
+      button.addEventListener("pointerleave", () => setKey(button.dataset.key, false));
+      button.addEventListener("pointercancel", () => setKey(button.dataset.key, false));
+    }
+
+    restartButton.addEventListener("click", startGame);
+    pauseButton.addEventListener("click", togglePause);
+    startGame();
+  </script>
+</body>
+</html>

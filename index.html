@@ -17,12 +17,23 @@
       place-items: center;
       min-height: 100vh;
       margin: 0;
-      background: linear-gradient(135deg, #101827, #1e3a5f);
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 10% 16%, rgb(250 204 21 / 22%) 0 4.5rem, transparent 4.7rem),
+        radial-gradient(circle at 88% 14%, rgb(239 68 68 / 24%) 0 6rem, transparent 6.2rem),
+        radial-gradient(circle at 82% 84%, rgb(250 204 21 / 18%) 0 5rem, transparent 5.2rem),
+        radial-gradient(circle at 15% 88%, rgb(239 68 68 / 18%) 0 3.5rem, transparent 3.7rem),
+        linear-gradient(135deg, #101827 20%, #1e3a5f 100%);
     }
 
     main {
       width: min(90%, 48rem);
       padding: 3rem;
+      border: 1px solid rgb(148 163 184 / 25%);
+      border-radius: 1.5rem;
+      background: rgb(15 23 42 / 72%);
+      box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 30%);
+      backdrop-filter: blur(0.5rem);
     }
 
     h1 {
@@ -81,6 +92,10 @@
       <a class="game-card" href="connect-4/">
         <h2>Connect 4</h2>
         <p>Take turns dropping pieces and be the first to make four in a row.</p>
+      </a>
+      <a class="game-card" href="zombie-apocalypse/">
+        <h2>Zombie Apocalypse</h2>
+        <p>Survive an endless horde of zombies in this fast-paced arcade shooter.</p>
       </a>
     </section>
   </main>

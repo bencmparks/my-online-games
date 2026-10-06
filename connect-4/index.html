@@ -21,12 +21,25 @@
       min-height: 100vh;
       margin: 0;
       padding: 1.5rem;
-      background: linear-gradient(135deg, #101827, #1e3a5f);
+      background:
+        radial-gradient(circle at 8% 14%, rgb(250 204 21 / 22%) 0 4.5rem, transparent 4.7rem),
+        radial-gradient(circle at 92% 18%, rgb(239 68 68 / 24%) 0 6rem, transparent 6.2rem),
+        radial-gradient(circle at 86% 86%, rgb(250 204 21 / 18%) 0 5rem, transparent 5.2rem),
+        radial-gradient(circle at 12% 88%, rgb(239 68 68 / 18%) 0 3.5rem, transparent 3.7rem),
+        linear-gradient(135deg, #101827 20%, #1e3a5f 100%);
+      background-attachment: fixed;
     }
 
     main {
+      position: relative;
       width: min(100%, 42rem);
+      padding: 1.5rem;
+      border: 1px solid rgb(148 163 184 / 25%);
+      border-radius: 1.5rem;
+      background: rgb(15 23 42 / 72%);
+      box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 30%);
       text-align: center;
+      backdrop-filter: blur(0.5rem);
     }
 
     .back-link {
@@ -59,6 +72,11 @@
       cursor: pointer;
     }
 
+    .player-guide {
+      margin: 0 0 1rem;
+      color: #cbd5e1;
+    }
+
     .board {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
@@ -70,12 +88,16 @@
     }
 
     .cell {
+      display: grid;
+      place-items: center;
       aspect-ratio: 1;
       border: 0;
       border-radius: 50%;
       background: #e2e8f0;
       box-shadow: inset 0 0.25rem 0.25rem rgb(15 23 42 / 25%);
       cursor: pointer;
+      font-size: clamp(1.25rem, 5vw, 2.5rem);
+      line-height: 1;
       transition: transform 100ms ease, background-color 100ms ease;
     }
 
@@ -96,6 +118,80 @@
 
     .cell.yellow {
       background: #facc15;
+    }
+
+    .reaction-panel {
+      margin-top: 1.75rem;
+    }
+
+    .reaction-panel p {
+      margin: 0 0 0.5rem;
+      color: #cbd5e1;
+    }
+
+    .reaction-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .reaction {
+      padding: 0.4rem;
+      border: 1px solid #4b6382;
+      border-radius: 0.5rem;
+      background: #17243a;
+      cursor: pointer;
+      font-size: 1.5rem;
+    }
+
+    .reaction:hover,
+    .reaction:focus-visible {
+      border-color: #facc15;
+      outline: 0.15rem solid #facc15;
+      transform: translateY(-0.15rem);
+    }
+
+    #reaction-display {
+      min-height: 1.25rem;
+      margin-top: 0.5rem;
+    }
+
+    #celebration {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .celebration-emoji {
+      position: absolute;
+      top: 45%;
+      left: var(--left);
+      font-size: clamp(2rem, 8vw, 4rem);
+      animation: celebrate 1.5s ease-out var(--delay) both;
+    }
+
+    @keyframes celebrate {
+      from {
+        opacity: 0;
+        transform: translateY(1rem) scale(0.5) rotate(0deg);
+      }
+
+      25% {
+        opacity: 1;
+      }
+
+      to {
+        opacity: 0;
+        transform: translateY(-16rem) translateX(var(--drift)) scale(1.2) rotate(20deg);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .celebration-emoji {
+        animation-duration: 1ms;
+      }
     }
 
     #restart {
@@ -126,9 +222,21 @@
       <label><input type="radio" name="mode" value="robot" checked> Face the robot</label>
       <label><input type="radio" name="mode" value="local"> Two players</label>
     </div>
+    <p class="player-guide">🔴 Red goes first · 🟡 Yellow or 🤖 Robot goes next</p>
     <p id="status" aria-live="polite">Red's turn</p>
     <div class="board" id="board" role="grid" aria-label="Connect 4 board"></div>
+    <section class="reaction-panel" aria-label="Reactions">
+      <p>Send a reaction</p>
+      <div class="reaction-buttons">
+        <button class="reaction" type="button" data-emoji="👏" aria-label="Applause">👏</button>
+        <button class="reaction" type="button" data-emoji="😄" aria-label="Happy">😄</button>
+        <button class="reaction" type="button" data-emoji="😮" aria-label="Surprised">😮</button>
+        <button class="reaction" type="button" data-emoji="🔥" aria-label="Fire">🔥</button>
+      </div>
+      <p id="reaction-display" aria-live="polite"></p>
+    </section>
     <button id="restart" type="button">New game</button>
+    <div id="celebration" aria-hidden="true"></div>
   </main>
 
   <script>
@@ -138,13 +246,33 @@
     const statusElement = document.querySelector("#status");
     const restartButton = document.querySelector("#restart");
     const modeInputs = document.querySelectorAll('input[name="mode"]');
+    const celebrationElement = document.querySelector("#celebration");
+    const reactionDisplay = document.querySelector("#reaction-display");
+    const reactionButtons = document.querySelectorAll(".reaction");
     let board;
     let currentPlayer;
     let gameOver;
     let robotMoveTimeout;
+    let celebrationTimeout;
 
     function playerName(player) {
+      if (player === "red") {
+        return "🔴 Red";
+      }
+
+      return isRobotMode() ? "🤖 Robot" : "🟡 Yellow";
+    }
+
+    function playerColorName(player) {
       return player === "red" ? "Red" : "Yellow";
+    }
+
+    function pieceEmoji(player) {
+      if (player === "red") {
+        return "🔴";
+      }
+
+      return isRobotMode() ? "🤖" : "🟡";
     }
 
     function createBoard() {
@@ -152,6 +280,8 @@
       currentPlayer = "red";
       gameOver = false;
       clearTimeout(robotMoveTimeout);
+      clearTimeout(celebrationTimeout);
+      celebrationElement.replaceChildren();
       boardElement.replaceChildren();
 
       for (let row = 0; row < rows; row += 1) {
@@ -168,7 +298,7 @@
         }
       }
 
-      statusElement.textContent = "Red's turn";
+      statusElement.textContent = "🔴 Red's turn";
     }
 
     function getCell(row, column) {
@@ -189,18 +319,21 @@
       board[row][column] = currentPlayer;
       const cell = getCell(row, column);
       cell.classList.add(currentPlayer);
-      cell.setAttribute("aria-label", `${playerName(currentPlayer)} piece in column ${column + 1}, row ${row + 1}`);
+      cell.textContent = pieceEmoji(currentPlayer);
+      cell.setAttribute("aria-label", `${playerColorName(currentPlayer)} piece in column ${column + 1}, row ${row + 1}`);
 
       if (hasWon(row, column)) {
         gameOver = true;
-        statusElement.textContent = `${playerName(currentPlayer)} wins!`;
+        statusElement.textContent = `🏆 ${playerName(currentPlayer)} wins!`;
         disableBoard();
+        showCelebration([pieceEmoji(currentPlayer), "🏆", "🎉"]);
         return;
       }
 
       if (board.every((boardRow) => boardRow.every(Boolean))) {
         gameOver = true;
-        statusElement.textContent = "It's a draw!";
+        statusElement.textContent = "🤝 It's a draw!";
+        showCelebration(["🤝", "✨"]);
         return;
       }
 
@@ -208,7 +341,7 @@
       statusElement.textContent = `${playerName(currentPlayer)}'s turn`;
 
       if (isRobotMode() && currentPlayer === "yellow") {
-        statusElement.textContent = "Robot is thinking...";
+        statusElement.textContent = "🤖 Robot is thinking...";
         robotMoveTimeout = setTimeout(() => {
           placePiece(chooseRobotColumn(), true);
         }, 450);
@@ -259,6 +392,25 @@
       }
     }
 
+    function showCelebration(emojis) {
+      celebrationElement.replaceChildren();
+      for (let index = 0; index < 12; index += 1) {
+        const emoji = document.createElement("span");
+        emoji.className = "celebration-emoji";
+        emoji.textContent = emojis[index % emojis.length];
+        emoji.style.setProperty("--left", `${6 + ((index * 17) % 88)}%`);
+        emoji.style.setProperty("--drift", `${-5 + ((index * 13) % 11)}rem`);
+        emoji.style.setProperty("--delay", `${index * 60}ms`);
+        celebrationElement.append(emoji);
+      }
+
+      celebrationTimeout = setTimeout(() => celebrationElement.replaceChildren(), 2300);
+    }
+
+    function showReaction(emoji) {
+      reactionDisplay.textContent = `${emoji} Reaction sent!`;
+    }
+
     function isRobotMode() {
       return document.querySelector('input[name="mode"]:checked').value === "robot";
     }
@@ -295,6 +447,9 @@
     restartButton.addEventListener("click", createBoard);
     for (const modeInput of modeInputs) {
       modeInput.addEventListener("change", createBoard);
+    }
+    for (const reactionButton of reactionButtons) {
+      reactionButton.addEventListener("click", () => showReaction(reactionButton.dataset.emoji));
     }
     createBoard();
   </script>
