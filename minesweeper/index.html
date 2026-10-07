@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Minesweeper | My Online Games</title>
+  <style>
+    :root { color-scheme: dark; font-family: Arial, sans-serif; background: #1f2937; color: #f9fafb; } * { box-sizing: border-box; }
+    body { display: grid; place-items: center; min-height: 100vh; margin: 0; padding: 1rem; background: linear-gradient(145deg, #111827, #374151); }
+    main { width: min(100%, 38rem); padding: 1.5rem; border: .2rem solid #9ca3af; border-radius: 1.25rem; background: rgb(31 41 55 / 92%); text-align: center; } a { color: #d1d5db; } h1 { margin: .6rem 0; color: #fef08a; }
+    .stats { display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; font-weight: bold; } #board { display: grid; grid-template-columns: repeat(9, 1fr); gap: .18rem; width: min(100%, 31rem); margin: 1rem auto; padding: .35rem; border: .2rem solid #9ca3af; border-radius: .6rem; background: #030712; }
+    .cell { aspect-ratio: 1; border: .1rem solid #9ca3af; border-radius: .18rem; background: #6b7280; color: #f9fafb; cursor: pointer; font: inherit; font-size: clamp(.75rem, 3vw, 1.2rem); font-weight: bold; } .cell:hover:not(.revealed), .cell:focus-visible:not(.revealed) { background: #9ca3af; outline: .1rem solid #fef08a; } .cell.revealed { background: #d1d5db; color: #111827; cursor: default; } .cell.mine { background: #ef4444; } .cell.flagged { background: #f59e0b; }
+    button { padding: .65rem 1rem; border: 0; border-radius: .5rem; background: #fef08a; color: #1f2937; cursor: pointer; font: inherit; font-weight: bold; } #status { min-height: 1.5rem; color: #fef08a; font-weight: bold; }
+  </style>
+</head>
+<body><main>
+  <a href="../">← All games</a><h1>💣 Minesweeper</h1><p>Reveal every safe square. Right-click a square to mark a mine.</p>
+  <p class="stats">Mines: <strong id="mines">10</strong> · Time: <strong id="time">0</strong>s · Best: <strong id="best">—</strong></p>
+  <div id="board" aria-label="Minesweeper board"></div><button id="restart" type="button">New board</button><p id="status" aria-live="polite">Choose a square to begin.</p>
+</main><script src="../shared/profile.js"></script><script>
+  const size = 9, mineCount = 10, boardElement = document.querySelector("#board"), minesElement = document.querySelector("#mines"), timeElement = document.querySelector("#time"), bestElement = document.querySelector("#best"), statusElement = document.querySelector("#status");
+  const saved = GameProfiles.getGame("minesweeper", { bestTime: null }); let board, started, finished, timer, seconds;
+  bestElement.textContent = saved.bestTime ?? "—";
+  function start() { clearInterval(timer); board = Array.from({ length: size }, () => Array.from({ length: size }, () => ({ mine: false, revealed: false, flagged: false }))); started = false; finished = false; seconds = 0; timeElement.textContent = 0; minesElement.textContent = mineCount; statusElement.textContent = "Choose a square to begin."; render(); }
+  function plantMines(safeY, safeX) { let planted = 0; while (planted < mineCount) { const y = Math.floor(Math.random() * size), x = Math.floor(Math.random() * size); if (!board[y][x].mine && (Math.abs(y - safeY) > 1 || Math.abs(x - safeX) > 1)) { board[y][x].mine = true; planted += 1; } } }
+  function neighbors(y, x) { const cells = []; for (let dy = -1; dy <= 1; dy += 1) for (let dx = -1; dx <= 1; dx += 1) if ((dx || dy) && board[y + dy]?.[x + dx]) cells.push([y + dy, x + dx]); return cells; }
+  function reveal(y, x) { const cell = board[y][x]; if (finished || cell.flagged || cell.revealed) return; if (!started) { started = true; plantMines(y, x); timer = setInterval(() => { seconds += 1; timeElement.textContent = seconds; }, 1000); } cell.revealed = true; if (cell.mine) { end(false); return; } if (!neighbors(y, x).some(([ny, nx]) => board[ny][nx].mine)) neighbors(y, x).forEach(([ny, nx]) => reveal(ny, nx)); if (board.flat().filter(item => !item.mine).every(item => item.revealed)) end(true); render(); }
+  function end(won) { finished = true; clearInterval(timer); if (won) { statusElement.textContent = `You cleared the field in ${seconds} seconds!`; if (saved.bestTime === null || seconds < saved.bestTime) { saved.bestTime = seconds; bestElement.textContent = seconds; GameProfiles.saveGame("minesweeper", saved); } } else { board.flat().filter(cell => cell.mine).forEach(cell => cell.revealed = true); statusElement.textContent = "Boom! Start a new board to try again."; } render(); }
+  function render() { boardElement.replaceChildren(); let flags = 0; board.forEach((row, y) => row.forEach((cell, x) => { const button = document.createElement("button"), count = neighbors(y, x).filter(([ny, nx]) => board[ny][nx].mine).length; button.type = "button"; button.className = `cell${cell.revealed ? " revealed" : ""}${cell.flagged ? " flagged" : ""}${cell.revealed && cell.mine ? " mine" : ""}`; button.textContent = cell.revealed ? (cell.mine ? "💣" : count || "") : cell.flagged ? "⚑" : ""; button.addEventListener("click", () => reveal(y, x)); button.addEventListener("contextmenu", event => { event.preventDefault(); if (!finished && !cell.revealed) { cell.flagged = !cell.flagged; render(); } }); boardElement.append(button); if (cell.flagged) flags += 1; })); minesElement.textContent = mineCount - flags; }
+  document.querySelector("#restart").addEventListener("click", start); start();
+</script></body></html>

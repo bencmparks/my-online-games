@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Snake | My Online Games</title>
+  <style>
+    :root { color-scheme: dark; font-family: Arial, sans-serif; background: #14532d; color: #f0fdf4; } * { box-sizing: border-box; }
+    body { display: grid; place-items: center; min-height: 100vh; margin: 0; padding: 1rem; background: linear-gradient(145deg, #14532d, #166534); }
+    main { width: min(100%, 37rem); padding: 1.5rem; border: .2rem solid #86efac; border-radius: 1.25rem; background: rgb(20 83 45 / 90%); text-align: center; } a { color: #bbf7d0; } h1 { margin: .6rem 0; color: #fef08a; }
+    canvas { display: block; width: min(100%, 25rem); height: auto; margin: 1rem auto; border: .2rem solid #86efac; border-radius: .6rem; background: #052e16; image-rendering: pixelated; touch-action: none; }
+    button { padding: .65rem 1rem; border: 0; border-radius: .5rem; background: #fef08a; color: #14532d; cursor: pointer; font: inherit; font-weight: bold; } .controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: .35rem; width: 11rem; margin: .75rem auto; } .controls button:nth-child(1) { grid-column: 2; } #status { min-height: 1.5rem; color: #fef08a; font-weight: bold; }
+  </style>
+</head>
+<body><main>
+  <a href="../">← All games</a><h1>🐍 Snake</h1><p>Eat fruit, grow longer, and do not hit a wall or yourself.</p>
+  <p>Score: <strong id="score">0</strong> · Best: <strong id="best">0</strong></p><canvas id="game" width="400" height="400" aria-label="Snake game"></canvas>
+  <button id="start" type="button">Start game</button><div class="controls"><button data-direction="up" type="button">↑</button><button data-direction="left" type="button">←</button><button data-direction="down" type="button">↓</button><button data-direction="right" type="button">→</button></div><p id="status" aria-live="polite">Use arrow keys or controls to steer.</p>
+</main><script src="../shared/profile.js"></script><script>
+  const canvas = document.querySelector("#game"), context = canvas.getContext("2d"), scoreElement = document.querySelector("#score"), bestElement = document.querySelector("#best"), statusElement = document.querySelector("#status"), startButton = document.querySelector("#start");
+  const saved = GameProfiles.getGame("snake", { bestScore: 0 }); let snake, direction, queuedDirection, food, score, timer, playing;
+  bestElement.textContent = saved.bestScore;
+  function randomCell() { return { x: Math.floor(Math.random() * 20), y: Math.floor(Math.random() * 20) }; }
+  function start() { snake = [{ x: 10, y: 10 }]; direction = { x: 1, y: 0 }; queuedDirection = direction; food = randomCell(); score = 0; playing = true; scoreElement.textContent = 0; statusElement.textContent = "Collect the fruit!"; clearInterval(timer); timer = setInterval(step, 120); draw(); }
+  function step() { direction = queuedDirection; const head = { x: snake[0].x + direction.x, y: snake[0].y + direction.y }; if (head.x < 0 || head.x > 19 || head.y < 0 || head.y > 19 || snake.some(cell => cell.x === head.x && cell.y === head.y)) { playing = false; clearInterval(timer); statusElement.textContent = `Game over! Score: ${score}.`; if (score > saved.bestScore) { saved.bestScore = score; bestElement.textContent = score; GameProfiles.saveGame("snake", saved); } return; } snake.unshift(head); if (head.x === food.x && head.y === food.y) { score += 1; scoreElement.textContent = score; do { food = randomCell(); } while (snake.some(cell => cell.x === food.x && cell.y === food.y)); } else snake.pop(); draw(); }
+  function draw() { context.fillStyle = "#052e16"; context.fillRect(0, 0, 400, 400); context.fillStyle = "#f87171"; context.fillRect(food.x * 20 + 2, food.y * 20 + 2, 16, 16); snake.forEach((cell, index) => { context.fillStyle = index ? "#4ade80" : "#fef08a"; context.fillRect(cell.x * 20 + 2, cell.y * 20 + 2, 16, 16); }); }
+  function turn(name) { const directions = { up: { x: 0, y: -1 }, down: { x: 0, y: 1 }, left: { x: -1, y: 0 }, right: { x: 1, y: 0 } }, next = directions[name]; if (playing && next.x !== -direction.x && next.y !== -direction.y) queuedDirection = next; }
+  document.addEventListener("keydown", event => { if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) { event.preventDefault(); turn(event.key.slice(5).toLowerCase()); } }); document.querySelectorAll("[data-direction]").forEach(button => button.addEventListener("click", () => turn(button.dataset.direction))); startButton.addEventListener("click", start); start();
+</script></body></html>

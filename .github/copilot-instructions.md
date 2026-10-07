@@ -18,3 +18,8 @@ Keep a list of my games here.
 - Gem Merge (`gem-merge/`)
 - Coloring Studio (`coloring-studio/`)
 - Word Dash (`word-dash/`)
+- Snake (`snake/`)
+- Pong (`pong/`)
+- Tic-Tac-Toe (`tic-tac-toe/`)
+- Minesweeper (`minesweeper/`)
+- Space Mine Idle (`space-mine-idle/`)

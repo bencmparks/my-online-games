@@ -168,16 +168,20 @@
     <div class="game-actions">
       <button id="restart" type="button">Start new run</button>
       <button id="pause" type="button">Pause</button>
+      <button id="leave-to-shop" type="button">Leave to shop</button>
     </div>
     <section id="armory" hidden aria-labelledby="armory-title">
-      <h2 id="armory-title">Post-Run Armory</h2>
+      <h2 id="armory-title">Wave Upgrades</h2>
       <p>🪙 Coins: <strong id="coins">0</strong></p>
       <div class="armory-items">
         <button type="button" data-upgrade="vest">🛡️ Vest +20 health (<span></span> coins)</button>
         <button type="button" data-upgrade="blaster">🔫 Blaster +1 damage (<span></span> coins)</button>
         <button type="button" data-upgrade="boots">👟 Boots +15 speed (<span></span> coins)</button>
-        <button type="button" data-upgrade="pet">🐕 Recruit pet, max 3 (<span></span> coins)</button>
+        <button type="button" data-upgrade="cat">🐈 Collector cat, max 3 (<span></span> coins)</button>
+        <button type="button" data-upgrade="dog">🐕 Fighter dog, max 3 (<span></span> coins)</button>
+        <button type="button" data-upgrade="protectorDog">🦮 Protector dog, max 1 (<span></span> coins)</button>
       </div>
+      <button id="resume-wave" type="button">Resume wave</button>
     </section>
   </main>
 
@@ -188,19 +192,25 @@
     const statusElement = document.querySelector("#status");
     const restartButton = document.querySelector("#restart");
     const pauseButton = document.querySelector("#pause");
+    const leaveToShopButton = document.querySelector("#leave-to-shop");
+    const resumeWaveButton = document.querySelector("#resume-wave");
     const armoryElement = document.querySelector("#armory");
     const coinElement = document.querySelector("#coins");
     const upgradeButtons = document.querySelectorAll("[data-upgrade]");
     const controlButtons = document.querySelectorAll("[data-key]");
     const keys = new Set();
     const player = { x: 360, y: 240, radius: 18, health: 100, speed: 260 };
-    const progress = GameProfiles.getGame("zombie-apocalypse", { coins: 0, vestLevel: 0, blasterLevel: 0, bootsLevel: 0, petLevel: 0 });
-    progress.petLevel = Math.min(progress.petLevel ?? 0, 2);
+    const progress = GameProfiles.getGame("zombie-apocalypse", { coins: 0, vestLevel: 0, blasterLevel: 0, bootsLevel: 0, catLevel: 0, dogLevel: 0, protectorDogLevel: 0 });
+    progress.catLevel = Math.min(progress.catLevel ?? 0, 3);
+    progress.dogLevel = Math.min(progress.dogLevel ?? progress.petLevel ?? 0, 3);
+    progress.protectorDogLevel = Math.min(progress.protectorDogLevel ?? 0, 1);
     let zombies;
     let bullets;
     let boosts;
     let coins;
-    let pets;
+    let cats;
+    let fighterDogs;
+    let protectorDog;
     let particles;
     let score;
     let level;
@@ -223,7 +233,9 @@
       bullets = [];
       boosts = [];
       coins = [];
-      pets = Array.from({ length: Math.min(3, 1 + progress.petLevel) }, (_, index) => ({ x: player.x, y: player.y, attackCooldown: 0, index }));
+      cats = Array.from({ length: progress.catLevel }, () => ({ x: player.x, y: player.y }));
+      fighterDogs = Array.from({ length: progress.dogLevel }, () => ({ x: player.x, y: player.y, attackCooldown: 0 }));
+      protectorDog = progress.protectorDogLevel ? { x: player.x, y: player.y, attackCooldown: 0 } : null;
       particles = [];
       score = 0;
       level = 1;
@@ -237,6 +249,7 @@
       damageFlash = 0;
       keys.clear();
       pauseButton.disabled = false;
+      resumeWaveButton.disabled = false;
       armoryElement.hidden = true;
       pauseButton.textContent = "Pause";
       statusElement.textContent = "The horde is approaching.";
@@ -292,8 +305,8 @@
           damageFlash = 0.25;
         }
 
-        updatePets(deltaTime);
       }
+      updateCompanions(deltaTime);
 
       for (const bullet of bullets) {
         bullet.x += bullet.vx * deltaTime;
@@ -354,6 +367,7 @@
         player.health = 0;
         running = false;
         pauseButton.disabled = true;
+        resumeWaveButton.disabled = true;
         armoryElement.hidden = false;
         updateArmory();
         statusElement.textContent = `Game over — you reached level ${level} and eliminated ${score} zombies. Spend your coins in the armory.`;
@@ -374,47 +388,83 @@
       player.y = clamp(player.y + (vertical / distance) * player.speed * speedMultiplier * deltaTime, player.radius, canvas.height - player.radius);
     }
 
-    function updatePets(deltaTime) {
-      for (const pet of pets) {
-        const angle = (pet.index / pets.length) * Math.PI * 2;
-        const targetX = player.x + Math.cos(angle) * 34;
-        const targetY = player.y + Math.sin(angle) * 34;
-        pet.x += (targetX - pet.x) * Math.min(1, deltaTime * 8);
-        pet.y += (targetY - pet.y) * Math.min(1, deltaTime * 8);
-        pet.attackCooldown = Math.max(0, pet.attackCooldown - deltaTime);
+    function moveCompanion(companion, target, speed, deltaTime) {
+      const distance = Math.hypot(target.x - companion.x, target.y - companion.y) || 1;
+      companion.x += ((target.x - companion.x) / distance) * Math.min(distance, speed * deltaTime);
+      companion.y += ((target.y - companion.y) / distance) * Math.min(distance, speed * deltaTime);
+    }
 
-        for (let coinIndex = coins.length - 1; coinIndex >= 0; coinIndex -= 1) {
-          if (Math.hypot(pet.x - coins[coinIndex].x, pet.y - coins[coinIndex].y) < 28) {
-            collectCoin(coinIndex);
-          }
-        }
+    function defeatZombie(zombie) {
+      const index = zombies.indexOf(zombie);
+      if (index < 0) return;
+      zombies.splice(index, 1);
+      score += zombie.score;
+      coins.push({ x: zombie.x, y: zombie.y, radius: 12, value: zombie.score });
+      createParticles(zombie.x, zombie.y, zombie.color, 14);
+      checkLevel();
+      if (score >= nextBoostScore) {
+        spawnBoost();
+        nextBoostScore += 12 + Math.floor(Math.random() * 9);
+      }
+    }
 
-        if (pet.attackCooldown > 0 || zombies.length === 0) {
-          continue;
-        }
-        const target = zombies.reduce((closest, zombie) =>
-          Math.hypot(zombie.x - pet.x, zombie.y - pet.y) < Math.hypot(closest.x - pet.x, closest.y - pet.y)
-            ? zombie
-            : closest
-        );
-        if (Math.hypot(target.x - pet.x, target.y - pet.y) < 115) {
-          target.health -= 1;
-          pet.attackCooldown = 0.9;
-          createParticles(target.x, target.y, "#fef3c7", 4);
-          if (target.health <= 0) {
-            const index = zombies.indexOf(target);
-            zombies.splice(index, 1);
-            score += target.score;
-            coins.push({ x: target.x, y: target.y, radius: 12, value: target.score });
-            createParticles(target.x, target.y, target.color, 14);
-            checkLevel();
-            if (score >= nextBoostScore) {
-              spawnBoost();
-              nextBoostScore += 12 + Math.floor(Math.random() * 9);
-            }
+    function separateDogs() {
+      const dogs = protectorDog ? [...fighterDogs, protectorDog] : fighterDogs;
+      const minimumDistance = 38;
+      for (let firstIndex = 0; firstIndex < dogs.length; firstIndex += 1) {
+        for (let secondIndex = firstIndex + 1; secondIndex < dogs.length; secondIndex += 1) {
+          const first = dogs[firstIndex];
+          const second = dogs[secondIndex];
+          const distance = Math.hypot(second.x - first.x, second.y - first.y);
+          if (distance >= minimumDistance) {
+            continue;
           }
+          const angle = distance ? Math.atan2(second.y - first.y, second.x - first.x) : (firstIndex + 1) * Math.PI;
+          const pushDistance = (minimumDistance - distance) / 2;
+          first.x = clamp(first.x - Math.cos(angle) * pushDistance, 14, canvas.width - 14);
+          first.y = clamp(first.y - Math.sin(angle) * pushDistance, 14, canvas.height - 14);
+          second.x = clamp(second.x + Math.cos(angle) * pushDistance, 14, canvas.width - 14);
+          second.y = clamp(second.y + Math.sin(angle) * pushDistance, 14, canvas.height - 14);
         }
       }
+    }
+
+    function updateCompanions(deltaTime) {
+      for (const cat of cats) {
+        const target = coins.reduce((closest, coin) => !closest || Math.hypot(coin.x - cat.x, coin.y - cat.y) < Math.hypot(closest.x - cat.x, closest.y - cat.y) ? coin : closest, null) ?? { x: player.x - 28, y: player.y + 28 };
+        moveCompanion(cat, target, 210, deltaTime);
+        for (let index = coins.length - 1; index >= 0; index -= 1) if (Math.hypot(cat.x - coins[index].x, cat.y - coins[index].y) < 20) collectCoin(index);
+      }
+      for (const dog of fighterDogs) {
+        dog.attackCooldown = Math.max(0, dog.attackCooldown - deltaTime);
+        const target = zombies.reduce((closest, zombie) => !closest || Math.hypot(zombie.x - dog.x, zombie.y - dog.y) < Math.hypot(closest.x - dog.x, closest.y - dog.y) ? zombie : closest, null);
+        if (!target) {
+          moveCompanion(dog, { x: player.x + 28, y: player.y + 28 }, 180, deltaTime);
+          continue;
+        }
+        moveCompanion(dog, target, 220, deltaTime);
+        if (dog.attackCooldown === 0 && Math.hypot(dog.x - target.x, dog.y - target.y) < target.radius + 20) {
+          target.health -= 1;
+          dog.attackCooldown = 0.6;
+          createParticles(target.x, target.y, "#fef3c7", 4);
+          if (target.health <= 0) defeatZombie(target);
+        }
+      }
+      if (!protectorDog) {
+        separateDogs();
+        return;
+      }
+      protectorDog.attackCooldown = Math.max(0, protectorDog.attackCooldown - deltaTime);
+      moveCompanion(protectorDog, { x: player.x + 32, y: player.y - 28 }, 180, deltaTime);
+      for (let index = coins.length - 1; index >= 0; index -= 1) if (Math.hypot(protectorDog.x - coins[index].x, protectorDog.y - coins[index].y) < 28) collectCoin(index);
+      const target = zombies.reduce((closest, zombie) => !closest || Math.hypot(zombie.x - protectorDog.x, zombie.y - protectorDog.y) < Math.hypot(closest.x - protectorDog.x, closest.y - protectorDog.y) ? zombie : closest, null);
+      if (target && protectorDog.attackCooldown === 0 && Math.hypot(target.x - protectorDog.x, target.y - protectorDog.y) < 115) {
+        target.health -= 1;
+        protectorDog.attackCooldown = 0.9;
+        createParticles(target.x, target.y, "#fef3c7", 4);
+        if (target.health <= 0) defeatZombie(target);
+      }
+      separateDogs();
     }
 
     function collectCoin(coinIndex) {
@@ -564,9 +614,9 @@
       context.font = "36px sans-serif";
       context.fillText("🧑", player.x, player.y);
       context.font = "26px sans-serif";
-      for (const pet of pets) {
-        context.fillText("🐕", pet.x, pet.y);
-      }
+      for (const cat of cats) context.fillText("🐈", cat.x, cat.y);
+      for (const dog of fighterDogs) context.fillText("🐕", dog.x, dog.y);
+      if (protectorDog) context.fillText("🦮", protectorDog.x, protectorDog.y);
       context.textAlign = "left";
       context.textBaseline = "alphabetic";
       context.font = "bold 18px Arial";
@@ -632,6 +682,8 @@
     }
 
     function getUpgradeCost(upgrade) {
+      if (upgrade === "cat" || upgrade === "dog") return 3000;
+      if (upgrade === "protectorDog") return 10000;
       const level = progress[`${upgrade}Level`];
       return 10 + level * 15;
     }
@@ -641,12 +693,12 @@
       for (const button of upgradeButtons) {
         const cost = getUpgradeCost(button.dataset.upgrade);
         button.querySelector("span").textContent = cost;
-        button.disabled = progress.coins < cost || (button.dataset.upgrade === "pet" && progress.petLevel >= 2);
+        button.disabled = progress.coins < cost || (button.dataset.upgrade === "cat" && progress.catLevel >= 3) || (button.dataset.upgrade === "dog" && progress.dogLevel >= 3) || (button.dataset.upgrade === "protectorDog" && progress.protectorDogLevel >= 1);
       }
     }
 
     function buyUpgrade(upgrade) {
-      if (upgrade === "pet" && progress.petLevel >= 2) {
+      if ((upgrade === "cat" && progress.catLevel >= 3) || (upgrade === "dog" && progress.dogLevel >= 3) || (upgrade === "protectorDog" && progress.protectorDogLevel >= 1)) {
         return;
       }
       const cost = getUpgradeCost(upgrade);
@@ -668,6 +720,32 @@
       lastFrame = performance.now();
       pauseButton.textContent = paused ? "Resume" : "Pause";
       statusElement.textContent = paused ? "Paused." : "Back to survival.";
+    }
+
+    function leaveToShop() {
+      if (!running) {
+        return;
+      }
+      running = false;
+      paused = false;
+      keys.clear();
+      pauseButton.disabled = true;
+      armoryElement.hidden = false;
+      updateArmory();
+      statusElement.textContent = `Wave ${level} ended. Spend your coins on upgrades before starting a new run.`;
+    }
+
+    function resumeWave() {
+      if (running || player.health <= 0) {
+        return;
+      }
+      armoryElement.hidden = true;
+      paused = false;
+      running = true;
+      lastFrame = performance.now();
+      pauseButton.disabled = false;
+      statusElement.textContent = `Wave ${level} resumed.`;
+      animationFrame = requestAnimationFrame(gameLoop);
     }
 
     function drawGrid() {
@@ -729,6 +807,8 @@
 
     restartButton.addEventListener("click", startGame);
     pauseButton.addEventListener("click", togglePause);
+    leaveToShopButton.addEventListener("click", leaveToShop);
+    resumeWaveButton.addEventListener("click", resumeWave);
     startGame();
   </script>
 </body>
