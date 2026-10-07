@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coloring Studio | My Online Games</title>
+<style>
+:root{font-family:Arial,sans-serif;background:#172554;color:#f8fafc}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1.5rem;background:linear-gradient(135deg,#172554,#7c3aed)}main{width:min(100%,48rem);padding:1.5rem;border:.25rem solid #ddd6fe;border-radius:1.5rem;background:#312e81;text-align:center}a{color:#e0e7ff}h1{color:#fef3c7}.picture-picker,.palette{display:flex;flex-wrap:wrap;justify-content:center;gap:.6rem;margin:1rem 0}.picture{margin:0;padding:.55rem .8rem;background:#ddd6fe;color:#312e81}.picture.selected{background:#facc15;outline:.2rem solid #fff}.color{width:2.8rem;height:2.8rem;border:.2rem solid #fff;border-radius:50%;cursor:pointer;color:#0f172a;font-weight:bold}.color.selected{outline:.25rem solid #facc15;outline-offset:.15rem}.scene{width:100%;border:.25rem solid #ddd6fe;border-radius:1rem;background:#e0f2fe}.region{fill:#fff;stroke:#312e81;stroke-width:5;cursor:pointer;transition:fill 150ms ease}.region:hover{filter:brightness(.9)}.number-label{pointer-events:none;fill:#312e81;font-size:22px;font-weight:bold;text-anchor:middle;dominant-baseline:middle}button{margin-top:1rem;padding:.65rem 1rem;border:0;border-radius:.5rem;background:#facc15;color:#312e81;cursor:pointer;font:inherit;font-weight:bold}#status{min-height:1.5rem;color:#fef3c7;font-weight:bold}</style>
+</head>
+<body>
+<main>
+<a href="../">← All games</a>
+<h1>Coloring Studio</h1>
+<p>Choose a picture, then choose a numbered color to fill matching areas.</p>
+<div class="picture-picker" id="picture-picker" aria-label="Choose a picture"></div>
+<div class="palette" id="palette"></div>
+<p id="status" aria-live="polite">Color 1 is selected.</p>
+<svg class="scene" id="scene" viewBox="0 0 600 420" role="img"></svg>
+<button id="reset" type="button">Reset this picture</button>
+</main>
+<script>
+const colors=["#38bdf8","#facc15","#a16207","#4ade80","#64748b","#c4b5fd","#fb7185","#f97316","#f8fafc","#334155"];
+const pictures=[
+{name:"Tropical Day",label:"Tropical color by number scene",art:`<path class="region" data-number="1" d="M0 300 Q150 250 300 310 T600 300 V420 H0Z"/><circle class="region" data-number="2" cx="480" cy="85" r="48"/><path class="region" data-number="3" d="M100 315 V120 Q130 80 160 120 V315Z"/><path class="region" data-number="4" d="M130 145 Q65 110 50 55 Q120 80 150 125 Q190 65 245 65 Q190 125 155 150 Q220 155 250 205 Q170 185 130 155Z"/><path class="region" data-number="5" d="M270 310 Q300 235 350 310Z"/><path class="region" data-number="6" d="M365 310 Q410 200 470 310Z"/><path class="region" data-number="7" d="M250 275 Q300 210 350 275 Q330 330 300 330 Q265 325 250 275Z"/><path class="region" data-number="8" d="M320 250 Q350 175 380 235 Q365 265 340 275Z"/><circle class="region" data-number="9" cx="383" cy="225" r="18"/><path class="region" data-number="10" d="M292 322 V380 M315 322 V380"/>`},
+{name:"Space Trip",label:"Space color by number scene",art:`<circle class="region" data-number="1" cx="300" cy="200" r="125"/><path class="region" data-number="2" d="M0 55 H600 V135 H0Z"/><circle class="region" data-number="3" cx="120" cy="100" r="18"/><circle class="region" data-number="4" cx="485" cy="95" r="27"/><path class="region" data-number="5" d="M270 320 L300 115 L330 320Z"/><path class="region" data-number="6" d="M270 245 L205 295 L270 305Z"/><path class="region" data-number="7" d="M330 245 L395 295 L330 305Z"/><circle class="region" data-number="8" cx="300" cy="220" r="28"/><path class="region" data-number="9" d="M280 320 L300 365 L320 320Z"/><path class="region" data-number="10" d="M292 130 L300 95 L308 130Z"/>`},
+{name:"Garden Friend",label:"Garden color by number scene",art:`<path class="region" data-number="1" d="M0 285 Q150 245 300 290 T600 280 V420 H0Z"/><circle class="region" data-number="2" cx="300" cy="200" r="58"/><circle class="region" data-number="3" cx="300" cy="105" r="42"/><path class="region" data-number="4" d="M265 80 Q235 25 285 42Z"/><path class="region" data-number="5" d="M335 80 Q365 25 315 42Z"/><circle class="region" data-number="6" cx="284" cy="100" r="6"/><circle class="region" data-number="7" cx="316" cy="100" r="6"/><path class="region" data-number="8" d="M265 180 Q205 145 220 245 Q250 275 265 235Z"/><path class="region" data-number="9" d="M335 180 Q395 145 380 245 Q350 275 335 235Z"/><path class="region" data-number="10" d="M292 258 V330 M308 258 V330"/>`}
+];
+const palette=document.querySelector("#palette"),picker=document.querySelector("#picture-picker"),status=document.querySelector("#status"),scene=document.querySelector("#scene");
+let selected=1,currentPicture=0,regions=[];
+function addLabels(){regions.forEach(region=>{const box=region.getBBox(),label=document.createElementNS("http://www.w3.org/2000/svg","text");label.classList.add("number-label");label.textContent=region.dataset.number;label.setAttribute("x",box.x+box.width/2);label.setAttribute("y",box.y+box.height/2);scene.append(label);region.label=label})}
+function paintRegion(region){if(Number(region.dataset.number)!==selected){status.textContent=`That area is color ${region.dataset.number}. Choose color ${region.dataset.number}.`;return}region.style.fill=colors[selected-1];region.label.remove();if(regions.every(item=>item.style.fill)){status.textContent=`🎉 ${pictures[currentPicture].name} is complete!`}}
+function loadPicture(index){currentPicture=index;scene.innerHTML=pictures[index].art;scene.setAttribute("aria-label",pictures[index].label);regions=[...scene.querySelectorAll(".region")];regions.forEach(region=>region.addEventListener("click",()=>paintRegion(region)));addLabels();[...picker.children].forEach((button,buttonIndex)=>button.classList.toggle("selected",buttonIndex===index));status.textContent=`${pictures[index].name} is ready. Color ${selected} is selected.`}
+colors.forEach((color,index)=>{const button=document.createElement("button");button.className="color";button.style.background=color;button.textContent=index+1;button.setAttribute("aria-label",`Select color ${index+1}`);button.addEventListener("click",()=>{selected=index+1;[...palette.children].forEach(item=>item.classList.toggle("selected",item===button));status.textContent=`Color ${selected} is selected.`});palette.append(button)});
+pictures.forEach((picture,index)=>{const button=document.createElement("button");button.className="picture";button.textContent=picture.name;button.addEventListener("click",()=>loadPicture(index));picker.append(button)});
+palette.firstChild.classList.add("selected");
+document.querySelector("#reset").addEventListener("click",()=>loadPicture(currentPicture));
+loadPicture(0);
+</script>
+</body>
+</html>

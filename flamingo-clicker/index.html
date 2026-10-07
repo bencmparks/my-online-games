@@ -1,0 +1,625 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Flamingo Clicker | My Online Games</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Arial, sans-serif;
+      background: #2d153c;
+      color: #fff7fb;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      display: grid;
+      place-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 1.5rem;
+      background:
+        radial-gradient(circle at 15% 15%, rgb(254 205 211 / 45%) 0 6rem, transparent 6.2rem),
+        radial-gradient(circle at 85% 80%, rgb(45 212 191 / 32%) 0 8rem, transparent 8.2rem),
+        linear-gradient(145deg, #7e2253, #5b1f68);
+    }
+
+    main {
+      width: min(100%, 58rem);
+      padding: clamp(1rem, 4vw, 2rem);
+      border: 0.25rem solid #fecdd3;
+      border-radius: 1.5rem;
+      background: rgb(92 31 77 / 88%);
+      box-shadow: 0 1rem 0 #831843, 0 1.5rem 4rem rgb(0 0 0 / 35%);
+      text-align: center;
+      backdrop-filter: blur(0.5rem);
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-bottom: 1rem;
+      color: #fce7f3;
+    }
+
+    h1 {
+      margin: 0;
+      color: #fda4af;
+      font-size: clamp(2.25rem, 7vw, 4rem);
+      text-shadow: 0.2rem 0.2rem 0 #831843;
+    }
+
+    .instructions {
+      margin: 0.75rem 0;
+      color: #fce7f3;
+    }
+
+    .score {
+      margin: 0.75rem 0 1.25rem;
+      color: #fef3c7;
+      font-size: clamp(1.5rem, 5vw, 2.25rem);
+      font-weight: bold;
+    }
+
+    .game-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(16rem, 21rem);
+      gap: 1.5rem;
+      align-items: center;
+    }
+
+    .lagoon {
+      position: relative;
+      min-height: 24rem;
+      overflow: hidden;
+      border: 0.25rem solid #fce7f3;
+      border-radius: 1rem;
+      background:
+        radial-gradient(circle at 76% 18%, #fde68a 0 2.8rem, transparent 2.9rem),
+        linear-gradient(#f9a8d4 0 48%, #2dd4bf 48% 100%);
+      box-shadow: inset 0 -1rem 0 rgb(15 118 110 / 25%);
+    }
+
+    .lagoon::before,
+    .lagoon::after {
+      position: absolute;
+      border-radius: 50%;
+      background: rgb(255 255 255 / 18%);
+      content: "";
+    }
+
+    .lagoon::before {
+      width: 12rem;
+      height: 2rem;
+      right: -2rem;
+      bottom: 3rem;
+      box-shadow: -12rem -4rem 0 rgb(255 255 255 / 13%);
+    }
+
+    .lagoon::after {
+      width: 8rem;
+      height: 1.5rem;
+      left: -1rem;
+      bottom: 7rem;
+    }
+
+    .lagoon-palm {
+      position: absolute;
+      z-index: 1;
+      right: 1rem;
+      bottom: 1rem;
+      font-size: 4rem;
+      filter: drop-shadow(0.15rem 0.2rem 0 rgb(20 83 45 / 30%));
+      transform: rotate(8deg);
+    }
+
+    .lagoon-palm.left {
+      right: auto;
+      bottom: 0.5rem;
+      left: 0.25rem;
+      font-size: 3rem;
+      transform: scaleX(-1) rotate(6deg);
+    }
+
+    #flock-visual {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .flock-member {
+      position: absolute;
+      z-index: 1;
+      font-size: 3rem;
+      filter: drop-shadow(0.1rem 0.15rem 0 rgb(80 7 36 / 30%));
+      animation: flock-bob 2.5s ease-in-out var(--delay) infinite;
+    }
+
+    #flamingo {
+      position: relative;
+      z-index: 1;
+      width: 11rem;
+      height: 11rem;
+      margin-top: 7rem;
+      border: 0;
+      border-radius: 50%;
+      background: transparent;
+      cursor: pointer;
+      font-size: 8rem;
+      line-height: 1;
+      filter: drop-shadow(0.2rem 0.35rem 0 rgb(131 24 67 / 35%));
+      transition: transform 100ms ease, filter 100ms ease;
+    }
+
+    #flamingo:hover,
+    #flamingo:focus-visible {
+      outline: 0.2rem solid #fef3c7;
+      outline-offset: 0.2rem;
+      transform: scale(1.08);
+    }
+
+    #flamingo:active {
+      transform: scale(0.92);
+    }
+
+    #flamingo.cool-skin::after {
+      position: absolute;
+      top: 1.45rem;
+      left: 3.1rem;
+      content: "🕶️";
+      font-size: 2.15rem;
+      line-height: 1;
+      pointer-events: none;
+    }
+
+    #flamingo.flower-skin::after,
+    #flamingo.star-skin::after,
+    #flamingo.crown-skin::after {
+      position: absolute;
+      line-height: 1;
+      pointer-events: none;
+    }
+
+    #flamingo.flower-skin::after {
+      top: 0.4rem;
+      left: 2.1rem;
+      content: "🌺";
+      font-size: 2.6rem;
+    }
+
+    #flamingo.star-skin::after {
+      top: 0.4rem;
+      right: 0.2rem;
+      content: "✨";
+      font-size: 2.8rem;
+    }
+
+    #flamingo.crown-skin::after {
+      top: -0.45rem;
+      left: 3.2rem;
+      content: "👑";
+      font-size: 2.8rem;
+    }
+
+    .floating-score {
+      position: absolute;
+      z-index: 2;
+      color: #fff;
+      font-size: 1.5rem;
+      font-weight: bold;
+      pointer-events: none;
+      animation: float-up 800ms ease-out forwards;
+      text-shadow: 0.15rem 0.15rem 0 #be185d;
+    }
+
+    .sparkle {
+      position: absolute;
+      z-index: 2;
+      color: #fef3c7;
+      font-size: 1.5rem;
+      pointer-events: none;
+      animation: sparkle-pop 700ms ease-out forwards;
+    }
+
+    @keyframes float-up {
+      from {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      @keyframes sparkle-pop {
+        from {
+          opacity: 1;
+          transform: scale(0.5) rotate(0deg);
+        }
+
+        to {
+          opacity: 0;
+          transform: translate(var(--drift-x), var(--drift-y)) scale(1.3) rotate(80deg);
+        }
+      }
+
+      @keyframes flock-bob {
+        50% {
+          transform: translateY(-0.5rem) rotate(-4deg);
+        }
+      }
+
+      to {
+        opacity: 0;
+        transform: translateY(-5rem);
+      }
+    }
+
+    .upgrades {
+      padding: 1rem;
+      border: 0.2rem solid #fecdd3;
+      border-radius: 1rem;
+      background: rgb(45 27 62 / 70%);
+      text-align: left;
+    }
+
+    .upgrades h2 {
+      margin-top: 0;
+      font-size: 1.25rem;
+    }
+
+    .upgrade-list {
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .upgrade {
+      padding: 0.75rem;
+      border: 0.15rem solid #fda4af;
+      border-radius: 0.75rem;
+      background: #5b214d;
+      box-shadow: 0 0.25rem 0 #831843;
+    }
+
+    .upgrade h3 {
+      margin: 0;
+      font-size: 1rem;
+    }
+
+    .upgrade p {
+      margin: 0.4rem 0 0.7rem;
+      color: #fce7f3;
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+
+    .skins {
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 0.15rem solid #fda4af;
+    }
+
+    .skins h2 {
+      margin-bottom: 0.5rem;
+    }
+
+    .skins label {
+      display: block;
+      color: #fce7f3;
+      font-weight: bold;
+    }
+
+    .skins select {
+      width: 100%;
+      margin-top: 0.4rem;
+      padding: 0.6rem;
+      border: 0.15rem solid #fda4af;
+      border-radius: 0.5rem;
+      background: #fff7fb;
+      color: #500724;
+      font: inherit;
+      font-weight: bold;
+    }
+
+    .skins p {
+      margin: 0.55rem 0 0;
+      color: #fef3c7;
+      font-size: 0.9rem;
+    }
+
+    .buy {
+      width: 100%;
+      padding: 0.6rem;
+      border: 1px solid #be123c;
+      border-radius: 0.5rem;
+      background: #fda4af;
+      color: #500724;
+      cursor: pointer;
+      font: inherit;
+      font-weight: bold;
+    }
+
+    .buy:hover:not(:disabled),
+    .buy:focus-visible:not(:disabled) {
+      background: #fecdd3;
+      outline: 0.15rem solid #fef3c7;
+      outline-offset: 0.1rem;
+      transform: translateY(-0.1rem);
+    }
+
+    .buy:disabled {
+      border-color: #475569;
+      background: #334155;
+      color: #94a3b8;
+      cursor: not-allowed;
+    }
+
+    #status {
+      min-height: 1.5rem;
+      margin: 1rem 0 0;
+      color: #fef3c7;
+      font-weight: bold;
+    }
+
+    #reset-progress {
+      margin-top: 0.75rem;
+      padding: 0.65rem 0.85rem;
+      border: 1px solid #fce7f3;
+      border-radius: 0.5rem;
+      background: transparent;
+      color: #fce7f3;
+      cursor: pointer;
+      font: inherit;
+      font-weight: bold;
+    }
+
+    #reset-progress:hover,
+    #reset-progress:focus-visible {
+      background: rgb(255 255 255 / 12%);
+      outline: 0.15rem solid #fef3c7;
+      outline-offset: 0.1rem;
+    }
+
+    #reset-progress:disabled {
+      border-color: #64748b;
+      color: #94a3b8;
+      cursor: not-allowed;
+    }
+
+    @media (max-width: 44rem) {
+      .game-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <a class="back-link" href="../">← All games</a> · <a class="back-link" href="../profile/">Profile</a>
+    <h1>Flamingo Clicker</h1>
+    <p class="instructions">Tap the flamingo to collect feathers, then grow your flock with sunny upgrades.</p>
+    <p class="score">🪶 <span id="feathers">0</span> feathers</p>
+    <p>🦩 Flock size: <strong id="flamingos">1</strong></p>
+    <div class="game-layout">
+      <section class="lagoon" id="lagoon" aria-label="Flamingo lagoon">
+        <div id="flock-visual" aria-hidden="true"></div>
+        <span class="lagoon-palm left" aria-hidden="true">🌴</span>
+        <span class="lagoon-palm" aria-hidden="true">🌴</span>
+        <button id="flamingo" type="button" aria-label="Collect feathers from the flamingo">🦩</button>
+      </section>
+      <aside class="upgrades" aria-labelledby="upgrade-title">
+        <h2 id="upgrade-title">Flock Upgrades</h2>
+        <div class="upgrade-list">
+          <article class="upgrade">
+            <h3>🦐 Shrimp Snack</h3>
+            <p>Each flamingo tap earns +1 feather.</p>
+            <button class="buy" type="button" data-upgrade="snack">Buy for <span></span> feathers</button>
+          </article>
+          <article class="upgrade">
+            <h3>🦩 Flock Friend</h3>
+            <p>Generates feathers automatically every second.</p>
+            <button class="buy" type="button" data-upgrade="friend">Buy for <span></span> feathers</button>
+          </article>
+          <article class="upgrade">
+            <h3>🌴 Lagoon Festival</h3>
+            <p>Doubles all feather production.</p>
+            <button class="buy" type="button" data-upgrade="festival">Buy for <span></span> feathers</button>
+          </article>
+        </div>
+        <section class="skins" aria-labelledby="skins-title">
+          <h2 id="skins-title">Flamingo Skins</h2>
+          <label for="skin-select">Choose your look
+            <select id="skin-select">
+              <option value="classic">Classic Flamingo</option>
+              <option value="cool">Cool Flamingo 🕶️</option>
+              <option value="flower">Flower Flamingo 🌺</option>
+              <option value="star">Star Flamingo ✨</option>
+              <option value="crown">Royal Flamingo 👑</option>
+            </select>
+          </label>
+          <p id="skin-description">A pink classic never goes out of style.</p>
+        </section>
+      </aside>
+    </div>
+    <p id="status" aria-live="polite">Your flamingo is ready to shine.</p>
+    <button id="reset-progress" type="button">Start a new flock (+1 flamingo)</button>
+  </main>
+
+  <script src="../shared/profile.js"></script>
+  <script>
+    const flamingoButton = document.querySelector("#flamingo");
+    const lagoonElement = document.querySelector("#lagoon");
+    const featherElement = document.querySelector("#feathers");
+    const flamingoCountElement = document.querySelector("#flamingos");
+    const flockVisualElement = document.querySelector("#flock-visual");
+    const statusElement = document.querySelector("#status");
+    const upgradeButtons = document.querySelectorAll(".buy");
+    const resetButton = document.querySelector("#reset-progress");
+    const skinSelect = document.querySelector("#skin-select");
+    const skinDescription = document.querySelector("#skin-description");
+    const resetCost = 1_000_000_000_000;
+    const state = GameProfiles.getGame("flamingo-clicker", { feathers: 0, flamingos: 1, tapPower: 1, friends: 0, multiplier: 1, snackLevel: 0, friendLevel: 0, festivalLevel: 0, skin: "classic" });
+    const skins = {
+      classic: { label: "Classic Flamingo", emoji: "🦩", description: "A pink classic never goes out of style." },
+      cool: { label: "Cool Flamingo", emoji: "🕶️", description: "Sunglasses sit right over this flamingo's eyes." },
+      flower: { label: "Flower Flamingo", emoji: "🌺", description: "A tropical flower adds a splash of lagoon color." },
+      star: { label: "Star Flamingo", emoji: "✨", description: "This flamingo brings a little sparkle to every tap." },
+      crown: { label: "Royal Flamingo", emoji: "👑", description: "A crown declares this flamingo ruler of the lagoon." }
+    };
+    state.skin = Object.hasOwn(skins, state.skin) ? state.skin : "classic";
+
+    function getCost(upgrade) {
+      if (upgrade === "snack") return 10 + state.snackLevel * 15;
+      if (upgrade === "friend") return 25 + state.friendLevel * 30;
+      return 100 + state.festivalLevel * 150;
+    }
+
+    function collectFeathers(amount, event) {
+      state.feathers += amount;
+      if (event) {
+        showFloatingScore(amount, event);
+        showSparkles(event);
+      }
+      updateInterface();
+    }
+
+    function getTapReward() {
+      return (state.tapPower + state.flamingos - 1) * state.multiplier;
+    }
+
+    function getFlockIncome() {
+      return (state.friends + state.flamingos - 1) * state.multiplier;
+    }
+
+    function showFloatingScore(amount, event) {
+      const bounds = lagoonElement.getBoundingClientRect();
+      const score = document.createElement("span");
+      score.className = "floating-score";
+      score.textContent = `+${amount} 🪶`;
+      const x = event.clientX || bounds.left + bounds.width / 2;
+      const y = event.clientY || bounds.top + bounds.height / 2;
+      score.style.left = `${x - bounds.left}px`;
+      score.style.top = `${y - bounds.top}px`;
+      lagoonElement.append(score);
+      score.addEventListener("animationend", () => score.remove());
+    }
+
+    function showSparkles(event) {
+      const bounds = lagoonElement.getBoundingClientRect();
+      const x = event.clientX || bounds.left + bounds.width / 2;
+      const y = event.clientY || bounds.top + bounds.height / 2;
+      for (let index = 0; index < 5; index += 1) {
+        const sparkle = document.createElement("span");
+        sparkle.className = "sparkle";
+        sparkle.textContent = index % 2 === 0 ? "✨" : "💖";
+        sparkle.style.left = `${x - bounds.left}px`;
+        sparkle.style.top = `${y - bounds.top}px`;
+        sparkle.style.setProperty("--drift-x", `${-2 + index}rem`);
+        sparkle.style.setProperty("--drift-y", `${-3 - (index % 3)}rem`);
+        lagoonElement.append(sparkle);
+        sparkle.addEventListener("animationend", () => sparkle.remove());
+      }
+    }
+
+    function buyUpgrade(upgrade) {
+      const cost = getCost(upgrade);
+      if (state.feathers < cost) {
+        statusElement.textContent = `You need ${cost - state.feathers} more feathers.`;
+        return;
+      }
+
+      state.feathers -= cost;
+      if (upgrade === "snack") {
+        state.tapPower += 1;
+        state.snackLevel += 1;
+        statusElement.textContent = "🦐 Your flamingo found a tasty shrimp snack!";
+      } else if (upgrade === "friend") {
+        state.friends += 1;
+        state.friendLevel += 1;
+        statusElement.textContent = "🦩 A new flamingo joined your flock!";
+      } else {
+        state.multiplier *= 2;
+        state.festivalLevel += 1;
+        statusElement.textContent = "🌴 The lagoon festival doubled your production!";
+      }
+
+      updateInterface();
+    }
+
+    function updateInterface() {
+      featherElement.textContent = Math.floor(state.feathers);
+      flamingoCountElement.textContent = state.flamingos;
+      resetButton.textContent = `Start a new flock (+1 flamingo) — ${resetCost.toLocaleString()} feathers`;
+      resetButton.disabled = state.feathers < resetCost;
+      skinSelect.value = state.skin;
+      flamingoButton.classList.remove(...Object.keys(skins).map(skin => `${skin}-skin`));
+      flamingoButton.classList.add(`${state.skin}-skin`);
+      flamingoButton.setAttribute("aria-label", `Collect feathers from the ${skins[state.skin].label.toLowerCase()}`);
+      skinDescription.textContent = skins[state.skin].description;
+      for (const button of upgradeButtons) {
+        const cost = getCost(button.dataset.upgrade);
+        button.querySelector("span").textContent = cost;
+        button.disabled = state.feathers < cost;
+      }
+      renderFlock();
+      GameProfiles.saveGame("flamingo-clicker", state);
+    }
+
+    function renderFlock() {
+      flockVisualElement.replaceChildren();
+      for (let index = 0; index < state.flamingos - 1; index += 1) {
+        const flamingo = document.createElement("span");
+        flamingo.className = "flock-member";
+        flamingo.textContent = "🦩";
+        flamingo.style.left = `${8 + (index % 4) * 23}%`;
+        flamingo.style.top = `${9 + Math.floor(index / 4) * 20}%`;
+        flamingo.style.setProperty("--delay", `${index * 180}ms`);
+        flockVisualElement.append(flamingo);
+      }
+    }
+
+    flamingoButton.addEventListener("click", (event) => {
+      collectFeathers(getTapReward(), event);
+    });
+
+    for (const button of upgradeButtons) {
+      button.addEventListener("click", () => buyUpgrade(button.dataset.upgrade));
+    }
+
+    skinSelect.addEventListener("change", () => {
+      state.skin = skinSelect.value;
+      statusElement.textContent = `${skins[state.skin].emoji} ${skins[state.skin].label} equipped!`;
+      updateInterface();
+    });
+
+    setInterval(() => {
+      const flockIncome = getFlockIncome();
+      if (flockIncome > 0) {
+        collectFeathers(flockIncome);
+      }
+    }, 1000);
+
+    resetButton.addEventListener("click", () => {
+      if (state.feathers < resetCost) {
+        statusElement.textContent = `You need ${(resetCost - state.feathers).toLocaleString()} more feathers to start a new flock.`;
+        return;
+      }
+      if (!window.confirm("Reset feathers and upgrades to recruit one more flamingo?")) {
+        return;
+      }
+
+      state.flamingos += 1;
+      state.feathers = 0;
+      state.tapPower = 1;
+      state.friends = 0;
+      state.multiplier = 1;
+      state.snackLevel = 0;
+      state.friendLevel = 0;
+      state.festivalLevel = 0;
+      statusElement.textContent = `🦩 A new flamingo joined your permanent flock! You now have ${state.flamingos}.`;
+      updateInterface();
+    });
+
+    updateInterface();
+  </script>
+</body>
+</html>

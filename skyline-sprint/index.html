@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Skyline Sprint | My Online Games</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Arial, sans-serif;
+      background: #101827;
+      color: #f8fafc;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      display: grid;
+      place-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 1.5rem;
+      background:
+        radial-gradient(circle at 12% 16%, rgb(34 211 238 / 20%) 0 5rem, transparent 5.2rem),
+        radial-gradient(circle at 88% 82%, rgb(192 132 252 / 18%) 0 6rem, transparent 6.2rem),
+        linear-gradient(145deg, #101827, #271848);
+    }
+
+    main {
+      width: min(100%, 48rem);
+      padding: clamp(1rem, 4vw, 2rem);
+      border: 1px solid rgb(148 163 184 / 30%);
+      border-radius: 1.5rem;
+      background: rgb(15 23 42 / 82%);
+      box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 35%);
+      text-align: center;
+      backdrop-filter: blur(0.5rem);
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-bottom: 1rem;
+      color: #cbd5e1;
+    }
+
+    h1 {
+      margin: 0;
+      color: #67e8f9;
+      font-size: clamp(2rem, 7vw, 3.5rem);
+    }
+
+    .instructions {
+      margin: 0.75rem 0 1rem;
+      color: #cbd5e1;
+      line-height: 1.5;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      border: 0.3rem solid #256f8c;
+      border-radius: 0.75rem;
+      background: #0b1425;
+      touch-action: none;
+    }
+
+    #status {
+      min-height: 1.5rem;
+      margin: 1rem 0 0;
+      color: #e0f2fe;
+      font-weight: bold;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+
+    .controls button,
+    #restart {
+      min-width: 3.25rem;
+      min-height: 2.75rem;
+      border: 1px solid #4b6382;
+      border-radius: 0.5rem;
+      background: #17243a;
+      color: #f8fafc;
+      cursor: pointer;
+      font: inherit;
+      font-weight: bold;
+    }
+
+    #restart {
+      margin-top: 1rem;
+      padding: 0 1.25rem;
+      background: #67e8f9;
+      color: #102019;
+    }
+
+    button:hover,
+    button:focus-visible {
+      border-color: #f8fafc;
+      outline: 0.15rem solid #f8fafc;
+      outline-offset: 0.1rem;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <a class="back-link" href="../">← All games</a>
+    <h1>Skyline Sprint</h1>
+    <p class="instructions">Switch lanes with A/D or ←/→. Jump with Space, W, or ↑ over track blocks and onto trains. Slide with S or ↓ under low gates.</p>
+    <canvas id="game" width="720" height="460" aria-label="Skyline Sprint game"></canvas>
+    <p id="status" aria-live="polite">Run starts now. Catch a train, but do not let it carry you away.</p>
+    <div class="controls" aria-label="Touch controls">
+      <button type="button" data-action="left" aria-label="Move left">←</button>
+      <button type="button" data-action="jump" aria-label="Jump">↑ Jump</button>
+      <button type="button" data-action="slide" aria-label="Slide">↓ Slide</button>
+      <button type="button" data-action="right" aria-label="Move right">→</button>
+    </div>
+    <button id="restart" type="button">Start new run</button>
+  </main>
+
+  <script>
+    const canvas = document.querySelector("#game");
+    const context = canvas.getContext("2d");
+    const statusElement = document.querySelector("#status");
+    const restartButton = document.querySelector("#restart");
+    const controlButtons = document.querySelectorAll("[data-action]");
+    const lanePositions = [180, 360, 540];
+    const groundY = 390;
+    const player = { lane: 1, x: lanePositions[1], y: groundY, width: 34, height: 48, velocityY: 0, onTrain: null, slideTimer: 0 };
+    const savedHighScore = Number.parseInt(localStorage.getItem("skylineSprintHighScore") || "0", 10);
+    let objects;
+    let distance;
+    let cells;
+    let highScore = Number.isFinite(savedHighScore) ? savedHighScore : 0;
+    let activePowerups;
+    let missions;
+    let missionIndex;
+    let running;
+    let spawnTimer;
+    let lastFrame;
+    let animationFrame;
+
+    function startGame() {
+      player.lane = 1;
+      player.x = lanePositions[player.lane];
+      player.y = groundY;
+      player.velocityY = 0;
+      player.onTrain = null;
+      player.slideTimer = 0;
+      objects = [];
+      distance = 0;
+      cells = 0;
+      activePowerups = { shield: 0, magnet: 0, boost: 0 };
+      missions = [
+        { label: "Reach 250m", metric: "distance", goal: 250 },
+        { label: "Collect 5 power cells", metric: "cells", goal: 5 },
+        { label: "Reach 600m", metric: "distance", goal: 600 }
+      ];
+      missionIndex = 0;
+      running = true;
+      spawnTimer = 0.8;
+      lastFrame = performance.now();
+      statusElement.textContent = "Run starts now. Catch a train, but do not let it carry you away.";
+      if (animationFrame) {
+        cancelAnimationFrame(animationFrame);
+      }
+      animationFrame = requestAnimationFrame(gameLoop);
+    }
+
+    function gameLoop(timestamp) {
+      if (!running) {
+        animationFrame = null;
+        return;
+      }
+
+      const deltaTime = Math.min((timestamp - lastFrame) / 1000, 0.05);
+      lastFrame = timestamp;
+      update(deltaTime);
+      draw();
+      animationFrame = requestAnimationFrame(gameLoop);
+    }
+
+    function update(deltaTime) {
+      activePowerups.magnet = Math.max(0, activePowerups.magnet - deltaTime);
+      activePowerups.boost = Math.max(0, activePowerups.boost - deltaTime);
+      activePowerups.shield = Math.max(0, activePowerups.shield - deltaTime);
+      const baseSpeed = 155 + Math.min(distance / 18, 125);
+      const runSpeed = baseSpeed * (activePowerups.boost > 0 ? 1.35 : 1);
+      distance += runSpeed * deltaTime / 10;
+      checkMission();
+      spawnTimer -= deltaTime;
+      if (spawnTimer <= 0) {
+        spawnObject(runSpeed);
+        spawnTimer = Math.max(0.48, 1.1 - distance / 800);
+      }
+
+      updatePlayer(deltaTime);
+      for (const object of objects) {
+        if (activePowerups.magnet > 0 && object.kind === "cell") {
+          object.x += (player.x - object.x) * Math.min(1, deltaTime * 4);
+        }
+        if (object.pause > 0) {
+          object.pause -= deltaTime;
+        } else {
+          object.y += object.speed * deltaTime;
+        }
+      }
+
+      checkCollisions();
+      objects = objects.filter((object) => object.y < canvas.height + object.height);
+    }
+
+    function updatePlayer(deltaTime) {
+      const targetX = lanePositions[player.lane];
+      player.x += (targetX - player.x) * Math.min(1, deltaTime * 14);
+      player.slideTimer = Math.max(0, player.slideTimer - deltaTime);
+
+      if (player.onTrain) {
+        if (!objects.includes(player.onTrain)) {
+          player.onTrain = null;
+        } else {
+          player.y = player.onTrain.y - player.height;
+          if (player.onTrain.pause <= 0 && player.onTrain.y > groundY - player.height) {
+            endGame("The train carried you into a hazard.");
+          }
+          return;
+        }
+      }
+
+      if (player.slideTimer > 0) {
+        player.y = groundY + player.height - getPlayerHeight();
+        player.velocityY = 0;
+        return;
+      }
+
+      player.velocityY += 1350 * deltaTime;
+      player.y = Math.min(groundY, player.y + player.velocityY * deltaTime);
+      if (player.y === groundY) {
+        player.velocityY = 0;
+      }
+    }
+
+    function spawnObject(runSpeed) {
+      const availableLanes = [0, 1, 2];
+      const objectCount = distance > 250 && Math.random() < 0.5 ? 2 : 1;
+      for (let index = 0; index < objectCount; index += 1) {
+        const laneIndex = Math.floor(Math.random() * availableLanes.length);
+        const lane = availableLanes.splice(laneIndex, 1)[0];
+        objects.push(createObject(lane, runSpeed));
+      }
+    }
+
+    function createObject(lane, runSpeed) {
+      const roll = Math.random();
+      if (roll < 0.28) return { kind: "train", lane, x: lanePositions[lane], y: -185, width: 105, height: 175, speed: runSpeed, pause: 0 };
+      if (roll < 0.55) return { kind: "barrier", lane, x: lanePositions[lane], y: -55, width: 66, height: 42, speed: runSpeed, pause: 0 };
+      if (roll < 0.7) return { kind: "jumpBlock", lane, x: lanePositions[lane], y: -64, width: 58, height: 54, speed: runSpeed, pause: 0 };
+      if (roll < 0.8) return { kind: "gate", lane, x: lanePositions[lane], y: -42, width: 96, height: 30, speed: runSpeed, pause: 0 };
+      if (roll < 0.92) return { kind: "cell", lane, x: lanePositions[lane], y: -30, width: 26, height: 26, speed: runSpeed, pause: 0 };
+      const powerupTypes = ["shield", "magnet", "boost"];
+      return {
+        kind: "powerup",
+        type: powerupTypes[Math.floor(Math.random() * powerupTypes.length)],
+        lane,
+        x: lanePositions[lane],
+        y: -34,
+        width: 30,
+        height: 30,
+        speed: runSpeed,
+        pause: 0
+      };
+    }
+
+    function checkCollisions() {
+      for (let index = objects.length - 1; index >= 0; index -= 1) {
+        const object = objects[index];
+        const playerBounds = getPlayerBounds();
+        if (object.kind === "cell" && overlaps(playerBounds, object)) {
+          objects.splice(index, 1);
+          cells += 1;
+          statusElement.textContent = "⚡ Power cell collected!";
+          checkMission();
+          continue;
+        }
+
+        if (object.kind === "powerup" && overlaps(playerBounds, object)) {
+          objects.splice(index, 1);
+          activatePowerup(object.type);
+          continue;
+        }
+
+        if (object.lane !== player.lane || !overlaps(playerBounds, object)) {
+          continue;
+        }
+
+        if (object.kind === "gate" && player.slideTimer > 0) {
+          continue;
+        }
+
+        if (object.kind === "train" && player.velocityY >= 0 && player.y + getPlayerHeight() <= object.y + 28) {
+          player.onTrain = object;
+          object.pause = 1.8;
+          player.y = object.y - getPlayerHeight();
+          player.velocityY = 0;
+          statusElement.textContent = "You climbed aboard! Jump off before the train moves.";
+          continue;
+        }
+
+        if (activePowerups.shield > 0) {
+          objects.splice(index, 1);
+          activePowerups.shield = 0;
+          statusElement.textContent = "🛡️ Your shield absorbed the impact!";
+          continue;
+        }
+
+        endGame(object.kind === "train" ? "You collided with a train." : object.kind === "jumpBlock" ? "You did not jump over the track block." : "You hit a track barrier.");
+        return;
+      }
+    }
+
+    function moveLane(direction) {
+      if (!running) {
+        return;
+      }
+
+      player.lane = Math.max(0, Math.min(lanePositions.length - 1, player.lane + direction));
+      if (player.onTrain && player.lane !== player.onTrain.lane) {
+        player.onTrain = null;
+      }
+    }
+
+    function jump() {
+      if (!running) {
+        return;
+      }
+
+      if (player.onTrain) {
+        player.onTrain = null;
+        player.velocityY = -560;
+        return;
+      }
+
+      if (player.y === groundY) {
+        player.velocityY = -560;
+      }
+    }
+
+    function slide() {
+      if (running && player.y === groundY && !player.onTrain) {
+        player.slideTimer = 0.65;
+      }
+    }
+
+    function getPlayerHeight() {
+      return player.slideTimer > 0 ? 28 : player.height;
+    }
+
+    function getPlayerBounds() {
+      return { x: player.x, y: player.y, width: player.width, height: getPlayerHeight() };
+    }
+
+    function activatePowerup(type) {
+      activePowerups[type] = 8;
+      const labels = { shield: "🛡️ Shield", magnet: "🧲 Cell magnet", boost: "💨 Speed burst" };
+      statusElement.textContent = `${labels[type]} active for 8 seconds!`;
+    }
+
+    function checkMission() {
+      const mission = missions[missionIndex];
+      if (!mission || (mission.metric === "distance" ? distance : cells) < mission.goal) {
+        return;
+      }
+
+      missionIndex += 1;
+      activePowerups.shield = 8;
+      statusElement.textContent = `Mission complete: ${mission.label}! 🛡️ Shield reward unlocked.`;
+    }
+
+    function overlaps(first, second) {
+      return (
+        first.x - first.width / 2 < second.x + second.width / 2 &&
+        first.x + first.width / 2 > second.x - second.width / 2 &&
+        first.y < second.y + second.height &&
+        first.y + first.height > second.y
+      );
+    }
+
+    function endGame(message) {
+      running = false;
+      const finalScore = Math.floor(distance) + cells * 25;
+      if (finalScore > highScore) {
+        highScore = finalScore;
+        localStorage.setItem("skylineSprintHighScore", String(highScore));
+      }
+      statusElement.textContent = `${message} Final score: ${finalScore}.`;
+    }
+
+    function draw() {
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      drawBackground();
+      drawTracks();
+      for (const object of objects) {
+        if (object.kind === "train") drawTrain(object);
+        if (object.kind === "barrier") drawBarrier(object);
+        if (object.kind === "jumpBlock") drawJumpBlock(object);
+        if (object.kind === "gate") drawGate(object);
+        if (object.kind === "cell") drawCell(object);
+        if (object.kind === "powerup") drawPowerup(object);
+      }
+      drawPlayer();
+      drawHud();
+
+      if (!running) {
+        context.fillStyle = "rgb(15 23 42 / 78%)";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.fillStyle = "#f8fafc";
+        context.textAlign = "center";
+        context.textBaseline = "middle";
+        context.font = "bold 42px Arial";
+        context.fillText("Run over", canvas.width / 2, canvas.height / 2 - 18);
+        context.font = "20px Arial";
+        context.fillText("Start a new run to race again", canvas.width / 2, canvas.height / 2 + 24);
+      }
+    }
+
+    function drawBackground() {
+      const gradient = context.createLinearGradient(0, 0, 0, canvas.height);
+      gradient.addColorStop(0, "#1e1b4b");
+      gradient.addColorStop(1, "#07111f");
+      context.fillStyle = gradient;
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.fillStyle = "rgb(103 232 249 / 12%)";
+      for (let x = 20; x < canvas.width; x += 65) {
+        const height = 60 + ((x * 17) % 130);
+        context.fillRect(x, 155 - height, 42, height);
+      }
+    }
+
+    function drawTracks() {
+      for (const x of lanePositions) {
+        context.fillStyle = "#334155";
+        context.fillRect(x - 52, 0, 8, canvas.height);
+        context.fillRect(x + 44, 0, 8, canvas.height);
+        context.strokeStyle = "rgb(103 232 249 / 45%)";
+        context.lineWidth = 3;
+        for (let y = -30; y < canvas.height; y += 45) {
+          context.beginPath();
+          context.moveTo(x - 48, y + (distance % 45));
+          context.lineTo(x + 48, y + (distance % 45));
+          context.stroke();
+        }
+      }
+    }
+
+    function drawTrain(train) {
+      context.fillStyle = "#c084fc";
+      context.fillRect(train.x - train.width / 2, train.y, train.width, train.height);
+      context.fillStyle = "#312e81";
+      context.fillRect(train.x - train.width / 2 + 10, train.y + 20, train.width - 20, 50);
+      context.fillStyle = "#67e8f9";
+      for (let windowX = train.x - 36; windowX <= train.x + 20; windowX += 28) {
+        context.fillRect(windowX, train.y + 31, 17, 22);
+      }
+      context.fillStyle = "#1e1b4b";
+      context.fillRect(train.x - train.width / 2, train.y + train.height - 20, train.width, 20);
+    }
+
+    function drawBarrier(barrier) {
+      context.fillStyle = "#f97316";
+      context.fillRect(barrier.x - barrier.width / 2, barrier.y, barrier.width, barrier.height);
+      context.strokeStyle = "#fef3c7";
+      context.lineWidth = 7;
+      for (let offset = -30; offset <= 30; offset += 20) {
+        context.beginPath();
+        context.moveTo(barrier.x + offset - 10, barrier.y + barrier.height);
+        context.lineTo(barrier.x + offset + 10, barrier.y);
+        context.stroke();
+      }
+    }
+
+    function drawJumpBlock(block) {
+      context.fillStyle = "#fb7185";
+      context.fillRect(block.x - block.width / 2, block.y, block.width, block.height);
+      context.fillStyle = "#fef3c7";
+      context.font = "bold 30px Arial";
+      context.textAlign = "center";
+      context.textBaseline = "middle";
+      context.fillText("↑", block.x, block.y + block.height / 2);
+    }
+
+    function drawGate(gate) {
+      context.strokeStyle = "#f472b6";
+      context.lineWidth = 10;
+      context.beginPath();
+      context.moveTo(gate.x - gate.width / 2, gate.y + gate.height);
+      context.lineTo(gate.x - gate.width / 2, gate.y);
+      context.lineTo(gate.x + gate.width / 2, gate.y);
+      context.lineTo(gate.x + gate.width / 2, gate.y + gate.height);
+      context.stroke();
+    }
+
+    function drawCell(cell) {
+      context.fillStyle = "#facc15";
+      context.beginPath();
+      context.arc(cell.x, cell.y + cell.height / 2, cell.width / 2, 0, Math.PI * 2);
+      context.fill();
+      context.fillStyle = "#713f12";
+      context.font = "bold 20px Arial";
+      context.textAlign = "center";
+      context.textBaseline = "middle";
+      context.fillText("⚡", cell.x, cell.y + cell.height / 2 + 1);
+    }
+
+    function drawPowerup(powerup) {
+      const icons = { shield: "🛡️", magnet: "🧲", boost: "💨" };
+      context.fillStyle = "#f8fafc";
+      context.beginPath();
+      context.arc(powerup.x, powerup.y + powerup.height / 2, powerup.width / 2, 0, Math.PI * 2);
+      context.fill();
+      context.font = "22px sans-serif";
+      context.textAlign = "center";
+      context.textBaseline = "middle";
+      context.fillText(icons[powerup.type], powerup.x, powerup.y + powerup.height / 2 + 1);
+    }
+
+    function drawPlayer() {
+      const playerHeight = getPlayerHeight();
+      context.fillStyle = "#22d3ee";
+      context.fillRect(player.x - player.width / 2, player.y, player.width, playerHeight);
+      context.fillStyle = "#0e7490";
+      context.fillRect(player.x - player.width / 2 - 5, player.y + playerHeight / 2, player.width + 10, 8);
+      context.fillStyle = "#f8fafc";
+      context.fillRect(player.x - 9, player.y + 8, 6, 6);
+      context.fillRect(player.x + 3, player.y + 8, 6, 6);
+    }
+
+    function drawHud() {
+      context.fillStyle = "#f8fafc";
+      context.font = "bold 18px Arial";
+      context.textAlign = "left";
+      context.textBaseline = "alphabetic";
+      context.fillText(`Distance: ${Math.floor(distance)}m`, 16, 30);
+      context.fillText(`Best: ${highScore}`, 16, 58);
+      context.fillStyle = "#facc15";
+      context.fillText(`⚡ Cells: ${cells}`, 16, 86);
+      const mission = missions[missionIndex];
+      if (mission) {
+        const progress = Math.min(mission.goal, Math.floor(mission.metric === "distance" ? distance : cells));
+        context.fillStyle = "#e0f2fe";
+        context.font = "bold 15px Arial";
+        context.fillText(`Mission: ${mission.label} (${progress}/${mission.goal})`, 16, 112);
+      }
+      const powerups = [];
+      if (activePowerups.shield > 0) powerups.push(`🛡️ ${Math.ceil(activePowerups.shield)}s`);
+      if (activePowerups.magnet > 0) powerups.push(`🧲 ${Math.ceil(activePowerups.magnet)}s`);
+      if (activePowerups.boost > 0) powerups.push(`💨 ${Math.ceil(activePowerups.boost)}s`);
+      if (powerups.length > 0) {
+        context.fillStyle = "#facc15";
+        context.fillText(powerups.join("  "), 16, 136);
+      }
+      context.fillStyle = "#f8fafc";
+      context.textAlign = "left";
+    }
+
+    function handleAction(action) {
+      if (action === "left") moveLane(-1);
+      if (action === "right") moveLane(1);
+      if (action === "jump") jump();
+      if (action === "slide") slide();
+    }
+
+    document.addEventListener("keydown", (event) => {
+      if (["ArrowLeft", "a", "A"].includes(event.key)) {
+        event.preventDefault();
+        moveLane(-1);
+      }
+      if (["ArrowRight", "d", "D"].includes(event.key)) {
+        event.preventDefault();
+        moveLane(1);
+      }
+      if (["ArrowUp", "w", "W", " "].includes(event.key)) {
+        event.preventDefault();
+        jump();
+      }
+      if (["ArrowDown", "s", "S"].includes(event.key)) {
+        event.preventDefault();
+        slide();
+      }
+    });
+
+    for (const button of controlButtons) {
+      button.addEventListener("click", () => handleAction(button.dataset.action));
+    }
+
+    restartButton.addEventListener("click", startGame);
+    startGame();
+  </script>
+</body>
+</html>

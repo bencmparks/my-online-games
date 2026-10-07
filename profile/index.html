@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Local Profile | My Online Games</title>
+  <style>
+    :root { color-scheme: dark; font-family: Arial, sans-serif; background: #101827; color: #f8fafc; }
+    body { display: grid; place-items: center; min-height: 100vh; margin: 0; padding: 1.5rem; background: linear-gradient(135deg, #101827, #1e3a5f); }
+    main { width: min(100%, 34rem); padding: 2rem; border: 1px solid #4b6382; border-radius: 1rem; background: #17243a; box-shadow: 0 1rem 3rem rgb(0 0 0 / 30%); }
+    a { color: #cbd5e1; }
+    h1 { margin: 1rem 0 0; color: #facc15; }
+    p { color: #cbd5e1; line-height: 1.5; }
+    label { display: grid; gap: 0.5rem; font-weight: bold; }
+    input, button { padding: 0.75rem; border-radius: 0.5rem; font: inherit; }
+    input { border: 1px solid #64748b; background: #0f172a; color: #f8fafc; }
+    button { margin-top: 1rem; border: 0; background: #facc15; color: #17243a; cursor: pointer; font-weight: bold; }
+    #status { min-height: 1.5rem; color: #fef3c7; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <main>
+    <a href="../">← All games</a>
+    <h1>Local Profile</h1>
+    <p>Create or unlock a display name to save game progress in this browser. This is a local profile, not an online account.</p>
+    <p id="current"></p>
+    <form id="profile-form">
+      <label>Display name <input id="name" maxlength="24" required autocomplete="nickname"></label>
+      <label>Password <input id="password" type="password" minlength="4" required autocomplete="current-password"></label>
+      <button type="submit">Create or unlock profile</button>
+    </form>
+    <p id="status" aria-live="polite"></p>
+  </main>
+  <script src="../shared/profile.js"></script>
+  <script>
+    const currentElement = document.querySelector("#current");
+    const form = document.querySelector("#profile-form");
+    const nameInput = document.querySelector("#name");
+    const passwordInput = document.querySelector("#password");
+    const statusElement = document.querySelector("#status");
+    const activeName = GameProfiles.getActiveProfileName();
+    currentElement.textContent = activeName ? `Current profile: ${activeName}` : "No local profile selected.";
+    nameInput.value = activeName || "";
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const name = nameInput.value.trim();
+      if (!name) return;
+      const passwordHash = await GameProfiles.hashPassword(name, passwordInput.value);
+      const existingProfile = GameProfiles.getProfiles()[name];
+      if (existingProfile?.passwordHash && !GameProfiles.unlockProfile(name, passwordHash)) {
+        statusElement.textContent = "That password does not match this local profile.";
+        return;
+      }
+      GameProfiles.createProfile(name, passwordHash);
+      currentElement.textContent = `Current profile: ${name}`;
+      passwordInput.value = "";
+      statusElement.textContent = "Profile unlocked. Your supported game progress will now be stored in this browser.";
+    });
+  </script>
+</body>
+</html>

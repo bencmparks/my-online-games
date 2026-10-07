@@ -11,3 +11,10 @@ Keep a list of my games here.
 
 - Connect 4 (`connect-4/`)
 - Zombie Apocalypse (`zombie-apocalypse/`)
+- Skyline Sprint (`skyline-sprint/`)
+- Flamingo Clicker (`flamingo-clicker/`)
+- Memory Match (`memory-match/`)
+- Match 3 (`match-3/`)
+- Gem Merge (`gem-merge/`)
+- Coloring Studio (`coloring-studio/`)
+- Word Dash (`word-dash/`)

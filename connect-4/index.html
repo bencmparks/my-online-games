@@ -77,6 +77,15 @@
       color: #cbd5e1;
     }
 
+    .robot-record {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin: 0 0 1rem;
+      color: #e0e7ff;
+      font-weight: bold;
+    }
+
     .board {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
@@ -223,6 +232,11 @@
       <label><input type="radio" name="mode" value="local"> Two players</label>
     </div>
     <p class="player-guide">🔴 Red goes first · 🟡 Yellow or 🤖 Robot goes next</p>
+    <p class="robot-record" aria-label="Robot mode record">
+      <span>🧑 Wins: <span id="player-wins">0</span></span>
+      <span>🤖 Wins: <span id="robot-wins">0</span></span>
+      <span>🤝 Draws: <span id="draws">0</span></span>
+    </p>
     <p id="status" aria-live="polite">Red's turn</p>
     <div class="board" id="board" role="grid" aria-label="Connect 4 board"></div>
     <section class="reaction-panel" aria-label="Reactions">
@@ -239,6 +253,7 @@
     <div id="celebration" aria-hidden="true"></div>
   </main>
 
+  <script src="../shared/profile.js"></script>
   <script>
     const rows = 6;
     const columns = 7;
@@ -249,6 +264,10 @@
     const celebrationElement = document.querySelector("#celebration");
     const reactionDisplay = document.querySelector("#reaction-display");
     const reactionButtons = document.querySelectorAll(".reaction");
+    const playerWinsElement = document.querySelector("#player-wins");
+    const robotWinsElement = document.querySelector("#robot-wins");
+    const drawsElement = document.querySelector("#draws");
+    const robotStats = GameProfiles.getGame("connect-4", { playerWins: 0, robotWins: 0, draws: 0 });
     let board;
     let currentPlayer;
     let gameOver;
@@ -325,6 +344,7 @@
       if (hasWon(row, column)) {
         gameOver = true;
         statusElement.textContent = `🏆 ${playerName(currentPlayer)} wins!`;
+        recordRobotResult(currentPlayer === "red" ? "playerWins" : "robotWins");
         disableBoard();
         showCelebration([pieceEmoji(currentPlayer), "🏆", "🎉"]);
         return;
@@ -333,6 +353,7 @@
       if (board.every((boardRow) => boardRow.every(Boolean))) {
         gameOver = true;
         statusElement.textContent = "🤝 It's a draw!";
+        recordRobotResult("draws");
         showCelebration(["🤝", "✨"]);
         return;
       }
@@ -390,6 +411,22 @@
       for (const cell of boardElement.children) {
         cell.disabled = true;
       }
+    }
+
+    function recordRobotResult(result) {
+      if (!isRobotMode()) {
+        return;
+      }
+
+      robotStats[result] += 1;
+      GameProfiles.saveGame("connect-4", robotStats);
+      updateRobotRecord();
+    }
+
+    function updateRobotRecord() {
+      playerWinsElement.textContent = robotStats.playerWins;
+      robotWinsElement.textContent = robotStats.robotWins;
+      drawsElement.textContent = robotStats.draws;
     }
 
     function showCelebration(emojis) {
@@ -451,6 +488,7 @@
     for (const reactionButton of reactionButtons) {
       reactionButton.addEventListener("click", () => showReaction(reactionButton.dataset.emoji));
     }
+    updateRobotRecord();
     createBoard();
   </script>
 </body>

@@ -17,7 +17,6 @@
       place-items: center;
       min-height: 100vh;
       margin: 0;
-      overflow: hidden;
       background:
         radial-gradient(circle at 10% 16%, rgb(250 204 21 / 22%) 0 4.5rem, transparent 4.7rem),
         radial-gradient(circle at 88% 14%, rgb(239 68 68 / 24%) 0 6rem, transparent 6.2rem),
@@ -86,8 +85,9 @@
 </head>
 <body>
   <main>
-    <h1>My Online Games</h1>
+    <h1 id="greeting">Hi!</h1>
     <p class="intro">Pick a game and start playing.</p>
+    <a class="game-card" href="profile/">Create or unlock a local profile to save progress in this browser.</a>
     <section class="games" aria-label="Games">
       <a class="game-card" href="connect-4/">
         <h2>Connect 4</h2>
@@ -97,7 +97,42 @@
         <h2>Zombie Apocalypse</h2>
         <p>Survive an endless horde of zombies in this fast-paced arcade shooter.</p>
       </a>
+      <a class="game-card" href="skyline-sprint/">
+        <h2>Skyline Sprint</h2>
+        <p>Race through a neon rail yard, dodge hazards, and leap onto passing trains.</p>
+      </a>
+      <a class="game-card" href="flamingo-clicker/">
+        <h2>Flamingo Clicker</h2>
+        <p>Grow a fabulous flamingo flock, collect feathers, and unlock sunny upgrades.</p>
+      </a>
+      <a class="game-card" href="memory-match/">
+        <h2>Memory Match</h2>
+        <p>Find matching pairs and save your best time and move count to your local profile.</p>
+      </a>
+      <a class="game-card" href="match-3/">
+        <h2>Match 3</h2>
+        <p>Swap colorful gems, make matches, and build the highest score before moves run out.</p>
+      </a>
+      <a class="game-card" href="gem-merge/">
+        <h2>Gem Merge</h2>
+        <p>Slide and merge matching gems to forge ever more valuable crystals.</p>
+      </a>
+      <a class="game-card" href="coloring-studio/">
+        <h2>Coloring Studio</h2>
+        <p>Choose a numbered color and complete tropical, space, and garden pictures.</p>
+      </a>
+      <a class="game-card" href="word-dash/">
+        <h2>Word Dash</h2>
+        <p>Unscramble speedy word puzzles and build your longest winning streak.</p>
+      </a>
     </section>
   </main>
+  <script src="shared/profile.js"></script>
+  <script>
+    const name = GameProfiles.getActiveProfileName();
+    if (GameProfiles.isUnlocked()) {
+      document.querySelector("#greeting").textContent = `Hi, ${name}!`;
+    }
+  </script>
 </body>
 </html>

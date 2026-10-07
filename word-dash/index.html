@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Word Dash | My Online Games</title>
+  <style>
+    :root { font-family: Arial, sans-serif; color: #f8fafc; background: #312e81; }
+    * { box-sizing: border-box; }
+    body { display: grid; place-items: center; min-height: 100vh; margin: 0; padding: 1rem; background: linear-gradient(135deg, #312e81, #9333ea); }
+    main { width: min(100%, 40rem); padding: 1.75rem; border: .25rem solid #ddd6fe; border-radius: 1.5rem; background: rgb(49 46 129 / 88%); text-align: center; }
+    a { color: #e0e7ff; }
+    h1 { margin: .7rem 0; color: #fef3c7; }
+    .word { margin: 1.5rem 0; padding: 1.25rem; border: .2rem dashed #facc15; border-radius: .8rem; color: #fef3c7; font-size: clamp(2rem, 9vw, 4rem); font-weight: bold; letter-spacing: .3rem; }
+    form { display: flex; justify-content: center; gap: .6rem; flex-wrap: wrap; }
+    input { width: min(100%, 18rem); padding: .7rem; border: .15rem solid #ddd6fe; border-radius: .6rem; font: inherit; text-align: center; }
+    button { padding: .7rem 1rem; border: 0; border-radius: .6rem; background: #facc15; color: #312e81; cursor: pointer; font: inherit; font-weight: bold; }
+    #message { min-height: 1.5rem; color: #fef3c7; font-weight: bold; }
+    .stats { color: #ddd6fe; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <main>
+    <a href="../">← All games</a>
+    <h1>⚡ Word Dash</h1>
+    <p>Unscramble the word. Build the longest correct-answer streak you can!</p>
+    <p class="stats">Streak: <strong id="streak">0</strong> · Best streak: <strong id="best">0</strong></p>
+    <div class="word" id="scramble" aria-label="Scrambled word"></div>
+    <form id="answer-form">
+      <input id="answer" autocomplete="off" autofocus placeholder="Type the word" aria-label="Your answer">
+      <button type="submit">Check</button>
+    </form>
+    <p id="message" aria-live="polite">Solve the scrambled word!</p>
+    <button id="skip" type="button">Skip word</button>
+  </main>
+  <script src="../shared/profile.js"></script>
+  <script>
+    const words = ["apple", "beach", "bread", "cloud", "dance", "flower", "game", "grape", "house", "light", "magic", "ocean", "paper", "pizza", "robot", "smile", "star", "tiger", "train", "water"];
+    const scramble = document.querySelector("#scramble");
+    const answer = document.querySelector("#answer");
+    const form = document.querySelector("#answer-form");
+    const streakDisplay = document.querySelector("#streak");
+    const bestDisplay = document.querySelector("#best");
+    const message = document.querySelector("#message");
+    const saved = GameProfiles.getGame("word-dash", { bestStreak: 0 });
+    let currentWord = "";
+    let streak = 0;
+
+    bestDisplay.textContent = saved.bestStreak;
+
+    function shuffle(word) {
+      let mixed = word;
+      while (mixed === word) mixed = [...word].sort(() => Math.random() - .5).join("");
+      return mixed.toUpperCase();
+    }
+
+    function nextWord() {
+      currentWord = words[Math.floor(Math.random() * words.length)];
+      scramble.textContent = shuffle(currentWord);
+      answer.value = "";
+      answer.focus();
+    }
+
+    function resetStreak() {
+      streak = 0;
+      streakDisplay.textContent = streak;
+    }
+
+    form.addEventListener("submit", event => {
+      event.preventDefault();
+      if (answer.value.trim().toLowerCase() !== currentWord) {
+        message.textContent = "Not quite. Try again or skip this word.";
+        return;
+      }
+      streak += 1;
+      streakDisplay.textContent = streak;
+      if (streak > saved.bestStreak) {
+        saved.bestStreak = streak;
+        bestDisplay.textContent = streak;
+        GameProfiles.saveGame("word-dash", saved);
+      }
+      message.textContent = `Correct! ${streak} in a row.`;
+      nextWord();
+    });
+
+    document.querySelector("#skip").addEventListener("click", () => {
+      message.textContent = `The answer was ${currentWord.toUpperCase()}. New word!`;
+      resetStreak();
+      nextWord();
+    });
+
+    nextWord();
+  </script>
+</body>
+</html>

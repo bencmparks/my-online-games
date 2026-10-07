@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Match 3 | My Online Games</title>
+  <style>
+    :root { color-scheme: dark; font-family: Arial, sans-serif; background: #151b3a; color: #f8fafc; }
+    * { box-sizing: border-box; }
+    body { display: grid; place-items: center; min-height: 100vh; margin: 0; padding: 1.5rem; background: radial-gradient(circle at 15% 15%, rgb(192 132 252 / 26%) 0 5rem, transparent 5.2rem), radial-gradient(circle at 85% 82%, rgb(45 212 191 / 22%) 0 7rem, transparent 7.2rem), linear-gradient(135deg, #151b3a, #30245f); }
+    main { width: min(100%, 42rem); padding: clamp(1rem, 4vw, 2rem); border: 1px solid #818cf8; border-radius: 1.5rem; background: rgb(30 27 75 / 85%); box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 35%); text-align: center; }
+    a { color: #ddd6fe; } h1 { margin: 1rem 0 0; color: #c4b5fd; font-size: clamp(2rem, 7vw, 3.5rem); }
+    .stats { display: flex; justify-content: center; gap: 1rem; margin: 1rem 0; color: #fef3c7; font-weight: bold; }
+    #status { min-height: 1.5rem; color: #e0e7ff; }
+    .board { display: grid; grid-template-columns: repeat(8, 1fr); gap: 0.35rem; padding: 0.6rem; border: 0.25rem solid #a78bfa; border-radius: 1rem; background: #312e81; }
+    .gem { aspect-ratio: 1; border: 0.12rem solid rgb(255 255 255 / 35%); border-radius: 50%; background: #4338ca; box-shadow: inset 0.25rem 0.25rem 0 rgb(255 255 255 / 35%), inset -0.25rem -0.25rem 0 rgb(0 0 0 / 25%), 0 0.15rem 0 rgb(15 23 42 / 45%); cursor: pointer; font-size: clamp(1.15rem, 5vw, 2rem); transition: transform 120ms ease, outline 120ms ease; }
+    .gem[data-gem="red"] { background: radial-gradient(circle at 30% 25%, #fecdd3, #e11d48 65%); }.gem[data-gem="yellow"] { background: radial-gradient(circle at 30% 25%, #fef3c7, #eab308 65%); }.gem[data-gem="green"] { background: radial-gradient(circle at 30% 25%, #dcfce7, #16a34a 65%); }.gem[data-gem="blue"] { background: radial-gradient(circle at 30% 25%, #dbeafe, #2563eb 65%); }
+    .gem:hover:not(:disabled), .gem:focus-visible:not(:disabled) { outline: 0.18rem solid #fef3c7; outline-offset: 0.08rem; transform: scale(1.08); }
+    .gem.selected { outline: 0.22rem solid #facc15; transform: scale(1.08); } .gem:disabled { cursor: wait; }
+    #new-game { margin-top: 1rem; padding: 0.7rem 1.1rem; border: 0; border-radius: 0.5rem; background: #c4b5fd; color: #312e81; cursor: pointer; font: inherit; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <main>
+    <a href="../">← All games</a> · <a href="../profile/">Profile</a>
+    <h1>Match 3</h1>
+    <p class="stats"><span>Level: <strong id="level">1</strong></span><span>Score: <strong id="score">0</strong></span><span>Moves: <strong id="moves">20</strong></span><span>Best: <strong id="best">0</strong></span></p>
+    <p id="status" aria-live="polite">Select two neighboring gems to swap them. Click a special square to use its power-up.</p>
+    <div class="board" id="board" aria-label="Match 3 gem board"></div>
+    <button id="new-game" type="button">New game</button>
+  </main>
+  <script src="../shared/profile.js"></script>
+  <script>
+    const size = 8;
+    const gems = ["🔴", "🟡", "🟢", "🔵"];
+    const boardElement = document.querySelector("#board");
+    const scoreElement = document.querySelector("#score");
+    const movesElement = document.querySelector("#moves");
+    const bestElement = document.querySelector("#best");
+    const statusElement = document.querySelector("#status");
+    const progress = GameProfiles.getGame("match-3", { bestScore: 0 });
+    const levelElement = document.querySelector("#level");
+    let board, score, moves, level, selected, resolving;
+
+    function newGame() {
+      board = Array.from({ length: size }, () => Array(size).fill(""));
+      score = 0; moves = 20; level = 1; selected = null; resolving = false;
+      for (let row = 0; row < size; row += 1) {
+        for (let column = 0; column < size; column += 1) {
+          do { board[row][column] = randomGem(); } while (findMatches().some((match) => match.row === row && match.column === column));
+        }
+      }
+      statusElement.textContent = "Match 4+ gems to create a special square.";
+      render();
+    }
+
+    function randomGem() { return gems[Math.floor(Math.random() * gems.length)]; }
+    function render() {
+      boardElement.replaceChildren();
+      for (let row = 0; row < size; row += 1) for (let column = 0; column < size; column += 1) {
+        const button = document.createElement("button");
+        button.className = `gem${selected?.row === row && selected?.column === column ? " selected" : ""}`;
+        button.type = "button"; button.textContent = board[row][column]; button.dataset.gem = ({ "🔴": "red", "🟡": "yellow", "🟢": "green", "🔵": "blue" })[board[row][column]] || "special"; button.disabled = resolving || moves === 0;
+        button.setAttribute("aria-label", `Gem at row ${row + 1}, column ${column + 1}`);
+        button.addEventListener("click", () => chooseGem(row, column));
+        boardElement.append(button);
+      }
+      scoreElement.textContent = score; movesElement.textContent = moves; levelElement.textContent = level; bestElement.textContent = progress.bestScore;
+    }
+
+    function chooseGem(row, column) {
+      if (isPowerup(board[row][column])) {
+        activatePowerup(row, column);
+        return;
+      }
+      if (!selected) { selected = { row, column }; render(); return; }
+      if (selected.row === row && selected.column === column) { selected = null; render(); return; }
+      if (Math.abs(selected.row - row) + Math.abs(selected.column - column) !== 1) { selected = { row, column }; render(); return; }
+      swap(selected, { row, column });
+    }
+
+    async function swap(first, second) {
+      resolving = true; swapValues(first, second);
+      const matches = findMatches();
+      if (matches.length === 0) {
+        swapValues(first, second); selected = null; resolving = false;
+        statusElement.textContent = "That swap does not make a match."; render(); return;
+      }
+      moves -= 1; selected = null;
+      await resolveMatches(matches);
+      advanceLevel();
+      resolving = false;
+      if (moves === 0) {
+        if (score > progress.bestScore) progress.bestScore = score;
+        GameProfiles.saveGame("match-3", progress);
+        statusElement.textContent = `Game over! Final score: ${score}.`;
+      } else statusElement.textContent = "Great match! Keep going.";
+      render();
+    }
+
+    function swapValues(first, second) { [board[first.row][first.column], board[second.row][second.column]] = [board[second.row][second.column], board[first.row][first.column]]; }
+    function findMatches() {
+      const found = new Map();
+      for (let row = 0; row < size; row += 1) {
+        let start = 0; for (let column = 1; column <= size; column += 1) {
+          if (column < size && board[row][column] === board[row][start]) continue;
+          if (column - start >= 3) for (let index = start; index < column; index += 1) found.set(`${row},${index}`, { row, column: index });
+          start = column;
+        }
+      }
+      for (let column = 0; column < size; column += 1) {
+        let start = 0; for (let row = 1; row <= size; row += 1) {
+          if (row < size && board[row][column] === board[start][column]) continue;
+          if (row - start >= 3) for (let index = start; index < row; index += 1) found.set(`${index},${column}`, { row: index, column });
+          start = row;
+        }
+      }
+      return [...found.values()];
+    }
+    async function resolveMatches(matches) {
+      let current = matches;
+      while (current.length > 0) {
+        score += current.length * 10;
+        const powerup = current.length >= 7 ? "🪩" : current.length >= 6 ? "✚" : current.length >= 5 ? "↕️" : current.length >= 4 ? "↔️" : null;
+        const powerupSquare = powerup ? current[0] : null;
+        for (const match of current) board[match.row][match.column] = "";
+        if (powerupSquare) board[powerupSquare.row][powerupSquare.column] = powerup;
+        dropGems(); statusElement.textContent = "Gravity drops new gems into place!"; render();
+        await new Promise((resolve) => setTimeout(resolve, 240));
+        current = findMatches();
+      }
+    }
+    function advanceLevel() {
+      const target = level * 250;
+      if (score >= target) {
+        level += 1; moves += 8;
+        statusElement.textContent = `Level ${level}! You earned 8 extra moves.`;
+      }
+    }
+    async function activatePowerup(row, column) {
+      if (resolving || moves === 0) return;
+      resolving = true;
+      const powerup = board[row][column];
+      board[row][column] = "";
+      const cleared = powerup === "🪩" ? getDiscoClear() : getPowerupClear(powerup, row, column);
+      await resolveMatches(cleared);
+      advanceLevel();
+      resolving = false;
+      statusElement.textContent = `${powerup} Power-up cleared ${cleared.length} squares!`;
+      render();
+    }
+    function isPowerup(value) { return ["↔️", "↕️", "✚", "🪩"].includes(value); }
+    function getPowerupClear(powerup, row, column) {
+      const cleared = [];
+      if (powerup === "↔️" || powerup === "✚") for (let currentColumn = 0; currentColumn < size; currentColumn += 1) cleared.push({ row, column: currentColumn });
+      if (powerup === "↕️" || powerup === "✚") for (let currentRow = 0; currentRow < size; currentRow += 1) cleared.push({ row: currentRow, column });
+      return [...new Map(cleared.map((square) => [`${square.row},${square.column}`, square])).values()];
+    }
+    function getDiscoClear() {
+      const counts = new Map();
+      for (const gem of board.flat()) if (gem && !isPowerup(gem)) counts.set(gem, (counts.get(gem) || 0) + 1);
+      const target = [...counts.entries()].sort((first, second) => second[1] - first[1])[0][0];
+      return board.flatMap((line, index) => line === target ? [{ row: Math.floor(index / size), column: index % size }] : []);
+    }
+    function dropGems() {
+      for (let column = 0; column < size; column += 1) {
+        const values = []; for (let row = size - 1; row >= 0; row -= 1) if (board[row][column]) values.push(board[row][column]);
+        for (let row = size - 1; row >= 0; row -= 1) board[row][column] = values[size - 1 - row] || randomGem();
+      }
+    }
+    document.querySelector("#new-game").addEventListener("click", newGame);
+    newGame();
+  </script>
+</body></html>
