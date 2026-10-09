@@ -23,3 +23,4 @@ Keep a list of my games here.
 - Tic-Tac-Toe (`tic-tac-toe/`)
 - Minesweeper (`minesweeper/`)
 - Space Mine Idle (`space-mine-idle/`)
+- Funcraft (`funcraft/`)
