@@ -19,19 +19,21 @@
     button[aria-pressed="true"] { border-color: #fef08a; background: #854d0e; } button:disabled { cursor: not-allowed; opacity: .5; }
     button:hover:not(:disabled), button:focus-visible { border-color: #f8fafc; outline: .15rem solid #f8fafc; outline-offset: .1rem; }
     #reset { background: #fef08a; color: #172554; } #status { min-height: 1.5rem; margin: .75rem 0 0; color: #fef08a; font-weight: bold; }
+    #hunger { margin: .75rem 0 0; color: #fde68a; font-weight: bold; }
   </style>
 </head>
 <body>
   <main>
     <a href="../">← All games</a>
     <h1>Funcraft</h1>
-    <p class="instructions">Click the world to look around. Move with W/A/S/D, jump with Space, mine blocks or animals with left click, and place the selected block with right click or E. Press H or use Home to return to your starting hill.</p>
+    <p class="instructions">Click the world to look around. Mine ore and coal with left click, craft a furnace at a workbench, then press E beside the furnace to smelt ore into ingots using coal fuel. Away from stations, E eats food. Press H or use Home to return to your starting hill.</p>
     <div id="game-wrap"><canvas id="game" width="960" height="540" aria-label="Funcraft first-person block world"></canvas><span id="crosshair" aria-hidden="true"></span></div>
     <div id="inventory" class="inventory" aria-label="Inventory"></div>
     <div id="crafting" class="crafting" aria-label="Crafting bench"></div>
     <div class="controls" aria-label="Touch controls">
-      <button type="button" data-move="forward">Forward</button><button type="button" data-move="left">←</button><button type="button" data-action="jump">Jump</button><button type="button" data-move="right">→</button><button type="button" data-move="back">Back</button><button id="home" type="button">Home</button><button id="reset" type="button">New world</button>
+      <button type="button" data-move="forward">Forward</button><button type="button" data-move="left">←</button><button type="button" data-action="jump">Jump</button><button type="button" data-move="right">→</button><button type="button" data-move="back">Back</button><button id="home" type="button">Home</button><button id="fullscreen" type="button">Full screen</button><button id="reset" type="button">New world</button>
     </div>
+    <p id="hunger">Hunger: <span id="hunger-value">100</span>/100</p>
     <p id="status" aria-live="polite">Click the world to begin exploring.</p>
   </main>
   <script src="../shared/profile.js"></script>
@@ -41,23 +43,28 @@
     const inventoryElement = document.querySelector("#inventory");
     const craftingElement = document.querySelector("#crafting");
     const statusElement = document.querySelector("#status");
-    const initialSize = 48, height = 16, expansionSize = 16, version = 4;
+    const hungerValueElement = document.querySelector("#hunger-value");
+    const initialSize = 48, height = 16, expansionSize = 16, version = 6;
     const types = {
       grass: { label: "Grass", color: [101, 163, 13] }, dirt: { label: "Dirt", color: [146, 64, 14] },
       stone: { label: "Stone", color: [100, 116, 139] }, wood: { label: "Wood", color: [146, 64, 14] },
       leaves: { label: "Leaves", color: [21, 128, 61] }, water: { label: "Water", color: [2, 132, 199], solid: false },
       plank: { label: "Plank", color: [180, 83, 9] }, brick: { label: "Brick", color: [185, 28, 28] },
-      workbench: { label: "Workbench", color: [120, 53, 15] }, meat: { label: "Meat", color: [190, 55, 45] }
+      workbench: { label: "Workbench", color: [120, 53, 15] }, furnace: { label: "Furnace", color: [71, 85, 105] },
+      coal: { label: "Coal", color: [30, 41, 59] }, ironOre: { label: "Iron ore", color: [148, 163, 184] }, goldOre: { label: "Gold ore", color: [234, 179, 8] },
+      ironIngot: { label: "Iron ingot", color: [226, 232, 240] }, goldIngot: { label: "Gold ingot", color: [253, 224, 71] },
+      meat: { label: "Meat", color: [190, 55, 45] }, hide: { label: "Hide", color: [137, 92, 56] }
     };
     const recipes = [
       { output: "plank", amount: 4, cost: { wood: 1 } },
       { output: "workbench", amount: 1, cost: { plank: 4 } },
-      { output: "brick", amount: 2, cost: { stone: 2, dirt: 1 }, requiresWorkbench: true }
+      { output: "brick", amount: 2, cost: { stone: 2, dirt: 1 }, requiresWorkbench: true },
+      { output: "furnace", amount: 1, cost: { stone: 8 }, requiresWorkbench: true }
     ];
     const saved = GameProfiles.getGame("funcraft", { world: [], inventory: {}, player: null, worldVersion: 0 });
-    const player = { x: 5.5, y: 8, z: 5.5, yaw: 0, pitch: -.12, velocityY: 0, onGround: false };
+    const player = { x: 5.5, y: 8, z: 5.5, yaw: 0, pitch: -.12, velocityY: 0, onGround: false, hunger: 100 };
     const keys = new Set();
-    let world, inventory, selected = "dirt", workbenchNearby = false, mapWidth = initialSize, mapDepth = initialSize, mapOriginX = 0, mapOriginZ = 0, animals = [], animalTimer = 0, buffer, vertices = 0, lastFrame, animationFrame;
+    let world, inventory, selected = "dirt", workbenchNearby = false, workbenchActive = false, displayedHunger = -1, mapWidth = initialSize, mapDepth = initialSize, mapOriginX = 0, mapOriginZ = 0, animals = [], animalTimer = 0, buffer, vertices = 0, lastFrame, animationFrame;
 
     if (!gl) { statusElement.textContent = "WebGL is required to play Funcraft in 3D."; throw new Error("WebGL is unavailable"); }
     const program = createProgram(
@@ -76,7 +83,7 @@
       const next = Array.from({ length: height }, () => Array.from({ length: initialSize }, () => Array(initialSize).fill(null)));
       for (let z = 0; z < initialSize; z += 1) for (let x = 0; x < initialSize; x += 1) {
         const ground = 4 + Math.round(Math.sin(x * .31) + Math.cos(z * .27));
-        for (let y = 0; y <= ground; y += 1) next[y][z][x] = y === ground ? "grass" : y > ground - 3 ? "dirt" : "stone";
+        for (let y = 0; y <= ground; y += 1) next[y][z][x] = terrainBlock(x, y, z);
         if ((x * 17 + z * 11) % 83 === 4 && x > 2 && z > 2 && x < initialSize - 3 && z < initialSize - 3) addTree(next, x, ground + 1, z);
       }
       [[12, 12], [33, 10], [18, 35], [37, 34]].forEach(([x, z]) => addPond(next, x, z));
@@ -103,17 +110,17 @@
       mapWidth = valid ? saved.mapWidth : initialSize; mapDepth = valid ? saved.mapDepth : initialSize;
       mapOriginX = valid ? saved.mapOriginX : 0; mapOriginZ = valid ? saved.mapOriginZ : 0;
       animals = valid && Array.isArray(saved.animals) ? saved.animals : [];
-      inventory = !reset && saved.inventory && Object.keys(saved.inventory).length ? saved.inventory : { dirt: 6, stone: 2, wood: 4, grass: 0, leaves: 0, water: 0, plank: 0, brick: 0, workbench: 0, meat: 0 };
+      inventory = !reset && saved.inventory && Object.keys(saved.inventory).length ? saved.inventory : { dirt: 6, stone: 2, wood: 4, grass: 0, leaves: 0, water: 0, plank: 0, brick: 0, workbench: 0, furnace: 0, coal: 0, ironOre: 0, goldOre: 0, ironIngot: 0, goldIngot: 0, meat: 0, hide: 0 };
       const prior = !reset && valid ? saved.player : null;
       Object.assign(player, prior || { x: 5.5, y: 7, z: 5.5, yaw: 0, pitch: -.12, velocityY: 0, onGround: false });
-      player.velocityY = 0; selected = "dirt"; workbenchNearby = nearWorkbench(); saved.worldVersion = version; if (!animals.length) spawnAnimals(); rebuildMesh(); persist(); renderInventory(); renderCrafting();
+      player.velocityY = 0; player.hunger = Number.isFinite(player.hunger) ? player.hunger : 100; selected = "dirt"; workbenchNearby = nearWorkbench(); workbenchActive = false; saved.worldVersion = version; if (!animals.length) spawnAnimals(); rebuildMesh(); persist(); renderInventory(); renderCrafting(); renderHunger();
       lastFrame = performance.now(); cancelAnimationFrame(animationFrame); animationFrame = requestAnimationFrame(loop);
     }
 
-    function persist() { saved.world = world; saved.inventory = inventory; saved.player = { x: player.x, y: player.y, z: player.z, yaw: player.yaw, pitch: player.pitch }; saved.mapWidth = mapWidth; saved.mapDepth = mapDepth; saved.mapOriginX = mapOriginX; saved.mapOriginZ = mapOriginZ; saved.animals = animals; GameProfiles.saveGame("funcraft", saved); }
+    function persist() { saved.world = world; saved.inventory = inventory; saved.player = { x: player.x, y: player.y, z: player.z, yaw: player.yaw, pitch: player.pitch, hunger: player.hunger }; saved.mapWidth = mapWidth; saved.mapDepth = mapDepth; saved.mapOriginX = mapOriginX; saved.mapOriginZ = mapOriginZ; saved.animals = animals; GameProfiles.saveGame("funcraft", saved); }
     function blockAt(x, y, z) { return world[y]?.[z]?.[x] || null; }
     function solid(type) { return type && types[type].solid !== false; }
-    function terrainBlock(x, y, z) { const ground = 4 + Math.round(Math.sin(x * .31) + Math.cos(z * .27)); return y > ground ? null : y === ground ? "grass" : y > ground - 3 ? "dirt" : "stone"; }
+    function terrainBlock(x, y, z) { const ground = 4 + Math.round(Math.sin(x * .31) + Math.cos(z * .27)), seed = Math.abs(Math.floor(x) * 31 + Math.floor(z) * 17 + y * 13) % 37; return y > ground ? null : y === ground ? "grass" : y > ground - 3 ? "dirt" : seed === 0 ? "goldOre" : seed < 4 ? "ironOre" : seed < 9 ? "coal" : "stone"; }
     function expandMap() {
       let changed = false;
       while (player.x < 6) { for (let y = 0; y < height; y += 1) for (let z = 0; z < mapDepth; z += 1) world[y][z].unshift(terrainBlock(mapOriginX - 1, y, mapOriginZ + z)); mapOriginX -= 1; mapWidth += 1; player.x += 1; animals.forEach((animal) => animal.x += 1); changed = true; }
@@ -162,7 +169,8 @@
       move(Math.sin(player.yaw) * forward / length * speed * delta + strafe / length * speed * delta, 0, Math.cos(player.yaw) * forward / length * speed * delta);
       player.velocityY += (inWater() ? -3 : -18) * delta; player.onGround = false; move(0, player.velocityY * delta, 0);
       expandMap(); updateAnimals(delta);
-      if (nearWorkbench() !== workbenchNearby) { workbenchNearby = nearWorkbench(); renderCrafting(); }
+      player.hunger = Math.max(0, player.hunger - delta * .35); renderHunger();
+      if (nearWorkbench() !== workbenchNearby) { workbenchNearby = nearWorkbench(); if (!workbenchNearby) workbenchActive = false; renderCrafting(); }
       if (player.y < -3) respawn();
     }
 
@@ -217,6 +225,10 @@
       }
       return false;
     }
+    function nearFurnace() {
+      for (let y = Math.floor(player.y) - 1; y <= Math.floor(player.y) + 2; y += 1) for (let z = Math.floor(player.z) - 3; z <= Math.floor(player.z) + 3; z += 1) for (let x = Math.floor(player.x) - 3; x <= Math.floor(player.x) + 3; x += 1) if (blockAt(x, y, z) === "furnace" && Math.hypot(x + .5 - player.x, z + .5 - player.z) <= 3.5) return true;
+      return false;
+    }
 
     function raycast() {
       const direction = directionVector(), last = {}; for (let distance = .2; distance <= 6; distance += .1) {
@@ -225,15 +237,18 @@
       } return null;
     }
     function animalInSight() { const direction = directionVector(); for (let distance = .2; distance <= 6; distance += .1) { const x = player.x + direction[0] * distance, y = player.y + 1.45 + direction[1] * distance, z = player.z + direction[2] * distance; if (blockAt(Math.floor(x), Math.floor(y), Math.floor(z))) return null; const animal = animals.find((candidate) => Math.abs(candidate.x - x) < .5 && Math.abs(candidate.z - z) < .4 && y >= candidate.y && y <= candidate.y + 1); if (animal) return animal; } return null; }
-    function mine() { const animal = animalInSight(); if (animal) { animals.splice(animals.indexOf(animal), 1); inventory.meat = (inventory.meat || 0) + 1; statusElement.textContent = "You collected food from an animal."; rebuildMesh(); persistAndRender(); return; } const target = raycast(); if (!target) return; const type = blockAt(target.x,target.y,target.z); world[target.y][target.z][target.x] = null; inventory[type] = (inventory[type] || 0) + 1; statusElement.textContent = `Collected ${types[type].label.toLowerCase()}.`; rebuildMesh(); persistAndRender(); }
+    function mine() { const animal = animalInSight(); if (animal) { animals.splice(animals.indexOf(animal), 1); inventory.meat = (inventory.meat || 0) + 1; inventory.hide = (inventory.hide || 0) + 1; statusElement.textContent = "You collected food and hide from an animal."; rebuildMesh(); persistAndRender(); return; } const target = raycast(); if (!target) return; const type = blockAt(target.x,target.y,target.z); world[target.y][target.z][target.x] = null; inventory[type] = (inventory[type] || 0) + 1; statusElement.textContent = `Collected ${types[type].label.toLowerCase()}.`; rebuildMesh(); persistAndRender(); }
     function build() { const target = raycast(), place = target?.previous; if (!place || !inventory[selected] || playerOverlaps(place)) return; world[place.y][place.z][place.x] = selected; inventory[selected] -= 1; statusElement.textContent = `Placed ${types[selected].label.toLowerCase()}.`; rebuildMesh(); persistAndRender(); }
     function playerOverlaps(place) { return place.x + 1 > player.x - .28 && place.x < player.x + .28 && place.z + 1 > player.z - .28 && place.z < player.z + .28 && place.y + 1 > player.y && place.y < player.y + 1.7; }
 
     function renderInventory() { inventoryElement.replaceChildren(); Object.entries(types).forEach(([type, details]) => { const button = document.createElement("button"); button.type = "button"; button.setAttribute("aria-pressed", String(selected === type)); button.textContent = `${details.label}: ${inventory[type] || 0}`; button.addEventListener("click", () => { selected = type; renderInventory(); statusElement.textContent = `${details.label} selected for building.`; }); inventoryElement.append(button); }); }
-    function renderCrafting() { craftingElement.replaceChildren(); recipes.forEach((recipe) => { const button = document.createElement("button"), ingredients = Object.entries(recipe.cost).map(([type, amount]) => `${amount} ${types[type].label.toLowerCase()}`).join(" + "); button.type = "button"; button.disabled = !canCraft(recipe) || (recipe.requiresWorkbench && !workbenchNearby); button.textContent = `${recipe.requiresWorkbench ? "Workbench: " : ""}Craft ${recipe.amount} ${types[recipe.output].label.toLowerCase()}: ${ingredients}`; button.addEventListener("click", () => craft(recipe)); craftingElement.append(button); }); }
+    function renderCrafting() { craftingElement.replaceChildren(); recipes.forEach((recipe) => { const button = document.createElement("button"), ingredients = Object.entries(recipe.cost).map(([type, amount]) => `${amount} ${types[type].label.toLowerCase()}`).join(" + "); button.type = "button"; button.disabled = !canCraft(recipe) || (recipe.requiresWorkbench && (!workbenchNearby || !workbenchActive)); button.textContent = `${recipe.requiresWorkbench ? "Workbench: " : ""}Craft ${recipe.amount} ${types[recipe.output].label.toLowerCase()}: ${ingredients}`; button.addEventListener("click", () => craft(recipe)); craftingElement.append(button); }); }
     function canCraft(recipe) { return Object.entries(recipe.cost).every(([type, amount]) => (inventory[type] || 0) >= amount); }
-    function craft(recipe) { if (recipe.requiresWorkbench && !nearWorkbench()) { statusElement.textContent = "Stand near a workbench to use that recipe."; return; } if (!canCraft(recipe)) return; Object.entries(recipe.cost).forEach(([type, amount]) => inventory[type] -= amount); inventory[recipe.output] = (inventory[recipe.output] || 0) + recipe.amount; selected = recipe.output; statusElement.textContent = `Crafted ${recipe.amount} ${types[recipe.output].label.toLowerCase()} blocks.`; persistAndRender(); }
+    function craft(recipe) { if (recipe.requiresWorkbench && (!nearWorkbench() || !workbenchActive)) { statusElement.textContent = "Press E beside a workbench to use that recipe."; return; } if (!canCraft(recipe)) return; Object.entries(recipe.cost).forEach(([type, amount]) => inventory[type] -= amount); inventory[recipe.output] = (inventory[recipe.output] || 0) + recipe.amount; selected = recipe.output; statusElement.textContent = `Crafted ${recipe.amount} ${types[recipe.output].label.toLowerCase()} blocks.`; persistAndRender(); }
     function persistAndRender() { workbenchNearby = nearWorkbench(); persist(); renderInventory(); renderCrafting(); }
+    function renderHunger() { const value = Math.round(player.hunger); if (value !== displayedHunger) { displayedHunger = value; hungerValueElement.textContent = value; } }
+    function useContextAction() { if (nearFurnace()) { smeltOre(); return; } if (nearWorkbench()) { workbenchActive = true; renderCrafting(); statusElement.textContent = "Workbench ready. Choose an advanced recipe."; return; } if (!inventory.meat) { statusElement.textContent = "You do not have food to eat."; return; } inventory.meat -= 1; player.hunger = Math.min(100, player.hunger + 35); statusElement.textContent = "You ate food and restored hunger."; persistAndRender(); renderHunger(); }
+    function smeltOre() { const ore = inventory.goldOre ? "goldOre" : inventory.ironOre ? "ironOre" : null; if (!ore) { statusElement.textContent = "You do not have ore to smelt."; return; } if (!inventory.coal) { statusElement.textContent = "You need coal to fuel the furnace."; return; } const ingot = ore === "goldOre" ? "goldIngot" : "ironIngot"; inventory[ore] -= 1; inventory.coal -= 1; inventory[ingot] = (inventory[ingot] || 0) + 1; statusElement.textContent = `Smelted ${types[ore].label} into an ingot using coal.`; persistAndRender(); }
 
     function directionVector() { return [Math.sin(player.yaw) * Math.cos(player.pitch), Math.sin(player.pitch), Math.cos(player.yaw) * Math.cos(player.pitch)]; }
     function draw() {
@@ -245,8 +260,8 @@
     function multiply(a,b) { const out = new Float32Array(16); for (let column=0;column<4;column+=1) for (let row=0;row<4;row+=1) for (let index=0;index<4;index+=1) out[column*4+row] += a[index*4+row]*b[column*4+index]; return out; }
     function cross(a,b) { return [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]]; } function dot(a,b) { return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]; } function normalize(v) { const d=Math.hypot(...v)||1; return v.map((value)=>value/d); }
 
-    document.addEventListener("keydown", (event) => { const action = { w:"forward",W:"forward",ArrowUp:"forward",s:"back",S:"back",ArrowDown:"back",a:"left",A:"left",ArrowLeft:"left",d:"right",D:"right",ArrowRight:"right" }[event.key]; if (action) { keys.add(action); event.preventDefault(); } if (event.key === " ") { jump(); event.preventDefault(); } if (event.key === "e" || event.key === "E") { build(); event.preventDefault(); } if (event.key === "h" || event.key === "H") { teleportHome(); event.preventDefault(); } });
-    document.addEventListener("keyup", (event) => { const action = { w:"forward",W:"forward",ArrowUp:"forward",s:"back",S:"back",ArrowDown:"back",a:"left",A:"left",ArrowLeft:"left",d:"right",D:"right",ArrowRight:"right" }[event.key]; if (action) keys.delete(action); });
+    document.addEventListener("keydown", (event) => { const action = { w:"forward",W:"forward",ArrowUp:"forward",s:"back",S:"back",ArrowDown:"back",a:"right",A:"right",ArrowLeft:"left",d:"left",D:"left",ArrowRight:"right" }[event.key]; if (action) { keys.add(action); event.preventDefault(); } if (event.key === " ") { jump(); event.preventDefault(); } if (event.key === "e" || event.key === "E") { useContextAction(); event.preventDefault(); } if (event.key === "h" || event.key === "H") { teleportHome(); event.preventDefault(); } });
+    document.addEventListener("keyup", (event) => { const action = { w:"forward",W:"forward",ArrowUp:"forward",s:"back",S:"back",ArrowDown:"back",a:"right",A:"right",ArrowLeft:"left",d:"left",D:"left",ArrowRight:"right" }[event.key]; if (action) keys.delete(action); });
     canvas.addEventListener("click", () => { if (document.pointerLockElement !== canvas) canvas.requestPointerLock(); });
     canvas.addEventListener("contextmenu", (event) => event.preventDefault());
     canvas.addEventListener("mousedown", (event) => { if (document.pointerLockElement === canvas) { if (event.button === 0) mine(); if (event.button === 2) build(); } });
@@ -255,6 +270,17 @@
     document.querySelectorAll("[data-move]").forEach((button) => { const action = button.dataset.move; button.addEventListener("pointerdown", () => keys.add(action)); ["pointerup","pointerleave","pointercancel"].forEach((name) => button.addEventListener(name, () => keys.delete(action))); });
     document.querySelector("[data-action='jump']").addEventListener("click", jump);
     document.querySelector("#home").addEventListener("click", teleportHome);
+    const fullscreenButton = document.querySelector("#fullscreen");
+    async function toggleFullscreen() {
+      try {
+        if (document.fullscreenElement) await document.exitFullscreen();
+        else await document.querySelector("main").requestFullscreen();
+      } catch (error) {
+        statusElement.textContent = `Full screen is unavailable: ${error.message}`;
+      }
+    }
+    document.addEventListener("fullscreenchange", () => { fullscreenButton.textContent = document.fullscreenElement ? "Exit full screen" : "Full screen"; });
+    fullscreenButton.addEventListener("click", toggleFullscreen);
     document.querySelector("#reset").addEventListener("click", () => { startWorld(true); statusElement.textContent = "A fresh 3D world is ready."; });
     startWorld(false);
   </script>
