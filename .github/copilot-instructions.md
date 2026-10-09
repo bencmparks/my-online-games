@@ -24,3 +24,6 @@ Keep a list of my games here.
 - Minesweeper (`minesweeper/`)
 - Space Mine Idle (`space-mine-idle/`)
 - Funcraft (`funcraft/`)
+- Meteor Dodge (`meteor-dodge/`)
+- Bubble Pop (`bubble-pop/`)
+- Quick Calc (`quick-calc/`)
