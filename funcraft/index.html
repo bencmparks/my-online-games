@@ -26,7 +26,7 @@
   <main>
     <a href="../">← All games</a>
     <h1>Funcraft</h1>
-    <p class="instructions">Click the world to look around. Mine ore and coal with left click, craft a furnace at a workbench, then press E beside the furnace to smelt ore into ingots using coal fuel. Away from stations, E eats food. Press H or use Home to return to your starting hill.</p>
+    <p class="instructions">Click the world to look around. Mine ore and coal with left click, craft a furnace at a workbench, then press E beside the furnace to smelt ore into ingots using coal fuel. Away from stations, E eats food, or tames the animal you're looking at (costs 1 meat; wolves, bears and boars only sometimes accept). Tamed pets follow you and can't be collected. Press H or use Home to return to your starting hill. Craft torches (wood + coal) and left-click wood, leaves, grass or coal while holding one to set it on fire (or press L); fire goes out unless it touches one of those, spreads slowly, and water puts it out. Craft a bucket (3 iron ingots at a workbench), left-click water to fill it, and right-click to pour it out or douse fire.</p>
     <div id="game-wrap"><canvas id="game" width="960" height="540" aria-label="Funcraft first-person block world"></canvas><span id="crosshair" aria-hidden="true"></span></div>
     <div id="inventory" class="inventory" aria-label="Inventory"></div>
     <div id="crafting" class="crafting" aria-label="Crafting bench"></div>
@@ -34,6 +34,7 @@
       <button type="button" data-move="forward">Forward</button><button type="button" data-move="left">←</button><button type="button" data-action="jump">Jump</button><button type="button" data-move="right">→</button><button type="button" data-move="back">Back</button><button id="home" type="button">Home</button><button id="fullscreen" type="button">Full screen</button><button id="reset" type="button">New world</button>
     </div>
     <p id="hunger">Hunger: <span id="hunger-value">100</span>/100</p>
+    <p><label><input id="survival" type="checkbox"> Survival mode: 5 lives and hostile animals (wolf, bear, boar) and fire damage</label> <span id="lives"></span></p>
     <p id="status" aria-live="polite">Click the world to begin exploring.</p>
   </main>
   <script src="../shared/profile.js"></script>
@@ -53,11 +54,18 @@
       workbench: { label: "Workbench", color: [120, 53, 15] }, furnace: { label: "Furnace", color: [71, 85, 105] },
       coal: { label: "Coal", color: [30, 41, 59] }, ironOre: { label: "Iron ore", color: [148, 163, 184] }, goldOre: { label: "Gold ore", color: [234, 179, 8] },
       ironIngot: { label: "Iron ingot", color: [226, 232, 240] }, goldIngot: { label: "Gold ingot", color: [253, 224, 71] },
-      meat: { label: "Meat", color: [190, 55, 45] }, hide: { label: "Hide", color: [137, 92, 56] }
+      meat: { label: "Meat", color: [190, 55, 45] }, hide: { label: "Hide", color: [137, 92, 56] },
+      torch: { label: "Torch", color: [250, 204, 21], solid: false }, fire: { label: "Fire", color: [249, 115, 22], solid: false, hidden: true },
+      bucket: { label: "Bucket", color: [148, 163, 184] }, waterBucket: { label: "Water bucket", color: [56, 189, 248] }
     };
+    const flammable = { wood: 1, leaves: 1.4, grass: 1.5, coal: .5 };
+    let fireTimer = 0, smoke = [], smokeTimer = 0, fireCells = [];
+    const smokeBuffer = gl.createBuffer();
     const recipes = [
       { output: "plank", amount: 4, cost: { wood: 1 } },
+      { output: "torch", amount: 4, cost: { wood: 1, coal: 1 } },
       { output: "workbench", amount: 1, cost: { plank: 4 } },
+      { output: "bucket", amount: 1, cost: { ironIngot: 3 }, requiresWorkbench: true },
       { output: "brick", amount: 2, cost: { stone: 2, dirt: 1 }, requiresWorkbench: true },
       { output: "furnace", amount: 1, cost: { stone: 8 }, requiresWorkbench: true }
     ];
@@ -68,8 +76,8 @@
 
     if (!gl) { statusElement.textContent = "WebGL is required to play Funcraft in 3D."; throw new Error("WebGL is unavailable"); }
     const program = createProgram(
-      "attribute vec3 p; attribute vec3 c; uniform mat4 m; varying vec3 v; void main(){gl_Position=m*vec4(p,1.0);v=c;}",
-      "precision mediump float; varying vec3 v; void main(){gl_FragColor=vec4(v,1.0);}"
+      "attribute vec3 p; attribute vec3 c; uniform mat4 m; varying vec3 v; varying vec3 w; void main(){gl_Position=m*vec4(p,1.0);v=c;w=p;}",
+      "#ifdef GL_FRAGMENT_PRECISION_HIGH\nprecision highp float;\n#else\nprecision mediump float;\n#endif\nvarying vec3 v; varying vec3 w; void main(){vec3 t=floor(w*16.0+0.002); float h=fract(sin(dot(t,vec3(12.9898,78.233,37.719)))*43758.5453); float tone=0.8+0.1*floor(h*3.0); gl_FragColor=vec4(v*tone,1.0);}"
     );
     const positionLocation = gl.getAttribLocation(program, "p"), colorLocation = gl.getAttribLocation(program, "c"), matrixLocation = gl.getUniformLocation(program, "m");
     gl.enable(gl.DEPTH_TEST); gl.enable(gl.CULL_FACE); gl.clearColor(.49, .83, .98, 1); gl.useProgram(program);
@@ -113,11 +121,11 @@
       inventory = !reset && saved.inventory && Object.keys(saved.inventory).length ? saved.inventory : { dirt: 6, stone: 2, wood: 4, grass: 0, leaves: 0, water: 0, plank: 0, brick: 0, workbench: 0, furnace: 0, coal: 0, ironOre: 0, goldOre: 0, ironIngot: 0, goldIngot: 0, meat: 0, hide: 0 };
       const prior = !reset && valid ? saved.player : null;
       Object.assign(player, prior || { x: 5.5, y: 7, z: 5.5, yaw: 0, pitch: -.12, velocityY: 0, onGround: false });
-      player.velocityY = 0; player.hunger = Number.isFinite(player.hunger) ? player.hunger : 100; selected = "dirt"; workbenchNearby = nearWorkbench(); workbenchActive = false; saved.worldVersion = version; if (!animals.length) spawnAnimals(); rebuildMesh(); persist(); renderInventory(); renderCrafting(); renderHunger();
+      player.velocityY = 0; player.hunger = Number.isFinite(player.hunger) ? player.hunger : 100; selected = "dirt"; workbenchNearby = nearWorkbench(); workbenchActive = false; saved.worldVersion = version; if (!animals.length) spawnAnimals(); lives = !reset && valid && Number.isFinite(saved.lives) ? saved.lives : maxLives; if (reset) saved.survival = survivalElement.checked; survivalElement.checked = !!saved.survival; if (saved.survival && !animals.some((animal) => animalKinds[animal.kind]?.hostile && !animal.pet)) syncHostiles(); renderLives(); rebuildMesh(); persist(); renderInventory(); renderCrafting(); renderHunger();
       lastFrame = performance.now(); cancelAnimationFrame(animationFrame); animationFrame = requestAnimationFrame(loop);
     }
 
-    function persist() { saved.world = world; saved.inventory = inventory; saved.player = { x: player.x, y: player.y, z: player.z, yaw: player.yaw, pitch: player.pitch, hunger: player.hunger }; saved.mapWidth = mapWidth; saved.mapDepth = mapDepth; saved.mapOriginX = mapOriginX; saved.mapOriginZ = mapOriginZ; saved.animals = animals; GameProfiles.saveGame("funcraft", saved); }
+    function persist() { saved.world = world; saved.inventory = inventory; saved.player = { x: player.x, y: player.y, z: player.z, yaw: player.yaw, pitch: player.pitch, hunger: player.hunger }; saved.mapWidth = mapWidth; saved.mapDepth = mapDepth; saved.mapOriginX = mapOriginX; saved.mapOriginZ = mapOriginZ; saved.animals = animals; saved.lives = lives; GameProfiles.saveGame("funcraft", saved); }
     function blockAt(x, y, z) { return world[y]?.[z]?.[x] || null; }
     function solid(type) { return type && types[type].solid !== false; }
     function terrainBlock(x, y, z) { const ground = 4 + Math.round(Math.sin(x * .31) + Math.cos(z * .27)), seed = Math.abs(Math.floor(x) * 31 + Math.floor(z) * 17 + y * 13) % 37; return y > ground ? null : y === ground ? "grass" : y > ground - 3 ? "dirt" : seed === 0 ? "goldOre" : seed < 4 ? "ironOre" : seed < 9 ? "coal" : "stone"; }
@@ -130,8 +138,66 @@
       if (changed) rebuildMesh();
     }
     function surfaceAt(x, z) { for (let y = height - 1; y >= 0; y -= 1) if (solid(blockAt(Math.floor(x), y, Math.floor(z)))) return y + 1; return 1; }
-    function spawnAnimals() { while (animals.length < 8) { const x = Math.max(2, Math.min(mapWidth - 3, player.x + (Math.random() * 24 - 12))), z = Math.max(2, Math.min(mapDepth - 3, player.z + (Math.random() * 24 - 12))); animals.push({ x, y: surfaceAt(x, z), z, color: Math.random() < .5 ? [245, 222, 179] : [250, 250, 250], direction: Math.random() * Math.PI * 2 }); } }
-    function updateAnimals(delta) { animalTimer += delta; if (animalTimer < 1.2) return; animalTimer = 0; animals.forEach((animal) => { animal.direction += Math.random() - .5; animal.x = Math.max(1, Math.min(mapWidth - 2, animal.x + Math.sin(animal.direction) * .45)); animal.z = Math.max(1, Math.min(mapDepth - 2, animal.z + Math.cos(animal.direction) * .45)); animal.y = surfaceAt(animal.x, animal.z); }); rebuildMesh(); }
+    const animalKinds = {
+      sheep: { body: [250, 250, 250], head: [60, 60, 60], scale: 1 },
+      cow: { body: [245, 245, 245], head: [90, 60, 40], scale: 1.2, ears: .15 },
+      pig: { body: [244, 164, 180], head: [236, 140, 160], scale: .9, tail: [236, 140, 160] },
+      chicken: { body: [255, 255, 255], head: [220, 40, 40], scale: .5, tail: [235, 235, 235] },
+      horse: { body: [140, 90, 50], head: [100, 60, 35], scale: 1.5, ears: .15, neck: .35, tail: [40, 25, 15] },
+      rabbit: { body: [170, 160, 150], head: [190, 180, 170], scale: .45, ears: .25, tail: [255, 255, 255] },
+      goat: { body: [210, 200, 180], head: [150, 140, 120], scale: 1, ears: .2, tail: [150, 140, 120] },
+      duck: { body: [240, 240, 220], head: [30, 110, 60], scale: .55, tail: [200, 200, 180] },
+      parrot: { body: [30, 170, 70], head: [220, 40, 40], scale: .5, tail: [40, 90, 200], fly: 1.5, wings: [20, 130, 60] },
+      bluebird: { body: [60, 120, 230], head: [90, 150, 245], scale: .4, tail: [40, 80, 180], fly: 2.2, wings: [40, 90, 200] },
+      owl: { body: [140, 110, 80], head: [170, 140, 100], scale: .6, ears: .12, tail: [110, 85, 60], fly: 1.2, wings: [110, 85, 60] },
+      eagle: { body: [90, 60, 40], head: [250, 250, 250], scale: .8, tail: [250, 250, 250], fly: 3, wings: [70, 45, 30] },
+      wolf: { body: [110, 110, 120], head: [70, 70, 80], scale: 1, ears: .15, tail: [90, 90, 100], hostile: true, speed: 2.6 },
+      bear: { body: [80, 50, 30], head: [55, 35, 20], scale: 1.6, ears: .1, tail: [55, 35, 20], hostile: true, speed: 1.9 },
+      boar: { body: [100, 70, 60], head: [60, 40, 35], scale: .9, ears: .1, tail: [60, 40, 35], hostile: true, speed: 3 }
+    };
+    let lives = 5, maxLives = 5, hitCooldown = 0, petMeshTimer = 0, hostileMeshTimer = 0, hostileSpawnTimer = 0;
+    const livesElement = document.querySelector("#lives"), survivalElement = document.querySelector("#survival");
+    const hostileKinds = () => Object.keys(animalKinds).filter((kind) => animalKinds[kind].hostile);
+    function renderLives() { livesElement.textContent = saved.survival ? "❤️".repeat(Math.max(lives, 0)) : ""; }
+    function addHostile() { const kinds = hostileKinds(), kind = kinds[Math.floor(Math.random() * kinds.length)], angle = Math.random() * Math.PI * 2, radius = 10 + Math.random() * 6, x = Math.max(2, Math.min(mapWidth - 3, player.x + Math.cos(angle) * radius)), z = Math.max(2, Math.min(mapDepth - 3, player.z + Math.sin(angle) * radius)); animals.push({ x, y: surfaceAt(x, z), z, kind, direction: 0 }); }
+    function syncHostiles() { animals = animals.filter((animal) => animal.pet || !animalKinds[animal.kind]?.hostile); if (saved.survival) for (let n = 0; n < 4; n += 1) addHostile(); rebuildMesh(); }
+    function hurt(kind) {
+      lives -= 1; hitCooldown = 1.5;
+      if (lives <= 0) { lives = maxLives; player.hunger = 100; teleportHome(); syncHostiles(); statusElement.textContent = `A ${kind} defeated you! You woke up at home with ${lives} fresh lives.`; }
+      else statusElement.textContent = `A ${kind} attacked you! Lives left: ${lives}.`;
+      renderLives(); persist();
+    }
+    function updatePets(delta) {
+      petMeshTimer += delta; let moved = false;
+      animals.forEach((animal) => {
+        if (!animal.pet) return;
+        const kind = animalKinds[animal.kind] || animalKinds.sheep, dx = player.x - animal.x, dz = player.z - animal.z, distance = Math.hypot(dx, dz);
+        if (distance > 25) { animal.x = player.x + 1.5; animal.z = player.z; moved = true; }
+        else if (distance > 2.5) { const step = Math.min((kind.speed || 2.8) * delta * 1.2, distance - 2.4); animal.x += dx / distance * step; animal.z += dz / distance * step; moved = true; }
+        animal.x = Math.max(1, Math.min(mapWidth - 2, animal.x)); animal.z = Math.max(1, Math.min(mapDepth - 2, animal.z)); animal.y = surfaceAt(animal.x, animal.z) + (kind.fly || 0);
+      });
+      if (moved && petMeshTimer > .15) { petMeshTimer = 0; rebuildMesh(); }
+    }
+    function tameAnimal(animal) {
+      if (animal.pet) { statusElement.textContent = `You pet your ${animal.kind}. ❤️`; return; }
+      inventory.meat -= 1; const kind = animalKinds[animal.kind];
+      if (kind && kind.hostile && Math.random() < .5) { statusElement.textContent = `The ${animal.kind} snarled and ignored your food. Try again!`; persistAndRender(); return; }
+      animal.pet = true; statusElement.textContent = `You tamed a ${animal.kind}! It will follow you. (${animals.filter((a) => a.pet).length} pets)`; rebuildMesh(); persistAndRender();
+    }
+    function updateHostiles(delta) {
+      if (!saved.survival) return;
+      hitCooldown = Math.max(0, hitCooldown - delta); hostileMeshTimer += delta; let moved = false;
+      animals.forEach((animal) => {
+        const kind = animalKinds[animal.kind]; if (!kind || !kind.hostile || animal.pet) return;
+        const dx = player.x - animal.x, dz = player.z - animal.z, distance = Math.hypot(dx, dz);
+        if (distance < 12 && distance > .1) { const step = Math.min(kind.speed * delta, distance); animal.x += dx / distance * step; animal.z += dz / distance * step; animal.y = surfaceAt(animal.x, animal.z); moved = true; }
+        if (distance < 1.1 && Math.abs(player.y - animal.y) < 1.5 && hitCooldown === 0) hurt(animal.kind);
+      });
+      if (moved && hostileMeshTimer > .15) { hostileMeshTimer = 0; rebuildMesh(); }
+      hostileSpawnTimer += delta; if (hostileSpawnTimer > 25) { hostileSpawnTimer = 0; if (animals.filter((animal) => animalKinds[animal.kind]?.hostile && !animal.pet).length < 4) { addHostile(); rebuildMesh(); } }
+    }
+    function spawnAnimals() { while (animals.length < 8) { const x = Math.max(2, Math.min(mapWidth - 3, player.x + (Math.random() * 24 - 12))), z = Math.max(2, Math.min(mapDepth - 3, player.z + (Math.random() * 24 - 12))); const kinds = Object.keys(animalKinds).filter((name) => !animalKinds[name].hostile), kind = kinds[Math.floor(Math.random() * kinds.length)]; animals.push({ x, y: surfaceAt(x, z) + (animalKinds[kind].fly || 0), z, kind, direction: Math.random() * Math.PI * 2 }); } }
+    function updateAnimals(delta) { animalTimer += delta; if (animalTimer < 1.2) return; animalTimer = 0; animals.forEach((animal) => { if (animal.pet) return; animal.direction += Math.random() - .5; animal.x = Math.max(1, Math.min(mapWidth - 2, animal.x + Math.sin(animal.direction) * .45)); animal.z = Math.max(1, Math.min(mapDepth - 2, animal.z + Math.cos(animal.direction) * .45)); animal.y = surfaceAt(animal.x, animal.z) + (animalKinds[animal.kind]?.fly || 0); }); rebuildMesh(); }
 
     function rebuildMesh() {
       const data = [], faces = [[[1,0,0],[1,0,0]], [[-1,0,0],[-1,0,0]], [[0,1,0],[0,1,0]], [[0,-1,0],[0,-1,0]], [[0,0,1],[0,0,1]], [[0,0,-1],[0,0,-1]]];
@@ -142,19 +208,27 @@
       const minX = Math.max(0, Math.floor(player.x) - 24), maxX = Math.min(mapWidth, Math.floor(player.x) + 25), minZ = Math.max(0, Math.floor(player.z) - 24), maxZ = Math.min(mapDepth, Math.floor(player.z) + 25);
       for (let y = 0; y < height; y += 1) for (let z = minZ; z < maxZ; z += 1) for (let x = minX; x < maxX; x += 1) {
         const type = blockAt(x, y, z); if (!type) continue;
+        if (type === "torch") { addAnimalCube(x + .42, y, z + .42, .16, .6, .16, [.55, .33, .12]); addAnimalCube(x + .38, y + .6, z + .38, .24, .24, .24, [1, .82, .15]); continue; }
+        if (type === "fire") { addAnimalCube(x + .15, y, z + .15, .7, .5, .7, [.98, .45, .08]); addAnimalCube(x + .3, y + .5, z + .3, .4, .4, .4, [1, .8, .15]); continue; }
         faces.forEach((face, index) => {
           const [dx, dy, dz] = face[0], neighbor = blockAt(x + dx, y + dy, z + dz);
-          if (neighbor && (type !== "water" || neighbor === "water")) return;
+          if (neighbor && neighbor !== "torch" && neighbor !== "fire" && (type !== "water" || neighbor === "water")) return;
           const shade = [.82, .62, 1, .5, .9, .7][index], color = types[type].color.map((value) => value / 255 * shade);
           [0,1,2,0,2,3].forEach((corner) => data.push(...corners[index][corner].map((value, axis) => value + [x,y,z][axis]), ...color));
         });
       }
       function addAnimalCube(x, y, z, width, cubeHeight, depth, color) { corners.forEach((face) => [0,1,2,0,2,3].forEach((corner) => data.push(...face[corner].map((value, axis) => value * [width, cubeHeight, depth][axis] + [x, y, z][axis]), ...color))); }
       animals.forEach((animal) => {
-        const body = animal.color.map((value) => value / 255), leg = body.map((value) => value * .55);
-        addAnimalCube(animal.x - .38, animal.y + .35, animal.z - .25, .76, .42, .5, body);
-        addAnimalCube(animal.x - .2, animal.y + .62, animal.z + .22, .4, .35, .3, body);
-        [[-.3,-.18],[.2,-.18],[-.3,.18],[.2,.18]].forEach(([x,z]) => addAnimalCube(animal.x + x, animal.y, animal.z + z, .12, .38, .12, leg));
+        const kind = animalKinds[animal.kind] || animalKinds.sheep, s = kind.scale, body = kind.body.map((value) => value / 255), head = kind.head.map((value) => value / 255), leg = body.map((value) => value * .55);
+        addAnimalCube(animal.x - .38 * s, animal.y + .35 * s, animal.z - .25 * s, .76 * s, .42 * s, .5 * s, body);
+        addAnimalCube(animal.x - .2 * s, animal.y + .62 * s, animal.z + .22 * s, .4 * s, .35 * s, .3 * s, head);
+        [[-.3,-.18],[.2,-.18],[-.3,.18],[.2,.18]].forEach(([x,z]) => addAnimalCube(animal.x + x * s, animal.y, animal.z + z * s, .12 * s, .38 * s, .12 * s, leg));
+        [-.1, .04].forEach((x) => addAnimalCube(animal.x + x * s, animal.y + .8 * s, animal.z + .51 * s, .07 * s, .07 * s, .04 * s, [.05, .05, .05]));
+        if (kind.ears) [-.2, .12].forEach((x) => addAnimalCube(animal.x + x * s, animal.y + .97 * s, animal.z + .3 * s, .08 * s, kind.ears * s, .08 * s, head));
+        if (kind.neck) addAnimalCube(animal.x - .1 * s, animal.y + .75 * s, animal.z + .2 * s, .2 * s, kind.neck * s, .2 * s, head);
+        if (kind.wings) { const wing = kind.wings.map((value) => value / 255); [-.38 - .4, .38].forEach((x) => addAnimalCube(animal.x + x * s, animal.y + .65 * s, animal.z - .15 * s, .4 * s, .06 * s, .3 * s, wing)); }
+        if (animal.pet) addAnimalCube(animal.x - .07 * s, animal.y + (1.1 + (kind.neck || 0)) * s, animal.z + .3 * s, .14 * s, .14 * s, .14 * s, [1, .2, .35]);
+        if (kind.tail) addAnimalCube(animal.x - .06 * s, animal.y + .6 * s, animal.z - .33 * s, .12 * s, .12 * s, .12 * s, kind.tail.map((value) => value / 255));
       });
       buffer = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buffer); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.STATIC_DRAW); vertices = data.length / 6;
     }
@@ -168,7 +242,7 @@
       const length = Math.hypot(forward, strafe) || 1, speed = inWater() ? 2 : 4;
       move(Math.sin(player.yaw) * forward / length * speed * delta + strafe / length * speed * delta, 0, Math.cos(player.yaw) * forward / length * speed * delta);
       player.velocityY += (inWater() ? -3 : -18) * delta; player.onGround = false; move(0, player.velocityY * delta, 0);
-      expandMap(); updateAnimals(delta);
+      expandMap(); updateAnimals(delta); updateHostiles(delta); updatePets(delta); updateFire(delta); updateSmoke(delta);
       player.hunger = Math.max(0, player.hunger - delta * .35); renderHunger();
       if (nearWorkbench() !== workbenchNearby) { workbenchNearby = nearWorkbench(); if (!workbenchNearby) workbenchActive = false; renderCrafting(); }
       if (player.y < -3) respawn();
@@ -237,30 +311,81 @@
       } return null;
     }
     function animalInSight() { const direction = directionVector(); for (let distance = .2; distance <= 6; distance += .1) { const x = player.x + direction[0] * distance, y = player.y + 1.45 + direction[1] * distance, z = player.z + direction[2] * distance; if (blockAt(Math.floor(x), Math.floor(y), Math.floor(z))) return null; const animal = animals.find((candidate) => Math.abs(candidate.x - x) < .5 && Math.abs(candidate.z - z) < .4 && y >= candidate.y && y <= candidate.y + 1); if (animal) return animal; } return null; }
-    function mine() { const animal = animalInSight(); if (animal) { animals.splice(animals.indexOf(animal), 1); inventory.meat = (inventory.meat || 0) + 1; inventory.hide = (inventory.hide || 0) + 1; statusElement.textContent = "You collected food and hide from an animal."; rebuildMesh(); persistAndRender(); return; } const target = raycast(); if (!target) return; const type = blockAt(target.x,target.y,target.z); world[target.y][target.z][target.x] = null; inventory[type] = (inventory[type] || 0) + 1; statusElement.textContent = `Collected ${types[type].label.toLowerCase()}.`; rebuildMesh(); persistAndRender(); }
-    function build() { const target = raycast(), place = target?.previous; if (!place || !inventory[selected] || playerOverlaps(place)) return; world[place.y][place.z][place.x] = selected; inventory[selected] -= 1; statusElement.textContent = `Placed ${types[selected].label.toLowerCase()}.`; rebuildMesh(); persistAndRender(); }
+    function mine() { const animal = animalInSight(); if (animal && animal.pet) { statusElement.textContent = "That's your pet! Press E to pet it."; return; } if (animal) { animals.splice(animals.indexOf(animal), 1); inventory.meat = (inventory.meat || 0) + 1; inventory.hide = (inventory.hide || 0) + 1; statusElement.textContent = "You collected food and hide from an animal."; rebuildMesh(); persistAndRender(); return; } const target = raycast(); if (!target) return; const type = blockAt(target.x,target.y,target.z);
+      if (type === "fire") { world[target.y][target.z][target.x] = null; statusElement.textContent = "You put out the fire."; rebuildMesh(); persist(); return; }
+      if (type === "water") { if (!inventory.bucket) { statusElement.textContent = "You need a bucket to collect water. Craft one at a workbench."; return; } inventory.bucket -= 1; inventory.waterBucket = (inventory.waterBucket || 0) + 1; world[target.y][target.z][target.x] = null; statusElement.textContent = "Filled your bucket with water."; rebuildMesh(); persistAndRender(); return; }
+      if (selected === "torch" && inventory.torch && flammable[type]) { world[target.y][target.z][target.x] = "fire"; statusElement.textContent = `You set the ${types[type].label.toLowerCase()} on fire! Water puts it out.`; rebuildMesh(); persist(); return; }
+      world[target.y][target.z][target.x] = null; inventory[type] = (inventory[type] || 0) + 1; statusElement.textContent = `Collected ${types[type].label.toLowerCase()}.`; rebuildMesh(); persistAndRender(); }
+    function build() {
+      const target = raycast(), place = target?.previous; if (!target) return;
+      if (selected === "waterBucket" && inventory.waterBucket && blockAt(target.x, target.y, target.z) === "fire") { world[target.y][target.z][target.x] = null; inventory.waterBucket -= 1; inventory.bucket = (inventory.bucket || 0) + 1; statusElement.textContent = "Water put out the fire!"; rebuildMesh(); persistAndRender(); return; }
+      if (!place || !inventory[selected] || playerOverlaps(place)) return;
+      if (selected === "bucket") { statusElement.textContent = "Left-click water with a bucket to fill it."; return; }
+      const block = selected === "waterBucket" ? "water" : selected;
+      world[place.y][place.z][place.x] = block; inventory[selected] -= 1; if (selected === "waterBucket") inventory.bucket = (inventory.bucket || 0) + 1;
+      statusElement.textContent = `Placed ${types[block].label.toLowerCase()}.`; rebuildMesh(); persistAndRender();
+    }
+    function lightFire() {
+      if (selected !== "torch" || !inventory.torch) { statusElement.textContent = "Select a torch from your inventory to light fires with L."; return; }
+      const target = raycast(), type = target && blockAt(target.x, target.y, target.z);
+      if (!flammable[type]) { statusElement.textContent = "Aim at wood, leaves, grass or coal to light it."; return; }
+      world[target.y][target.z][target.x] = "fire"; statusElement.textContent = `You set the ${types[type].label.toLowerCase()} on fire! Water puts it out.`; rebuildMesh(); persist();
+    }
+    function nearWater(x, y, z) { for (let dy = -1; dy <= 1; dy += 1) for (let dz = -1; dz <= 1; dz += 1) for (let dx = -1; dx <= 1; dx += 1) if (blockAt(x + dx, y + dy, z + dz) === "water") return true; return false; }
+    function updateFire(delta) {
+      fireTimer += delta; if (fireTimer < 1) return; fireTimer = 0;
+      const dirs = [], changes = []; for (let dy = -1; dy <= 1; dy += 1) for (let dz = -1; dz <= 1; dz += 1) for (let dx = -1; dx <= 1; dx += 1) if (dx || dy || dz) dirs.push([dx, dy, dz]); let playerInFire = false; fireCells = [];
+      const minX = Math.max(0, Math.floor(player.x) - 40), maxX = Math.min(mapWidth, Math.floor(player.x) + 41), minZ = Math.max(0, Math.floor(player.z) - 40), maxZ = Math.min(mapDepth, Math.floor(player.z) + 41);
+      for (let y = 0; y < height; y += 1) for (let z = minZ; z < maxZ; z += 1) for (let x = minX; x < maxX; x += 1) {
+        const type = world[y][z][x]; if (type !== "fire" && type !== "torch") continue;
+        if (type === "fire") {
+          if (nearWater(x, y, z) || Math.random() < .12 || !dirs.some(([dx, dy, dz]) => flammable[blockAt(x + dx, y + dy, z + dz)])) { changes.push([x, y, z, null]); continue; }
+          if (Math.hypot(player.x - (x + .5), player.z - (z + .5)) < 1 && y + 1 > player.y && y < player.y + 1.7) playerInFire = true;
+          fireCells.push([x, y, z]);
+        }
+        const chance = type === "fire" ? .2 : .04;
+        dirs.forEach(([dx, dy, dz]) => { const next = blockAt(x + dx, y + dy, z + dz); if (flammable[next] && Math.random() < chance * flammable[next]) changes.push([x + dx, y + dy, z + dz, "fire"]); });
+      }
+      changes.forEach(([x, y, z, value]) => { if (value === "fire" && nearWater(x, y, z)) return; world[y][z][x] = value; });
+      if (changes.length) { rebuildMesh(); persist(); }
+      if (playerInFire && saved.survival && hitCooldown === 0) hurt("fire");
+    }
     function playerOverlaps(place) { return place.x + 1 > player.x - .28 && place.x < player.x + .28 && place.z + 1 > player.z - .28 && place.z < player.z + .28 && place.y + 1 > player.y && place.y < player.y + 1.7; }
 
-    function renderInventory() { inventoryElement.replaceChildren(); Object.entries(types).forEach(([type, details]) => { const button = document.createElement("button"); button.type = "button"; button.setAttribute("aria-pressed", String(selected === type)); button.textContent = `${details.label}: ${inventory[type] || 0}`; button.addEventListener("click", () => { selected = type; renderInventory(); statusElement.textContent = `${details.label} selected for building.`; }); inventoryElement.append(button); }); }
+    function renderInventory() { inventoryElement.replaceChildren(); Object.entries(types).filter(([, details]) => !details.hidden).forEach(([type, details]) => { const button = document.createElement("button"); button.type = "button"; button.setAttribute("aria-pressed", String(selected === type)); button.textContent = `${details.label}: ${inventory[type] || 0}`; button.addEventListener("click", () => { selected = type; renderInventory(); statusElement.textContent = `${details.label} selected for building.`; }); inventoryElement.append(button); }); }
     function renderCrafting() { craftingElement.replaceChildren(); recipes.forEach((recipe) => { const button = document.createElement("button"), ingredients = Object.entries(recipe.cost).map(([type, amount]) => `${amount} ${types[type].label.toLowerCase()}`).join(" + "); button.type = "button"; button.disabled = !canCraft(recipe) || (recipe.requiresWorkbench && (!workbenchNearby || !workbenchActive)); button.textContent = `${recipe.requiresWorkbench ? "Workbench: " : ""}Craft ${recipe.amount} ${types[recipe.output].label.toLowerCase()}: ${ingredients}`; button.addEventListener("click", () => craft(recipe)); craftingElement.append(button); }); }
     function canCraft(recipe) { return Object.entries(recipe.cost).every(([type, amount]) => (inventory[type] || 0) >= amount); }
     function craft(recipe) { if (recipe.requiresWorkbench && (!nearWorkbench() || !workbenchActive)) { statusElement.textContent = "Press E beside a workbench to use that recipe."; return; } if (!canCraft(recipe)) return; Object.entries(recipe.cost).forEach(([type, amount]) => inventory[type] -= amount); inventory[recipe.output] = (inventory[recipe.output] || 0) + recipe.amount; selected = recipe.output; statusElement.textContent = `Crafted ${recipe.amount} ${types[recipe.output].label.toLowerCase()} blocks.`; persistAndRender(); }
     function persistAndRender() { workbenchNearby = nearWorkbench(); persist(); renderInventory(); renderCrafting(); }
     function renderHunger() { const value = Math.round(player.hunger); if (value !== displayedHunger) { displayedHunger = value; hungerValueElement.textContent = value; } }
-    function useContextAction() { if (nearFurnace()) { smeltOre(); return; } if (nearWorkbench()) { workbenchActive = true; renderCrafting(); statusElement.textContent = "Workbench ready. Choose an advanced recipe."; return; } if (!inventory.meat) { statusElement.textContent = "You do not have food to eat."; return; } inventory.meat -= 1; player.hunger = Math.min(100, player.hunger + 35); statusElement.textContent = "You ate food and restored hunger."; persistAndRender(); renderHunger(); }
+    function useContextAction() { if (nearFurnace()) { smeltOre(); return; } if (nearWorkbench()) { workbenchActive = true; renderCrafting(); statusElement.textContent = "Workbench ready. Choose an advanced recipe."; return; } if (!nearWorkbench()) { const target = animalInSight(); if (target && (inventory.meat || target.pet)) { tameAnimal(target); return; } } if (!inventory.meat) { statusElement.textContent = "You do not have food to eat. Look at an animal and press E with meat to tame it."; return; } inventory.meat -= 1; player.hunger = Math.min(100, player.hunger + 35); statusElement.textContent = "You ate food and restored hunger."; persistAndRender(); renderHunger(); }
     function smeltOre() { const ore = inventory.goldOre ? "goldOre" : inventory.ironOre ? "ironOre" : null; if (!ore) { statusElement.textContent = "You do not have ore to smelt."; return; } if (!inventory.coal) { statusElement.textContent = "You need coal to fuel the furnace."; return; } const ingot = ore === "goldOre" ? "goldIngot" : "ironIngot"; inventory[ore] -= 1; inventory.coal -= 1; inventory[ingot] = (inventory[ingot] || 0) + 1; statusElement.textContent = `Smelted ${types[ore].label} into an ingot using coal.`; persistAndRender(); }
 
     function directionVector() { return [Math.sin(player.yaw) * Math.cos(player.pitch), Math.sin(player.pitch), Math.cos(player.yaw) * Math.cos(player.pitch)]; }
     function draw() {
       gl.viewport(0, 0, canvas.width, canvas.height); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); const direction = directionVector(), eye = [player.x, player.y + 1.45, player.z], matrix = multiply(perspective(1.05, canvas.width / canvas.height, .05, 100), lookAt(eye, [eye[0] + direction[0], eye[1] + direction[1], eye[2] + direction[2]], [0,1,0]));
-      gl.uniformMatrix4fv(matrixLocation, false, matrix); gl.bindBuffer(gl.ARRAY_BUFFER, buffer); gl.enableVertexAttribArray(positionLocation); gl.enableVertexAttribArray(colorLocation); gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 24, 0); gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 24, 12); gl.drawArrays(gl.TRIANGLES, 0, vertices);
+      gl.uniformMatrix4fv(matrixLocation, false, matrix); gl.bindBuffer(gl.ARRAY_BUFFER, buffer); gl.enableVertexAttribArray(positionLocation); gl.enableVertexAttribArray(colorLocation); gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 24, 0); gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 24, 12);       gl.drawArrays(gl.TRIANGLES, 0, vertices); drawSmoke();
     }
-    function perspective(fov, aspect, near, far) { const f = 1 / Math.tan(fov / 2), range = 1 / (near - far); return new Float32Array([f/aspect,0,0,0, 0,f,0,0, 0,0,(near+far)*range,-1, 0,0,near*far*range*2,0]); }
+          function drawSmoke() {
+            if (!smoke.length) return;
+            const data = [], unit = [[0,0,0],[1,0,0],[1,1,0],[0,1,0],[0,0,1],[1,0,1],[1,1,1],[0,1,1]], quads = [[0,1,2,3],[4,5,6,7],[0,1,5,4],[3,2,6,7],[0,3,7,4],[1,2,6,5]];
+            smoke.forEach((puff) => { const life = puff.age / puff.life, size = .35 * (1 - life * .5), shade = .45 + .35 * life, color = [shade, shade, shade + .03]; quads.forEach((quad) => [0,1,2,0,2,3].forEach((corner) => data.push(...unit[quad[corner]].map((value, axis) => puff[["x","y","z"][axis]] + (value - .5) * size), ...color))); });
+            gl.bindBuffer(gl.ARRAY_BUFFER, smokeBuffer); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.DYNAMIC_DRAW);
+            gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 24, 0); gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 24, 12);
+            gl.disable(gl.CULL_FACE); gl.drawArrays(gl.TRIANGLES, 0, data.length / 6); gl.enable(gl.CULL_FACE);
+          }
+          function updateSmoke(delta) {
+            smoke.forEach((puff) => { puff.age += delta; puff.y += delta * 1.1; puff.x += puff.dx * delta; puff.z += puff.dz * delta; });
+            smoke = smoke.filter((puff) => puff.age < puff.life);
+            smokeTimer += delta; if (smokeTimer < .15) return; smokeTimer = 0;
+            fireCells.forEach(([x, y, z]) => { if (smoke.length < 400 && Math.hypot(x + .5 - player.x, z + .5 - player.z) < 40) smoke.push({ x: x + .5 + (Math.random() - .5) * .4, y: y + .8, z: z + .5 + (Math.random() - .5) * .4, dx: (Math.random() - .5) * .3, dz: (Math.random() - .5) * .3, age: 0, life: 1.8 + Math.random() * 1.2 }); });
+                }
+                function perspective(fov, aspect, near, far) { const f = 1 / Math.tan(fov / 2), range = 1 / (near - far); return new Float32Array([f/aspect,0,0,0, 0,f,0,0, 0,0,(near+far)*range,-1, 0,0,near*far*range*2,0]); }
     function lookAt(eye, target, up) { let z = normalize([eye[0]-target[0],eye[1]-target[1],eye[2]-target[2]]), x = normalize(cross(up,z)), y = cross(z,x); return new Float32Array([x[0],y[0],z[0],0, x[1],y[1],z[1],0, x[2],y[2],z[2],0, -dot(x,eye),-dot(y,eye),-dot(z,eye),1]); }
     function multiply(a,b) { const out = new Float32Array(16); for (let column=0;column<4;column+=1) for (let row=0;row<4;row+=1) for (let index=0;index<4;index+=1) out[column*4+row] += a[index*4+row]*b[column*4+index]; return out; }
     function cross(a,b) { return [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]]; } function dot(a,b) { return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]; } function normalize(v) { const d=Math.hypot(...v)||1; return v.map((value)=>value/d); }
 
-    document.addEventListener("keydown", (event) => { const action = { w:"forward",W:"forward",ArrowUp:"forward",s:"back",S:"back",ArrowDown:"back",a:"right",A:"right",ArrowLeft:"left",d:"left",D:"left",ArrowRight:"right" }[event.key]; if (action) { keys.add(action); event.preventDefault(); } if (event.key === " ") { jump(); event.preventDefault(); } if (event.key === "e" || event.key === "E") { useContextAction(); event.preventDefault(); } if (event.key === "h" || event.key === "H") { teleportHome(); event.preventDefault(); } });
+    document.addEventListener("keydown", (event) => { const action = { w:"forward",W:"forward",ArrowUp:"forward",s:"back",S:"back",ArrowDown:"back",a:"right",A:"right",ArrowLeft:"left",d:"left",D:"left",ArrowRight:"right" }[event.key]; if (action) { keys.add(action); event.preventDefault(); } if (event.key === " ") { jump(); event.preventDefault(); } if (event.key === "e" || event.key === "E") { useContextAction(); event.preventDefault(); } if (event.key === "h" || event.key === "H") { teleportHome(); event.preventDefault(); } if (event.key === "l" || event.key === "L") { lightFire(); event.preventDefault(); } });
     document.addEventListener("keyup", (event) => { const action = { w:"forward",W:"forward",ArrowUp:"forward",s:"back",S:"back",ArrowDown:"back",a:"right",A:"right",ArrowLeft:"left",d:"left",D:"left",ArrowRight:"right" }[event.key]; if (action) keys.delete(action); });
     canvas.addEventListener("click", () => { if (document.pointerLockElement !== canvas) canvas.requestPointerLock(); });
     canvas.addEventListener("contextmenu", (event) => event.preventDefault());
@@ -281,6 +406,7 @@
     }
     document.addEventListener("fullscreenchange", () => { fullscreenButton.textContent = document.fullscreenElement ? "Exit full screen" : "Full screen"; });
     fullscreenButton.addEventListener("click", toggleFullscreen);
+    survivalElement.addEventListener("change", () => { saved.survival = survivalElement.checked; lives = maxLives; syncHostiles(); renderLives(); persist(); statusElement.textContent = saved.survival ? "Survival mode on: watch out for wolves, bears and boars!" : "Survival mode off: peaceful exploring."; survivalElement.blur(); });
     document.querySelector("#reset").addEventListener("click", () => { startWorld(true); statusElement.textContent = "A fresh 3D world is ready."; });
     startWorld(false);
   </script>
