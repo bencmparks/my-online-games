@@ -29,3 +29,4 @@ Keep a list of my games here.
 - Quick Calc (`quick-calc/`)
 - Frog Leap (`frog-leap/`)
 - Giraffe Maze (`giraffe-maze/`)
+- Sky Ace (`sky-ace/`)

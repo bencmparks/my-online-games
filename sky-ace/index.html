@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Sky Ace | My Online Games</title>
+  <style>
+    :root { color-scheme: dark; font-family: Arial, sans-serif; background: #0c4a6e; color: #f0f9ff; }
+    * { box-sizing: border-box; }
+    body { display: grid; place-items: center; min-height: 100vh; margin: 0; padding: 1rem; background: linear-gradient(160deg, #0c4a6e, #1e1b4b); }
+    main { width: min(100%, 52rem); padding: 1.25rem; border: 2px solid #7dd3fc; border-radius: 1.25rem; background: rgb(12 30 60 / 92%); text-align: center; }
+    a { color: #bae6fd; }
+    h1 { margin: .4rem; color: #fde68a; }
+    h3 { margin: .2rem 0; }
+    canvas { display: block; width: 100%; height: auto; margin: .75rem auto; border: 3px solid #7dd3fc; border-radius: .65rem; background: #38bdf8; touch-action: none; }
+    button { min-height: 2.5rem; padding: 0 .9rem; border: 0; border-radius: .5rem; background: #fde68a; color: #1e293b; font: inherit; font-weight: bold; cursor: pointer; }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+    #fly { min-height: 3rem; font-size: 1.1rem; background: #4ade80; }
+    #touch { display: grid; grid-template-columns: repeat(3, 3.2rem) 1rem repeat(2, 5rem); gap: .35rem; justify-content: center; margin: .5rem 0; }
+    #touch button { min-height: 3rem; padding: 0; user-select: none; touch-action: none; }
+    #touch .up { grid-column: 2; } #touch .left { grid-column: 1; grid-row: 2; } #touch .down { grid-column: 2; grid-row: 2; } #touch .right { grid-column: 3; grid-row: 2; }
+    #touch .fire { grid-column: 5; grid-row: 1 / span 2; background: #fca5a5; } #touch .bomb { grid-column: 6; grid-row: 1 / span 2; background: #fdba74; }
+    #status { min-height: 1.5rem; color: #fde68a; font-weight: bold; }
+    #planes { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: .75rem; margin-top: .75rem; text-align: left; }
+    .plane { padding: .75rem; border: 2px solid #334155; border-radius: .75rem; background: #0f172a; }
+    .plane.selected { border-color: #4ade80; }
+    .plane p { margin: .3rem 0; font-size: .9rem; color: #cbd5e1; }
+    .upgrade { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin: .3rem 0; font-size: .85rem; }
+    .upgrade button { min-height: 2rem; font-size: .8rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <a href="../">← All games</a>
+    <h1>✈️ Sky Ace</h1>
+    <p>Fly your plane, shoot enemy planes, and bomb ships without getting shot down. Earn coins to buy planes and upgrade speed, life and damage.</p>
+    <p>Coins: <strong id="coins">0</strong> · Score: <strong id="score">0</strong> · Best: <strong id="best">0</strong></p>
+    <canvas id="game" width="800" height="500" aria-label="Sky Ace airplane game"></canvas>
+    <div id="touch" aria-label="Touch controls">
+      <button class="up" data-key="up">↑</button><button class="left" data-key="left">←</button><button class="down" data-key="down">↓</button><button class="right" data-key="right">→</button>
+      <button class="fire" data-key="fire">Shoot</button><button class="bomb" data-key="bomb">Bomb</button>
+    </div>
+    <p id="status" aria-live="polite">Pick a plane, then take off! Move: arrows or W A S D · Shoot: Space · Bomb: B or X.</p>
+    <section id="hangar">
+      <button id="fly" type="button">Take off!</button>
+      <div id="planes"></div>
+    </section>
+  </main>
+  <script src="../shared/profile.js"></script>
+  <script>
+    const canvas = document.querySelector("#game"), ctx = canvas.getContext("2d"), W = 800, H = 500, SEA = 430;
+    const coinsEl = document.querySelector("#coins"), scoreEl = document.querySelector("#score"), bestEl = document.querySelector("#best"), statusEl = document.querySelector("#status");
+    const hangarEl = document.querySelector("#hangar"), planesEl = document.querySelector("#planes");
+    const planes = {
+      scout: { name: "Scout", price: 0, speed: 4.2, hp: 3, damage: 1, rate: .22, maxUp: 3, color: "#60a5fa" },
+      falcon: { name: "Falcon", price: 400, speed: 5, hp: 4, damage: 1.5, rate: .19, maxUp: 5, color: "#34d399" },
+      hornet: { name: "Hornet", price: 1200, speed: 5.8, hp: 5, damage: 2, rate: .17, maxUp: 7, color: "#fbbf24" },
+      thunder: { name: "Thunder", price: 3000, speed: 6.4, hp: 7, damage: 3, rate: .15, maxUp: 9, color: "#fb923c" },
+      phantom: { name: "Phantom", price: 7000, speed: 7.2, hp: 9, damage: 4, rate: .13, maxUp: 12, color: "#c084fc" }
+    };
+    const order = Object.keys(planes), statLabels = { speed: "Speed", life: "Life", damage: "Damage" };
+    const save = GameProfiles.getGame("sky-ace", { coins: 0, owned: ["scout"], selected: "scout", upgrades: {}, best: 0 });
+    save.coins = save.coins || 0; save.owned = save.owned || ["scout"]; save.selected = save.selected || "scout"; save.upgrades = save.upgrades || {}; save.best = save.best || 0;
+    const keys = new Set(), clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+    let mode = "hangar", game = null, last = performance.now(), idleTime = 0;
+    const clouds = Array.from({ length: 7 }, (_, i) => ({ x: i * 130, y: 40 + (i * 53) % 240, size: 30 + (i * 17) % 30, speed: 12 + (i * 7) % 20 }));
+
+    function persist() { GameProfiles.saveGame("sky-ace", save); }
+    function level(id, key) { return (save.upgrades[id] && save.upgrades[id][key]) || 0; }
+    function stats(id) { const plane = planes[id]; return { speed: plane.speed * (1 + .08 * level(id, "speed")), hp: plane.hp + level(id, "life"), damage: plane.damage * (1 + .2 * level(id, "damage")) }; }
+    function upgradeCost(id, key) { return Math.round(60 * (1 + order.indexOf(id) * .8) * (1 + level(id, key) * .7) / 10) * 10; }
+
+    function renderHangar() {
+      coinsEl.textContent = save.coins; bestEl.textContent = save.best;
+      planesEl.replaceChildren();
+      order.forEach((id) => {
+        const plane = planes[id], owned = save.owned.includes(id), current = stats(id), card = document.createElement("div");
+        card.className = `plane${save.selected === id ? " selected" : ""}`;
+        let html = `<h3 style="color:${plane.color}">${plane.name}</h3><p>Speed ${current.speed.toFixed(1)} · Life ${current.hp} · Damage ${current.damage.toFixed(1)}<br>Max upgrades: ${plane.maxUp} per stat</p>`;
+        if (!owned) html += `<button data-act="buy" data-id="${id}" ${save.coins < plane.price ? "disabled" : ""}>Buy for ${plane.price} coins</button>`;
+        else {
+          html += `<button data-act="select" data-id="${id}" ${save.selected === id ? "disabled" : ""}>${save.selected === id ? "Selected" : "Select"}</button>`;
+          Object.keys(statLabels).forEach((key) => {
+            const lvl = level(id, key), maxed = lvl >= plane.maxUp, cost = upgradeCost(id, key);
+            html += `<div class="upgrade"><span>${statLabels[key]} ${lvl}/${plane.maxUp}</span><button data-act="upgrade" data-id="${id}" data-key="${key}" ${maxed || save.coins < cost ? "disabled" : ""}>${maxed ? "Maxed" : `+ ${cost}`}</button></div>`;
+          });
+        }
+        card.innerHTML = html; planesEl.append(card);
+      });
+    }
+    planesEl.addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-act]"); if (!button) return;
+      const id = button.dataset.id, plane = planes[id], act = button.dataset.act;
+      if (act === "buy" && save.coins >= plane.price && !save.owned.includes(id)) { save.coins -= plane.price; save.owned.push(id); save.selected = id; statusEl.textContent = `You bought the ${plane.name}!`; }
+      if (act === "select" && save.owned.includes(id)) save.selected = id;
+      if (act === "upgrade") { const key = button.dataset.key, cost = upgradeCost(id, key); if (level(id, key) < plane.maxUp && save.coins >= cost) { save.coins -= cost; save.upgrades[id] = save.upgrades[id] || {}; save.upgrades[id][key] = level(id, key) + 1; statusEl.textContent = `${plane.name} ${statLabels[key].toLowerCase()} upgraded!`; } }
+      persist(); renderHangar();
+    });
+
+    function takeOff() {
+      const id = save.selected, s = stats(id);
+      game = { t: 0, score: 0, earned: 0, over: false, overTimer: 0, enemyCd: 1.5, shipCd: 4, bullets: [], bombs: [], enemies: [], ships: [], enemyShots: [], parts: [],
+        p: { id, x: 140, y: 200, speed: s.speed, hp: s.hp, maxHp: s.hp, damage: s.damage, fireCd: 0, bombCd: 0, inv: 1 } };
+      mode = "fly"; hangarEl.hidden = true; scoreEl.textContent = 0; statusEl.textContent = "Go go go! Shoot planes, bomb ships, and stay alive.";
+    }
+    document.querySelector("#fly").addEventListener("click", takeOff);
+
+    function particles(x, y, count, colors, speed = 220) {
+      for (let i = 0; i < count; i += 1) { const angle = Math.random() * Math.PI * 2, force = Math.random() * speed; game.parts.push({ x, y, vx: Math.cos(angle) * force, vy: Math.sin(angle) * force, life: .5 + Math.random() * .6, max: 1.1, color: colors[i % colors.length], size: 2 + Math.random() * 4 }); }
+    }
+    function reward(coins, points) { game.earned += coins; save.coins += coins; game.score += points; scoreEl.textContent = game.score; coinsEl.textContent = save.coins; }
+    function hurtPlayer() {
+      const p = game.p; if (p.inv > 0 || game.over) return;
+      p.hp -= 1; p.inv = 1; particles(p.x, p.y, 10, ["#fde68a", "#f97316"], 160);
+      if (p.hp <= 0) { game.over = true; game.overTimer = 2.2; particles(p.x, p.y, 90, ["#fde68a", "#f97316", "#ef4444", "#475569"], 340); }
+    }
+    function wave() { return 1 + Math.floor(game.t / 25); }
+    function damageShip(ship, amount) {
+      ship.hp -= amount; particles(ship.x, SEA - 20, 4, ["#fde68a", "#94a3b8"], 90);
+      if (ship.hp <= 0 && !ship.dead) { ship.dead = true; particles(ship.x, SEA - 15, 40, ["#fde68a", "#f97316", "#475569"], 260); reward(35 + wave() * 4, 100); }
+    }
+    function damageEnemy(enemy, amount) {
+      enemy.hp -= amount; particles(enemy.x, enemy.y, 3, ["#fde68a", "#f97316"], 100);
+      if (enemy.hp <= 0 && !enemy.dead) { enemy.dead = true; particles(enemy.x, enemy.y, 30, ["#fde68a", "#f97316", "#ef4444"], 240); reward(15 + wave() * 2, 50); }
+    }
+    function explodeBomb(bomb) {
+      const power = game.p.damage * 4; particles(bomb.x, bomb.y, 28, ["#fde68a", "#f97316", "#78350f"], 230);
+      game.ships.forEach((ship) => { if (!ship.dead && Math.abs(ship.x - bomb.x) < 85) damageShip(ship, power); });
+      bomb.dead = true;
+    }
+
+    function update(dt) {
+      const g = game, p = g.p; g.t += dt;
+      if (!g.over) {
+        const dx = (keys.has("right") ? 1 : 0) - (keys.has("left") ? 1 : 0), dy = (keys.has("down") ? 1 : 0) - (keys.has("up") ? 1 : 0), length = Math.hypot(dx, dy) || 1;
+        p.x = clamp(p.x + dx / length * p.speed * 60 * dt, 40, W - 60); p.y = clamp(p.y + dy / length * p.speed * 60 * dt, 30, SEA - 70);
+        p.fireCd -= dt; p.bombCd -= dt; p.inv -= dt;
+        if (keys.has("fire") && p.fireCd <= 0) { g.bullets.push({ x: p.x + 36, y: p.y, vx: 780, dmg: p.damage }); p.fireCd = planes[p.id].rate; }
+        if (keys.has("bomb") && p.bombCd <= 0) { g.bombs.push({ x: p.x, y: p.y + 12, vx: 150, vy: 40 }); p.bombCd = 1; }
+      } else { g.overTimer -= dt; if (g.overTimer <= 0) { endRun(); return; } }
+
+      g.enemyCd -= dt; if (g.enemyCd <= 0 && !g.over) { const hp = 2 + Math.floor(wave() * .6); g.enemies.push({ x: W + 40, y: 50 + Math.random() * (SEA - 170), hp, maxHp: hp, vx: -(110 + Math.random() * 70 + wave() * 8), ph: Math.random() * 6, cd: .8 + Math.random() * 1.5 }); g.enemyCd = Math.max(.6, 2.2 - g.t * .012) * (.7 + Math.random() * .6); }
+      g.shipCd -= dt; if (g.shipCd <= 0 && !g.over) { const hp = 8 + wave() * 2; g.ships.push({ x: W + 90, hp, maxHp: hp, vx: -(35 + Math.random() * 30), cd: 1.5 + Math.random() * 1.5 }); g.shipCd = Math.max(2.5, 6 - g.t * .02) * (.8 + Math.random() * .5); }
+
+      g.bullets.forEach((bullet) => {
+        bullet.x += bullet.vx * dt;
+        g.enemies.forEach((enemy) => { if (!bullet.dead && !enemy.dead && Math.abs(bullet.x - enemy.x) < 30 && Math.abs(bullet.y - enemy.y) < 16) { bullet.dead = true; damageEnemy(enemy, bullet.dmg); } });
+        g.ships.forEach((ship) => { if (!bullet.dead && !ship.dead && Math.abs(bullet.x - ship.x) < 65 && bullet.y > SEA - 40) { bullet.dead = true; damageShip(ship, bullet.dmg); } });
+        if (bullet.x > W + 20) bullet.dead = true;
+      });
+      g.bombs.forEach((bomb) => {
+        bomb.vy += 520 * dt; bomb.x += bomb.vx * dt; bomb.y += bomb.vy * dt;
+        if (bomb.y >= SEA - 26 && g.ships.some((ship) => !ship.dead && Math.abs(ship.x - bomb.x) < 65)) explodeBomb(bomb);
+        else if (bomb.y >= SEA + 4) explodeBomb(bomb);
+      });
+      g.enemies.forEach((enemy) => {
+        enemy.x += enemy.vx * dt; enemy.y = clamp(enemy.y + Math.sin(g.t * 2 + enemy.ph) * 45 * dt, 30, SEA - 90); enemy.cd -= dt;
+        if (enemy.cd <= 0 && enemy.x < W - 50 && enemy.x > p.x + 60 && !g.over) { const angle = Math.atan2(p.y - enemy.y, p.x - enemy.x); g.enemyShots.push({ x: enemy.x - 26, y: enemy.y, vx: Math.cos(angle) * 300, vy: Math.sin(angle) * 300 }); enemy.cd = 1.4 + Math.random() * 1.6; }
+        if (!g.over && !enemy.dead && Math.hypot(enemy.x - p.x, enemy.y - p.y) < 34) { damageEnemy(enemy, 3); hurtPlayer(); }
+        if (enemy.x < -60) enemy.dead = true;
+      });
+      g.ships.forEach((ship) => {
+        ship.x += ship.vx * dt; ship.cd -= dt;
+        if (ship.cd <= 0 && ship.x < W - 20 && !g.over) { const angle = Math.atan2(p.y - (SEA - 35), p.x - ship.x) + (Math.random() - .5) * .25; g.enemyShots.push({ x: ship.x, y: SEA - 35, vx: Math.cos(angle) * 270, vy: Math.sin(angle) * 270 }); ship.cd = 2 + Math.random() * 1.5; }
+        if (ship.x < -100) ship.dead = true;
+      });
+      g.enemyShots.forEach((shot) => {
+        shot.x += shot.vx * dt; shot.y += shot.vy * dt;
+        if (!g.over && Math.hypot(shot.x - p.x, shot.y - p.y) < 17) { shot.dead = true; hurtPlayer(); }
+        if (shot.x < -20 || shot.x > W + 20 || shot.y < -20 || shot.y > H) shot.dead = true;
+      });
+      g.parts.forEach((part) => { part.x += part.vx * dt; part.y += part.vy * dt; part.vy += 120 * dt; part.life -= dt; });
+      ["bullets", "bombs", "enemies", "ships", "enemyShots"].forEach((name) => { g[name] = g[name].filter((item) => !item.dead); });
+      g.parts = g.parts.filter((part) => part.life > 0);
+    }
+
+    function endRun() {
+      save.best = Math.max(save.best, game.score); persist();
+      statusEl.textContent = `Your plane exploded! Score ${game.score}, earned ${game.earned} coins. Spend them in the hangar.`;
+      mode = "hangar"; hangarEl.hidden = false; keys.clear(); renderHangar();
+    }
+
+    function drawPlane(x, y, color, face, scale, time) {
+      ctx.save(); ctx.translate(x, y); ctx.scale(face * scale, scale);
+      ctx.fillStyle = color; ctx.beginPath(); ctx.ellipse(0, 0, 32, 9, 0, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(-6, 2); ctx.lineTo(-22, 26); ctx.lineTo(10, 26); ctx.lineTo(14, 2); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(-26, -2); ctx.lineTo(-38, -20); ctx.lineTo(-18, -2); ctx.fill();
+      ctx.fillStyle = "rgb(0 0 0 / 28%)"; ctx.beginPath(); ctx.moveTo(-6, 2); ctx.lineTo(-22, 26); ctx.lineTo(10, 26); ctx.lineTo(14, 2); ctx.fill();
+      ctx.fillStyle = "#e0f2fe"; ctx.beginPath(); ctx.ellipse(8, -6, 9, 5, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = "#1e293b"; const blade = Math.abs(Math.sin(time * 40)) * 24 + 4; ctx.fillRect(32, -blade / 2, 3, blade);
+      ctx.restore();
+    }
+    function drawBackground(time) {
+      const sky = ctx.createLinearGradient(0, 0, 0, SEA); sky.addColorStop(0, "#38bdf8"); sky.addColorStop(1, "#e0f2fe"); ctx.fillStyle = sky; ctx.fillRect(0, 0, W, SEA);
+      ctx.fillStyle = "#fde047"; ctx.beginPath(); ctx.arc(690, 80, 34, 0, 7); ctx.fill();
+      ctx.fillStyle = "rgb(255 255 255 / 85%)"; clouds.forEach((cloud) => { ctx.beginPath(); ctx.ellipse(cloud.x, cloud.y, cloud.size * 1.6, cloud.size * .6, 0, 0, 7); ctx.fill(); ctx.beginPath(); ctx.ellipse(cloud.x + cloud.size, cloud.y - cloud.size * .3, cloud.size, cloud.size * .6, 0, 0, 7); ctx.fill(); });
+      const sea = ctx.createLinearGradient(0, SEA, 0, H); sea.addColorStop(0, "#0369a1"); sea.addColorStop(1, "#082f49"); ctx.fillStyle = sea; ctx.fillRect(0, SEA, W, H - SEA);
+      ctx.strokeStyle = "rgb(186 230 253 / 45%)"; ctx.lineWidth = 2; for (let i = 0; i < 12; i += 1) { const wx = (i * 90 - time * 40) % (W + 90), wy = SEA + 10 + (i % 3) * 18; ctx.beginPath(); ctx.moveTo(wx, wy); ctx.quadraticCurveTo(wx + 20, wy - 7, wx + 40, wy); ctx.stroke(); }
+    }
+    function drawShip(ship, playerPos) {
+      ctx.save(); ctx.translate(ship.x, SEA);
+      ctx.fillStyle = "#64748b"; ctx.beginPath(); ctx.moveTo(-65, -22); ctx.lineTo(65, -22); ctx.lineTo(48, 8); ctx.lineTo(-52, 8); ctx.fill();
+      ctx.fillStyle = "#94a3b8"; ctx.fillRect(-22, -48, 44, 26); ctx.fillStyle = "#e2e8f0"; ctx.fillRect(-12, -42, 8, 8); ctx.fillRect(4, -42, 8, 8);
+      const angle = Math.atan2(playerPos.y - (SEA - 35), playerPos.x - ship.x); ctx.strokeStyle = "#334155"; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(0, -35); ctx.lineTo(Math.cos(angle) * 28, -35 + Math.sin(angle) * 28); ctx.stroke();
+      ctx.restore();
+      if (ship.hp < ship.maxHp) { ctx.fillStyle = "#450a0a"; ctx.fillRect(ship.x - 30, SEA - 62, 60, 6); ctx.fillStyle = "#4ade80"; ctx.fillRect(ship.x - 30, SEA - 62, 60 * Math.max(0, ship.hp / ship.maxHp), 6); }
+    }
+    function drawHud() {
+      const p = game.p; ctx.font = "bold 16px Arial"; ctx.textAlign = "left"; ctx.fillStyle = "#0f172a"; ctx.fillText(`Wave ${wave()}`, 12, 24);
+      for (let i = 0; i < p.maxHp; i += 1) { ctx.fillStyle = i < p.hp ? "#ef4444" : "#1e293b"; ctx.fillRect(12 + i * 18, 34, 14, 14); }
+      ctx.fillStyle = "#1e293b"; ctx.fillRect(12, 56, 70, 8); ctx.fillStyle = "#fb923c"; ctx.fillRect(12, 56, 70 * clamp(1 - p.bombCd, 0, 1), 8);
+      ctx.fillStyle = "#0f172a"; ctx.textAlign = "right"; ctx.fillText(`Score ${game.score}   Coins +${game.earned}`, W - 12, 24);
+    }
+
+    function draw(time) {
+      drawBackground(time);
+      if (mode === "fly") {
+        const g = game;
+        g.ships.forEach((ship) => drawShip(ship, g.p));
+        g.enemies.forEach((enemy) => { drawPlane(enemy.x, enemy.y, "#b91c1c", -1, .9, g.t); if (enemy.hp < enemy.maxHp) { ctx.fillStyle = "#450a0a"; ctx.fillRect(enemy.x - 20, enemy.y - 26, 40, 5); ctx.fillStyle = "#4ade80"; ctx.fillRect(enemy.x - 20, enemy.y - 26, 40 * Math.max(0, enemy.hp / enemy.maxHp), 5); } });
+        if (!g.over && (g.p.inv <= 0 || Math.floor(g.p.inv * 12) % 2 === 0)) drawPlane(g.p.x, g.p.y, planes[g.p.id].color, 1, 1, g.t);
+        ctx.fillStyle = "#fde047"; g.bullets.forEach((bullet) => ctx.fillRect(bullet.x - 8, bullet.y - 2, 16, 4));
+        ctx.fillStyle = "#1e293b"; g.bombs.forEach((bomb) => { ctx.beginPath(); ctx.ellipse(bomb.x, bomb.y, 7, 5, .6, 0, 7); ctx.fill(); });
+        ctx.fillStyle = "#ef4444"; g.enemyShots.forEach((shot) => { ctx.beginPath(); ctx.arc(shot.x, shot.y, 5, 0, 7); ctx.fill(); });
+        g.parts.forEach((part) => { ctx.globalAlpha = Math.max(0, part.life / part.max); ctx.fillStyle = part.color; ctx.fillRect(part.x, part.y, part.size, part.size); }); ctx.globalAlpha = 1;
+        drawHud();
+        if (g.over) { ctx.fillStyle = "rgb(0 0 0 / 45%)"; ctx.fillRect(0, 0, W, H); ctx.fillStyle = "#fef08a"; ctx.font = "bold 44px Arial"; ctx.textAlign = "center"; ctx.fillText("💥 Your plane exploded!", W / 2, H / 2); }
+      } else {
+        drawPlane(W / 2, 200 + Math.sin(time * 2) * 14, planes[save.selected].color, 1, 2.2, time);
+        ctx.fillStyle = "#0f172a"; ctx.font = "bold 26px Arial"; ctx.textAlign = "center"; ctx.fillText(`${planes[save.selected].name} ready for takeoff`, W / 2, 320);
+      }
+    }
+
+    function loop(now) {
+      const dt = Math.min((now - last) / 1000, .05); last = now; idleTime += dt;
+      clouds.forEach((cloud) => { cloud.x -= cloud.speed * dt; if (cloud.x < -120) cloud.x = W + 100; });
+      if (mode === "fly") update(dt);
+      draw(idleTime);
+      requestAnimationFrame(loop);
+    }
+
+    const keyMap = { ArrowUp: "up", KeyW: "up", ArrowDown: "down", KeyS: "down", ArrowLeft: "left", KeyA: "left", ArrowRight: "right", KeyD: "right", Space: "fire", KeyB: "bomb", KeyX: "bomb" };
+    document.addEventListener("keydown", (event) => {
+      const action = keyMap[event.code];
+      if (mode === "hangar" && event.code === "Enter" && document.activeElement === document.body) { takeOff(); return; }
+      if (action && mode === "fly") { keys.add(action); event.preventDefault(); }
+    });
+    document.addEventListener("keyup", (event) => { const action = keyMap[event.code]; if (action) keys.delete(action); });
+    window.addEventListener("blur", () => keys.clear());
+    document.querySelectorAll("#touch button").forEach((button) => {
+      const key = button.dataset.key;
+      button.addEventListener("pointerdown", (event) => { event.preventDefault(); keys.add(key); });
+      ["pointerup", "pointerleave", "pointercancel"].forEach((name) => button.addEventListener(name, () => keys.delete(key)));
+    });
+
+    renderHangar(); requestAnimationFrame(loop);
+  </script>
+</body>
+</html>

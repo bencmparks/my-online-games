@@ -34,6 +34,8 @@
       <button type="button" data-move="forward">Forward</button><button type="button" data-move="left">←</button><button type="button" data-action="jump">Jump</button><button type="button" data-move="right">→</button><button type="button" data-move="back">Back</button><button id="home" type="button">Home</button><button id="boat" type="button">Boat</button><button id="fullscreen" type="button">Full screen</button><button id="reset" type="button">New world</button>
     </div>
     <p id="hunger">Hunger: <span id="hunger-value">100</span>/100</p>
+    <p><label>Time <select id="timeMode"><option value="auto">Auto (day/night cycle)</option><option value="day">Day</option><option value="sunset">Sunset</option><option value="night">Night</option><option value="sunrise">Sunrise</option></select></label> <label>Brightness <input id="brightness" type="range" min="0.4" max="1.6" step="0.05" value="1"></label></p>
+    <p>Hotkeys: press a number key 0-9 to select its item. Select an item, then hold Shift and press 0-9 to assign it to that key. <span id="hotkeyList"></span></p>
     <p><label><input id="survival" type="checkbox"> Survival mode: 5 lives and hostile animals (wolf, bear, boar) and fire damage</label> <span id="lives"></span></p>
     <p id="status" aria-live="polite">Click the world to begin exploring.</p>
   </main>
@@ -73,14 +75,16 @@
     const saved = GameProfiles.getGame("funcraft", { world: [], inventory: {}, player: null, worldVersion: 0 });
     const player = { x: 5.5, y: 8, z: 5.5, yaw: 0, pitch: -.12, velocityY: 0, onGround: false, hunger: 100 };
     const keys = new Set();
+    const skyBuffer = gl.createBuffer(), starField = Array.from({ length: 90 }, () => { const a = Math.random() * Math.PI * 2, e = Math.random() * 1.4 - .2; return [Math.cos(a) * Math.cos(e), Math.sin(e), Math.sin(a) * Math.cos(e)]; });
+    let dayTime = Number.isFinite(saved.dayTime) ? saved.dayTime : .25, timeMode = "auto", userBright = Number.isFinite(saved.bright) ? saved.bright : 1, hotkeys = saved.hotkeys && typeof saved.hotkeys === "object" ? saved.hotkeys : {};
     let world, inventory, selected = "dirt", workbenchNearby = false, workbenchActive = false, displayedHunger = -1, mapWidth = initialSize, mapDepth = initialSize, mapOriginX = 0, mapOriginZ = 0, animals = [], animalTimer = 0, buffer, vertices = 0, lastFrame, animationFrame;
 
     if (!gl) { statusElement.textContent = "WebGL is required to play Funcraft in 3D."; throw new Error("WebGL is unavailable"); }
     const program = createProgram(
       "attribute vec3 p; attribute vec3 c; uniform mat4 m; varying vec3 v; varying vec3 w; void main(){gl_Position=m*vec4(p,1.0);v=c;w=p;}",
-      "#ifdef GL_FRAGMENT_PRECISION_HIGH\nprecision highp float;\n#else\nprecision mediump float;\n#endif\nvarying vec3 v; varying vec3 w; void main(){vec3 t=floor(w*16.0+0.002); float h=fract(sin(dot(t,vec3(12.9898,78.233,37.719)))*43758.5453); float tone=0.8+0.1*floor(h*3.0); gl_FragColor=vec4(v*tone,1.0);}"
+      "#ifdef GL_FRAGMENT_PRECISION_HIGH\nprecision highp float;\n#else\nprecision mediump float;\n#endif\nvarying vec3 v; varying vec3 w; uniform float b; void main(){vec3 t=floor(w*16.0+0.002); float h=fract(sin(dot(t,vec3(12.9898,78.233,37.719)))*43758.5453); float tone=0.8+0.1*floor(h*3.0); gl_FragColor=vec4(clamp(v*tone*b,0.0,1.0),1.0);}"
     );
-    const positionLocation = gl.getAttribLocation(program, "p"), colorLocation = gl.getAttribLocation(program, "c"), matrixLocation = gl.getUniformLocation(program, "m");
+    const positionLocation = gl.getAttribLocation(program, "p"), colorLocation = gl.getAttribLocation(program, "c"), matrixLocation = gl.getUniformLocation(program, "m"), brightnessLocation = gl.getUniformLocation(program, "b");
     gl.enable(gl.DEPTH_TEST); gl.enable(gl.CULL_FACE); gl.clearColor(.49, .83, .98, 1); gl.useProgram(program);
 
     function createProgram(vertex, fragment) {
@@ -126,7 +130,7 @@
       lastFrame = performance.now(); cancelAnimationFrame(animationFrame); animationFrame = requestAnimationFrame(loop);
     }
 
-    function persist() { saved.world = world; saved.inventory = inventory; saved.player = { x: player.x, y: player.y, z: player.z, yaw: player.yaw, pitch: player.pitch, hunger: player.hunger }; saved.mapWidth = mapWidth; saved.mapDepth = mapDepth; saved.mapOriginX = mapOriginX; saved.mapOriginZ = mapOriginZ; saved.animals = animals; saved.lives = lives; GameProfiles.saveGame("funcraft", saved); }
+    function persist() { saved.world = world; saved.inventory = inventory; saved.player = { x: player.x, y: player.y, z: player.z, yaw: player.yaw, pitch: player.pitch, hunger: player.hunger }; saved.mapWidth = mapWidth; saved.mapDepth = mapDepth; saved.mapOriginX = mapOriginX; saved.mapOriginZ = mapOriginZ; saved.animals = animals; saved.lives = lives; saved.dayTime = dayTime; saved.bright = userBright; saved.hotkeys = hotkeys; GameProfiles.saveGame("funcraft", saved); }
     function blockAt(x, y, z) { return world[y]?.[z]?.[x] || null; }
     function solid(type) { return type && types[type].solid !== false; }
     const riverA = (x, z) => Math.abs(((z - (24 + 7 * Math.sin(x * .1)) + 32) % 64 + 64) % 64 - 32) < 2.2, riverB = (x, z) => Math.abs(((x - (40 + 6 * Math.sin(z * .09)) + 32) % 64 + 64) % 64 - 32) < 1.8, lakeAt = (x, z) => Math.sin(x * .11 + 1) * Math.cos(z * .1 + 2) > .8;
@@ -247,9 +251,10 @@
     }
 
     function update(delta) {
+      if (timeMode === "auto") { dayTime = (dayTime + delta / 240) % 1; if (Math.floor(dayTime * 20) !== Math.floor((dayTime - delta / 240) * 20)) { saved.dayTime = dayTime; } }
       const forward = (keys.has("forward") ? 1 : 0) - (keys.has("back") ? 1 : 0), strafe = (keys.has("right") ? 1 : 0) - (keys.has("left") ? 1 : 0);
       const length = Math.hypot(forward, strafe) || 1, speed = boating ? 6 : inWater() ? 2 : 4;
-      move(Math.sin(player.yaw) * forward / length * speed * delta + strafe / length * speed * delta, 0, Math.cos(player.yaw) * forward / length * speed * delta);
+      move((Math.sin(player.yaw) * forward - Math.cos(player.yaw) * strafe) / length * speed * delta, 0, (Math.cos(player.yaw) * forward + Math.sin(player.yaw) * strafe) / length * speed * delta);
       if (boating) { const top = waterTop(player.x, player.z); if (top === null) { boating = false; statusElement.textContent = "Your boat left the water."; } else { player.y = top - .2; player.velocityY = 0; player.onGround = true; } }
       else { player.velocityY += (inWater() ? -3 : -18) * delta; player.onGround = false; move(0, player.velocityY * delta, 0); }
       if (boating || inWater()) { const [vx, vz] = currentAt(Math.floor(player.x) + mapOriginX, Math.floor(player.z) + mapOriginZ), pull = boating ? 1.6 : 1.2; if (vx || vz) { move(vx * pull * delta, 0, vz * pull * delta); if (!currentNoticed) { currentNoticed = true; statusElement.textContent = "The current pulls you along the water."; } } }
@@ -385,8 +390,36 @@
 
     function directionVector() { return [Math.sin(player.yaw) * Math.cos(player.pitch), Math.sin(player.pitch), Math.cos(player.yaw) * Math.cos(player.pitch)]; }
     function draw() {
-      gl.viewport(0, 0, canvas.width, canvas.height); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); const direction = directionVector(), eye = [player.x, player.y + 1.45, player.z], matrix = multiply(perspective(1.05, canvas.width / canvas.height, .05, 100), lookAt(eye, [eye[0] + direction[0], eye[1] + direction[1], eye[2] + direction[2]], [0,1,0]));
-      gl.uniformMatrix4fv(matrixLocation, false, matrix); gl.bindBuffer(gl.ARRAY_BUFFER, buffer); gl.enableVertexAttribArray(positionLocation); gl.enableVertexAttribArray(colorLocation); gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 24, 0); gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 24, 12);       gl.drawArrays(gl.TRIANGLES, 0, vertices); drawSmoke();
+      const sky = skyState(); gl.viewport(0, 0, canvas.width, canvas.height); gl.clearColor(sky.color[0], sky.color[1], sky.color[2], 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); const direction = directionVector(), eye = [player.x, player.y + 1.45, player.z], matrix = multiply(perspective(1.05, canvas.width / canvas.height, .05, 100), lookAt(eye, [eye[0] + direction[0], eye[1] + direction[1], eye[2] + direction[2]], [0,1,0]));
+      gl.uniformMatrix4fv(matrixLocation, false, matrix); gl.enableVertexAttribArray(positionLocation); gl.enableVertexAttribArray(colorLocation); drawSky(sky, eye); gl.uniform1f(brightnessLocation, sky.brightness);
+      gl.bindBuffer(gl.ARRAY_BUFFER, buffer); gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 24, 0); gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 24, 12); gl.drawArrays(gl.TRIANGLES, 0, vertices); drawSmoke();
+    }
+    const smoothStep = (low, high, value) => { const t = Math.max(0, Math.min(1, (value - low) / (high - low))); return t * t * (3 - 2 * t); };
+    function skyState() {
+      const angle = dayTime * Math.PI * 2, sunHeight = Math.sin(angle), light = smoothStep(-.12, .3, sunHeight), glow = Math.max(0, 1 - Math.abs(sunHeight) / .35) * .75;
+      const day = [125, 212, 250], night = [8, 12, 38], tint = [255, 140, 70];
+      const color = day.map((value, index) => { let channel = night[index] + (value - night[index]) * light; channel += (tint[index] - channel) * glow; return Math.max(0, Math.min(1, channel * userBright / 255)); });
+      return { angle, sunHeight, light, glow, color, brightness: (.2 + .8 * light) * userBright };
+    }
+    function skyCube(data, cx, cy, cz, size, color) {
+      const quads = [[0,1,2,3],[4,5,6,7],[0,1,5,4],[3,2,6,7],[0,3,7,4],[1,2,6,5]], unit = [[0,0,0],[1,0,0],[1,1,0],[0,1,0],[0,0,1],[1,0,1],[1,1,1],[0,1,1]];
+      quads.forEach((quad) => [0,1,2,0,2,3].forEach((corner) => data.push(...unit[quad[corner]].map((value, axis) => [cx, cy, cz][axis] + (value - .5) * size), ...color)));
+    }
+    function drawSky(sky, eye) {
+      const data = [], sunDirection = [Math.cos(sky.angle), Math.sin(sky.angle), .25], length = Math.hypot(...sunDirection), sun = sunDirection.map((value) => value / length), moon = sun.map((value) => -value);
+      const place = (direction, distance) => direction.map((value, axis) => eye[axis] + value * distance);
+      if (sky.sunHeight > -.12) skyCube(data, ...place(sun, 60), 9, [1, .92 - .35 * sky.glow, .4 - .2 * sky.glow]);
+      if (moon[1] > -.12) {
+        const right = [moon[2], 0, -moon[0]], rightLength = Math.hypot(...right) || 1, rightUnit = right.map((value) => value / rightLength), up = [moon[1] * rightUnit[2], moon[2] * rightUnit[0] - moon[0] * rightUnit[2], -moon[1] * rightUnit[0]];
+        skyCube(data, ...place(moon, 60), 7, [.93, .95, 1]);
+        [[-1.4, 1.2], [1.3, -.8], [.2, .4]].forEach(([a, b]) => skyCube(data, ...[0, 1, 2].map((axis) => eye[axis] + moon[axis] * 56 + rightUnit[axis] * a + up[axis] * b), 1.7, [.72, .75, .85]));
+      }
+      const night = 1 - sky.light;
+      if (night > .12) starField.forEach(([x, y, z]) => { const rx = x * Math.cos(sky.angle) - y * Math.sin(sky.angle), ry = x * Math.sin(sky.angle) + y * Math.cos(sky.angle); if (ry > .02) skyCube(data, ...place([rx, ry, z], 70), .5 * night, [1, 1, .95]); });
+      gl.uniform1f(brightnessLocation, 1); gl.disable(gl.DEPTH_TEST); gl.disable(gl.CULL_FACE);
+      gl.bindBuffer(gl.ARRAY_BUFFER, skyBuffer); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.DYNAMIC_DRAW);
+      gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 24, 0); gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 24, 12); gl.drawArrays(gl.TRIANGLES, 0, data.length / 6);
+      gl.enable(gl.DEPTH_TEST); gl.enable(gl.CULL_FACE);
     }
           function drawSmoke() {
             if (!smoke.length && !boating) return;
@@ -409,8 +442,21 @@
     function multiply(a,b) { const out = new Float32Array(16); for (let column=0;column<4;column+=1) for (let row=0;row<4;row+=1) for (let index=0;index<4;index+=1) out[column*4+row] += a[index*4+row]*b[column*4+index]; return out; }
     function cross(a,b) { return [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]]; } function dot(a,b) { return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]; } function normalize(v) { const d=Math.hypot(...v)||1; return v.map((value)=>value/d); }
 
-    document.addEventListener("keydown", (event) => { const action = { w:"forward",W:"forward",ArrowUp:"forward",s:"back",S:"back",ArrowDown:"back",a:"right",A:"right",ArrowLeft:"left",d:"left",D:"left",ArrowRight:"right" }[event.key]; if (action) { keys.add(action); event.preventDefault(); } if (event.key === " ") { jump(); event.preventDefault(); } if (event.key === "e" || event.key === "E") { useContextAction(); event.preventDefault(); } if (event.key === "h" || event.key === "H") { teleportHome(); event.preventDefault(); } if (event.key === "l" || event.key === "L") { lightFire(); event.preventDefault(); } if (event.key === "b" || event.key === "B") { toggleBoat(); event.preventDefault(); } });
-    document.addEventListener("keyup", (event) => { const action = { w:"forward",W:"forward",ArrowUp:"forward",s:"back",S:"back",ArrowDown:"back",a:"right",A:"right",ArrowLeft:"left",d:"left",D:"left",ArrowRight:"right" }[event.key]; if (action) keys.delete(action); });
+    const timeModeElement = document.querySelector("#timeMode"), brightnessElement = document.querySelector("#brightness"), hotkeyListElement = document.querySelector("#hotkeyList");
+    brightnessElement.value = userBright;
+    brightnessElement.addEventListener("input", () => { userBright = Number(brightnessElement.value); persist(); });
+    timeModeElement.addEventListener("change", () => { timeMode = timeModeElement.value; const times = { day: .25, sunset: .5, night: .75, sunrise: 0 }; if (timeMode !== "auto") dayTime = times[timeMode]; persist(); timeModeElement.blur(); });
+    function renderHotkeys() { hotkeyListElement.textContent = Object.keys(hotkeys).sort().map((slot) => `${slot}=${types[hotkeys[slot]]?.label || hotkeys[slot]}`).join("  "); }
+    renderHotkeys();
+    document.addEventListener("keydown", (event) => {
+      const match = /^(?:Digit|Numpad)(\d)$/.exec(event.code); if (!match || event.target.tagName === "SELECT") return; const slot = match[1];
+      if (event.shiftKey) { hotkeys[slot] = selected; renderHotkeys(); persist(); statusElement.textContent = `${types[selected].label} assigned to ${slot}.`; }
+      else if (hotkeys[slot] && types[hotkeys[slot]]) { selected = hotkeys[slot]; renderInventory(); statusElement.textContent = `${types[selected].label} selected (${slot}).`; }
+      else statusElement.textContent = `Hotkey ${slot} is empty. Select an item and press Shift+${slot}.`;
+      event.preventDefault();
+    });
+    document.addEventListener("keydown", (event) => { const action = { w:"forward",W:"forward",ArrowUp:"forward",s:"back",S:"back",ArrowDown:"back",a:"left",A:"left",ArrowLeft:"left",d:"right",D:"right",ArrowRight:"right" }[event.key]; if (action) { keys.add(action); event.preventDefault(); } if (event.key === " ") { jump(); event.preventDefault(); } if (event.key === "e" || event.key === "E") { useContextAction(); event.preventDefault(); } if (event.key === "h" || event.key === "H") { teleportHome(); event.preventDefault(); } if (event.key === "l" || event.key === "L") { lightFire(); event.preventDefault(); } if (event.key === "b" || event.key === "B") { toggleBoat(); event.preventDefault(); } });
+    document.addEventListener("keyup", (event) => { const action = { w:"forward",W:"forward",ArrowUp:"forward",s:"back",S:"back",ArrowDown:"back",a:"left",A:"left",ArrowLeft:"left",d:"right",D:"right",ArrowRight:"right" }[event.key]; if (action) keys.delete(action); });
     canvas.addEventListener("click", () => { if (document.pointerLockElement !== canvas) canvas.requestPointerLock(); });
     canvas.addEventListener("contextmenu", (event) => event.preventDefault());
     canvas.addEventListener("mousedown", (event) => { if (document.pointerLockElement === canvas) { if (event.button === 0) mine(); if (event.button === 2) build(); } });
