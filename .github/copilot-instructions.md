@@ -27,3 +27,5 @@ Keep a list of my games here.
 - Meteor Dodge (`meteor-dodge/`)
 - Bubble Pop (`bubble-pop/`)
 - Quick Calc (`quick-calc/`)
+- Frog Leap (`frog-leap/`)
+- Giraffe Maze (`giraffe-maze/`)
