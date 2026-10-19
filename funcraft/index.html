@@ -12,6 +12,8 @@
     a { color: #bae6fd; } h1 { margin: .5rem 0; color: #fef08a; font-size: clamp(2rem, 7vw, 3.5rem); }
     .instructions { max-width: 56rem; margin: .75rem auto 1rem; color: #dbeafe; line-height: 1.5; }
     #game-wrap { position: relative; } canvas { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; border: .3rem solid #67e8f9; border-radius: .75rem; background: #7dd3fc; cursor: crosshair; touch-action: none; }
+    #tags { position: absolute; inset: .3rem; width: calc(100% - .6rem); height: calc(100% - .6rem); border: 0; background: none; pointer-events: none; cursor: default; }
+    #mpName, #mpCode { padding: .4rem; border: 1px solid #4b6382; border-radius: .4rem; background: #0f172a; color: #f8fafc; font: inherit; text-transform: uppercase; } #mpName { text-transform: none; } #mpStatus { color: #bae6fd; }
     #crosshair { position: absolute; top: 50%; left: 50%; width: 1.25rem; height: 1.25rem; transform: translate(-50%, -50%); pointer-events: none; }
     #crosshair::before, #crosshair::after { position: absolute; content: ""; background: #fff; box-shadow: 0 0 .2rem #000; } #crosshair::before { top: .55rem; width: 1.25rem; height: .12rem; } #crosshair::after { left: .55rem; width: .12rem; height: 1.25rem; }
     .inventory, .crafting, .controls { display: flex; justify-content: center; flex-wrap: wrap; gap: .55rem; margin-top: .85rem; }
@@ -27,7 +29,7 @@
     <a href="../">← All games</a>
     <h1>Funcraft</h1>
     <p class="instructions">Click the world to look around. Mine ore and coal with left click, craft a furnace at a workbench, then press E beside the furnace to smelt ore into ingots using coal fuel. Away from stations, E eats food, or tames the animal you're looking at (costs 1 meat; wolves, bears and boars only sometimes accept). Tamed pets follow you and can't be collected. Press H or use Home to return to your starting hill. Craft torches (wood + coal) and left-click wood, leaves, grass or coal while holding one to set it on fire (or press L); fire goes out unless it touches one of those, spreads slowly, and water puts it out. Craft a boat from 5 planks (no workbench needed), face water and press B to sail; Space hops out. Rivers and lakes now cross the land with a current that carries swimmers and boats (rivers flow steadily, lakes drift gently). Craft a bucket (3 iron ingots), left-click water to fill it, and right-click to pour it out; a water bucket is the only way to put out a fire by hand.</p>
-    <div id="game-wrap"><canvas id="game" width="960" height="540" aria-label="Funcraft first-person block world"></canvas><span id="crosshair" aria-hidden="true"></span></div>
+    <div id="game-wrap"><canvas id="game" width="960" height="540" aria-label="Funcraft first-person block world"></canvas><canvas id="tags" aria-hidden="true"></canvas><span id="crosshair" aria-hidden="true"></span></div>
     <div id="inventory" class="inventory" aria-label="Inventory"></div>
     <div id="crafting" class="crafting" aria-label="Crafting bench"></div>
     <div class="controls" aria-label="Touch controls">
@@ -37,8 +39,10 @@
     <p><label>Time <select id="timeMode"><option value="auto">Auto (day/night cycle)</option><option value="day">Day</option><option value="sunset">Sunset</option><option value="night">Night</option><option value="sunrise">Sunrise</option></select></label> <label>Brightness <input id="brightness" type="range" min="0.4" max="1.6" step="0.05" value="1"></label></p>
     <p>Hotkeys: press a number key 0-9 to select its item. Select an item, then hold Shift and press 0-9 to assign it to that key. <span id="hotkeyList"></span></p>
     <p><label><input id="survival" type="checkbox"> Survival mode: 5 lives and hostile animals (wolf, bear, boar) and fire damage</label> <span id="lives"></span></p>
+    <p id="multiplayer"><label>Name <input id="mpName" type="text" maxlength="16" size="12"></label> <button id="mpHost" type="button">Host game</button> <input id="mpCode" type="text" maxlength="4" size="6" placeholder="CODE" aria-label="Room code"> <button id="mpJoin" type="button">Join</button> <button id="mpLeave" type="button" hidden>Leave</button> <span id="mpStatus">Play with a friend: one hosts and shares the 4-letter code, the other joins.</span></p>
     <p id="status" aria-live="polite">Click the world to begin exploring.</p>
   </main>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <script src="../shared/profile.js"></script>
   <script>
     const canvas = document.querySelector("#game");
@@ -82,9 +86,10 @@
     if (!gl) { statusElement.textContent = "WebGL is required to play Funcraft in 3D."; throw new Error("WebGL is unavailable"); }
     const program = createProgram(
       "attribute vec3 p; attribute vec3 c; uniform mat4 m; varying vec3 v; varying vec3 w; void main(){gl_Position=m*vec4(p,1.0);v=c;w=p;}",
-      "#ifdef GL_FRAGMENT_PRECISION_HIGH\nprecision highp float;\n#else\nprecision mediump float;\n#endif\nvarying vec3 v; varying vec3 w; uniform float b; void main(){vec3 t=floor(w*16.0+0.002); float h=fract(sin(dot(t,vec3(12.9898,78.233,37.719)))*43758.5453); float tone=0.8+0.1*floor(h*3.0); gl_FragColor=vec4(clamp(v*tone*b,0.0,1.0),1.0);}"
+      "#ifdef GL_FRAGMENT_PRECISION_HIGH\nprecision highp float;\n#else\nprecision mediump float;\n#endif\nvarying vec3 v; varying vec3 w; uniform float b; uniform float lo; uniform vec4 L[12]; void main(){vec3 t=floor(w*16.0+0.002); float h=fract(sin(dot(t,vec3(12.9898,78.233,37.719)))*43758.5453); float tone=0.8+0.1*floor(h*3.0); float a=0.0; for(int i=0;i<12;i++){ float r=L[i].w; if(r>0.0){ float k=clamp(1.0-distance(w,L[i].xyz)/r,0.0,1.0); a+=k*k; } } float nb=clamp(1.4-b,0.3,1.0); gl_FragColor=vec4(clamp(v*tone*(vec3(b)+vec3(1.0,0.62,0.25)*a*1.6*lo*nb),0.0,1.0),1.0);}"
     );
-    const positionLocation = gl.getAttribLocation(program, "p"), colorLocation = gl.getAttribLocation(program, "c"), matrixLocation = gl.getUniformLocation(program, "m"), brightnessLocation = gl.getUniformLocation(program, "b");
+    const positionLocation = gl.getAttribLocation(program, "p"), colorLocation = gl.getAttribLocation(program, "c"), matrixLocation = gl.getUniformLocation(program, "m"), brightnessLocation = gl.getUniformLocation(program, "b"), lightsLocation = gl.getUniformLocation(program, "L"), lightOnLocation = gl.getUniformLocation(program, "lo");
+    let lightList = [];
     gl.enable(gl.DEPTH_TEST); gl.enable(gl.CULL_FACE); gl.clearColor(.49, .83, .98, 1); gl.useProgram(program);
 
     function createProgram(vertex, fragment) {
@@ -219,8 +224,11 @@
         [[0,0,1],[0,0,0],[1,0,0],[1,0,1]], [[1,0,1],[1,1,1],[0,1,1],[0,0,1]], [[0,0,0],[0,1,0],[1,1,0],[1,0,0]]
       ];
       const minX = Math.max(0, Math.floor(player.x) - 24), maxX = Math.min(mapWidth, Math.floor(player.x) + 25), minZ = Math.max(0, Math.floor(player.z) - 24), maxZ = Math.min(mapDepth, Math.floor(player.z) + 25);
+      lightList = [];
       for (let y = 0; y < height; y += 1) for (let z = minZ; z < maxZ; z += 1) for (let x = minX; x < maxX; x += 1) {
         const type = blockAt(x, y, z); if (!type) continue;
+        if (type === "torch") lightList.push([x + .5, y + .8, z + .5, 8]);
+        if (type === "fire") lightList.push([x + .5, y + .6, z + .5, 11]);
         if (type === "torch") { addAnimalCube(x + .42, y, z + .42, .16, .6, .16, [.55, .33, .12]); addAnimalCube(x + .38, y + .6, z + .38, .24, .24, .24, [1, .82, .15]); continue; }
         if (type === "fire") { addAnimalCube(x + .15, y, z + .15, .7, .5, .7, [.98, .45, .08]); addAnimalCube(x + .3, y + .5, z + .3, .4, .4, .4, [1, .8, .15]); continue; }
         faces.forEach((face, index) => {
@@ -258,7 +266,7 @@
       if (boating) { const top = waterTop(player.x, player.z); if (top === null) { boating = false; statusElement.textContent = "Your boat left the water."; } else { player.y = top - .2; player.velocityY = 0; player.onGround = true; } }
       else { player.velocityY += (inWater() ? -3 : -18) * delta; player.onGround = false; move(0, player.velocityY * delta, 0); }
       if (boating || inWater()) { const [vx, vz] = currentAt(Math.floor(player.x) + mapOriginX, Math.floor(player.z) + mapOriginZ), pull = boating ? 1.6 : 1.2; if (vx || vz) { move(vx * pull * delta, 0, vz * pull * delta); if (!currentNoticed) { currentNoticed = true; statusElement.textContent = "The current pulls you along the water."; } } }
-      expandMap(); updateAnimals(delta); updateHostiles(delta); updatePets(delta); updateFire(delta); updateSmoke(delta);
+      expandMap(); updateAnimals(delta); updateHostiles(delta); updatePets(delta); updateFire(delta); updateSmoke(delta); mpUpdate(delta);
       player.hunger = Math.max(0, player.hunger - delta * .35); renderHunger();
       if (nearWorkbench() !== workbenchNearby) { workbenchNearby = nearWorkbench(); if (!workbenchNearby) workbenchActive = false; renderCrafting(); }
       if (player.y < -3) respawn();
@@ -391,8 +399,16 @@
     function directionVector() { return [Math.sin(player.yaw) * Math.cos(player.pitch), Math.sin(player.pitch), Math.cos(player.yaw) * Math.cos(player.pitch)]; }
     function draw() {
       const sky = skyState(); gl.viewport(0, 0, canvas.width, canvas.height); gl.clearColor(sky.color[0], sky.color[1], sky.color[2], 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); const direction = directionVector(), eye = [player.x, player.y + 1.45, player.z], matrix = multiply(perspective(1.05, canvas.width / canvas.height, .05, 100), lookAt(eye, [eye[0] + direction[0], eye[1] + direction[1], eye[2] + direction[2]], [0,1,0]));
-      gl.uniformMatrix4fv(matrixLocation, false, matrix); gl.enableVertexAttribArray(positionLocation); gl.enableVertexAttribArray(colorLocation); drawSky(sky, eye); gl.uniform1f(brightnessLocation, sky.brightness);
-      gl.bindBuffer(gl.ARRAY_BUFFER, buffer); gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 24, 0); gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 24, 12); gl.drawArrays(gl.TRIANGLES, 0, vertices); drawSmoke();
+      gl.uniformMatrix4fv(matrixLocation, false, matrix); gl.enableVertexAttribArray(positionLocation); gl.enableVertexAttribArray(colorLocation); drawSky(sky, eye); gl.uniform1f(brightnessLocation, sky.brightness); uploadLights(eye); gl.uniform1f(lightOnLocation, 1);
+      gl.bindBuffer(gl.ARRAY_BUFFER, buffer); gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 24, 0); gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 24, 12); gl.drawArrays(gl.TRIANGLES, 0, vertices); drawSmoke(); drawRemotePlayers(); drawNameTags(matrix);
+    }
+    function uploadLights(eye) {
+      const now = performance.now() / 1000, lights = [];
+      if (selected === "torch" && inventory.torch) lights.push([eye[0] + Math.sin(player.yaw) * .4, eye[1] - .2, eye[2] + Math.cos(player.yaw) * .4, 8]);
+      remotePlayers().forEach((peer) => { if (peer.h) lights.push([peer.x - mapOriginX, peer.y + 1.2, peer.z - mapOriginZ, 8]); });
+      lightList.map((light) => ({ light, d: Math.hypot(light[0] - eye[0], light[1] - eye[1], light[2] - eye[2]) })).filter((entry) => entry.d < entry.light[3] + 40).sort((a, b) => a.d - b.d).forEach((entry) => lights.push(entry.light));
+      const data = new Float32Array(48); lights.slice(0, 12).forEach((light, index) => data.set([light[0], light[1], light[2], light[3] * (1 + .07 * Math.sin(now * 9 + index * 1.7))], index * 4));
+      gl.uniform4fv(lightsLocation, data);
     }
     const smoothStep = (low, high, value) => { const t = Math.max(0, Math.min(1, (value - low) / (high - low))); return t * t * (3 - 2 * t); };
     function skyState() {
@@ -416,7 +432,7 @@
       }
       const night = 1 - sky.light;
       if (night > .12) starField.forEach(([x, y, z]) => { const rx = x * Math.cos(sky.angle) - y * Math.sin(sky.angle), ry = x * Math.sin(sky.angle) + y * Math.cos(sky.angle); if (ry > .02) skyCube(data, ...place([rx, ry, z], 70), .5 * night, [1, 1, .95]); });
-      gl.uniform1f(brightnessLocation, 1); gl.disable(gl.DEPTH_TEST); gl.disable(gl.CULL_FACE);
+      gl.uniform1f(brightnessLocation, 1); gl.uniform1f(lightOnLocation, 0); gl.disable(gl.DEPTH_TEST); gl.disable(gl.CULL_FACE);
       gl.bindBuffer(gl.ARRAY_BUFFER, skyBuffer); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.DYNAMIC_DRAW);
       gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 24, 0); gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 24, 12); gl.drawArrays(gl.TRIANGLES, 0, data.length / 6);
       gl.enable(gl.DEPTH_TEST); gl.enable(gl.CULL_FACE);
@@ -442,6 +458,77 @@
     function multiply(a,b) { const out = new Float32Array(16); for (let column=0;column<4;column+=1) for (let row=0;row<4;row+=1) for (let index=0;index<4;index+=1) out[column*4+row] += a[index*4+row]*b[column*4+index]; return out; }
     function cross(a,b) { return [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]]; } function dot(a,b) { return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]; } function normalize(v) { const d=Math.hypot(...v)||1; return v.map((value)=>value/d); }
 
+    const mp = { peer: null, host: false, conns: [], players: new Map(), sendTimer: 0, code: "" };
+    const mpNameElement = document.querySelector("#mpName"), mpCodeElement = document.querySelector("#mpCode"), mpStatusElement = document.querySelector("#mpStatus"), mpHostButton = document.querySelector("#mpHost"), mpJoinButton = document.querySelector("#mpJoin"), mpLeaveButton = document.querySelector("#mpLeave"), tagCanvas = document.querySelector("#tags"), tagCtx = tagCanvas.getContext("2d");
+    mpNameElement.value = saved.mpName || GameProfiles.getActiveProfileName() || "Player";
+    const mpName = () => (mpNameElement.value.trim() || "Player").slice(0, 16);
+    function remotePlayers() { const now = performance.now(); mp.players.forEach((peer, id) => { if (now - peer.seen > 6000) mp.players.delete(id); }); return [...mp.players.values()]; }
+    function mpSend(data, except) { mp.conns.forEach((conn) => { if (conn !== except && conn.open) conn.send(data); }); }
+    function mpState() { return { t: "s", id: mp.peer.id, name: mpName(), x: player.x + mapOriginX, y: player.y, z: player.z + mapOriginZ, yaw: player.yaw, pitch: player.pitch, h: selected === "torch" && inventory.torch ? 1 : 0 }; }
+    function mpReceive(conn, data) {
+      if (!data || typeof data !== "object") return;
+      if (data.t === "s" && typeof data.id === "string" && [data.x, data.y, data.z, data.yaw, data.pitch].every(Number.isFinite)) {
+        mp.players.set(data.id, { id: data.id, name: String(data.name || "Player").slice(0, 16), x: data.x, y: data.y, z: data.z, yaw: data.yaw, pitch: data.pitch, h: data.h ? 1 : 0, seen: performance.now() });
+        if (mp.host) mpSend(data, conn);
+      } else if (data.t === "bye" && typeof data.id === "string") { mp.players.delete(data.id); if (mp.host) mpSend(data, conn); }
+    }
+    function mpAttach(conn) {
+      conn.on("open", () => { if (!mp.conns.includes(conn)) mp.conns.push(conn); mpStatusElement.textContent = mp.host ? `Room ${mp.code}: ${mp.conns.length} player(s) joined. Share the code!` : `Connected to room ${mp.code}.`; });
+      conn.on("data", (data) => mpReceive(conn, data));
+      conn.on("close", () => { mp.conns = mp.conns.filter((c) => c !== conn); mp.players.delete(conn.peer); if (mp.host) mpSend({ t: "bye", id: conn.peer }); else mpStatusElement.textContent = "The host left the game."; });
+    }
+    function mpReset() { if (mp.peer) mp.peer.destroy(); mp.peer = null; mp.host = false; mp.conns = []; mp.players.clear(); mpHostButton.hidden = mpJoinButton.hidden = mpCodeElement.hidden = false; mpLeaveButton.hidden = true; }
+    function mpStart(host) {
+      if (typeof Peer === "undefined") { mpStatusElement.textContent = "Multiplayer could not load (are you online?)."; return; }
+      const code = host ? Array.from({ length: 4 }, () => "ABCDEFGHJKLMNPQRSTUVWXYZ"[Math.floor(Math.random() * 24)]).join("") : mpCodeElement.value.trim().toUpperCase();
+      if (!/^[A-Z]{4}$/.test(code)) { mpStatusElement.textContent = "Enter the 4-letter room code."; return; }
+      mpReset(); mp.host = host; mp.code = code; saved.mpName = mpName(); persist();
+      mpStatusElement.textContent = host ? "Creating room..." : "Joining...";
+      const peer = mp.peer = host ? new Peer(`funcraft-${code}`) : new Peer();
+      peer.on("open", () => {
+        mpHostButton.hidden = mpJoinButton.hidden = mpCodeElement.hidden = true; mpLeaveButton.hidden = false;
+        if (host) mpStatusElement.textContent = `Room ${code}: waiting for players. Share the code!`;
+        else mpAttach(peer.connect(`funcraft-${code}`, { reliable: true }));
+      });
+      if (host) peer.on("connection", mpAttach);
+      peer.on("error", (error) => { mpStatusElement.textContent = error.type === "peer-unavailable" ? "No room with that code." : error.type === "unavailable-id" ? "Room code taken, try again." : `Multiplayer error: ${error.type}`; if (error.type !== "network") mpReset(); });
+    }
+    function mpUpdate(delta) {
+      if (!mp.peer || !mp.peer.id) return; mp.sendTimer += delta; if (mp.sendTimer < .1) return; mp.sendTimer = 0;
+      mpSend(mpState());
+    }
+    mpHostButton.addEventListener("click", () => mpStart(true));
+    mpJoinButton.addEventListener("click", () => mpStart(false));
+    mpLeaveButton.addEventListener("click", () => { if (mp.peer && mp.peer.id) mpSend({ t: "bye", id: mp.peer.id }); mpReset(); mpStatusElement.textContent = "You left the room."; });
+    mpNameElement.addEventListener("change", () => { saved.mpName = mpName(); persist(); });
+    function nameColor(name) { let h = 0; for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) % 360; const r = h * Math.PI / 180; return [.55 + .35 * Math.sin(r), .55 + .35 * Math.sin(r + 2.1), .55 + .35 * Math.sin(r + 4.2)]; }
+    function drawRemotePlayers() {
+      const peers = remotePlayers(); if (!peers.length) return;
+      const data = [], unit = [[0,0,0],[1,0,0],[1,1,0],[0,1,0],[0,0,1],[1,0,1],[1,1,1],[0,1,1]], quads = [[0,1,2,3],[4,5,6,7],[0,1,5,4],[3,2,6,7],[0,3,7,4],[1,2,6,5]];
+      peers.forEach((peer) => {
+        const cos = Math.cos(peer.yaw), sin = Math.sin(peer.yaw), base = [peer.x - mapOriginX, peer.y, peer.z - mapOriginZ], body = nameColor(peer.name), dark = body.map((value) => value * .5), skin = [.95, .78, .6];
+        const box = (lx, ly, lz, w, h, d, color) => quads.forEach((quad) => [0,1,2,0,2,3].forEach((corner) => { const u = unit[quad[corner]], px = lx + (u[0] - .5) * w, pz = lz + (u[2] - .5) * d; data.push(base[0] + px * cos + pz * sin, base[1] + ly + u[1] * h, base[2] - px * sin + pz * cos, ...color); }));
+        box(-.12, 0, 0, .22, .7, .26, dark); box(.12, 0, 0, .22, .7, .26, dark);
+        box(0, .7, 0, .5, .7, .28, body); box(-.34, .75, 0, .16, .6, .2, skin); box(.34, .75, 0, .16, .6, .2, skin);
+        box(0, 1.4, 0, .4, .4, .4, skin); box(-.09, 1.55, .21, .07, .07, .02, [.05, .05, .05]); box(.09, 1.55, .21, .07, .07, .02, [.05, .05, .05]);
+        if (peer.h) box(.34, 1.2, .2, .08, .35, .08, [.95, .75, .2]);
+      });
+      gl.bindBuffer(gl.ARRAY_BUFFER, smokeBuffer); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.DYNAMIC_DRAW);
+      gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 24, 0); gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 24, 12);
+      gl.disable(gl.CULL_FACE); gl.drawArrays(gl.TRIANGLES, 0, data.length / 6); gl.enable(gl.CULL_FACE);
+    }
+    function drawNameTags(matrix) {
+      if (tagCanvas.width !== canvas.width) { tagCanvas.width = canvas.width; tagCanvas.height = canvas.height; }
+      tagCtx.clearRect(0, 0, tagCanvas.width, tagCanvas.height); tagCtx.font = "bold 20px Arial"; tagCtx.textAlign = "center"; tagCtx.textBaseline = "middle";
+      remotePlayers().forEach((peer) => {
+        const x = peer.x - mapOriginX, y = peer.y + 2.05, z = peer.z - mapOriginZ;
+        const cx = matrix[0] * x + matrix[4] * y + matrix[8] * z + matrix[12], cy = matrix[1] * x + matrix[5] * y + matrix[9] * z + matrix[13], cw = matrix[3] * x + matrix[7] * y + matrix[11] * z + matrix[15];
+        if (cw <= .1) return;
+        const sx = (cx / cw * .5 + .5) * tagCanvas.width, sy = (1 - (cy / cw * .5 + .5)) * tagCanvas.height, width = tagCtx.measureText(peer.name).width + 16;
+        tagCtx.fillStyle = "rgb(15 23 42 / 70%)"; tagCtx.fillRect(sx - width / 2, sy - 14, width, 28); tagCtx.fillStyle = "#fef08a"; tagCtx.fillText(peer.name, sx, sy + 1);
+      });
+    }
+
     const timeModeElement = document.querySelector("#timeMode"), brightnessElement = document.querySelector("#brightness"), hotkeyListElement = document.querySelector("#hotkeyList");
     brightnessElement.value = userBright;
     brightnessElement.addEventListener("input", () => { userBright = Number(brightnessElement.value); persist(); });
@@ -449,13 +536,13 @@
     function renderHotkeys() { hotkeyListElement.textContent = Object.keys(hotkeys).sort().map((slot) => `${slot}=${types[hotkeys[slot]]?.label || hotkeys[slot]}`).join("  "); }
     renderHotkeys();
     document.addEventListener("keydown", (event) => {
-      const match = /^(?:Digit|Numpad)(\d)$/.exec(event.code); if (!match || event.target.tagName === "SELECT") return; const slot = match[1];
+      const match = /^(?:Digit|Numpad)(\d)$/.exec(event.code); if (!match || event.target.tagName === "SELECT" || event.target.type === "text") return; const slot = match[1];
       if (event.shiftKey) { hotkeys[slot] = selected; renderHotkeys(); persist(); statusElement.textContent = `${types[selected].label} assigned to ${slot}.`; }
       else if (hotkeys[slot] && types[hotkeys[slot]]) { selected = hotkeys[slot]; renderInventory(); statusElement.textContent = `${types[selected].label} selected (${slot}).`; }
       else statusElement.textContent = `Hotkey ${slot} is empty. Select an item and press Shift+${slot}.`;
       event.preventDefault();
     });
-    document.addEventListener("keydown", (event) => { const action = { w:"forward",W:"forward",ArrowUp:"forward",s:"back",S:"back",ArrowDown:"back",a:"left",A:"left",ArrowLeft:"left",d:"right",D:"right",ArrowRight:"right" }[event.key]; if (action) { keys.add(action); event.preventDefault(); } if (event.key === " ") { jump(); event.preventDefault(); } if (event.key === "e" || event.key === "E") { useContextAction(); event.preventDefault(); } if (event.key === "h" || event.key === "H") { teleportHome(); event.preventDefault(); } if (event.key === "l" || event.key === "L") { lightFire(); event.preventDefault(); } if (event.key === "b" || event.key === "B") { toggleBoat(); event.preventDefault(); } });
+    document.addEventListener("keydown", (event) => { if (event.target.type === "text") return; const action = { w:"forward",W:"forward",ArrowUp:"forward",s:"back",S:"back",ArrowDown:"back",a:"left",A:"left",ArrowLeft:"left",d:"right",D:"right",ArrowRight:"right" }[event.key]; if (action) { keys.add(action); event.preventDefault(); } if (event.key === " ") { jump(); event.preventDefault(); } if (event.key === "e" || event.key === "E") { useContextAction(); event.preventDefault(); } if (event.key === "h" || event.key === "H") { teleportHome(); event.preventDefault(); } if (event.key === "l" || event.key === "L") { lightFire(); event.preventDefault(); } if (event.key === "b" || event.key === "B") { toggleBoat(); event.preventDefault(); } });
     document.addEventListener("keyup", (event) => { const action = { w:"forward",W:"forward",ArrowUp:"forward",s:"back",S:"back",ArrowDown:"back",a:"left",A:"left",ArrowLeft:"left",d:"right",D:"right",ArrowRight:"right" }[event.key]; if (action) keys.delete(action); });
     canvas.addEventListener("click", () => { if (document.pointerLockElement !== canvas) canvas.requestPointerLock(); });
     canvas.addEventListener("contextmenu", (event) => event.preventDefault());
