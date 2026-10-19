@@ -86,9 +86,9 @@
     if (!gl) { statusElement.textContent = "WebGL is required to play Funcraft in 3D."; throw new Error("WebGL is unavailable"); }
     const program = createProgram(
       "attribute vec3 p; attribute vec3 c; uniform mat4 m; varying vec3 v; varying vec3 w; void main(){gl_Position=m*vec4(p,1.0);v=c;w=p;}",
-      "#ifdef GL_FRAGMENT_PRECISION_HIGH\nprecision highp float;\n#else\nprecision mediump float;\n#endif\nvarying vec3 v; varying vec3 w; uniform float b; uniform float lo; uniform vec4 L[12]; void main(){vec3 t=floor(w*16.0+0.002); float h=fract(sin(dot(t,vec3(12.9898,78.233,37.719)))*43758.5453); float tone=0.8+0.1*floor(h*3.0); float a=0.0; for(int i=0;i<12;i++){ float r=L[i].w; if(r>0.0){ float k=clamp(1.0-distance(w,L[i].xyz)/r,0.0,1.0); a+=k*k; } } float nb=clamp(1.4-b,0.3,1.0); gl_FragColor=vec4(clamp(v*tone*(vec3(b)+vec3(1.0,0.62,0.25)*a*1.6*lo*nb),0.0,1.0),1.0);}"
+      "#ifdef GL_FRAGMENT_PRECISION_HIGH\nprecision highp float;\n#else\nprecision mediump float;\n#endif\nvarying vec3 v; varying vec3 w; uniform float b; uniform float lo; uniform vec4 L[12]; uniform float S[12]; void main(){vec3 t=floor(w*16.0+0.002); float h=fract(sin(dot(t,vec3(12.9898,78.233,37.719)))*43758.5453); float tone=0.8+0.1*floor(h*3.0); float a=0.0; for(int i=0;i<12;i++){ float r=L[i].w; if(r>0.0){ float k=clamp(1.0-distance(w,L[i].xyz)/r,0.0,1.0); a+=k*k*S[i]; } } float nb=clamp(1.4-b,0.3,1.0); gl_FragColor=vec4(clamp(v*tone*(vec3(b)+vec3(1.0,0.62,0.25)*a*1.6*lo*nb),0.0,1.0),1.0);}"
     );
-    const positionLocation = gl.getAttribLocation(program, "p"), colorLocation = gl.getAttribLocation(program, "c"), matrixLocation = gl.getUniformLocation(program, "m"), brightnessLocation = gl.getUniformLocation(program, "b"), lightsLocation = gl.getUniformLocation(program, "L"), lightOnLocation = gl.getUniformLocation(program, "lo");
+    const positionLocation = gl.getAttribLocation(program, "p"), colorLocation = gl.getAttribLocation(program, "c"), matrixLocation = gl.getUniformLocation(program, "m"), brightnessLocation = gl.getUniformLocation(program, "b"), lightsLocation = gl.getUniformLocation(program, "L"), strengthLocation = gl.getUniformLocation(program, "S"), lightOnLocation = gl.getUniformLocation(program, "lo");
     let lightList = [];
     gl.enable(gl.DEPTH_TEST); gl.enable(gl.CULL_FACE); gl.clearColor(.49, .83, .98, 1); gl.useProgram(program);
 
@@ -228,7 +228,7 @@
       for (let y = 0; y < height; y += 1) for (let z = minZ; z < maxZ; z += 1) for (let x = minX; x < maxX; x += 1) {
         const type = blockAt(x, y, z); if (!type) continue;
         if (type === "torch") lightList.push([x + .5, y + .8, z + .5, 8]);
-        if (type === "fire") lightList.push([x + .5, y + .6, z + .5, 11]);
+        if (type === "fire") lightList.push([x + .5, y + .6, z + .5, 11, .5]);
         if (type === "torch") { addAnimalCube(x + .42, y, z + .42, .16, .6, .16, [.55, .33, .12]); addAnimalCube(x + .38, y + .6, z + .38, .24, .24, .24, [1, .82, .15]); continue; }
         if (type === "fire") { addAnimalCube(x + .15, y, z + .15, .7, .5, .7, [.98, .45, .08]); addAnimalCube(x + .3, y + .5, z + .3, .4, .4, .4, [1, .8, .15]); continue; }
         faces.forEach((face, index) => {
@@ -407,8 +407,8 @@
       if (selected === "torch" && inventory.torch) lights.push([eye[0] + Math.sin(player.yaw) * .4, eye[1] - .2, eye[2] + Math.cos(player.yaw) * .4, 8]);
       remotePlayers().forEach((peer) => { if (peer.h) lights.push([peer.x - mapOriginX, peer.y + 1.2, peer.z - mapOriginZ, 8]); });
       lightList.map((light) => ({ light, d: Math.hypot(light[0] - eye[0], light[1] - eye[1], light[2] - eye[2]) })).filter((entry) => entry.d < entry.light[3] + 40).sort((a, b) => a.d - b.d).forEach((entry) => lights.push(entry.light));
-      const data = new Float32Array(48); lights.slice(0, 12).forEach((light, index) => data.set([light[0], light[1], light[2], light[3] * (1 + .07 * Math.sin(now * 9 + index * 1.7))], index * 4));
-      gl.uniform4fv(lightsLocation, data);
+      const data = new Float32Array(48), strength = new Float32Array(12); lights.slice(0, 12).forEach((light, index) => { data.set([light[0], light[1], light[2], light[3] * (1 + .07 * Math.sin(now * 9 + index * 1.7))], index * 4); strength[index] = light[4] ?? 1; });
+      gl.uniform4fv(lightsLocation, data); gl.uniform1fv(strengthLocation, strength);
     }
     const smoothStep = (low, high, value) => { const t = Math.max(0, Math.min(1, (value - low) / (high - low))); return t * t * (3 - 2 * t); };
     function skyState() {
