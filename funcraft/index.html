@@ -607,22 +607,22 @@
     function multiply(a,b) { const out = new Float32Array(16); for (let column=0;column<4;column+=1) for (let row=0;row<4;row+=1) for (let index=0;index<4;index+=1) out[column*4+row] += a[index*4+row]*b[column*4+index]; return out; }
     function cross(a,b) { return [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]]; } function dot(a,b) { return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]; } function normalize(v) { const d=Math.hypot(...v)||1; return v.map((value)=>value/d); }
 
-    const weather = { kind: "clear", rain: 0, rainTarget: 0, wind: .15, windTarget: .15, dir: Math.random() * 6.28, timer: 25, tornado: null, flood: null, flash: 0, strike: null, strikeId: 0, strikeTimer: 8, disasterTimer: 50 };
-    const weatherTargets = { clear: [0, .15], rain: [.7, .35], windy: [0, 1], storm: [1, 1.3] };
-    const weatherLabels = { clear: "☀️ Clear", rain: "🌧️ Rain", windy: "💨 Windy", storm: "⛈️ Thunderstorm" };
+    const weather = { kind: "clear", rain: 0, rainTarget: 0, wind: 0, windTarget: 0, dir: Math.random() * 6.28, timer: 25, tornado: null, flood: null, flash: 0, strike: null, strikeId: 0, strikeTimer: 8, disasterTimer: 50 };
+    const weatherTargets = { clear: [0, 0], rain: [.7, 0], storm: [1, 0] };
+    const weatherLabels = { clear: "☀️ Clear", rain: "🌧️ Rain", storm: "⛈️ Thunderstorm" };
     const flood = { cx: 0, cz: 0, layers: [] };
     const breakable = new Set(["wood", "leaves", "plank", "workbench", "torch"]);
     const disasterElement = document.querySelector("#disasters"), weatherLabelElement = document.querySelector("#weatherLabel");
     let tornadoBreakTimer = 0, lastStrikeId = null, shownWeather = "";
     disasterElement.checked = !!saved.disasters;
-    const isClient = () => !!(mp.peer && !mp.host), windVec = () => [Math.cos(weather.dir) * weather.wind, Math.sin(weather.dir) * weather.wind];
+    const isClient = () => !!(mp.peer && !mp.host), windVec = () => [0, 0];
     function exposedToSky(x, y, z) { for (let yy = y + 1; yy < height; yy += 1) if (solid(blockAt(x, yy, z))) return false; return true; }
     function setWeather(kind) { weather.kind = kind; [weather.rainTarget, weather.windTarget] = weatherTargets[kind]; }
     function pickWeather() {
       const r = Math.random(), disaster = disasterElement.checked;
-      setWeather(disaster ? (r < .3 ? "storm" : r < .6 ? "rain" : r < .8 ? "windy" : "clear") : (r < .35 ? "rain" : r < .55 ? "windy" : "clear"));
+      setWeather(disaster ? (r < .3 ? "storm" : r < .6 ? "rain" : "clear") : (r < .35 ? "rain" : "clear"));
       weather.timer = 40 + Math.random() * 50;
-      statusElement.textContent = { clear: "The weather clears up.", rain: "It starts to rain. Fire sputters out in the wet.", windy: "The wind picks up.", storm: "A thunderstorm rolls in!" }[weather.kind];
+      statusElement.textContent = { clear: "The weather clears up.", rain: "It starts to rain. Fire sputters out in the wet.", storm: "A thunderstorm rolls in!" }[weather.kind];
     }
     function applyStrike(strike) {
       weather.flash = 1; const lx = Math.floor(strike.x - mapOriginX), lz = Math.floor(strike.z - mapOriginZ);
@@ -671,7 +671,7 @@
     function applyWeatherEffects(delta) {
       syncFlood();
       const [wx, wz] = windVec();
-      if (weather.wind > .4 && exposedToSky(Math.floor(player.x), Math.floor(player.y), Math.floor(player.z))) move(wx * .5 * delta, 0, wz * .5 * delta);
+      if (false && exposedToSky(Math.floor(player.x), Math.floor(player.y), Math.floor(player.z))) move(wx * .5 * delta, 0, wz * .5 * delta);
       const tornado = weather.tornado;
       if (tornado) {
         const lx = tornado.x - mapOriginX, lz = tornado.z - mapOriginZ, dx = lx - player.x, dz = lz - player.z, d = Math.hypot(dx, dz) || .01;
@@ -689,7 +689,7 @@
     function updateWeather(delta) {
       weather.flash = Math.max(0, weather.flash - delta * 2.5);
       if (!isClient()) directWeather(delta);
-      const label = `${weatherLabels[weather.kind] || ""} · ${weather.wind < .3 ? "calm" : weather.wind < .7 ? "breezy" : "strong wind"}${weather.tornado ? " · 🌪️ TORNADO" : ""}${flood.layers.length ? " · 🌊 FLOOD" : ""}`;
+      const label = `${weatherLabels[weather.kind] || ""}${weather.tornado ? " · 🌪️ TORNADO" : ""}${flood.layers.length ? " · 🌊 FLOOD" : ""}`;
       if (label !== shownWeather) { shownWeather = label; weatherLabelElement.textContent = label; }
     }
     function weatherPayload() {
@@ -727,7 +727,7 @@
       if (tris.length) { gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(tris), gl.DYNAMIC_DRAW); gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 24, 0); gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 24, 12); gl.disable(gl.CULL_FACE); gl.drawArrays(gl.TRIANGLES, 0, tris.length / 6); gl.enable(gl.CULL_FACE); }
       gl.uniform1f(lightOnLocation, 1);
     }
-    disasterElement.addEventListener("change", () => { saved.disasters = disasterElement.checked; persist(); statusElement.textContent = disasterElement.checked ? "Disaster weather on: expect thunderstorms, tornados and floods!" : "Disaster weather off: only gentle rain and wind."; disasterElement.blur(); });
+    disasterElement.addEventListener("change", () => { saved.disasters = disasterElement.checked; persist(); statusElement.textContent = disasterElement.checked ? "Disaster weather on: expect thunderstorms, tornados and floods!" : "Disaster weather off: only gentle rain."; disasterElement.blur(); });
     window.addEventListener("pagehide", () => { weather.flood = null; syncFlood(); persist(); });
 
     const mp = { peer: null, host: false, adopted: false, conns: [], players: new Map(), sendTimer: 0, code: "" };
@@ -765,6 +765,8 @@
       if (!mp.host && data.t === "s" && data.id === `funcraft-${mp.code}` && Number.isFinite(data.d)) dayTime = ((data.d % 1) + 1) % 1;
       if (!mp.host && data.t === "s" && data.id === `funcraft-${mp.code}` && data.w) applyRemoteWeather(data.w);
       if (!mp.host && data.t === "world") { mpAdopt(data); return; }
+      if (data.t === "th" && types[data.type] && !types[data.type].hidden && [data.x, data.y, data.z, data.vx, data.vy, data.vz].every(Number.isFinite) && typeof data.id === "string") { if (!thrown.some((o) => o.id === data.id)) thrown.push({ type: data.type, x: data.x, y: data.y, z: data.z, vx: data.vx, vy: data.vy, vz: data.vz, age: 0, landed: false, own: false, id: data.id }); if (mp.host) mpSend(data, conn); return; }
+      if (data.t === "tp" && typeof data.id === "string") { const k = thrown.findIndex((o) => o.id === data.id); if (k >= 0) thrown.splice(k, 1); if (mp.host) mpSend(data, conn); return; }
       if (data.t === "b" && Array.isArray(data.c)) { mpApplyBlocks(data.c); if (mp.host) mpSend(data, conn); return; }
       if (data.t === "s" && typeof data.id === "string" && [data.x, data.y, data.z, data.yaw, data.pitch].every(Number.isFinite)) {
         mp.players.set(data.id, { id: data.id, name: String(data.name || "Player").slice(0, 16), x: data.x, y: data.y, z: data.z, yaw: data.yaw, pitch: data.pitch, h: data.h ? 1 : 0, g: data.g === 2 ? 2 : data.g ? 1 : 0, seen: performance.now() });
@@ -868,7 +870,8 @@
       const now = performance.now(); if (now - lastThrow < 180) return;
       if (!selected || !inventory[selected] || types[selected].hidden) { statusElement.textContent = "Select an item you have, then press Q to throw it."; return; }
       lastThrow = now; inventory[selected] -= 1; const d = directionVector();
-      thrown.push({ type: selected, x: player.x + d[0] * .6 + mapOriginX, y: player.y + 1.45 + d[1] * .6, z: player.z + d[2] * .6 + mapOriginZ, vx: d[0] * 12, vy: d[1] * 12 + 2, vz: d[2] * 12, age: 0, landed: false });
+      thrown.push({ type: selected, x: player.x + d[0] * .6 + mapOriginX, y: player.y + 1.45 + d[1] * .6, z: player.z + d[2] * .6 + mapOriginZ, vx: d[0] * 12, vy: d[1] * 12 + 2, vz: d[2] * 12, age: 0, landed: false, own: true, id: Math.random().toString(36).slice(2, 10) });
+      const th = thrown[thrown.length - 1]; if (mp.peer) mpSend({ t: "th", id: th.id, type: th.type, x: th.x, y: th.y, z: th.z, vx: th.vx, vy: th.vy, vz: th.vz });
       statusElement.textContent = `Threw ${types[selected].label.toLowerCase()}. Walk over it to pick it back up.`; persistAndRender();
     }
     function updateThrown(delta) {
@@ -882,13 +885,14 @@
           const ny = it.y + it.vy * delta;
           if (at(it.x, ny, it.z)) { if (it.vy < 0) { it.vy *= -.35; it.vx *= .6; it.vz *= .6; if (Math.abs(it.vy) < 1.5) { it.vy = 0; it.landed = true; it.y = Math.floor(ny) + 1.15; } } else it.vy *= -.3; } else it.y = ny;
           if (blockAt(Math.floor(it.x - mapOriginX), Math.floor(it.y), Math.floor(it.z - mapOriginZ)) === "water") { it.vx *= .92; it.vz *= .92; it.vy *= .92; }
-          if (Math.hypot(it.vx, it.vy, it.vz) > 4) {
+          if (it.own && Math.hypot(it.vx, it.vy, it.vz) > 4) {
             const hit = animals.find((a) => !a.pet && Math.abs(a.x - (it.x - mapOriginX)) < .6 && Math.abs(a.z - (it.z - mapOriginZ)) < .5 && it.y >= a.y - .2 && it.y <= a.y + 1.1);
             if (hit) { animals.splice(animals.indexOf(hit), 1); inventory.meat = (inventory.meat || 0) + 1; inventory.hide = (inventory.hide || 0) + 1; it.vx *= -.2; it.vz *= -.2; statusElement.textContent = "Direct hit! You collected food and hide."; rebuildMesh(); persistAndRender(); }
           }
         }
         const near = Math.hypot(it.x - mapOriginX - player.x, it.y - player.y - .9, it.z - mapOriginZ - player.z) < 1.4;
-        if ((near && (it.landed || it.age > .7)) || it.y < -3 || it.age > 240) { inventory[it.type] = (inventory[it.type] || 0) + 1; thrown.splice(i, 1); persistAndRender(); }
+        if (near && (it.landed || it.age > .7)) { inventory[it.type] = (inventory[it.type] || 0) + 1; thrown.splice(i, 1); if (mp.peer) mpSend({ t: "tp", id: it.id }); statusElement.textContent = `Picked up ${types[it.type].label.toLowerCase()}.`; persistAndRender(); }
+        else if (it.y < -3 || it.age > 240) { if (it.own) { inventory[it.type] = (inventory[it.type] || 0) + 1; persistAndRender(); } thrown.splice(i, 1); }
       }
     }
     function drawThrown() {
@@ -898,7 +902,7 @@
       gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 24, 0); gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 24, 12);
       gl.disable(gl.CULL_FACE); gl.drawArrays(gl.TRIANGLES, 0, data.length / 6); gl.enable(gl.CULL_FACE);
     }
-    window.addEventListener("pagehide", () => { thrown.forEach((it) => { inventory[it.type] = (inventory[it.type] || 0) + 1; }); thrown.length = 0; persist(); });
+    window.addEventListener("pagehide", () => { thrown.forEach((it) => { if (it.own) inventory[it.type] = (inventory[it.type] || 0) + 1; if (it.own && mp.peer) mpSend({ t: "tp", id: it.id }); }); thrown.length = 0; persist(); });
 
     const brightnessElement = document.querySelector("#brightness"), hotkeyListElement = document.querySelector("#hotkeyList");
     brightnessElement.value = userBright;
