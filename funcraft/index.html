@@ -28,7 +28,7 @@
   <main>
     <a href="../">← All games</a>
     <h1>Funcraft</h1>
-    <p class="instructions">Click the world to look around. Mine ore and coal with left click, craft a furnace at a workbench, then press E beside the furnace to smelt ore into ingots using coal fuel. Away from stations, E eats food, or tames the animal you're looking at (costs 1 meat; wolves, bears and boars only sometimes accept). Tamed pets follow you and can't be collected. Press H or use Home to return to your starting hill. Craft torches (wood + coal) and left-click wood, leaves, grass or coal while holding one to set it on fire (or press L); fire goes out unless it touches one of those, spreads slowly, and water puts it out. Craft a boat from 5 planks (no workbench needed), face water and press B to sail; Space hops out. Rivers and lakes now cross the land with a current that carries swimmers and boats (rivers flow steadily, lakes drift gently). Craft a bucket (3 iron ingots), left-click water to fill it, and right-click to pour it out; a water bucket is the only way to put out a fire by hand.</p>
+    <p class="instructions">Click the world to look around. Mine ore and coal with left click, craft a furnace at a workbench, then press E beside the furnace to smelt ore into ingots using coal fuel. Away from stations, E eats food, or tames the animal you're looking at (costs 1 meat; wolves, bears and boars only sometimes accept). Tamed pets follow you and can't be collected. Press H or use Home to return to your starting hill, or T to teleport to another player in your lobby (press again for the next one). Craft torches (wood + coal) and left-click wood, leaves, grass or coal while holding one to set it on fire (or press L); fire goes out unless it touches one of those, spreads slowly, and water puts it out. Craft a boat from 5 planks (no workbench needed), face water and press B to sail; Space hops out. Rivers and lakes now cross the land with a current that carries swimmers and boats (rivers flow steadily, lakes drift gently). Craft a bucket (3 iron ingots), left-click water to fill it, and right-click to pour it out; a water bucket is the only way to put out a fire by hand.</p>
     <div id="game-wrap"><canvas id="game" width="960" height="540" aria-label="Funcraft first-person block world"></canvas><canvas id="tags" aria-hidden="true"></canvas><span id="crosshair" aria-hidden="true"></span></div>
     <div id="inventory" class="inventory" aria-label="Inventory"></div>
     <div id="crafting" class="crafting" aria-label="Crafting bench"></div>
@@ -404,6 +404,17 @@
       boating = true; statusElement.textContent = "You are sailing! Space to hop out, B to get out.";
     }
     function respawn() { teleportHome(); }
+    let teleportIndex = 0;
+    function teleportToPlayer() {
+      const peers = remotePlayers();
+      if (!peers.length) { statusElement.textContent = "No other players to teleport to. Join a lobby first."; return; }
+      const peer = peers[teleportIndex % peers.length]; teleportIndex += 1;
+      boating = false; gliding = false;
+      player.x = peer.x - mapOriginX + 1; player.z = peer.z - mapOriginZ; player.velocityY = 0;
+      expandMap();
+      player.y = Math.max(surfaceAt(player.x, player.z), peer.y) + 0.1;
+      statusElement.textContent = "Teleported to " + (peer.name || "a player") + ". Press T again for the next player.";
+    }
     function teleportHome() { boating = false; player.x = 5.5 - mapOriginX; player.z = 5.5 - mapOriginZ; player.y = surfaceAt(player.x, player.z) + 1; player.velocityY = 0; statusElement.textContent = "You returned to the hill."; }
     function nearWorkbench() {
       for (let y = Math.floor(player.y) - 1; y <= Math.floor(player.y) + 2; y += 1) {
@@ -841,7 +852,7 @@
       else statusElement.textContent = `Hotkey ${slot} is empty. Select an item and press Shift+${slot}.`;
       event.preventDefault();
     });
-    document.addEventListener("keydown", (event) => { if (event.target.type === "text") return; const action = { w:"forward",W:"forward",ArrowUp:"forward",s:"back",S:"back",ArrowDown:"back",a:"left",A:"left",ArrowLeft:"left",d:"right",D:"right",ArrowRight:"right" }[event.key]; if (action) { keys.add(action); event.preventDefault(); } if (event.key === " ") { jump(); event.preventDefault(); } if (event.key === "e" || event.key === "E") { useContextAction(); event.preventDefault(); } if (event.key === "h" || event.key === "H") { teleportHome(); event.preventDefault(); } if (event.key === "l" || event.key === "L") { lightFire(); event.preventDefault(); } if (event.key === "b" || event.key === "B") { toggleBoat(); event.preventDefault(); } if (event.key === "g" || event.key === "G") { toggleGlide(); event.preventDefault(); } if (event.key === "q" || event.key === "Q") { throwItem(); event.preventDefault(); } if (event.key === "p" || event.key === "P") { toggleCamera(); event.preventDefault(); } if (event.key === "v" || event.key === "V") { zooming = true; event.preventDefault(); } });
+    document.addEventListener("keydown", (event) => { if (event.target.type === "text") return; const action = { w:"forward",W:"forward",ArrowUp:"forward",s:"back",S:"back",ArrowDown:"back",a:"left",A:"left",ArrowLeft:"left",d:"right",D:"right",ArrowRight:"right" }[event.key]; if (action) { keys.add(action); event.preventDefault(); } if (event.key === " ") { jump(); event.preventDefault(); } if (event.key === "e" || event.key === "E") { useContextAction(); event.preventDefault(); } if (event.key === "t" || event.key === "T") { teleportToPlayer(); event.preventDefault(); } if (event.key === "h" || event.key === "H") { teleportHome(); event.preventDefault(); } if (event.key === "l" || event.key === "L") { lightFire(); event.preventDefault(); } if (event.key === "b" || event.key === "B") { toggleBoat(); event.preventDefault(); } if (event.key === "g" || event.key === "G") { toggleGlide(); event.preventDefault(); } if (event.key === "q" || event.key === "Q") { throwItem(); event.preventDefault(); } if (event.key === "p" || event.key === "P") { toggleCamera(); event.preventDefault(); } if (event.key === "v" || event.key === "V") { zooming = true; event.preventDefault(); } });
     document.addEventListener("keyup", (event) => { if (event.key === "v" || event.key === "V") zooming = false; });
     window.addEventListener("blur", () => { zooming = false; });
     document.addEventListener("keyup", (event) => { const action = { w:"forward",W:"forward",ArrowUp:"forward",s:"back",S:"back",ArrowDown:"back",a:"left",A:"left",ArrowLeft:"left",d:"right",D:"right",ArrowRight:"right" }[event.key]; if (action) keys.delete(action); });
