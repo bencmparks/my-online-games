@@ -41,7 +41,7 @@
     <p><a href="hub.html">Change game mode</a> <span id="modeLabel"></span> <span id="weatherLabel"></span></p>
     <p id="worldsBar">World: <input id="worldName" maxlength="20" placeholder="World name" size="14"> <button id="saveWorld" type="button">Save world</button> <select id="worldList"></select> <button id="playWorld" type="button">Play</button> <button id="deleteWorld" type="button">Delete</button> <span id="worldMsg"></span></p>
     <p>Hold left-click to dig: cracks show how far along you are. Hands are slow; craft pickaxes (stone, ore), axes (wood) and shovels (dirt, sand, snow) from planks, stone or iron ingots to dig faster. The best tool you own is used automatically.</p>
-    <p>Press Q to throw the selected item (walk over it to pick it up; direct hits on animals collect meat). Hold V to zoom in. Hold Shift to run at double speed. Press G in mid-air to glide once you've crafted a glider (3 wood + 2 hide). Craft an airplane (10 gold ingots + 10 iron ingots + 30 coal for fuel) and press O to fly it: look to steer, W speeds up, S slows down, O gets you out. Press P to change the camera: first person, behind you, or facing you.</p>
+    <p>Press Q to throw the selected item (walk over it to pick it up; direct hits on animals collect meat). Hold V to zoom in. Hold Shift to run at double speed. Press G in mid-air to glide once you've crafted a glider (3 wood + 2 hide). Craft an airplane (8 planks + 2 iron ingots) and press O to fly it: look to steer, W speeds up, S slows down, O gets you out. Press P to change the camera: first person, behind you, or facing you.</p>
     <p>Hotkeys: press a number key 0-9 to select its item. Select an item, then hold Shift and press 0-9 to assign it to that key. <span id="hotkeyList"></span></p>
     <p><span id="lives"></span></p>
     <p id="multiplayer"><label>Name <input id="mpName" type="text" maxlength="16" size="12"></label> <button id="mpHost" type="button">Host game</button> <input id="mpCode" type="text" maxlength="4" size="6" placeholder="CODE" aria-label="Room code"> <button id="mpJoin" type="button">Join</button> <button id="mpLeave" type="button" hidden>Leave</button> <span id="mpStatus">Play with a friend: one hosts and shares the 4-letter code, the other joins.</span></p>
@@ -116,7 +116,7 @@
       { output: "torch", amount: 4, cost: { wood: 1, coal: 1 } },
       { output: "boat", amount: 1, cost: { plank: 5 } },
       { output: "glider", amount: 1, cost: { wood: 3, hide: 2 } },
-      { output: "airplane", amount: 1, cost: { goldIngot: 10, ironIngot: 10, coal: 30 } },
+      { output: "airplane", amount: 1, cost: { plank: 8, ironIngot: 2 } },
       { output: "workbench", amount: 1, cost: { plank: 4 } },
       { output: "chest", amount: 1, cost: { plank: 8 } },
       { output: "door", amount: 1, cost: { plank: 4 } },
