@@ -28,7 +28,7 @@
   <main>
     <a href="../">← All games</a>
     <h1>Funcraft</h1>
-    <p class="instructions">Click the world to look around. Mine ore and coal with left click, craft a furnace at a workbench, then press E beside the furnace to smelt ore into ingots using coal fuel. Away from stations, E eats food, or tames the animal you're looking at (costs 1 meat; wolves, bears and boars only sometimes accept). Tamed pets follow you and can't be collected. Press H or use Home to return to your starting hill, or T to teleport to another player in your lobby (press again for the next one). Craft torches (wood + coal) and left-click wood, leaves, grass or coal while holding one to set it on fire (or press L); fire goes out unless it touches one of those, spreads slowly, and water puts it out. Craft a boat from 5 planks (no workbench needed), face water and press B to sail; Space hops out. Rivers and lakes now cross the land with a current that carries swimmers and boats (rivers flow steadily, lakes drift gently). Craft a bucket (3 iron ingots), left-click water to fill it, and right-click to pour it out; a water bucket is the only way to put out a fire by hand.</p>
+    <p class="instructions">Click the world to look around. Mine ore and coal with left click, craft a furnace at a workbench, then press E beside the furnace to smelt ore into ingots using coal fuel. Away from stations, E eats food, or tames the animal you're looking at (costs 1 meat; wolves, bears and boars only sometimes accept). Tamed pets follow you and can't be collected. Press H or use Home to return to your starting hill, press Y to save a teleport spot where you stand and U to return to it any time, or T to teleport to another player in your lobby (press again for the next one). Craft torches (wood + coal) and left-click wood, leaves, grass or coal while holding one to set it on fire (or press L); fire goes out unless it touches one of those, spreads slowly, and water puts it out. Craft a boat from 5 planks (no workbench needed), face water and press B to sail; Space hops out. Rivers and lakes now cross the land with a current that carries swimmers and boats (rivers flow steadily, lakes drift gently). Craft a bucket (3 iron ingots), left-click water to fill it, and right-click to pour it out; a water bucket is the only way to put out a fire by hand.</p>
     <div id="game-wrap"><canvas id="game" width="960" height="540" aria-label="Funcraft first-person block world"></canvas><canvas id="tags" aria-hidden="true"></canvas><span id="crosshair" aria-hidden="true"></span></div>
     <div id="inventory" class="inventory" aria-label="Inventory"></div>
     <div id="crafting" class="crafting" aria-label="Crafting bench"></div>
@@ -58,13 +58,13 @@
       grass: { label: "Grass", color: [101, 163, 13] }, dirt: { label: "Dirt", color: [146, 64, 14] },
       stone: { label: "Stone", color: [100, 116, 139] }, snow: { label: "Snow", color: [248, 250, 252] }, sand: { label: "Sand", color: [237, 201, 120] }, wood: { label: "Wood", color: [146, 64, 14] },
       leaves: { label: "Leaves", color: [21, 128, 61] }, water: { label: "Water", color: [2, 132, 199], solid: false },
-      plank: { label: "Plank", color: [180, 83, 9] }, brick: { label: "Brick", color: [185, 28, 28] },
+      plank: { label: "Plank", color: [210, 180, 140] }, brick: { label: "Brick", color: [185, 28, 28] },
       workbench: { label: "Workbench", color: [120, 53, 15] }, furnace: { label: "Furnace", color: [71, 85, 105] },
       coal: { label: "Coal", color: [30, 41, 59] }, ironOre: { label: "Iron ore", color: [148, 163, 184] }, goldOre: { label: "Gold ore", color: [234, 179, 8] },
       ironIngot: { label: "Iron ingot", color: [226, 232, 240] }, goldIngot: { label: "Gold ingot", color: [253, 224, 71] },
       meat: { label: "Meat", color: [190, 55, 45] }, hide: { label: "Hide", color: [137, 92, 56] },
       torch: { label: "Torch", color: [250, 204, 21], solid: false }, fire: { label: "Fire", color: [249, 115, 22], solid: false, hidden: true },
-      bucket: { label: "Bucket", color: [148, 163, 184] }, waterBucket: { label: "Water bucket", color: [56, 189, 248] }, boat: { label: "Boat", color: [139, 90, 43] }, glider: { label: "Glider", color: [220, 60, 60] }
+      bucket: { label: "Bucket", color: [148, 163, 184] }, waterBucket: { label: "Water bucket", color: [56, 189, 248] }, boat: { label: "Boat", color: [139, 90, 43] }, glider: { label: "Glider", color: [220, 60, 60] }, quicksand: { label: "Quicksand", color: [201, 160, 92], solid: false }
     };
     const flammable = { wood: 1, leaves: 1.4, grass: 1.5, coal: .5, plank: 1 };
     const burningPlanks = new Map(), fireKey = (x, y, z) => `${x + mapOriginX},${y},${z + mapOriginZ}`;
@@ -81,7 +81,8 @@
       { output: "brick", amount: 2, cost: { stone: 2, dirt: 1 }, requiresWorkbench: true },
       { output: "furnace", amount: 1, cost: { stone: 8 }, requiresWorkbench: true }
     ];
-    const saved = GameProfiles.getGame("funcraft", { world: [], inventory: {}, player: null, worldVersion: 0 });
+    const guestKey = "funcraft-guest-save", saveDefaults = { world: [], inventory: {}, player: null, worldVersion: 0 };
+    const saved = GameProfiles.isUnlocked() ? GameProfiles.getGame("funcraft", saveDefaults) : (() => { try { return { ...saveDefaults, ...JSON.parse(localStorage.getItem(guestKey) || "{}") }; } catch { return { ...saveDefaults }; } })();
     const player = { x: 5.5, y: 8, z: 5.5, yaw: 0, pitch: -.12, velocityY: 0, onGround: false, hunger: 100 };
     const keys = new Set();
     const skyBuffer = gl.createBuffer(), starField = Array.from({ length: 90 }, () => { const a = Math.random() * Math.PI * 2, e = Math.random() * 1.4 - .2; return [Math.cos(a) * Math.cos(e), Math.sin(e), Math.sin(a) * Math.cos(e)]; });
@@ -153,7 +154,8 @@
     }
     function persist() {
       if (!(mp.peer && !mp.host && mp.adopted)) { saved.world = encodeWorld(); saved.player = { x: player.x, y: player.y, z: player.z, yaw: player.yaw, pitch: player.pitch, hunger: player.hunger }; saved.mapWidth = mapWidth; saved.mapDepth = mapDepth; saved.mapOriginX = mapOriginX; saved.mapOriginZ = mapOriginZ; saved.animals = animals; saved.dayTime = dayTime; }
-      saved.inventory = inventory; saved.lives = lives; saved.bright = userBright; saved.hotkeys = hotkeys; GameProfiles.saveGame("funcraft", saved);
+      saved.inventory = inventory; saved.lives = lives; saved.bright = userBright; saved.hotkeys = hotkeys;
+      try { if (GameProfiles.isUnlocked()) GameProfiles.saveGame("funcraft", saved); else localStorage.setItem(guestKey, JSON.stringify(saved)); } catch { statusElement.textContent = "Could not save: browser storage is full."; }
     }
     function blockAt(x, y, z) { return world[y]?.[z]?.[x] || null; }
     function solid(type) { return type && types[type].solid !== false; }
@@ -177,7 +179,7 @@
       const b = biomeAt(x, z), wet = waterColumn(x, z) && b.mt < .15, base = 4 + Math.round(Math.sin(x * .31) + Math.cos(z * .27)), n = .5 + .5 * Math.sin(x * .05 + z * .033) * Math.cos(z * .042 - x * .028);
       const lift = Math.round(Math.pow(b.mt, 1.3) * (40 + 46 * n) + b.mt * 2.5 * Math.sin(x * .45) * Math.sin(z * .4));
       const info = { ...b, wet, ground: wet ? 3 : Math.min(height - 6, base + lift) };
-      if (columnCache.size > 60000) columnCache.clear(); columnCache.set(key, info); return info;
+      if (columnCache.size > 120000) columnCache.clear(); columnCache.set(key, info); return info;
     }
     const streamSites = new Map();
     function streamSite(gx, gz) {
@@ -224,7 +226,8 @@
       }
       if (info.mt > .3 && y >= ground - 1 && streamAt(x, z)) return "water";
       if (y >= 1 && !info.wet && y <= (info.mt > .25 ? ground : ground - 2) && Math.abs(Math.sin(x * .17 + 2 * Math.sin(z * .11) + y * .3)) < .26 && Math.abs(Math.sin(z * .15 + 2 * Math.sin(x * .09) - y * .35)) < .26) return null;
-      const desert = info.de > .5, seed = Math.abs(Math.floor(x) * 31 + Math.floor(z) * 17 + y * 13) % 37, snowy = ground >= 58;
+      const desert = info.de > .5, quick = desert && info.de > .6 && y >= ground - 2 && Math.sin(x * .21 + 1) * Math.sin(z * .19 + 2) > .8, seed = Math.abs(Math.floor(x) * 31 + Math.floor(z) * 17 + y * 13) % 37, snowy = ground >= 58;
+      if (quick) return "quicksand";
       if (y === ground) return info.wet ? "dirt" : desert ? "sand" : snowy ? "snow" : ground >= 18 ? "stone" : "grass";
       if (y > ground - 3) return desert ? "sand" : snowy && y >= ground - 1 ? "snow" : ground >= 18 ? "stone" : "dirt";
       return seed === 0 ? "goldOre" : seed < 4 ? "ironOre" : seed < 9 ? "coal" : "stone";
@@ -336,6 +339,37 @@
       buffer = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buffer); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.STATIC_DRAW); vertices = data.length / 6;
     }
 
+    const farRadius = 108, farStep = 2;
+    let farBuffer = null, farVertices = 0, farBuilt = null;
+    function farColumn(x, z) {
+      const info = columnInfo(x, z);
+      if (info.wet) return { h: 5, type: "water" };
+      const type = info.de > .5 ? "sand" : info.ground >= 58 ? "snow" : info.ground >= 18 ? "stone" : info.ju > .5 || info.wo > .5 ? "leaves" : "grass";
+      return { h: info.ground + 1, type };
+    }
+    function rebuildFar() {
+      const cx = Math.floor((player.x + mapOriginX) / farStep), cz = Math.floor((player.z + mapOriginZ) / farStep), r = Math.ceil(farRadius / farStep), n = 2 * r + 3, data = [];
+      const grid = Array.from({ length: n }, (_, i) => Array.from({ length: n }, (_, j) => farColumn((cx - r - 1 + i) * farStep, (cz - r - 1 + j) * farStep)));
+      const quad = (pts, color) => [0, 1, 2, 0, 2, 3].forEach((i) => data.push(...pts[i], ...color));
+      for (let i = 1; i < n - 1; i += 1) for (let j = 1; j < n - 1; j += 1) {
+        const ax = (cx - r - 1 + i) * farStep, az = (cz - r - 1 + j) * farStep;
+        if (ax >= mapOriginX && ax + farStep <= mapOriginX + mapWidth && az >= mapOriginZ && az + farStep <= mapOriginZ + mapDepth) continue;
+        const cell = grid[i][j], base = types[cell.type].color.map((value) => value / 255), x1 = ax + farStep, z1 = az + farStep, shade = (s) => base.map((value) => value * s);
+        quad([[ax, cell.h, az], [ax, cell.h, z1], [x1, cell.h, z1], [x1, cell.h, az]], shade(1));
+        [[1, 0, x1, az, x1, z1, .82], [-1, 0, ax, z1, ax, az, .62], [0, 1, x1, z1, ax, z1, .9], [0, -1, ax, az, x1, az, .7]].forEach(([di, dj, px, pz, qx, qz, s]) => {
+          const low = grid[i + di][j + dj].h; if (low >= cell.h) return;
+          quad([[px, low, pz], [px, cell.h, pz], [qx, cell.h, qz], [qx, low, qz]], shade(s));
+        });
+      }
+      if (!farBuffer) farBuffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, farBuffer); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.STATIC_DRAW); farVertices = data.length / 6;
+      farBuilt = { x: player.x + mapOriginX, z: player.z + mapOriginZ, ox: mapOriginX, oz: mapOriginZ, w: mapWidth, d: mapDepth };
+    }
+    function updateFar() {
+      const px = player.x + mapOriginX, pz = player.z + mapOriginZ;
+      if (!farBuilt || Math.hypot(px - farBuilt.x, pz - farBuilt.z) > 16 || Math.abs(mapOriginX - farBuilt.ox) > 10 || Math.abs(mapOriginZ - farBuilt.oz) > 10 || Math.abs(mapWidth - farBuilt.w) > 10 || Math.abs(mapDepth - farBuilt.d) > 10) rebuildFar();
+    }
+
     function loop(time) {
       const delta = Math.min((time - lastFrame) / 1000, .04); lastFrame = time; update(delta); draw(); animationFrame = requestAnimationFrame(loop);
     }
@@ -344,10 +378,10 @@
       if (!(mp.peer && !mp.host)) { dayTime = (dayTime + delta / 240) % 1; if (Math.floor(dayTime * 20) !== Math.floor((dayTime - delta / 240) * 20)) { saved.dayTime = dayTime; } }
       const forward = (keys.has("forward") ? 1 : 0) - (keys.has("back") ? 1 : 0), strafe = (keys.has("right") ? 1 : 0) - (keys.has("left") ? 1 : 0);
       const glide = gliding && !boating && !inWater() && !player.onGround; if (gliding && !glide) { gliding = false; statusElement.textContent = "You landed."; }
-      const length = Math.hypot(forward, strafe) || 1, speed = (boating ? 6 : inWater() ? 2 : 4) * (running ? 2 : 1);
+      const length = Math.hypot(forward, strafe) || 1, speed = (boating ? 6 : inWater() ? 2 : 4) * (running ? 2 : 1) * (inQuicksand() ? .3 : 1);
       move((Math.sin(player.yaw) * forward - Math.cos(player.yaw) * strafe) / length * speed * delta, 0, (Math.cos(player.yaw) * forward + Math.sin(player.yaw) * strafe) / length * speed * delta);
       if (boating) { const top = waterTop(player.x, player.z); if (top === null) { boating = false; statusElement.textContent = "Your boat left the water."; } else { player.y = top - .2; player.velocityY = 0; player.onGround = true; } }
-      else { player.velocityY += (inWater() ? -3 : -18) * delta; if (glide) { const dive = Math.max(0, -player.pitch), flare = Math.max(0, player.pitch); player.velocityY = -1.5 - 4 * dive + .7 * flare; move(Math.sin(player.yaw) * (8 + 6 * dive - 3 * flare) * delta, 0, Math.cos(player.yaw) * (8 + 6 * dive - 3 * flare) * delta); } player.onGround = false; move(0, player.velocityY * delta, 0); }
+      else { player.velocityY += (inWater() ? -3 : -18) * delta; if (inQuicksand()) player.velocityY = Math.max(player.velocityY, -1.1); if (glide) { const dive = Math.max(0, -player.pitch), flare = Math.max(0, player.pitch), boost = boosting && boostEnergy > 0 ? 1 : 0, fly = (8 + 6 * dive - 3 * flare) * (1 + 6 * boost); boostEnergy = boost ? Math.max(0, boostEnergy - delta) : Math.min(3, boostEnergy + delta * 1.5); player.velocityY = -1.5 - 4 * dive + .7 * flare + 15 * boost; move(Math.sin(player.yaw) * fly * delta, 0, Math.cos(player.yaw) * fly * delta); if (boosting && boostEnergy <= 0 && !boostEmptyShown) { boostEmptyShown = true; statusElement.textContent = "Boost used up. It recharges while you glide."; } if (boostEnergy > .5) boostEmptyShown = false; } else boostEnergy = Math.min(3, boostEnergy + delta * 1.5); player.onGround = false; move(0, player.velocityY * delta, 0); }
       if (boating || inWater()) { const [vx, vz] = currentAt(Math.floor(player.x) + mapOriginX, Math.floor(player.z) + mapOriginZ), pull = boating ? 1.6 : 1.2; if (vx || vz) { move(vx * pull * delta, 0, vz * pull * delta); if (!currentNoticed) { currentNoticed = true; statusElement.textContent = "The current pulls you along the water."; } } }
       expandMap(); updateAnimals(delta); updateHostiles(delta); updatePets(delta); updateFire(delta); updateSmoke(delta); mpUpdate(delta); updateThrown(delta); updateWeather(delta); applyWeatherEffects(delta);
       player.hunger = Math.max(0, player.hunger - delta * .35); renderHunger();
@@ -392,8 +426,9 @@
       for (let y = bottom; y <= top; y += 1) for (let z = Math.floor(player.z - radius); z <= Math.floor(player.z + radius); z += 1) for (let x = Math.floor(player.x - radius); x <= Math.floor(player.x + radius); x += 1) if (x < 0 || z < 0 || x >= mapWidth || z >= mapDepth || y < 0 || solid(blockAt(x,y,z))) return true;
       return false;
     }
+    function inQuicksand() { return blockAt(Math.floor(player.x), Math.floor(player.y + .3), Math.floor(player.z)) === "quicksand"; }
     function inWater() { return blockAt(Math.floor(player.x), Math.floor(player.y + .8), Math.floor(player.z)) === "water"; }
-    function jump() { if (boating) { boating = false; player.velocityY = 7; player.onGround = false; statusElement.textContent = "You hopped out of the boat."; return; } if (player.onGround || inWater()) { player.velocityY = inWater() ? 5 : 7; player.onGround = false; } }
+    function jump() { if (boating) { boating = false; player.velocityY = 7; player.onGround = false; statusElement.textContent = "You hopped out of the boat."; return; } if (inQuicksand()) { player.velocityY = 3.2; player.onGround = false; statusElement.textContent = "You are stuck in quicksand! Keep jumping to climb out."; return; } if (player.onGround || inWater()) { player.velocityY = inWater() ? 5 : 7; player.onGround = false; } }
     function waterTop(x, z) { for (let y = height - 1; y >= 0; y -= 1) { const type = blockAt(Math.floor(x), y, Math.floor(z)); if (type === "water") return y + 1; if (type && solid(type)) return null; } return null; }
     function toggleBoat() {
       if (boating) { boating = false; statusElement.textContent = "You got out of the boat."; return; }
@@ -404,6 +439,15 @@
       boating = true; statusElement.textContent = "You are sailing! Space to hop out, B to get out.";
     }
     function respawn() { teleportHome(); }
+    function setWaypoint() {
+      saved.waypoint = { x: player.x + mapOriginX, y: player.y, z: player.z + mapOriginZ }; persist();
+      statusElement.textContent = "Teleport spot saved here. Press U any time to come back.";
+    }
+    function teleportWaypoint() {
+      const spot = saved.waypoint; if (!spot) { statusElement.textContent = "No teleport spot yet. Press Y to set one where you stand."; return; }
+      boating = false; gliding = false; player.x = spot.x - mapOriginX; player.z = spot.z - mapOriginZ; player.velocityY = 0; expandMap();
+      player.y = Math.max(surfaceAt(player.x, player.z), spot.y) + .1; statusElement.textContent = "Teleported to your saved spot.";
+    }
     let teleportIndex = 0;
     function teleportToPlayer() {
       const peers = remotePlayers();
@@ -498,9 +542,11 @@
 
     function directionVector() { return [Math.sin(player.yaw) * Math.cos(player.pitch), Math.sin(player.pitch), Math.cos(player.yaw) * Math.cos(player.pitch)]; }
     function draw() {
-      const sky = skyState(); gl.viewport(0, 0, canvas.width, canvas.height); gl.clearColor(sky.color[0], sky.color[1], sky.color[2], 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); const cam = cameraView(), direction = cam.dir, eye = cam.eye, matrix = multiply(perspective(1.05 - .75 * (zoomAmount += ((zooming ? 1 : 0) - zoomAmount) * .2), canvas.width / canvas.height, .05, 300), lookAt(eye, [eye[0] + direction[0], eye[1] + direction[1], eye[2] + direction[2]], [0,1,0]));
+      const sky = skyState(); gl.viewport(0, 0, canvas.width, canvas.height); gl.clearColor(sky.color[0], sky.color[1], sky.color[2], 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); const cam = cameraView(), direction = cam.dir, eye = cam.eye, matrix = multiply(perspective(1.05 - .75 * (zoomAmount += ((zooming ? 1 : 0) - zoomAmount) * .2), canvas.width / canvas.height, .05, 600), lookAt(eye, [eye[0] + direction[0], eye[1] + direction[1], eye[2] + direction[2]], [0,1,0]));
       gl.uniformMatrix4fv(matrixLocation, false, matrix); gl.enableVertexAttribArray(positionLocation); gl.enableVertexAttribArray(colorLocation); drawSky(sky, eye); gl.uniform1f(brightnessLocation, sky.brightness); uploadLights(eye); gl.uniform1f(lightOnLocation, 1);
-      gl.bindBuffer(gl.ARRAY_BUFFER, buffer); gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 24, 0); gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 24, 12); gl.drawArrays(gl.TRIANGLES, 0, vertices); drawSmoke(); drawRemotePlayers(); drawThrown(); drawWeather(); drawNameTags(matrix);
+      gl.bindBuffer(gl.ARRAY_BUFFER, buffer); gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 24, 0); gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 24, 12); gl.drawArrays(gl.TRIANGLES, 0, vertices);
+      updateFar(); if (farVertices) { gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(2, 2); gl.uniformMatrix4fv(matrixLocation, false, multiply(matrix, new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, -mapOriginX,0,-mapOriginZ,1]))); gl.bindBuffer(gl.ARRAY_BUFFER, farBuffer); gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 24, 0); gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 24, 12); gl.drawArrays(gl.TRIANGLES, 0, farVertices); gl.disable(gl.POLYGON_OFFSET_FILL); gl.uniformMatrix4fv(matrixLocation, false, matrix); gl.bindBuffer(gl.ARRAY_BUFFER, buffer); gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 24, 0); gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 24, 12); }
+      drawSmoke(); drawRemotePlayers(); drawThrown(); drawWeather(); drawNameTags(matrix);
     }
     function uploadLights(eye) {
       const now = performance.now() / 1000, lights = [];
@@ -784,7 +830,7 @@
       });
     }
 
-    let camMode = 0, lastThrow = 0, zooming = false, zoomAmount = 0, gliding = false, running = false;
+    let camMode = 0, lastThrow = 0, zooming = false, zoomAmount = 0, gliding = false, running = false, boosting = false, boostEnergy = 3, boostEmptyShown = false;
     document.addEventListener("keydown", (event) => { if (event.key === "Shift") running = true; });
     document.addEventListener("keyup", (event) => { if (event.key === "Shift") running = false; });
     window.addEventListener("blur", () => { running = false; });
@@ -792,7 +838,7 @@
       if (gliding) { gliding = false; statusElement.textContent = "Glider folded."; return; }
       if (!inventory.glider) { statusElement.textContent = "Craft a glider first (3 wood + 2 hide)."; return; }
       if (player.onGround || inWater() || boating) { statusElement.textContent = "Jump off something high, then press G in the air to glide."; return; }
-      gliding = true; statusElement.textContent = "Gliding! Look down to dive faster, look up to slow down. Press G to fold the glider.";
+      gliding = true; statusElement.textContent = "Gliding! Look down to dive faster, look up to slow down. Hold F to boost. Press G to fold the glider.";
     }
     const thrown = [], camNames = ["First person", "Behind you", "Facing you"];
     function cameraView() {
@@ -852,8 +898,8 @@
       else statusElement.textContent = `Hotkey ${slot} is empty. Select an item and press Shift+${slot}.`;
       event.preventDefault();
     });
-    document.addEventListener("keydown", (event) => { if (event.target.type === "text") return; const action = { w:"forward",W:"forward",ArrowUp:"forward",s:"back",S:"back",ArrowDown:"back",a:"left",A:"left",ArrowLeft:"left",d:"right",D:"right",ArrowRight:"right" }[event.key]; if (action) { keys.add(action); event.preventDefault(); } if (event.key === " ") { jump(); event.preventDefault(); } if (event.key === "e" || event.key === "E") { useContextAction(); event.preventDefault(); } if (event.key === "t" || event.key === "T") { teleportToPlayer(); event.preventDefault(); } if (event.key === "h" || event.key === "H") { teleportHome(); event.preventDefault(); } if (event.key === "l" || event.key === "L") { lightFire(); event.preventDefault(); } if (event.key === "b" || event.key === "B") { toggleBoat(); event.preventDefault(); } if (event.key === "g" || event.key === "G") { toggleGlide(); event.preventDefault(); } if (event.key === "q" || event.key === "Q") { throwItem(); event.preventDefault(); } if (event.key === "p" || event.key === "P") { toggleCamera(); event.preventDefault(); } if (event.key === "v" || event.key === "V") { zooming = true; event.preventDefault(); } });
-    document.addEventListener("keyup", (event) => { if (event.key === "v" || event.key === "V") zooming = false; });
+    document.addEventListener("keydown", (event) => { if (event.target.type === "text") return; const action = { w:"forward",W:"forward",ArrowUp:"forward",s:"back",S:"back",ArrowDown:"back",a:"left",A:"left",ArrowLeft:"left",d:"right",D:"right",ArrowRight:"right" }[event.key]; if (action) { keys.add(action); event.preventDefault(); } if (event.key === " ") { jump(); event.preventDefault(); } if (event.key === "e" || event.key === "E") { useContextAction(); event.preventDefault(); } if (event.key === "t" || event.key === "T") { teleportToPlayer(); event.preventDefault(); } if (event.key === "y" || event.key === "Y") { setWaypoint(); event.preventDefault(); } if (event.key === "u" || event.key === "U") { teleportWaypoint(); event.preventDefault(); } if (event.key === "h" || event.key === "H") { teleportHome(); event.preventDefault(); } if (event.key === "l" || event.key === "L") { lightFire(); event.preventDefault(); } if (event.key === "b" || event.key === "B") { toggleBoat(); event.preventDefault(); } if (event.key === "g" || event.key === "G") { toggleGlide(); event.preventDefault(); } if ((event.key === "f" || event.key === "F") && !event.repeat) { boosting = true; if (gliding) statusElement.textContent = "Boost!"; } if (event.key === "q" || event.key === "Q") { throwItem(); event.preventDefault(); } if (event.key === "p" || event.key === "P") { toggleCamera(); event.preventDefault(); } if (event.key === "v" || event.key === "V") { zooming = true; event.preventDefault(); } });
+    document.addEventListener("keyup", (event) => { if (event.key === "v" || event.key === "V") zooming = false; if (event.key === "f" || event.key === "F") boosting = false; });
     window.addEventListener("blur", () => { zooming = false; });
     document.addEventListener("keyup", (event) => { const action = { w:"forward",W:"forward",ArrowUp:"forward",s:"back",S:"back",ArrowDown:"back",a:"left",A:"left",ArrowLeft:"left",d:"right",D:"right",ArrowRight:"right" }[event.key]; if (action) keys.delete(action); });
     canvas.addEventListener("click", () => { if (document.pointerLockElement !== canvas) canvas.requestPointerLock(); });

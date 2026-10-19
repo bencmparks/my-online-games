@@ -42,7 +42,7 @@
       <button class="up" data-key="up">↑</button><button class="left" data-key="left">←</button><button class="down" data-key="down">↓</button><button class="right" data-key="right">→</button>
       <button class="fire" data-key="fire">Shoot</button><button class="bomb" data-key="bomb">Bomb</button>
     </div>
-    <p id="status" aria-live="polite">Pick a plane, then take off! Move: arrows or W A S D · Shoot: left click or Space · Bomb: right click, B or X.</p>
+    <p id="status" aria-live="polite">Pick a plane, then take off! Move and turn: arrows or W A S D (or a gamepad stick; A/RT shoot, B/LT bomb) · Shoot: left click or Space · Bomb: right click, B or X.</p>
     <section id="hangar">
       <h3>Choose a level</h3>
       <div id="levels"></div>
@@ -182,15 +182,26 @@
       game.enemyShots.push({ x, y, z, vx: dx / len * speed, vy: dy / len * speed, vz: dz / len * speed });
     }
 
+    function readPad() {
+      const pad = [...(navigator.getGamepads ? navigator.getGamepads() : [])].find(Boolean); if (!pad) return { x: 0, y: 0, fire: false, bomb: false };
+      const dead = (v) => Math.abs(v) < .15 ? 0 : v, down = (i) => !!pad.buttons[i]?.pressed;
+      return { x: dead(pad.axes[0] || 0) + (down(15) ? 1 : 0) - (down(14) ? 1 : 0), y: -dead(pad.axes[1] || 0) + (down(12) ? 1 : 0) - (down(13) ? 1 : 0), fire: down(0) || down(7), bomb: down(1) || down(6) };
+    }
+    function turnWorld(angle) {
+      const g = game, p = g.p, cos = Math.cos(angle), sin = Math.sin(angle), spin = (o) => { const rx = o.x - p.x; o.x = p.x + rx * cos - o.z * sin; o.z = rx * sin + o.z * cos; };
+      ["enemies", "ships", "enemyShots", "bullets", "bombs", "parts", "clouds"].forEach((name) => g[name].forEach(spin)); if (g.boss) spin(g.boss);
+      g.enemyShots.forEach((s) => { const vx = s.vx; s.vx = vx * cos - s.vz * sin; s.vz = vx * sin + s.vz * cos; }); g.heading = (g.heading || 0) + angle;
+    }
     function update(dt) {
       const g = game, p = g.p; g.t += dt; g.shake = Math.max(0, (g.shake || 0) - dt);
       if (!g.over) {
-        const dx = (keys.has("right") ? 1 : 0) - (keys.has("left") ? 1 : 0), dy = (keys.has("up") ? 1 : 0) - (keys.has("down") ? 1 : 0), length = Math.hypot(dx, dy) || 1;
+        const pad = readPad(), dx = clamp((keys.has("right") ? 1 : 0) - (keys.has("left") ? 1 : 0) + pad.x, -1, 1), dy = clamp((keys.has("up") ? 1 : 0) - (keys.has("down") ? 1 : 0) + pad.y, -1, 1), length = Math.max(1, Math.hypot(dx, dy));
+        if (dx) turnWorld(dx * 1.1 * dt);
         p.vx += (dx - p.vx) * Math.min(1, dt * 6);
         p.x = clamp(p.x + dx / length * p.speed * 75 * dt, -LIMIT_X, LIMIT_X); p.y = clamp(p.y + dy / length * p.speed * 75 * dt, MIN_Y, MAX_Y);
         p.fireCd -= dt; p.bombCd -= dt; p.inv -= dt;
-        if (keys.has("fire") && p.fireCd <= 0) { g.bullets.push({ x: p.x - 28, y: p.y - 14, z: 20, vz: 1800, dmg: p.damage }, { x: p.x + 28, y: p.y - 14, z: 20, vz: 1800, dmg: p.damage }); p.fireCd = planes[p.id].rate; }
-        if (keys.has("bomb") && p.bombCd <= 0) { g.bombs.push({ x: p.x, y: p.y - 20, z: 30, vy: 0, vz: 450 }); p.bombCd = 1; }
+        if ((keys.has("fire") || pad.fire) && p.fireCd <= 0) { g.bullets.push({ x: p.x - 28, y: p.y - 14, z: 20, vz: 1800, dmg: p.damage }, { x: p.x + 28, y: p.y - 14, z: 20, vz: 1800, dmg: p.damage }); p.fireCd = planes[p.id].rate; }
+        if ((keys.has("bomb") || pad.bomb) && p.bombCd <= 0) { g.bombs.push({ x: p.x, y: p.y - 20, z: 30, vy: 0, vz: 450 }); p.bombCd = 1; }
       } else { g.overTimer -= dt; if (g.overTimer <= 0) { endRun(); return; } }
 
       g.enemyCd -= dt;
@@ -316,12 +327,12 @@
       const g = game, p = g.p, hz = H / 2, shakeX = g.shake ? (Math.random() - .5) * 14 * g.shake / .35 : 0, shakeY = g.shake ? (Math.random() - .5) * 14 * g.shake / .35 : 0;
       ctx.save(); ctx.translate(shakeX, shakeY);
       const sky = ctx.createLinearGradient(0, 0, 0, hz); sky.addColorStop(0, "#0ea5e9"); sky.addColorStop(1, "#e0f2fe"); ctx.fillStyle = sky; ctx.fillRect(-20, -20, W + 40, hz + 20);
-      ctx.fillStyle = "#fde047"; ctx.beginPath(); ctx.arc(600 - p.x * .08, 90 + (p.y - 220) * .08, 34, 0, 7); ctx.fill();
+      ctx.fillStyle = "#fde047"; ctx.beginPath(); ctx.arc((((600 - p.x * .08 - (g.heading || 0) * 700) % 1600) + 1600) % 1600 - 400, 90 + (p.y - 220) * .08, 34, 0, 7); ctx.fill();
       const sea = ctx.createLinearGradient(0, hz, 0, H); sea.addColorStop(0, "#38bdf8"); sea.addColorStop(.25, "#0369a1"); sea.addColorStop(1, "#082f49"); ctx.fillStyle = sea; ctx.fillRect(-20, hz, W + 40, hz + 20);
       ctx.strokeStyle = "rgb(186 230 253 / 40%)"; ctx.lineWidth = 1.5;
       const scroll = (g.t * 500) % 300;
       for (let zz = 120 + 300 - scroll; zz < 4000; zz += 300) { const y = hz + p.y / zz * F; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
-      for (let wx = -3000; wx <= 3000; wx += 300) { const a = W / 2 + (wx - p.x) / 4000 * F, b = W / 2 + (wx - p.x) / 120 * F; ctx.beginPath(); ctx.moveTo(a, hz + p.y / 4000 * F); ctx.lineTo(b, hz + p.y / 120 * F); ctx.stroke(); }
+      for (let wx = -3000; wx <= 3000; wx += 300) { const sx = (((wx - p.x - (g.heading || 0) * 1200 + 3000) % 6000) + 6000) % 6000 - 3000, a = W / 2 + sx / 4000 * F, b = W / 2 + sx / 120 * F; ctx.beginPath(); ctx.moveTo(a, hz + p.y / 4000 * F); ctx.lineTo(b, hz + p.y / 120 * F); ctx.stroke(); }
       const items = [];
       g.clouds.forEach((o) => items.push([o.z, () => drawCloud(o)]));
       g.ships.forEach((o) => items.push([o.z, () => drawShip(o)]));
