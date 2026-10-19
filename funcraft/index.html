@@ -37,6 +37,8 @@
     </div>
     <p id="hunger">Hunger: <span id="hunger-value">100</span>/100</p>
     <p><label>Brightness <input id="brightness" type="range" min="0.4" max="1.6" step="0.05" value="1"></label></p>
+    <p><label><input id="disasters" type="checkbox"> Disaster weather: thunderstorms, tornados and floods</label> <span id="weatherLabel"></span></p>
+    <p>Press Q to throw the selected item (walk over it to pick it up; direct hits on animals collect meat). Hold V to zoom in. Press G in mid-air to glide once you've crafted a glider (3 wood + 2 hide). Press P to change the camera: first person, behind you, or facing you.</p>
     <p>Hotkeys: press a number key 0-9 to select its item. Select an item, then hold Shift and press 0-9 to assign it to that key. <span id="hotkeyList"></span></p>
     <p><label><input id="survival" type="checkbox"> Survival mode: 5 lives and hostile animals (wolf, bear, boar) and fire damage</label> <span id="lives"></span></p>
     <p id="multiplayer"><label>Name <input id="mpName" type="text" maxlength="16" size="12"></label> <button id="mpHost" type="button">Host game</button> <input id="mpCode" type="text" maxlength="4" size="6" placeholder="CODE" aria-label="Room code"> <button id="mpJoin" type="button">Join</button> <button id="mpLeave" type="button" hidden>Leave</button> <span id="mpStatus">Play with a friend: one hosts and shares the 4-letter code, the other joins.</span></p>
@@ -51,10 +53,10 @@
     const craftingElement = document.querySelector("#crafting");
     const statusElement = document.querySelector("#status");
     const hungerValueElement = document.querySelector("#hunger-value");
-    const initialSize = 48, height = 16, expansionSize = 16, version = 7;
+    const initialSize = 48, height = 96, expansionSize = 16, version = 8;
     const types = {
       grass: { label: "Grass", color: [101, 163, 13] }, dirt: { label: "Dirt", color: [146, 64, 14] },
-      stone: { label: "Stone", color: [100, 116, 139] }, wood: { label: "Wood", color: [146, 64, 14] },
+      stone: { label: "Stone", color: [100, 116, 139] }, snow: { label: "Snow", color: [248, 250, 252] }, sand: { label: "Sand", color: [237, 201, 120] }, wood: { label: "Wood", color: [146, 64, 14] },
       leaves: { label: "Leaves", color: [21, 128, 61] }, water: { label: "Water", color: [2, 132, 199], solid: false },
       plank: { label: "Plank", color: [180, 83, 9] }, brick: { label: "Brick", color: [185, 28, 28] },
       workbench: { label: "Workbench", color: [120, 53, 15] }, furnace: { label: "Furnace", color: [71, 85, 105] },
@@ -62,7 +64,7 @@
       ironIngot: { label: "Iron ingot", color: [226, 232, 240] }, goldIngot: { label: "Gold ingot", color: [253, 224, 71] },
       meat: { label: "Meat", color: [190, 55, 45] }, hide: { label: "Hide", color: [137, 92, 56] },
       torch: { label: "Torch", color: [250, 204, 21], solid: false }, fire: { label: "Fire", color: [249, 115, 22], solid: false, hidden: true },
-      bucket: { label: "Bucket", color: [148, 163, 184] }, waterBucket: { label: "Water bucket", color: [56, 189, 248] }, boat: { label: "Boat", color: [139, 90, 43] }
+      bucket: { label: "Bucket", color: [148, 163, 184] }, waterBucket: { label: "Water bucket", color: [56, 189, 248] }, boat: { label: "Boat", color: [139, 90, 43] }, glider: { label: "Glider", color: [220, 60, 60] }
     };
     const flammable = { wood: 1, leaves: 1.4, grass: 1.5, coal: .5, plank: 1 };
     const burningPlanks = new Map(), fireKey = (x, y, z) => `${x + mapOriginX},${y},${z + mapOriginZ}`;
@@ -73,6 +75,7 @@
       { output: "plank", amount: 4, cost: { wood: 1 } },
       { output: "torch", amount: 4, cost: { wood: 1, coal: 1 } },
       { output: "boat", amount: 1, cost: { plank: 5 } },
+      { output: "glider", amount: 1, cost: { wood: 3, hide: 2 } },
       { output: "workbench", amount: 1, cost: { plank: 4 } },
       { output: "bucket", amount: 1, cost: { ironIngot: 3 } },
       { output: "brick", amount: 2, cost: { stone: 2, dirt: 1 }, requiresWorkbench: true },
@@ -101,18 +104,9 @@
 
     function generateWorld() {
       const next = Array.from({ length: height }, () => Array.from({ length: initialSize }, () => Array(initialSize).fill(null)));
-      for (let z = 0; z < initialSize; z += 1) for (let x = 0; x < initialSize; x += 1) {
-        const wet = waterColumn(x, z), ground = wet ? 4 : 4 + Math.round(Math.sin(x * .31) + Math.cos(z * .27));
-        for (let y = 0; y <= ground; y += 1) next[y][z][x] = terrainBlock(x, y, z);
-        if (!wet && (x * 17 + z * 11) % 83 === 4 && x > 2 && z > 2 && x < initialSize - 3 && z < initialSize - 3) addTree(next, x, ground + 1, z);
-      }
+      for (let z = 0; z < initialSize; z += 1) for (let x = 0; x < initialSize; x += 1) for (let y = 0; y < height; y += 1) next[y][z][x] = terrainBlock(x, y, z);
       [[12, 12], [33, 10], [18, 35], [37, 34]].forEach(([x, z]) => addPond(next, x, z));
       return next;
-    }
-
-    function addTree(next, x, y, z) {
-      for (let trunk = 0; trunk < 3; trunk += 1) next[y + trunk][z][x] = "wood";
-      for (let dy = 2; dy <= 4; dy += 1) for (let dz = -1; dz <= 1; dz += 1) for (let dx = -1; dx <= 1; dx += 1) if (Math.abs(dx) + Math.abs(dz) < 3) next[y + dy][z + dz][x + dx] = "leaves";
     }
 
     function addPond(next, centerX, centerZ) {
@@ -125,8 +119,9 @@
     }
 
     function startWorld(reset) {
-      const valid = saved.worldVersion === version && Array.isArray(saved.world) && saved.world.length === height && saved.world.every((layer) => layer.length === saved.mapDepth && layer.every((row) => row.length === saved.mapWidth));
-      world = !reset && valid ? saved.world : generateWorld();
+      thrown.length = 0; flood.layers.length = 0; weather.flood = null; weather.tornado = null;
+      const decoded = saved.worldVersion === version ? decodeWorld(saved.world) : null, valid = !!decoded;
+      world = !reset && valid ? decoded : generateWorld();
       mapWidth = valid ? saved.mapWidth : initialSize; mapDepth = valid ? saved.mapDepth : initialSize;
       mapOriginX = valid ? saved.mapOriginX : 0; mapOriginZ = valid ? saved.mapOriginZ : 0;
       animals = valid && Array.isArray(saved.animals) ? saved.animals : [];
@@ -137,7 +132,26 @@
       lastFrame = performance.now(); cancelAnimationFrame(animationFrame); animationFrame = requestAnimationFrame(loop);
     }
 
-    function persist() { saved.world = world; saved.inventory = inventory; saved.player = { x: player.x, y: player.y, z: player.z, yaw: player.yaw, pitch: player.pitch, hunger: player.hunger }; saved.mapWidth = mapWidth; saved.mapDepth = mapDepth; saved.mapOriginX = mapOriginX; saved.mapOriginZ = mapOriginZ; saved.animals = animals; saved.lives = lives; saved.dayTime = dayTime; saved.bright = userBright; saved.hotkeys = hotkeys; GameProfiles.saveGame("funcraft", saved); }
+    const typeKeys = Object.keys(types);
+    function encodeWorld() {
+      return world.map((layer) => layer.map((row) => { let out = "", i = 0; while (i < row.length) { const t = row[i]; let j = i; while (j < row.length && row[j] === t) j += 1; out += (t ? String.fromCharCode(65 + typeKeys.indexOf(t)) : ".") + (j - i > 1 ? j - i : ""); i = j; } return out; }));
+    }
+    function decodeWorld(encoded) {
+      if (!Array.isArray(encoded) || encoded.length !== height) return null;
+      const result = [];
+      for (const layer of encoded) {
+        if (!Array.isArray(layer) || layer.length !== saved.mapDepth) return null;
+        const rows = [];
+        for (const text of layer) {
+          if (typeof text !== "string") return null;
+          const row = []; for (const [, ch, count] of text.matchAll(/([^\d])(\d*)/g)) { const type = ch === "." ? null : typeKeys[ch.charCodeAt(0) - 65]; if (type === undefined) return null; for (let n = count ? Number(count) : 1; n > 0; n -= 1) row.push(type); }
+          if (row.length !== saved.mapWidth) return null; rows.push(row);
+        }
+        result.push(rows);
+      }
+      return result;
+    }
+    function persist() { saved.world = encodeWorld(); saved.inventory = inventory; saved.player = { x: player.x, y: player.y, z: player.z, yaw: player.yaw, pitch: player.pitch, hunger: player.hunger }; saved.mapWidth = mapWidth; saved.mapDepth = mapDepth; saved.mapOriginX = mapOriginX; saved.mapOriginZ = mapOriginZ; saved.animals = animals; saved.lives = lives; saved.dayTime = dayTime; saved.bright = userBright; saved.hotkeys = hotkeys; GameProfiles.saveGame("funcraft", saved); }
     function blockAt(x, y, z) { return world[y]?.[z]?.[x] || null; }
     function solid(type) { return type && types[type].solid !== false; }
     const riverA = (x, z) => Math.abs(((z - (24 + 7 * Math.sin(x * .1)) + 32) % 64 + 64) % 64 - 32) < 2.2, riverB = (x, z) => Math.abs(((x - (40 + 6 * Math.sin(z * .09)) + 32) % 64 + 64) % 64 - 32) < 1.8, lakeAt = (x, z) => Math.sin(x * .11 + 1) * Math.cos(z * .1 + 2) > .8;
@@ -148,7 +162,69 @@
       if (lakeAt(x, z)) return [.4 * Math.cos(x * .3 + z * .2), .4 * Math.sin(z * .3 - x * .2)];
       return [0, 0];
     }
-    function terrainBlock(x, y, z) { const wet = waterColumn(x, z), ground = wet ? 3 : 4 + Math.round(Math.sin(x * .31) + Math.cos(z * .27)), seed = Math.abs(Math.floor(x) * 31 + Math.floor(z) * 17 + y * 13) % 37; if (wet && y === 4) return "water"; return y > ground ? null : y === ground ? (wet ? "dirt" : "grass") : y > ground - 3 ? "dirt" : seed === 0 ? "goldOre" : seed < 4 ? "ironOre" : seed < 9 ? "coal" : "stone"; }
+    function biomeAt(x, z) {
+      const dist = Math.hypot(x - 24, z - 24), far = smoothStep(26, 42, dist);
+      const m = Math.sin(x * .016 + .8) * Math.sin(z * .013 + 2.1) + .45 * Math.sin((x - z) * .009 + 1), d = Math.sin(x * .037 + 3) * Math.sin(z * .041 + .5) + .45 * Math.sin((x + z) * .023 + 2), w = Math.sin(x * .06 + 4) * Math.cos(z * .055 + 1) + .4 * Math.sin((x + z) * .031);
+      const mt = smoothStep(.3, 1.1, m) * smoothStep(50, 90, dist), de = smoothStep(.35, .75, d) * far * (1 - smoothStep(.1, .3, mt)), j = Math.sin(x * .033 + 5) * Math.sin(z * .036 + 1.2) + .45 * Math.sin((x + 2 * z) * .02 + .5);
+      return { mt, de, ju: smoothStep(.3, .7, j) * smoothStep(20, 36, dist) * (1 - smoothStep(.1, .3, mt)) * (1 - smoothStep(.2, .5, de)), wo: smoothStep(.1, .4, w) * smoothStep(10, 24, dist) };
+    }
+    const columnCache = new Map();
+    function columnInfo(x, z) {
+      const key = (x + 32768) * 65536 + (z + 32768), hit = columnCache.get(key); if (hit) return hit;
+      const b = biomeAt(x, z), wet = waterColumn(x, z) && b.mt < .15, base = 4 + Math.round(Math.sin(x * .31) + Math.cos(z * .27)), n = .5 + .5 * Math.sin(x * .05 + z * .033) * Math.cos(z * .042 - x * .028);
+      const lift = Math.round(Math.pow(b.mt, 1.3) * (40 + 46 * n) + b.mt * 2.5 * Math.sin(x * .45) * Math.sin(z * .4));
+      const info = { ...b, wet, ground: wet ? 3 : Math.min(height - 6, base + lift) };
+      if (columnCache.size > 60000) columnCache.clear(); columnCache.set(key, info); return info;
+    }
+    const streamSites = new Map();
+    function streamSite(gx, gz) {
+      const key = `${gx},${gz}`; if (streamSites.has(key)) return streamSites.get(key);
+      const h = hash2(gx * 131 + 7, gz * 97 + 3); let site = null;
+      if (h % 100 < 55) {
+        const sx = gx * 32 + (h >>> 8) % 32, sz = gz * 32 + (h >>> 16) % 32, here = columnInfo(sx, sz);
+        if (here.mt > .5 && here.ground >= 34) {
+          let best = 5; [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([dx, dz]) => { const drop = here.ground - columnInfo(sx + dx * 8, sz + dz * 8).ground; if (drop > best) { best = drop; site = { sx, sz, dx, dz }; } });
+        }
+      }
+      streamSites.set(key, site); return site;
+    }
+    function streamAt(x, z) {
+      for (let gx = Math.floor((x - 44) / 32); gx <= Math.floor((x + 44) / 32); gx += 1) for (let gz = Math.floor((z - 44) / 32); gz <= Math.floor((z + 44) / 32); gz += 1) {
+        const s = streamSite(gx, gz); if (!s) continue;
+        const along = (x - s.sx) * s.dx + (z - s.sz) * s.dz, across = Math.abs((x - s.sx) * s.dz - (z - s.sz) * s.dx);
+        if (along >= -2 && along <= 44 && across <= 2) return true;
+      }
+      return false;
+    }
+    function hash2(x, z) { let h = Math.imul(x | 0, 73856093) ^ Math.imul(z | 0, 19349663); h = Math.imul(h ^ (h >>> 13), 1274126177); return (h ^ (h >>> 16)) >>> 0; }
+    function treeAt(x, z) {
+      const h = hash2(x, z), roll = h % 1000;
+      if (roll >= 150 || Math.hypot(x - 5.5, z - 5.5) < 4) return null;
+      const info = columnInfo(x, z), jungle = info.ju > .5, woods = info.wo > .5;
+      if (info.wet || info.mt > .1 || info.de > .3 || info.ground > 8 || (!jungle && (roll >= (woods ? 120 : 14)))) return null;
+      return { top: info.ground, jungle, trunk: jungle ? 4 + (h >>> 10) % 3 : 2 };
+    }
+    function terrainBlock(x, y, z) {
+      const info = columnInfo(x, z), ground = info.ground;
+      if (info.wet && y === 4) return "water";
+      if (y > ground) {
+        if (y > ground + 10) return null;
+        let leaves = false;
+        for (let dz = -2; dz <= 2; dz += 1) for (let dx = -2; dx <= 2; dx += 1) {
+          const tree = treeAt(x + dx, z + dz); if (!tree) continue;
+          const top = tree.top, crown = top + tree.trunk, ax = Math.abs(dx), az = Math.abs(dz);
+          if (!dx && !dz && y > top && y <= crown) return "wood";
+          if (tree.jungle ? ((y === crown - 1 || y === crown) && ax + az <= 3) || (y === crown + 1 && ax <= 1 && az <= 1) : (ax <= 1 && az <= 1 && y >= crown + 1 && y <= crown + 3)) leaves = true;
+        }
+        return leaves ? "leaves" : null;
+      }
+      if (info.mt > .3 && y >= ground - 1 && streamAt(x, z)) return "water";
+      if (y >= 1 && !info.wet && y <= (info.mt > .25 ? ground : ground - 2) && Math.abs(Math.sin(x * .17 + 2 * Math.sin(z * .11) + y * .3)) < .26 && Math.abs(Math.sin(z * .15 + 2 * Math.sin(x * .09) - y * .35)) < .26) return null;
+      const desert = info.de > .5, seed = Math.abs(Math.floor(x) * 31 + Math.floor(z) * 17 + y * 13) % 37, snowy = ground >= 58;
+      if (y === ground) return info.wet ? "dirt" : desert ? "sand" : snowy ? "snow" : ground >= 18 ? "stone" : "grass";
+      if (y > ground - 3) return desert ? "sand" : snowy && y >= ground - 1 ? "snow" : ground >= 18 ? "stone" : "dirt";
+      return seed === 0 ? "goldOre" : seed < 4 ? "ironOre" : seed < 9 ? "coal" : "stone";
+    }
     function expandMap() {
       let changed = false;
       while (player.x < 6) { for (let y = 0; y < height; y += 1) for (let z = 0; z < mapDepth; z += 1) world[y][z].unshift(terrainBlock(mapOriginX - 1, y, mapOriginZ + z)); mapOriginX -= 1; mapWidth += 1; player.x += 1; animals.forEach((animal) => animal.x += 1); changed = true; }
@@ -225,7 +301,7 @@
         [[1,0,0],[1,1,0],[1,1,1],[1,0,1]], [[0,0,1],[0,1,1],[0,1,0],[0,0,0]], [[0,1,0],[0,1,1],[1,1,1],[1,1,0]],
         [[0,0,1],[0,0,0],[1,0,0],[1,0,1]], [[1,0,1],[1,1,1],[0,1,1],[0,0,1]], [[0,0,0],[0,1,0],[1,1,0],[1,0,0]]
       ];
-      const minX = Math.max(0, Math.floor(player.x) - 24), maxX = Math.min(mapWidth, Math.floor(player.x) + 25), minZ = Math.max(0, Math.floor(player.z) - 24), maxZ = Math.min(mapDepth, Math.floor(player.z) + 25);
+      const minX = Math.max(0, Math.floor(player.x) - 36), maxX = Math.min(mapWidth, Math.floor(player.x) + 37), minZ = Math.max(0, Math.floor(player.z) - 36), maxZ = Math.min(mapDepth, Math.floor(player.z) + 37);
       lightList = [];
       for (let y = 0; y < height; y += 1) for (let z = minZ; z < maxZ; z += 1) for (let x = minX; x < maxX; x += 1) {
         const type = blockAt(x, y, z); if (!type) continue;
@@ -233,12 +309,12 @@
         if (type === "fire") lightList.push([x + .5, y + .6, z + .5, 11, .4]);
         if (type === "torch") { addAnimalCube(x + .42, y, z + .42, .16, .6, .16, [.55, .33, .12]); addAnimalCube(x + .38, y + .6, z + .38, .24, .24, .24, [1, .82, .15]); continue; }
         if (type === "fire") { addAnimalCube(x + .15, y, z + .15, .7, .5, .7, [.98, .45, .08]); addAnimalCube(x + .3, y + .5, z + .3, .4, .4, .4, [1, .8, .15]); continue; }
-        faces.forEach((face, index) => {
-          const [dx, dy, dz] = face[0], neighbor = blockAt(x + dx, y + dy, z + dz);
-          if (neighbor && neighbor !== "torch" && neighbor !== "fire" && (type !== "water" || neighbor === "water")) return;
-          const shade = [.82, .62, 1, .5, .9, .7][index], color = types[type].color.map((value) => value / 255 * shade);
-          [0,1,2,0,2,3].forEach((corner) => data.push(...corners[index][corner].map((value, axis) => value + [x,y,z][axis]), ...color));
-        });
+        for (let index = 0; index < 6; index += 1) {
+          const face = faces[index], neighbor = blockAt(x + face[0][0], y + face[0][1], z + face[0][2]);
+          if (neighbor && neighbor !== "torch" && neighbor !== "fire" && (type !== "water" || neighbor === "water")) continue;
+          const shade = [.82, .62, 1, .5, .9, .7][index], base = types[type].color;
+          for (let c = 0; c < 6; c += 1) { const corner = corners[index][[0,1,2,0,2,3][c]]; data.push(corner[0] + x, corner[1] + y, corner[2] + z, base[0] / 255 * shade, base[1] / 255 * shade, base[2] / 255 * shade); }
+        }
       }
       function addAnimalCube(x, y, z, width, cubeHeight, depth, color) { corners.forEach((face) => [0,1,2,0,2,3].forEach((corner) => data.push(...face[corner].map((value, axis) => value * [width, cubeHeight, depth][axis] + [x, y, z][axis]), ...color))); }
       animals.forEach((animal) => {
@@ -263,12 +339,13 @@
     function update(delta) {
       if (!(mp.peer && !mp.host)) { dayTime = (dayTime + delta / 240) % 1; if (Math.floor(dayTime * 20) !== Math.floor((dayTime - delta / 240) * 20)) { saved.dayTime = dayTime; } }
       const forward = (keys.has("forward") ? 1 : 0) - (keys.has("back") ? 1 : 0), strafe = (keys.has("right") ? 1 : 0) - (keys.has("left") ? 1 : 0);
+      const glide = gliding && !boating && !inWater() && !player.onGround; if (gliding && !glide) { gliding = false; statusElement.textContent = "You landed."; }
       const length = Math.hypot(forward, strafe) || 1, speed = boating ? 6 : inWater() ? 2 : 4;
       move((Math.sin(player.yaw) * forward - Math.cos(player.yaw) * strafe) / length * speed * delta, 0, (Math.cos(player.yaw) * forward + Math.sin(player.yaw) * strafe) / length * speed * delta);
       if (boating) { const top = waterTop(player.x, player.z); if (top === null) { boating = false; statusElement.textContent = "Your boat left the water."; } else { player.y = top - .2; player.velocityY = 0; player.onGround = true; } }
-      else { player.velocityY += (inWater() ? -3 : -18) * delta; player.onGround = false; move(0, player.velocityY * delta, 0); }
+      else { player.velocityY += (inWater() ? -3 : -18) * delta; if (glide) { const dive = Math.max(0, -player.pitch), flare = Math.max(0, player.pitch); player.velocityY = -1.5 - 4 * dive + .7 * flare; move(Math.sin(player.yaw) * (8 + 6 * dive - 3 * flare) * delta, 0, Math.cos(player.yaw) * (8 + 6 * dive - 3 * flare) * delta); } player.onGround = false; move(0, player.velocityY * delta, 0); }
       if (boating || inWater()) { const [vx, vz] = currentAt(Math.floor(player.x) + mapOriginX, Math.floor(player.z) + mapOriginZ), pull = boating ? 1.6 : 1.2; if (vx || vz) { move(vx * pull * delta, 0, vz * pull * delta); if (!currentNoticed) { currentNoticed = true; statusElement.textContent = "The current pulls you along the water."; } } }
-      expandMap(); updateAnimals(delta); updateHostiles(delta); updatePets(delta); updateFire(delta); updateSmoke(delta); mpUpdate(delta);
+      expandMap(); updateAnimals(delta); updateHostiles(delta); updatePets(delta); updateFire(delta); updateSmoke(delta); mpUpdate(delta); updateThrown(delta); updateWeather(delta); applyWeatherEffects(delta);
       player.hunger = Math.max(0, player.hunger - delta * .35); renderHunger();
       if (nearWorkbench() !== workbenchNearby) { workbenchNearby = nearWorkbench(); if (!workbenchNearby) workbenchActive = false; renderCrafting(); }
       if (player.y < -3) respawn();
@@ -376,6 +453,7 @@
         const type = world[y][z][x]; if (type !== "fire" && type !== "torch") continue;
         if (type === "fire") {
           const burnKey = fireKey(x, y, z), burn = burningPlanks.get(burnKey);
+          if (weather.rain > .3 && exposedToSky(x, y, z) && Math.random() < .12 * weather.rain) { changes.push([x, y, z, burningPlanks.delete(burnKey) ? "plank" : null]); continue; }
           if (burn !== undefined) {
             if (nearWater(x, y, z)) { burningPlanks.delete(burnKey); changes.push([x, y, z, "plank"]); continue; }
             if (burn <= 1) { burningPlanks.delete(burnKey); changes.push([x, y, z, null]); continue; }
@@ -405,13 +483,13 @@
 
     function directionVector() { return [Math.sin(player.yaw) * Math.cos(player.pitch), Math.sin(player.pitch), Math.cos(player.yaw) * Math.cos(player.pitch)]; }
     function draw() {
-      const sky = skyState(); gl.viewport(0, 0, canvas.width, canvas.height); gl.clearColor(sky.color[0], sky.color[1], sky.color[2], 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); const direction = directionVector(), eye = [player.x, player.y + 1.45, player.z], matrix = multiply(perspective(1.05, canvas.width / canvas.height, .05, 100), lookAt(eye, [eye[0] + direction[0], eye[1] + direction[1], eye[2] + direction[2]], [0,1,0]));
+      const sky = skyState(); gl.viewport(0, 0, canvas.width, canvas.height); gl.clearColor(sky.color[0], sky.color[1], sky.color[2], 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); const cam = cameraView(), direction = cam.dir, eye = cam.eye, matrix = multiply(perspective(1.05 - .75 * (zoomAmount += ((zooming ? 1 : 0) - zoomAmount) * .2), canvas.width / canvas.height, .05, 300), lookAt(eye, [eye[0] + direction[0], eye[1] + direction[1], eye[2] + direction[2]], [0,1,0]));
       gl.uniformMatrix4fv(matrixLocation, false, matrix); gl.enableVertexAttribArray(positionLocation); gl.enableVertexAttribArray(colorLocation); drawSky(sky, eye); gl.uniform1f(brightnessLocation, sky.brightness); uploadLights(eye); gl.uniform1f(lightOnLocation, 1);
-      gl.bindBuffer(gl.ARRAY_BUFFER, buffer); gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 24, 0); gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 24, 12); gl.drawArrays(gl.TRIANGLES, 0, vertices); drawSmoke(); drawRemotePlayers(); drawNameTags(matrix);
+      gl.bindBuffer(gl.ARRAY_BUFFER, buffer); gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 24, 0); gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 24, 12); gl.drawArrays(gl.TRIANGLES, 0, vertices); drawSmoke(); drawRemotePlayers(); drawThrown(); drawWeather(); drawNameTags(matrix);
     }
     function uploadLights(eye) {
       const now = performance.now() / 1000, lights = [];
-      if (selected === "torch" && inventory.torch) lights.push([eye[0] + Math.sin(player.yaw) * .4, eye[1] - .2, eye[2] + Math.cos(player.yaw) * .4, 8]);
+      if (selected === "torch" && inventory.torch) lights.push([player.x + Math.sin(player.yaw) * .4, player.y + 1.25, player.z + Math.cos(player.yaw) * .4, 8]);
       remotePlayers().forEach((peer) => { if (peer.h) lights.push([peer.x - mapOriginX, peer.y + 1.2, peer.z - mapOriginZ, 8]); });
       lightList.map((light) => ({ light, d: Math.hypot(light[0] - eye[0], light[1] - eye[1], light[2] - eye[2]) })).filter((entry) => entry.d < entry.light[3] + 40).sort((a, b) => a.d - b.d).forEach((entry) => lights.push(entry.light));
       const data = new Float32Array(48), strength = new Float32Array(12); lights.slice(0, 12).forEach((light, index) => { data.set([light[0], light[1], light[2], light[3] * (1 + .07 * Math.sin(now * 9 + index * 1.7))], index * 4); strength[index] = light[4] ?? 1; });
@@ -422,7 +500,7 @@
       const angle = dayTime * Math.PI * 2, sunHeight = Math.sin(angle), light = smoothStep(-.12, .3, sunHeight), glow = Math.max(0, 1 - Math.abs(sunHeight) / .35) * .75;
       const day = [125, 212, 250], night = [8, 12, 38], tint = [255, 140, 70];
       const color = day.map((value, index) => { let channel = night[index] + (value - night[index]) * light; channel += (tint[index] - channel) * glow; return Math.max(0, Math.min(1, channel * userBright / 255)); });
-      return { angle, sunHeight, light, glow, color, brightness: (.2 + .8 * light) * userBright };
+      return { angle, sunHeight, light, glow, color: color.map((value, index) => Math.min(1, value + (([.37, .41, .47][index] * (.4 + .6 * light) * userBright) - value) * weather.rain * .55 + weather.flash * .6)), brightness: (.2 + .8 * light) * userBright * (1 - .3 * weather.rain) + weather.flash * .8 };
     }
     function skyCube(data, cx, cy, cz, size, color) {
       const quads = [[0,1,2,3],[4,5,6,7],[0,1,5,4],[3,2,6,7],[0,3,7,4],[1,2,6,5]], unit = [[0,0,0],[1,0,0],[1,1,0],[0,1,0],[0,0,1],[1,0,1],[1,1,1],[0,1,1]];
@@ -439,6 +517,7 @@
       }
       const night = 1 - sky.light;
       if (night > .12) starField.forEach(([x, y, z]) => { const rx = x * Math.cos(sky.angle) - y * Math.sin(sky.angle), ry = x * Math.sin(sky.angle) + y * Math.cos(sky.angle); if (ry > .02) skyCube(data, ...place([rx, ry, z], 70), .5 * night, [1, 1, .95]); });
+      if (weather.rain > .5) data.length = 0;
       gl.uniform1f(brightnessLocation, 1); gl.uniform1f(lightOnLocation, 0); gl.disable(gl.DEPTH_TEST); gl.disable(gl.CULL_FACE);
       gl.bindBuffer(gl.ARRAY_BUFFER, skyBuffer); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.DYNAMIC_DRAW);
       gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 24, 0); gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 24, 12); gl.drawArrays(gl.TRIANGLES, 0, data.length / 6);
@@ -455,7 +534,7 @@
             gl.disable(gl.CULL_FACE); gl.drawArrays(gl.TRIANGLES, 0, data.length / 6); gl.enable(gl.CULL_FACE);
           }
           function updateSmoke(delta) {
-            smoke.forEach((puff) => { puff.age += delta; puff.y += delta * 1.1; puff.x += puff.dx * delta; puff.z += puff.dz * delta; });
+            smoke.forEach((puff) => { const [wx, wz] = windVec(); puff.age += delta; puff.y += delta * 1.1; puff.x += (puff.dx + wx * 1.5) * delta; puff.z += (puff.dz + wz * 1.5) * delta; });
             smoke = smoke.filter((puff) => puff.age < puff.life);
             smokeTimer += delta; if (smokeTimer < .15) return; smokeTimer = 0;
             fireCells.forEach(([x, y, z]) => { if (smoke.length < 400 && Math.hypot(x + .5 - player.x, z + .5 - player.z) < 40) smoke.push({ x: x + .5 + (Math.random() - .5) * .4, y: y + .8, z: z + .5 + (Math.random() - .5) * .4, dx: (Math.random() - .5) * .3, dz: (Math.random() - .5) * .3, age: 0, life: 1.8 + Math.random() * 1.2 }); });
@@ -465,16 +544,140 @@
     function multiply(a,b) { const out = new Float32Array(16); for (let column=0;column<4;column+=1) for (let row=0;row<4;row+=1) for (let index=0;index<4;index+=1) out[column*4+row] += a[index*4+row]*b[column*4+index]; return out; }
     function cross(a,b) { return [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]]; } function dot(a,b) { return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]; } function normalize(v) { const d=Math.hypot(...v)||1; return v.map((value)=>value/d); }
 
+    const weather = { kind: "clear", rain: 0, rainTarget: 0, wind: .15, windTarget: .15, dir: Math.random() * 6.28, timer: 25, tornado: null, flood: null, flash: 0, strike: null, strikeId: 0, strikeTimer: 8, disasterTimer: 50 };
+    const weatherTargets = { clear: [0, .15], rain: [.7, .35], windy: [0, 1], storm: [1, 1.3] };
+    const weatherLabels = { clear: "☀️ Clear", rain: "🌧️ Rain", windy: "💨 Windy", storm: "⛈️ Thunderstorm" };
+    const flood = { cx: 0, cz: 0, layers: [] };
+    const breakable = new Set(["wood", "leaves", "plank", "workbench", "torch"]);
+    const disasterElement = document.querySelector("#disasters"), weatherLabelElement = document.querySelector("#weatherLabel");
+    let tornadoBreakTimer = 0, lastStrikeId = null, shownWeather = "";
+    disasterElement.checked = !!saved.disasters;
+    const isClient = () => !!(mp.peer && !mp.host), windVec = () => [Math.cos(weather.dir) * weather.wind, Math.sin(weather.dir) * weather.wind];
+    function exposedToSky(x, y, z) { for (let yy = y + 1; yy < height; yy += 1) if (solid(blockAt(x, yy, z))) return false; return true; }
+    function setWeather(kind) { weather.kind = kind; [weather.rainTarget, weather.windTarget] = weatherTargets[kind]; }
+    function pickWeather() {
+      const r = Math.random(), disaster = disasterElement.checked;
+      setWeather(disaster ? (r < .3 ? "storm" : r < .6 ? "rain" : r < .8 ? "windy" : "clear") : (r < .35 ? "rain" : r < .55 ? "windy" : "clear"));
+      weather.timer = 40 + Math.random() * 50;
+      statusElement.textContent = { clear: "The weather clears up.", rain: "It starts to rain. Fire sputters out in the wet.", windy: "The wind picks up.", storm: "A thunderstorm rolls in!" }[weather.kind];
+    }
+    function applyStrike(strike) {
+      weather.flash = 1; const lx = Math.floor(strike.x - mapOriginX), lz = Math.floor(strike.z - mapOriginZ);
+      if (Math.hypot(lx + .5 - player.x, lz + .5 - player.z) < 2 && saved.survival && hitCooldown === 0) hurt("lightning");
+      for (let y = height - 1; y >= 0; y -= 1) { const type = blockAt(lx, y, lz); if (!type) continue; if (flammable[type]) { ignite(lx, y, lz); rebuildMesh(); } break; }
+    }
+    function startDisaster() {
+      if (weather.tornado || weather.flood) return;
+      setWeather("storm"); weather.timer = 70;
+      if (Math.random() < .5) { const angle = Math.random() * Math.PI * 2; weather.tornado = { x: player.x + mapOriginX + Math.cos(angle) * 28, z: player.z + mapOriginZ + Math.sin(angle) * 28, age: 0, life: 55 }; statusElement.textContent = "🌪️ A tornado has formed! Run away from it!"; }
+      else { weather.flood = { cx: player.x + mapOriginX, cz: player.z + mapOriginZ, n: 0, t: 0 }; statusElement.textContent = "🌊 Flood warning! The water is rising. Get to high ground!"; }
+    }
+    function directWeather(delta) {
+      weather.timer -= delta; if (weather.timer <= 0 || (!disasterElement.checked && weather.kind === "storm")) pickWeather();
+      weather.dir += delta * .02;
+      if (weather.kind === "storm") { weather.strikeTimer -= delta; if (weather.strikeTimer <= 0) { weather.strikeTimer = 5 + Math.random() * 9; const angle = Math.random() * Math.PI * 2, dist = Math.random() * 22; weather.strike = { id: ++weather.strikeId, x: player.x + mapOriginX + Math.cos(angle) * dist, z: player.z + mapOriginZ + Math.sin(angle) * dist }; applyStrike(weather.strike); } }
+      if (disasterElement.checked) { weather.disasterTimer -= delta; if (weather.disasterTimer <= 0) { weather.disasterTimer = 60 + Math.random() * 60; startDisaster(); } }
+      const tornado = weather.tornado;
+      if (tornado) {
+        tornado.age += delta; if (tornado.age > tornado.life) weather.tornado = null;
+        else { const dx = player.x + mapOriginX - tornado.x, dz = player.z + mapOriginZ - tornado.z, angle = Math.atan2(dz, dx) + Math.sin(tornado.age * .7) * 1; tornado.x += Math.cos(angle) * 2.6 * delta; tornado.z += Math.sin(angle) * 2.6 * delta; }
+      }
+      if (weather.flood) { const f = weather.flood; f.t += delta; f.n = f.t < 12 ? Math.floor(f.t / 4) + 1 : f.t < 24 ? 3 : 3 - Math.floor((f.t - 24) / 4); if (f.n <= 0) weather.flood = null; }
+      weather.rain += (weather.rainTarget - weather.rain) * Math.min(1, delta * .4); weather.wind += (weather.windTarget - weather.wind) * Math.min(1, delta * .3);
+    }
+    function changeFloodLayer(add) {
+      let changed = false;
+      if (add) {
+        const y = 3 + flood.layers.length, cells = [], r = 24;
+        for (let z = Math.floor(flood.cz) - r; z <= Math.floor(flood.cz) + r; z += 1) for (let x = Math.floor(flood.cx) - r; x <= Math.floor(flood.cx) + r; x += 1) {
+          if (Math.hypot(x - flood.cx, z - flood.cz) > r) continue;
+          const lx = x - mapOriginX, lz = z - mapOriginZ; if (lx < 0 || lz < 0 || lx >= mapWidth || lz >= mapDepth || blockAt(lx, y, lz)) continue;
+          const below = blockAt(lx, y - 1, lz); if (!below || (!solid(below) && below !== "water")) continue;
+          world[y][lz][lx] = "water"; cells.push([x, y, z]); changed = true;
+        }
+        flood.layers.push(cells);
+      } else flood.layers.pop().forEach(([x, y, z]) => { const lx = x - mapOriginX, lz = z - mapOriginZ; if (blockAt(lx, y, lz) === "water") { world[y][lz][lx] = null; changed = true; } });
+      if (changed) rebuildMesh();
+    }
+    function syncFlood() {
+      const f = weather.flood, sameCenter = !f || !flood.layers.length || (flood.cx === f.cx && flood.cz === f.cz), want = f && sameCenter ? f.n : 0;
+      if (f && !flood.layers.length) { flood.cx = f.cx; flood.cz = f.cz; }
+      while (flood.layers.length < want) changeFloodLayer(true);
+      while (flood.layers.length > want) changeFloodLayer(false);
+    }
+    function applyWeatherEffects(delta) {
+      syncFlood();
+      const [wx, wz] = windVec();
+      if (weather.wind > .4 && exposedToSky(Math.floor(player.x), Math.floor(player.y), Math.floor(player.z))) move(wx * .5 * delta, 0, wz * .5 * delta);
+      const tornado = weather.tornado;
+      if (tornado) {
+        const lx = tornado.x - mapOriginX, lz = tornado.z - mapOriginZ, dx = lx - player.x, dz = lz - player.z, d = Math.hypot(dx, dz) || .01;
+        if (d < 9) { const pull = 1 - d / 9; move((dx / d * 5 - dz / d * 3) * pull * delta, 0, (dz / d * 5 + dx / d * 3) * pull * delta); }
+        if (d < 3.5) { player.velocityY = Math.min(9, player.velocityY + 30 * delta); boating = false; }
+        if (d < 2.2 && saved.survival && hitCooldown === 0) hurt("tornado");
+        tornadoBreakTimer -= delta;
+        if (tornadoBreakTimer <= 0) {
+          tornadoBreakTimer = .4; let broke = false;
+          for (let y = 0; y < height; y += 1) for (let z = Math.floor(lz) - 3; z <= Math.floor(lz) + 3; z += 1) for (let x = Math.floor(lx) - 3; x <= Math.floor(lx) + 3; x += 1) if (Math.hypot(x + .5 - lx, z + .5 - lz) < 2.8 && breakable.has(blockAt(x, y, z)) && Math.random() < .5) { world[y][z][x] = null; broke = true; }
+          if (broke) rebuildMesh();
+        }
+      }
+    }
+    function updateWeather(delta) {
+      weather.flash = Math.max(0, weather.flash - delta * 2.5);
+      if (!isClient()) directWeather(delta);
+      const label = `${weatherLabels[weather.kind] || ""} · ${weather.wind < .3 ? "calm" : weather.wind < .7 ? "breezy" : "strong wind"}${weather.tornado ? " · 🌪️ TORNADO" : ""}${flood.layers.length ? " · 🌊 FLOOD" : ""}`;
+      if (label !== shownWeather) { shownWeather = label; weatherLabelElement.textContent = label; }
+    }
+    function weatherPayload() {
+      const f2 = (value) => Math.round(value * 100) / 100;
+      return { k: weather.kind, r: f2(weather.rain), n: f2(weather.wind), a: f2(weather.dir), t: weather.tornado ? [f2(weather.tornado.x), f2(weather.tornado.z)] : 0, f: weather.flood ? [weather.flood.cx, weather.flood.cz, weather.flood.n] : 0, s: weather.strike ? [weather.strike.id, weather.strike.x, weather.strike.z] : 0 };
+    }
+    function applyRemoteWeather(w) {
+      if (!w || !weatherTargets[w.k] || ![w.r, w.n, w.a].every(Number.isFinite)) return;
+      weather.kind = w.k; weather.rain = w.r; weather.wind = w.n; weather.dir = w.a;
+      weather.tornado = Array.isArray(w.t) && w.t.every(Number.isFinite) ? { x: w.t[0], z: w.t[1] } : null;
+      weather.flood = Array.isArray(w.f) && w.f.every(Number.isFinite) ? { cx: w.f[0], cz: w.f[1], n: w.f[2] } : null;
+      if (Array.isArray(w.s) && w.s.every(Number.isFinite) && w.s[0] !== lastStrikeId) { const first = lastStrikeId === null; lastStrikeId = w.s[0]; if (!first) applyStrike({ x: w.s[1], z: w.s[2] }); }
+    }
+    function drawWeather() {
+      const lines = [], tris = [], t = performance.now() / 1000, [wx, wz] = windVec(), fr = (value) => value - Math.floor(value);
+      if (weather.rain > .05) {
+        const count = Math.round(500 * weather.rain), eyeY = player.y + 1.45;
+        for (let i = 0; i < count; i += 1) {
+          const h1 = fr(Math.sin(i * 12.9898) * 43758.5453), h2 = fr(Math.sin(i * 78.233) * 12345.6789), h3 = fr(Math.sin(i * 39.346) * 9876.54321);
+          const fall = (h3 * 24 + t * (18 + h1 * 4)) % 24, y = eyeY + 12 - fall, x = player.x + (h1 - .5) * 30 + wx * .15 * fall, z = player.z + (h2 - .5) * 30 + wz * .15 * fall;
+          let top = 0; for (let yy = height - 1; yy >= 0; yy -= 1) if (solid(blockAt(Math.floor(x), yy, Math.floor(z)))) { top = yy + 1; break; }
+          if (y - .7 < top) continue;
+          lines.push(x, y, z, .65, .78, .98, x + wx * .1, y - .7, z + wz * .1, .65, .78, .98);
+        }
+      }
+      if (weather.tornado) {
+        const unit = [[0,0,0],[1,0,0],[1,1,0],[0,1,0],[0,0,1],[1,0,1],[1,1,1],[0,1,1]], quads = [[0,1,2,3],[4,5,6,7],[0,1,5,4],[3,2,6,7],[0,3,7,4],[1,2,6,5]];
+        const lx = weather.tornado.x - mapOriginX, lz = weather.tornado.z - mapOriginZ, base = surfaceAt(lx, lz);
+        const cube = (cx, cy, cz, size, color) => quads.forEach((quad) => [0,1,2,0,2,3].forEach((corner) => { const u = unit[quad[corner]]; tris.push(cx + (u[0] - .5) * size, cy + u[1] * 1.1, cz + (u[2] - .5) * size, ...color); }));
+        for (let h = 0; h < 12; h += 1) { const radius = .5 + h * .4, shade = .42 + h * .025, sway = Math.sin(t + h * .3) * h * .12; for (let k = 0; k < 5; k += 1) { const a = t * 5 + h * .6 + k * Math.PI * 2 / 5; cube(lx + Math.cos(a) * radius + sway, base + h * 1.1, lz + Math.sin(a) * radius, .7 + h * .13, [shade, shade, shade + .05]); } }
+      }
+      if (!lines.length && !tris.length) return;
+      gl.uniform1f(lightOnLocation, 0); gl.bindBuffer(gl.ARRAY_BUFFER, smokeBuffer);
+      if (lines.length) { gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(lines), gl.DYNAMIC_DRAW); gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 24, 0); gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 24, 12); gl.drawArrays(gl.LINES, 0, lines.length / 6); }
+      if (tris.length) { gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(tris), gl.DYNAMIC_DRAW); gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 24, 0); gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 24, 12); gl.disable(gl.CULL_FACE); gl.drawArrays(gl.TRIANGLES, 0, tris.length / 6); gl.enable(gl.CULL_FACE); }
+      gl.uniform1f(lightOnLocation, 1);
+    }
+    disasterElement.addEventListener("change", () => { saved.disasters = disasterElement.checked; persist(); statusElement.textContent = disasterElement.checked ? "Disaster weather on: expect thunderstorms, tornados and floods!" : "Disaster weather off: only gentle rain and wind."; disasterElement.blur(); });
+    window.addEventListener("pagehide", () => { weather.flood = null; syncFlood(); persist(); });
+
     const mp = { peer: null, host: false, conns: [], players: new Map(), sendTimer: 0, code: "" };
     const mpNameElement = document.querySelector("#mpName"), mpCodeElement = document.querySelector("#mpCode"), mpStatusElement = document.querySelector("#mpStatus"), mpHostButton = document.querySelector("#mpHost"), mpJoinButton = document.querySelector("#mpJoin"), mpLeaveButton = document.querySelector("#mpLeave"), tagCanvas = document.querySelector("#tags"), tagCtx = tagCanvas.getContext("2d");
     mpNameElement.value = saved.mpName || GameProfiles.getActiveProfileName() || "Player";
     const mpName = () => (mpNameElement.value.trim() || "Player").slice(0, 16);
     function remotePlayers() { const now = performance.now(); mp.players.forEach((peer, id) => { if (now - peer.seen > 6000) mp.players.delete(id); }); return [...mp.players.values()]; }
     function mpSend(data, except) { mp.conns.forEach((conn) => { if (conn !== except && conn.open) conn.send(data); }); }
-    function mpState() { return { t: "s", id: mp.peer.id, name: mpName(), x: player.x + mapOriginX, y: player.y, z: player.z + mapOriginZ, yaw: player.yaw, pitch: player.pitch, h: selected === "torch" && inventory.torch ? 1 : 0, d: dayTime }; }
+    function mpState() { return { t: "s", id: mp.peer.id, name: mpName(), x: player.x + mapOriginX, y: player.y, z: player.z + mapOriginZ, yaw: player.yaw, pitch: player.pitch, h: selected === "torch" && inventory.torch ? 1 : 0, d: dayTime, g: gliding ? 1 : 0, ...(mp.host ? { w: weatherPayload() } : {}) }; }
     function mpReceive(conn, data) {
       if (!data || typeof data !== "object") return;
       if (!mp.host && data.t === "s" && data.id === `funcraft-${mp.code}` && Number.isFinite(data.d)) dayTime = ((data.d % 1) + 1) % 1;
+      if (!mp.host && data.t === "s" && data.id === `funcraft-${mp.code}` && data.w) applyRemoteWeather(data.w);
       if (data.t === "s" && typeof data.id === "string" && [data.x, data.y, data.z, data.yaw, data.pitch].every(Number.isFinite)) {
         mp.players.set(data.id, { id: data.id, name: String(data.name || "Player").slice(0, 16), x: data.x, y: data.y, z: data.z, yaw: data.yaw, pitch: data.pitch, h: data.h ? 1 : 0, seen: performance.now() });
         if (mp.host) mpSend(data, conn);
@@ -485,7 +688,7 @@
       conn.on("data", (data) => mpReceive(conn, data));
       conn.on("close", () => { mp.conns = mp.conns.filter((c) => c !== conn); mp.players.delete(conn.peer); if (mp.host) mpSend({ t: "bye", id: conn.peer }); else { mpReset(); mpStatusElement.textContent = "The host left the game."; } });
     }
-    function mpReset() { if (mp.peer) mp.peer.destroy(); mp.peer = null; mp.host = false; mp.conns = []; mp.players.clear(); mpHostButton.hidden = mpJoinButton.hidden = mpCodeElement.hidden = false; mpLeaveButton.hidden = true; }
+    function mpReset() { weather.tornado = null; weather.flood = null; lastStrikeId = null; if (mp.peer) mp.peer.destroy(); mp.peer = null; mp.host = false; mp.conns = []; mp.players.clear(); mpHostButton.hidden = mpJoinButton.hidden = mpCodeElement.hidden = false; mpLeaveButton.hidden = true; }
     function mpStart(host) {
       if (typeof Peer === "undefined") { mpStatusElement.textContent = "Multiplayer could not load (are you online?)."; return; }
       const code = host ? Array.from({ length: 4 }, () => "ABCDEFGHJKLMNPQRSTUVWXYZ"[Math.floor(Math.random() * 24)]).join("") : mpCodeElement.value.trim().toUpperCase();
@@ -511,7 +714,8 @@
     mpNameElement.addEventListener("change", () => { saved.mpName = mpName(); persist(); });
     function nameColor(name) { let h = 0; for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) % 360; const r = h * Math.PI / 180; return [.55 + .35 * Math.sin(r), .55 + .35 * Math.sin(r + 2.1), .55 + .35 * Math.sin(r + 4.2)]; }
     function drawRemotePlayers() {
-      const peers = remotePlayers(); if (!peers.length) return;
+      const peers = remotePlayers(); if (camMode) peers.push({ x: player.x + mapOriginX, y: player.y, z: player.z + mapOriginZ, yaw: player.yaw, name: mpName(), h: selected === "torch" && inventory.torch ? 1 : 0, g: gliding });
+      if (!peers.length) return;
       const data = [], unit = [[0,0,0],[1,0,0],[1,1,0],[0,1,0],[0,0,1],[1,0,1],[1,1,1],[0,1,1]], quads = [[0,1,2,3],[4,5,6,7],[0,1,5,4],[3,2,6,7],[0,3,7,4],[1,2,6,5]];
       peers.forEach((peer) => {
         const cos = Math.cos(peer.yaw), sin = Math.sin(peer.yaw), base = [peer.x - mapOriginX, peer.y, peer.z - mapOriginZ], body = nameColor(peer.name), dark = body.map((value) => value * .5), skin = [.95, .78, .6];
@@ -520,6 +724,7 @@
         box(0, .7, 0, .5, .7, .28, body); box(-.34, .75, 0, .16, .6, .2, skin); box(.34, .75, 0, .16, .6, .2, skin);
         box(0, 1.4, 0, .4, .4, .4, skin); box(-.09, 1.55, .21, .07, .07, .02, [.05, .05, .05]); box(.09, 1.55, .21, .07, .07, .02, [.05, .05, .05]);
         if (peer.h) box(.34, 1.2, .2, .08, .35, .08, [.95, .75, .2]);
+        if (peer.g) { box(-.9, 1.5, -.1, 1.5, .05, .9, [.86, .24, .24]); box(.9, 1.5, -.1, 1.5, .05, .9, [.86, .24, .24]); }
       });
       gl.bindBuffer(gl.ARRAY_BUFFER, smokeBuffer); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.DYNAMIC_DRAW);
       gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 24, 0); gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 24, 12);
@@ -536,6 +741,59 @@
         tagCtx.fillStyle = "rgb(15 23 42 / 70%)"; tagCtx.fillRect(sx - width / 2, sy - 14, width, 28); tagCtx.fillStyle = "#fef08a"; tagCtx.fillText(peer.name, sx, sy + 1);
       });
     }
+
+    let camMode = 0, lastThrow = 0, zooming = false, zoomAmount = 0, gliding = false;
+    function toggleGlide() {
+      if (gliding) { gliding = false; statusElement.textContent = "Glider folded."; return; }
+      if (!inventory.glider) { statusElement.textContent = "Craft a glider first (3 wood + 2 hide)."; return; }
+      if (player.onGround || inWater() || boating) { statusElement.textContent = "Jump off something high, then press G in the air to glide."; return; }
+      gliding = true; statusElement.textContent = "Gliding! Look down to dive faster, look up to slow down. Press G to fold the glider.";
+    }
+    const thrown = [], camNames = ["First person", "Behind you", "Facing you"];
+    function cameraView() {
+      const head = [player.x, player.y + 1.45, player.z], d = directionVector();
+      if (!camMode) return { eye: head, dir: d };
+      const sign = camMode === 1 ? -1 : 1; let dist = 0;
+      while (dist < 3.5 && !solid(blockAt(Math.floor(head[0] + sign * d[0] * (dist + .15)), Math.floor(head[1] + sign * d[1] * (dist + .15)), Math.floor(head[2] + sign * d[2] * (dist + .15))))) dist += .1;
+      dist = Math.max(.3, dist - .1);
+      return { eye: [head[0] + sign * d[0] * dist, head[1] + sign * d[1] * dist, head[2] + sign * d[2] * dist], dir: camMode === 1 ? d : d.map((v) => -v) };
+    }
+    function toggleCamera() { camMode = (camMode + 1) % 3; statusElement.textContent = `Camera: ${camNames[camMode]} (press P to change).`; }
+    function throwItem() {
+      const now = performance.now(); if (now - lastThrow < 180) return;
+      if (!selected || !inventory[selected] || types[selected].hidden) { statusElement.textContent = "Select an item you have, then press Q to throw it."; return; }
+      lastThrow = now; inventory[selected] -= 1; const d = directionVector();
+      thrown.push({ type: selected, x: player.x + d[0] * .6 + mapOriginX, y: player.y + 1.45 + d[1] * .6, z: player.z + d[2] * .6 + mapOriginZ, vx: d[0] * 12, vy: d[1] * 12 + 2, vz: d[2] * 12, age: 0, landed: false });
+      statusElement.textContent = `Threw ${types[selected].label.toLowerCase()}. Walk over it to pick it back up.`; persistAndRender();
+    }
+    function updateThrown(delta) {
+      for (let i = thrown.length - 1; i >= 0; i -= 1) {
+        const it = thrown[i]; it.age += delta;
+        if (!it.landed) {
+          const at = (x, y, z) => solid(blockAt(Math.floor(x - mapOriginX), Math.floor(y), Math.floor(z - mapOriginZ)));
+          it.vy -= 18 * delta;
+          const nx = it.x + it.vx * delta; if (at(nx, it.y, it.z)) it.vx *= -.4; else it.x = nx;
+          const nz = it.z + it.vz * delta; if (at(it.x, it.y, nz)) it.vz *= -.4; else it.z = nz;
+          const ny = it.y + it.vy * delta;
+          if (at(it.x, ny, it.z)) { if (it.vy < 0) { it.vy *= -.35; it.vx *= .6; it.vz *= .6; if (Math.abs(it.vy) < 1.5) { it.vy = 0; it.landed = true; it.y = Math.floor(ny) + 1.15; } } else it.vy *= -.3; } else it.y = ny;
+          if (blockAt(Math.floor(it.x - mapOriginX), Math.floor(it.y), Math.floor(it.z - mapOriginZ)) === "water") { it.vx *= .92; it.vz *= .92; it.vy *= .92; }
+          if (Math.hypot(it.vx, it.vy, it.vz) > 4) {
+            const hit = animals.find((a) => !a.pet && Math.abs(a.x - (it.x - mapOriginX)) < .6 && Math.abs(a.z - (it.z - mapOriginZ)) < .5 && it.y >= a.y - .2 && it.y <= a.y + 1.1);
+            if (hit) { animals.splice(animals.indexOf(hit), 1); inventory.meat = (inventory.meat || 0) + 1; inventory.hide = (inventory.hide || 0) + 1; it.vx *= -.2; it.vz *= -.2; statusElement.textContent = "Direct hit! You collected food and hide."; rebuildMesh(); persistAndRender(); }
+          }
+        }
+        const near = Math.hypot(it.x - mapOriginX - player.x, it.y - player.y - .9, it.z - mapOriginZ - player.z) < 1.4;
+        if ((near && (it.landed || it.age > .7)) || it.y < -3 || it.age > 240) { inventory[it.type] = (inventory[it.type] || 0) + 1; thrown.splice(i, 1); persistAndRender(); }
+      }
+    }
+    function drawThrown() {
+      if (!thrown.length) return; const data = [];
+      thrown.forEach((it) => skyCube(data, it.x - mapOriginX, it.y, it.z - mapOriginZ, .3, types[it.type].color.map((v) => v / 255)));
+      gl.bindBuffer(gl.ARRAY_BUFFER, smokeBuffer); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.DYNAMIC_DRAW);
+      gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 24, 0); gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 24, 12);
+      gl.disable(gl.CULL_FACE); gl.drawArrays(gl.TRIANGLES, 0, data.length / 6); gl.enable(gl.CULL_FACE);
+    }
+    window.addEventListener("pagehide", () => { thrown.forEach((it) => { inventory[it.type] = (inventory[it.type] || 0) + 1; }); thrown.length = 0; persist(); });
 
     const brightnessElement = document.querySelector("#brightness"), hotkeyListElement = document.querySelector("#hotkeyList");
     brightnessElement.value = userBright;
@@ -549,7 +807,9 @@
       else statusElement.textContent = `Hotkey ${slot} is empty. Select an item and press Shift+${slot}.`;
       event.preventDefault();
     });
-    document.addEventListener("keydown", (event) => { if (event.target.type === "text") return; const action = { w:"forward",W:"forward",ArrowUp:"forward",s:"back",S:"back",ArrowDown:"back",a:"left",A:"left",ArrowLeft:"left",d:"right",D:"right",ArrowRight:"right" }[event.key]; if (action) { keys.add(action); event.preventDefault(); } if (event.key === " ") { jump(); event.preventDefault(); } if (event.key === "e" || event.key === "E") { useContextAction(); event.preventDefault(); } if (event.key === "h" || event.key === "H") { teleportHome(); event.preventDefault(); } if (event.key === "l" || event.key === "L") { lightFire(); event.preventDefault(); } if (event.key === "b" || event.key === "B") { toggleBoat(); event.preventDefault(); } });
+    document.addEventListener("keydown", (event) => { if (event.target.type === "text") return; const action = { w:"forward",W:"forward",ArrowUp:"forward",s:"back",S:"back",ArrowDown:"back",a:"left",A:"left",ArrowLeft:"left",d:"right",D:"right",ArrowRight:"right" }[event.key]; if (action) { keys.add(action); event.preventDefault(); } if (event.key === " ") { jump(); event.preventDefault(); } if (event.key === "e" || event.key === "E") { useContextAction(); event.preventDefault(); } if (event.key === "h" || event.key === "H") { teleportHome(); event.preventDefault(); } if (event.key === "l" || event.key === "L") { lightFire(); event.preventDefault(); } if (event.key === "b" || event.key === "B") { toggleBoat(); event.preventDefault(); } if (event.key === "g" || event.key === "G") { toggleGlide(); event.preventDefault(); } if (event.key === "q" || event.key === "Q") { throwItem(); event.preventDefault(); } if (event.key === "p" || event.key === "P") { toggleCamera(); event.preventDefault(); } if (event.key === "v" || event.key === "V") { zooming = true; event.preventDefault(); } });
+    document.addEventListener("keyup", (event) => { if (event.key === "v" || event.key === "V") zooming = false; });
+    window.addEventListener("blur", () => { zooming = false; });
     document.addEventListener("keyup", (event) => { const action = { w:"forward",W:"forward",ArrowUp:"forward",s:"back",S:"back",ArrowDown:"back",a:"left",A:"left",ArrowLeft:"left",d:"right",D:"right",ArrowRight:"right" }[event.key]; if (action) keys.delete(action); });
     canvas.addEventListener("click", () => { if (document.pointerLockElement !== canvas) canvas.requestPointerLock(); });
     canvas.addEventListener("contextmenu", (event) => event.preventDefault());
