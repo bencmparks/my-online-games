@@ -68,7 +68,7 @@
     };
     const flammable = { wood: 1, leaves: 1.4, grass: 1.5, coal: .5, plank: 1 };
     const burningPlanks = new Map(), fireKey = (x, y, z) => `${x + mapOriginX},${y},${z + mapOriginZ}`;
-    function ignite(x, y, z) { if (world[y][z][x] === "plank") burningPlanks.set(fireKey(x, y, z), 30); world[y][z][x] = "fire"; }
+    function ignite(x, y, z) { if (world[y][z][x] === "plank") burningPlanks.set(fireKey(x, y, z), 30); world[y][z][x] = "fire"; mpBlock(x, y, z, "fire"); }
     let fireTimer = 0, boating = false, currentNoticed = false, smoke = [], smokeTimer = 0, fireCells = [];
     const smokeBuffer = gl.createBuffer();
     const recipes = [
@@ -119,7 +119,7 @@
     }
 
     function startWorld(reset) {
-      thrown.length = 0; flood.layers.length = 0; weather.flood = null; weather.tornado = null;
+      thrown.length = 0; mp.adopted = false; lobbyEdits.clear(); mpPending.length = 0; flood.layers.length = 0; weather.flood = null; weather.tornado = null;
       const decoded = saved.worldVersion === version ? decodeWorld(saved.world) : null, valid = !!decoded;
       world = !reset && valid ? decoded : generateWorld();
       mapWidth = valid ? saved.mapWidth : initialSize; mapDepth = valid ? saved.mapDepth : initialSize;
@@ -136,22 +136,25 @@
     function encodeWorld() {
       return world.map((layer) => layer.map((row) => { let out = "", i = 0; while (i < row.length) { const t = row[i]; let j = i; while (j < row.length && row[j] === t) j += 1; out += (t ? String.fromCharCode(65 + typeKeys.indexOf(t)) : ".") + (j - i > 1 ? j - i : ""); i = j; } return out; }));
     }
-    function decodeWorld(encoded) {
+    function decodeWorld(encoded, depth = saved.mapDepth, width = saved.mapWidth) {
       if (!Array.isArray(encoded) || encoded.length !== height) return null;
       const result = [];
       for (const layer of encoded) {
-        if (!Array.isArray(layer) || layer.length !== saved.mapDepth) return null;
+        if (!Array.isArray(layer) || layer.length !== depth) return null;
         const rows = [];
         for (const text of layer) {
           if (typeof text !== "string") return null;
           const row = []; for (const [, ch, count] of text.matchAll(/([^\d])(\d*)/g)) { const type = ch === "." ? null : typeKeys[ch.charCodeAt(0) - 65]; if (type === undefined) return null; for (let n = count ? Number(count) : 1; n > 0; n -= 1) row.push(type); }
-          if (row.length !== saved.mapWidth) return null; rows.push(row);
+          if (row.length !== width) return null; rows.push(row);
         }
         result.push(rows);
       }
       return result;
     }
-    function persist() { saved.world = encodeWorld(); saved.inventory = inventory; saved.player = { x: player.x, y: player.y, z: player.z, yaw: player.yaw, pitch: player.pitch, hunger: player.hunger }; saved.mapWidth = mapWidth; saved.mapDepth = mapDepth; saved.mapOriginX = mapOriginX; saved.mapOriginZ = mapOriginZ; saved.animals = animals; saved.lives = lives; saved.dayTime = dayTime; saved.bright = userBright; saved.hotkeys = hotkeys; GameProfiles.saveGame("funcraft", saved); }
+    function persist() {
+      if (!(mp.peer && !mp.host && mp.adopted)) { saved.world = encodeWorld(); saved.player = { x: player.x, y: player.y, z: player.z, yaw: player.yaw, pitch: player.pitch, hunger: player.hunger }; saved.mapWidth = mapWidth; saved.mapDepth = mapDepth; saved.mapOriginX = mapOriginX; saved.mapOriginZ = mapOriginZ; saved.animals = animals; saved.dayTime = dayTime; }
+      saved.inventory = inventory; saved.lives = lives; saved.bright = userBright; saved.hotkeys = hotkeys; GameProfiles.saveGame("funcraft", saved);
+    }
     function blockAt(x, y, z) { return world[y]?.[z]?.[x] || null; }
     function solid(type) { return type && types[type].solid !== false; }
     const riverA = (x, z) => Math.abs(((z - (24 + 7 * Math.sin(x * .1)) + 32) % 64 + 64) % 64 - 32) < 2.2, riverB = (x, z) => Math.abs(((x - (40 + 6 * Math.sin(z * .09)) + 32) % 64 + 64) % 64 - 32) < 1.8, lakeAt = (x, z) => Math.sin(x * .11 + 1) * Math.cos(z * .1 + 2) > .8;
@@ -205,6 +208,7 @@
       return { top: info.ground, jungle, trunk: jungle ? 4 + (h >>> 10) % 3 : 2 };
     }
     function terrainBlock(x, y, z) {
+      if (lobbyEdits.size) { const edited = lobbyEdits.get(`${x},${y},${z}`); if (edited !== undefined) return edited; }
       const info = columnInfo(x, z), ground = info.ground;
       if (info.wet && y === 4) return "water";
       if (y > ground) {
@@ -425,17 +429,17 @@
     function animalInSight() { const direction = directionVector(); for (let distance = .2; distance <= 6; distance += .1) { const x = player.x + direction[0] * distance, y = player.y + 1.45 + direction[1] * distance, z = player.z + direction[2] * distance; if (blockAt(Math.floor(x), Math.floor(y), Math.floor(z))) return null; const animal = animals.find((candidate) => Math.abs(candidate.x - x) < .5 && Math.abs(candidate.z - z) < .4 && y >= candidate.y && y <= candidate.y + 1); if (animal) return animal; } return null; }
     function mine() { const animal = animalInSight(); if (animal && animal.pet) { statusElement.textContent = "That's your pet! Press E to pet it."; return; } if (animal) { animals.splice(animals.indexOf(animal), 1); inventory.meat = (inventory.meat || 0) + 1; inventory.hide = (inventory.hide || 0) + 1; statusElement.textContent = "You collected food and hide from an animal."; rebuildMesh(); persistAndRender(); return; } const target = raycast(); if (!target) return; const type = blockAt(target.x,target.y,target.z);
       if (type === "fire") { statusElement.textContent = "Fire is too hot! Select a water bucket and right-click the fire to put it out."; return; }
-      if (type === "water") { if (!inventory.bucket) { statusElement.textContent = "You need a bucket to collect water. Craft one from 3 iron ingots."; return; } inventory.bucket -= 1; inventory.waterBucket = (inventory.waterBucket || 0) + 1; world[target.y][target.z][target.x] = null; statusElement.textContent = "Filled your bucket with water."; rebuildMesh(); persistAndRender(); return; }
+      if (type === "water") { if (!inventory.bucket) { statusElement.textContent = "You need a bucket to collect water. Craft one from 3 iron ingots."; return; } inventory.bucket -= 1; inventory.waterBucket = (inventory.waterBucket || 0) + 1; world[target.y][target.z][target.x] = null; mpBlock(target.x, target.y, target.z, null); statusElement.textContent = "Filled your bucket with water."; rebuildMesh(); persistAndRender(); return; }
       if (selected === "torch" && inventory.torch && flammable[type]) { ignite(target.x, target.y, target.z); statusElement.textContent = `You set the ${types[type].label.toLowerCase()} on fire! Water puts it out.`; rebuildMesh(); persist(); return; }
-      world[target.y][target.z][target.x] = null; inventory[type] = (inventory[type] || 0) + 1; statusElement.textContent = `Collected ${types[type].label.toLowerCase()}.`; rebuildMesh(); persistAndRender(); }
+      world[target.y][target.z][target.x] = null; mpBlock(target.x, target.y, target.z, null); inventory[type] = (inventory[type] || 0) + 1; statusElement.textContent = `Collected ${types[type].label.toLowerCase()}.`; rebuildMesh(); persistAndRender(); }
     function build() {
       const target = raycast(), place = target?.previous; if (!target) return;
-      if (selected === "waterBucket" && inventory.waterBucket && blockAt(target.x, target.y, target.z) === "fire") { const key = fireKey(target.x, target.y, target.z); world[target.y][target.z][target.x] = burningPlanks.delete(key) ? "plank" : null; inventory.waterBucket -= 1; inventory.bucket = (inventory.bucket || 0) + 1; statusElement.textContent = "Water put out the fire!"; rebuildMesh(); persistAndRender(); return; }
+      if (selected === "waterBucket" && inventory.waterBucket && blockAt(target.x, target.y, target.z) === "fire") { const key = fireKey(target.x, target.y, target.z); const restored = burningPlanks.delete(key) ? "plank" : null; world[target.y][target.z][target.x] = restored; mpBlock(target.x, target.y, target.z, restored); inventory.waterBucket -= 1; inventory.bucket = (inventory.bucket || 0) + 1; statusElement.textContent = "Water put out the fire!"; rebuildMesh(); persistAndRender(); return; }
       if (!place || !inventory[selected] || playerOverlaps(place)) return;
       if (selected === "boat") { statusElement.textContent = "Face water and press B to board your boat."; return; }
       if (selected === "bucket") { statusElement.textContent = "Left-click water with a bucket to fill it."; return; }
       const block = selected === "waterBucket" ? "water" : selected;
-      world[place.y][place.z][place.x] = block; inventory[selected] -= 1; if (selected === "waterBucket") inventory.bucket = (inventory.bucket || 0) + 1;
+      world[place.y][place.z][place.x] = block; mpBlock(place.x, place.y, place.z, block); inventory[selected] -= 1; if (selected === "waterBucket") inventory.bucket = (inventory.bucket || 0) + 1;
       statusElement.textContent = `Placed ${types[block].label.toLowerCase()}.`; rebuildMesh(); persistAndRender();
     }
     function lightFire() {
@@ -465,7 +469,7 @@
         const chance = type === "fire" ? .2 : .04;
         dirs.forEach(([dx, dy, dz]) => { const next = blockAt(x + dx, y + dy, z + dz); if (flammable[next] && Math.random() < chance * flammable[next]) changes.push([x + dx, y + dy, z + dz, "fire"]); });
       }
-      changes.forEach(([x, y, z, value]) => { if (value === "fire" && nearWater(x, y, z)) return; if (value === "fire") ignite(x, y, z); else world[y][z][x] = value; });
+      changes.forEach(([x, y, z, value]) => { if (value === "fire" && nearWater(x, y, z)) return; if (value === "fire") ignite(x, y, z); else { world[y][z][x] = value; mpBlock(x, y, z, value); } });
       if (changes.length) { rebuildMesh(); persist(); }
       if (fireCells.length) { const before = animals.length; animals = animals.filter((animal) => !fireCells.some(([x, y, z]) => Math.abs(animal.x - (x + .5)) < 1 && Math.abs(animal.z - (z + .5)) < 1 && animal.y > y - 1.5 && animal.y < y + 1.5)); if (animals.length < before) { statusElement.textContent = "An animal was killed by the fire!"; rebuildMesh(); persist(); } }
       if (playerInFire && saved.survival && hitCooldown === 0) hurt("fire");
@@ -618,7 +622,7 @@
         tornadoBreakTimer -= delta;
         if (tornadoBreakTimer <= 0) {
           tornadoBreakTimer = .4; let broke = false;
-          for (let y = 0; y < height; y += 1) for (let z = Math.floor(lz) - 3; z <= Math.floor(lz) + 3; z += 1) for (let x = Math.floor(lx) - 3; x <= Math.floor(lx) + 3; x += 1) if (Math.hypot(x + .5 - lx, z + .5 - lz) < 2.8 && breakable.has(blockAt(x, y, z)) && Math.random() < .5) { world[y][z][x] = null; broke = true; }
+          for (let y = 0; y < height; y += 1) for (let z = Math.floor(lz) - 3; z <= Math.floor(lz) + 3; z += 1) for (let x = Math.floor(lx) - 3; x <= Math.floor(lx) + 3; x += 1) if (Math.hypot(x + .5 - lx, z + .5 - lz) < 2.8 && breakable.has(blockAt(x, y, z)) && Math.random() < .5) { world[y][z][x] = null; mpBlock(x, y, z, null); broke = true; }
           if (broke) rebuildMesh();
         }
       }
@@ -667,7 +671,30 @@
     disasterElement.addEventListener("change", () => { saved.disasters = disasterElement.checked; persist(); statusElement.textContent = disasterElement.checked ? "Disaster weather on: expect thunderstorms, tornados and floods!" : "Disaster weather off: only gentle rain and wind."; disasterElement.blur(); });
     window.addEventListener("pagehide", () => { weather.flood = null; syncFlood(); persist(); });
 
-    const mp = { peer: null, host: false, conns: [], players: new Map(), sendTimer: 0, code: "" };
+    const mp = { peer: null, host: false, adopted: false, conns: [], players: new Map(), sendTimer: 0, code: "" };
+    const lobbyEdits = new Map(), mpPending = []; let mpMeshDirty = false;
+    function mpBlock(x, y, z, value) {
+      if (!mp.peer) return; const ax = x + mapOriginX, az = z + mapOriginZ;
+      lobbyEdits.set(`${ax},${y},${az}`, value); mpPending.push([ax, y, az, value]);
+    }
+    function mpApplyBlocks(list) {
+      list.forEach((entry) => {
+        if (!Array.isArray(entry)) return; const [ax, y, az, value] = entry;
+        if (![ax, y, az].every(Number.isInteger) || y < 0 || y >= height || (value !== null && !types[value])) return;
+        lobbyEdits.set(`${ax},${y},${az}`, value);
+        const lx = ax - mapOriginX, lz = az - mapOriginZ, previous = blockAt(lx, y, lz); if (lx < 0 || lz < 0 || lx >= mapWidth || lz >= mapDepth) return;
+        if (value === "fire" && previous === "plank") burningPlanks.set(fireKey(lx, y, lz), 30); if (previous === "fire" && value !== "fire") burningPlanks.delete(fireKey(lx, y, lz));
+        world[y][lz][lx] = value; mpMeshDirty = true;
+      });
+    }
+    function mpSnapshot() { return { t: "world", world: encodeWorld(), w: mapWidth, d: mapDepth, ox: mapOriginX, oz: mapOriginZ, animals, px: player.x + mapOriginX, py: player.y, pz: player.z + mapOriginZ, edits: [...lobbyEdits] }; }
+    function mpAdopt(data) {
+      const next = decodeWorld(data.world, data.d, data.w); if (!next || ![data.w, data.d, data.ox, data.oz, data.px, data.py, data.pz].every(Number.isFinite)) return;
+      world = next; mapWidth = data.w; mapDepth = data.d; mapOriginX = data.ox; mapOriginZ = data.oz; animals = Array.isArray(data.animals) ? data.animals : [];
+      lobbyEdits.clear(); (Array.isArray(data.edits) ? data.edits : []).forEach(([key, value]) => lobbyEdits.set(key, value)); burningPlanks.clear(); thrown.length = 0;
+      player.x = Math.max(1, data.px - mapOriginX + 1); player.z = Math.max(1, data.pz - mapOriginZ); player.y = data.py + .5; player.velocityY = 0; mp.adopted = true; gliding = false;
+      rebuildMesh(); workbenchNearby = nearWorkbench(); renderCrafting(); mpStatusElement.textContent = `Connected to room ${mp.code}. You are in the host's world; your own world is safe.`;
+    }
     const mpNameElement = document.querySelector("#mpName"), mpCodeElement = document.querySelector("#mpCode"), mpStatusElement = document.querySelector("#mpStatus"), mpHostButton = document.querySelector("#mpHost"), mpJoinButton = document.querySelector("#mpJoin"), mpLeaveButton = document.querySelector("#mpLeave"), tagCanvas = document.querySelector("#tags"), tagCtx = tagCanvas.getContext("2d");
     mpNameElement.value = saved.mpName || GameProfiles.getActiveProfileName() || "Player";
     const mpName = () => (mpNameElement.value.trim() || "Player").slice(0, 16);
@@ -678,17 +705,19 @@
       if (!data || typeof data !== "object") return;
       if (!mp.host && data.t === "s" && data.id === `funcraft-${mp.code}` && Number.isFinite(data.d)) dayTime = ((data.d % 1) + 1) % 1;
       if (!mp.host && data.t === "s" && data.id === `funcraft-${mp.code}` && data.w) applyRemoteWeather(data.w);
+      if (!mp.host && data.t === "world") { mpAdopt(data); return; }
+      if (data.t === "b" && Array.isArray(data.c)) { mpApplyBlocks(data.c); if (mp.host) mpSend(data, conn); return; }
       if (data.t === "s" && typeof data.id === "string" && [data.x, data.y, data.z, data.yaw, data.pitch].every(Number.isFinite)) {
-        mp.players.set(data.id, { id: data.id, name: String(data.name || "Player").slice(0, 16), x: data.x, y: data.y, z: data.z, yaw: data.yaw, pitch: data.pitch, h: data.h ? 1 : 0, seen: performance.now() });
+        mp.players.set(data.id, { id: data.id, name: String(data.name || "Player").slice(0, 16), x: data.x, y: data.y, z: data.z, yaw: data.yaw, pitch: data.pitch, h: data.h ? 1 : 0, g: data.g ? 1 : 0, seen: performance.now() });
         if (mp.host) mpSend(data, conn);
       } else if (data.t === "bye" && typeof data.id === "string") { mp.players.delete(data.id); if (mp.host) mpSend(data, conn); }
     }
     function mpAttach(conn) {
-      conn.on("open", () => { if (!mp.conns.includes(conn)) mp.conns.push(conn); mpStatusElement.textContent = mp.host ? `Room ${mp.code}: ${mp.conns.length} player(s) joined. Share the code!` : `Connected to room ${mp.code}.`; });
+      conn.on("open", () => { if (!mp.conns.includes(conn)) mp.conns.push(conn); if (mp.host) conn.send(mpSnapshot()); mpStatusElement.textContent = mp.host ? `Room ${mp.code}: ${mp.conns.length} player(s) joined. Share the code!` : `Connected to room ${mp.code}.`; });
       conn.on("data", (data) => mpReceive(conn, data));
       conn.on("close", () => { mp.conns = mp.conns.filter((c) => c !== conn); mp.players.delete(conn.peer); if (mp.host) mpSend({ t: "bye", id: conn.peer }); else { mpReset(); mpStatusElement.textContent = "The host left the game."; } });
     }
-    function mpReset() { weather.tornado = null; weather.flood = null; lastStrikeId = null; if (mp.peer) mp.peer.destroy(); mp.peer = null; mp.host = false; mp.conns = []; mp.players.clear(); mpHostButton.hidden = mpJoinButton.hidden = mpCodeElement.hidden = false; mpLeaveButton.hidden = true; }
+    function mpReset() { const wasAdopted = mp.adopted && !mp.host; weather.tornado = null; weather.flood = null; lastStrikeId = null; if (mp.peer) mp.peer.destroy(); mp.peer = null; mp.host = false; mp.conns = []; mp.players.clear(); lobbyEdits.clear(); mpPending.length = 0; mp.adopted = false; mpHostButton.hidden = mpJoinButton.hidden = mpCodeElement.hidden = false; mpLeaveButton.hidden = true; if (wasAdopted) { startWorld(false); statusElement.textContent = "Back in your own world."; } }
     function mpStart(host) {
       if (typeof Peer === "undefined") { mpStatusElement.textContent = "Multiplayer could not load (are you online?)."; return; }
       const code = host ? Array.from({ length: 4 }, () => "ABCDEFGHJKLMNPQRSTUVWXYZ"[Math.floor(Math.random() * 24)]).join("") : mpCodeElement.value.trim().toUpperCase();
@@ -705,7 +734,9 @@
       peer.on("error", (error) => { mpStatusElement.textContent = error.type === "peer-unavailable" ? "No room with that code." : error.type === "unavailable-id" ? "Room code taken, try again." : `Multiplayer error: ${error.type}`; if (error.type !== "network") mpReset(); });
     }
     function mpUpdate(delta) {
+      if (mpMeshDirty) { mpMeshDirty = false; rebuildMesh(); }
       if (!mp.peer || !mp.peer.id) return; mp.sendTimer += delta; if (mp.sendTimer < .1) return; mp.sendTimer = 0;
+      if (mpPending.length) mpSend({ t: "b", c: mpPending.splice(0) });
       mpSend(mpState());
     }
     mpHostButton.addEventListener("click", () => mpStart(true));
