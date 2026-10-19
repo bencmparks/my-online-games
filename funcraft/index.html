@@ -488,7 +488,7 @@
       if (type === "fire") { statusElement.textContent = "Fire is too hot! Select a water bucket and right-click the fire to put it out."; return; }
       if (type === "water") { if (!inventory.bucket) { statusElement.textContent = "You need a bucket to collect water. Craft one from 3 iron ingots."; return; } inventory.bucket -= 1; inventory.waterBucket = (inventory.waterBucket || 0) + 1; world[target.y][target.z][target.x] = null; mpBlock(target.x, target.y, target.z, null); statusElement.textContent = "Filled your bucket with water."; rebuildMesh(); persistAndRender(); return; }
       if (selected === "torch" && inventory.torch && flammable[type]) { ignite(target.x, target.y, target.z); statusElement.textContent = `You set the ${types[type].label.toLowerCase()} on fire! Water puts it out.`; rebuildMesh(); persist(); return; }
-      world[target.y][target.z][target.x] = null; mpBlock(target.x, target.y, target.z, null); inventory[type] = (inventory[type] || 0) + 1; statusElement.textContent = `Collected ${types[type].label.toLowerCase()}.`; rebuildMesh(); persistAndRender(); }
+      world[target.y][target.z][target.x] = null; mpBlock(target.x, target.y, target.z, null); dropItem(type, target.x + .5, target.y + .5, target.z + .5); statusElement.textContent = `Broke ${types[type].label.toLowerCase()}. Walk over it to pick it up.`; rebuildMesh(); persistAndRender(); }
     function build() {
       const target = raycast(), place = target?.previous; if (!target) return;
       if (selected === "waterBucket" && inventory.waterBucket && blockAt(target.x, target.y, target.z) === "fire") { const key = fireKey(target.x, target.y, target.z); const restored = burningPlanks.delete(key) ? "plank" : null; world[target.y][target.z][target.x] = restored; mpBlock(target.x, target.y, target.z, restored); inventory.waterBucket -= 1; inventory.bucket = (inventory.bucket || 0) + 1; statusElement.textContent = "Water put out the fire!"; rebuildMesh(); persistAndRender(); return; }
@@ -874,6 +874,10 @@
       thrown.push({ type: selected, x: player.x + d[0] * .6 + mapOriginX, y: player.y + 1.45 + d[1] * .6, z: player.z + d[2] * .6 + mapOriginZ, vx: d[0] * 12, vy: d[1] * 12 + 2, vz: d[2] * 12, age: 0, landed: false, own: true, id: Math.random().toString(36).slice(2, 10) });
       const th = thrown[thrown.length - 1]; if (mp.peer) mpSend({ t: "th", id: th.id, type: th.type, x: th.x, y: th.y, z: th.z, vx: th.vx, vy: th.vy, vz: th.vz });
       statusElement.textContent = `Threw ${types[selected].label.toLowerCase()}. Walk over it to pick it back up.`; persistAndRender();
+    }
+    function dropItem(type, lx, ly, lz) {
+      const th = { type, x: lx + mapOriginX, y: ly, z: lz + mapOriginZ, vx: (Math.random() - .5) * 2, vy: 3, vz: (Math.random() - .5) * 2, age: 0, landed: false, own: true, id: Math.random().toString(36).slice(2, 10) };
+      thrown.push(th); if (mp.peer) mpSend({ t: "th", id: th.id, type: th.type, x: th.x, y: th.y, z: th.z, vx: th.vx, vy: th.vy, vz: th.vz });
     }
     function updateThrown(delta) {
       for (let i = thrown.length - 1; i >= 0; i -= 1) {
