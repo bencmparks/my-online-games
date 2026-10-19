@@ -379,7 +379,7 @@
     }
 
     function update(delta) {
-      if (!(mp.peer && !mp.host)) { const before = dayTime; dayTime = (dayTime + delta / (dayTime < .5 ? 480 : 240)) % 1; if (Math.floor(dayTime * 20) !== Math.floor(before * 20)) { saved.dayTime = dayTime; } }
+      if (!(mp.peer && !mp.host)) { const before = dayTime; dayTime = (dayTime + delta / (dayTime < .5 ? 480 : 80)) % 1; if (Math.floor(dayTime * 20) !== Math.floor(before * 20)) { saved.dayTime = dayTime; } }
       const forward = (keys.has("forward") ? 1 : 0) - (keys.has("back") ? 1 : 0), strafe = (keys.has("right") ? 1 : 0) - (keys.has("left") ? 1 : 0);
       const glide = gliding && !boating && !inWater() && !player.onGround; if (gliding && !glide) { gliding = false; statusElement.textContent = "You landed."; }
       const length = Math.hypot(forward, strafe) || 1, speed = (boating ? 6 : inWater() ? 2 : 4) * (running ? 2 : 1) * (inQuicksand() ? .3 : 1) * (planeOn ? 0 : 1);
