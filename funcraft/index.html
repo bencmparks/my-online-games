@@ -766,6 +766,7 @@
       if (!mp.host && data.t === "s" && data.id === `funcraft-${mp.code}` && data.w) applyRemoteWeather(data.w);
       if (!mp.host && data.t === "world") { mpAdopt(data); return; }
       if (data.t === "th" && types[data.type] && !types[data.type].hidden && [data.x, data.y, data.z, data.vx, data.vy, data.vz].every(Number.isFinite) && typeof data.id === "string") { if (!thrown.some((o) => o.id === data.id)) thrown.push({ type: data.type, x: data.x, y: data.y, z: data.z, vx: data.vx, vy: data.vy, vz: data.vz, age: 0, landed: false, own: false, id: data.id }); if (mp.host) mpSend(data, conn); return; }
+      if (data.t === "tl" && typeof data.id === "string" && [data.x, data.y, data.z].every(Number.isFinite)) { const o = thrown.find((q) => q.id === data.id); if (o && !o.own) { o.x = data.x; o.y = data.y; o.z = data.z; o.vx = o.vy = o.vz = 0; o.landed = true; } if (mp.host) mpSend(data, conn); return; }
       if (data.t === "tp" && typeof data.id === "string") { const k = thrown.findIndex((o) => o.id === data.id); if (k >= 0) thrown.splice(k, 1); if (mp.host) mpSend(data, conn); return; }
       if (data.t === "b" && Array.isArray(data.c)) { mpApplyBlocks(data.c); if (mp.host) mpSend(data, conn); return; }
       if (data.t === "s" && typeof data.id === "string" && [data.x, data.y, data.z, data.yaw, data.pitch].every(Number.isFinite)) {
@@ -883,7 +884,7 @@
           const nx = it.x + it.vx * delta; if (at(nx, it.y, it.z)) it.vx *= -.4; else it.x = nx;
           const nz = it.z + it.vz * delta; if (at(it.x, it.y, nz)) it.vz *= -.4; else it.z = nz;
           const ny = it.y + it.vy * delta;
-          if (at(it.x, ny, it.z)) { if (it.vy < 0) { it.vy *= -.35; it.vx *= .6; it.vz *= .6; if (Math.abs(it.vy) < 1.5) { it.vy = 0; it.landed = true; it.y = Math.floor(ny) + 1.15; } } else it.vy *= -.3; } else it.y = ny;
+          if (at(it.x, ny, it.z)) { if (it.vy < 0) { it.vy *= -.35; it.vx *= .6; it.vz *= .6; if (Math.abs(it.vy) < 1.5) { it.vy = 0; it.landed = true; it.y = Math.floor(ny) + 1.15; if (it.own && mp.peer) mpSend({ t: "tl", id: it.id, x: it.x, y: it.y, z: it.z }); } } else it.vy *= -.3; } else it.y = ny;
           if (blockAt(Math.floor(it.x - mapOriginX), Math.floor(it.y), Math.floor(it.z - mapOriginZ)) === "water") { it.vx *= .92; it.vz *= .92; it.vy *= .92; }
           if (it.own && Math.hypot(it.vx, it.vy, it.vz) > 4) {
             const hit = animals.find((a) => !a.pet && Math.abs(a.x - (it.x - mapOriginX)) < .6 && Math.abs(a.z - (it.z - mapOriginZ)) < .5 && it.y >= a.y - .2 && it.y <= a.y + 1.1);
