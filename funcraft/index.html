@@ -228,7 +228,7 @@
       for (let y = 0; y < height; y += 1) for (let z = minZ; z < maxZ; z += 1) for (let x = minX; x < maxX; x += 1) {
         const type = blockAt(x, y, z); if (!type) continue;
         if (type === "torch") lightList.push([x + .5, y + .8, z + .5, 8]);
-        if (type === "fire") lightList.push([x + .5, y + .6, z + .5, 11, .5]);
+        if (type === "fire") lightList.push([x + .5, y + .6, z + .5, 11, .4]);
         if (type === "torch") { addAnimalCube(x + .42, y, z + .42, .16, .6, .16, [.55, .33, .12]); addAnimalCube(x + .38, y + .6, z + .38, .24, .24, .24, [1, .82, .15]); continue; }
         if (type === "fire") { addAnimalCube(x + .15, y, z + .15, .7, .5, .7, [.98, .45, .08]); addAnimalCube(x + .3, y + .5, z + .3, .4, .4, .4, [1, .8, .15]); continue; }
         faces.forEach((face, index) => {
