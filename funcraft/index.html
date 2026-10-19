@@ -38,7 +38,7 @@
     <p id="hunger">Hunger: <span id="hunger-value">100</span>/100</p>
     <p><label>Brightness <input id="brightness" type="range" min="0.4" max="1.6" step="0.05" value="1"></label></p>
     <p><label><input id="disasters" type="checkbox"> Disaster weather: thunderstorms, tornados and floods</label> <span id="weatherLabel"></span></p>
-    <p>Press Q to throw the selected item (walk over it to pick it up; direct hits on animals collect meat). Hold V to zoom in. Hold Shift to run at double speed. Press G in mid-air to glide once you've crafted a glider (3 wood + 2 hide). Press P to change the camera: first person, behind you, or facing you.</p>
+    <p>Press Q to throw the selected item (walk over it to pick it up; direct hits on animals collect meat). Hold V to zoom in. Hold Shift to run at double speed. Press G in mid-air to glide once you've crafted a glider (3 wood + 2 hide). Craft an airplane (10 gold ingots + 10 iron ingots + 30 coal for fuel) and press O to fly it: look to steer, W speeds up, S slows down, O gets you out. Press P to change the camera: first person, behind you, or facing you.</p>
     <p>Hotkeys: press a number key 0-9 to select its item. Select an item, then hold Shift and press 0-9 to assign it to that key. <span id="hotkeyList"></span></p>
     <p><label><input id="survival" type="checkbox"> Survival mode: 5 lives and hostile animals (wolf, bear, boar) and fire damage</label> <span id="lives"></span></p>
     <p id="multiplayer"><label>Name <input id="mpName" type="text" maxlength="16" size="12"></label> <button id="mpHost" type="button">Host game</button> <input id="mpCode" type="text" maxlength="4" size="6" placeholder="CODE" aria-label="Room code"> <button id="mpJoin" type="button">Join</button> <button id="mpLeave" type="button" hidden>Leave</button> <span id="mpStatus">Play with a friend: one hosts and shares the 4-letter code, the other joins.</span></p>
@@ -64,7 +64,7 @@
       ironIngot: { label: "Iron ingot", color: [226, 232, 240] }, goldIngot: { label: "Gold ingot", color: [253, 224, 71] },
       meat: { label: "Meat", color: [190, 55, 45] }, hide: { label: "Hide", color: [137, 92, 56] },
       torch: { label: "Torch", color: [250, 204, 21], solid: false }, fire: { label: "Fire", color: [249, 115, 22], solid: false, hidden: true },
-      bucket: { label: "Bucket", color: [148, 163, 184] }, waterBucket: { label: "Water bucket", color: [56, 189, 248] }, boat: { label: "Boat", color: [139, 90, 43] }, glider: { label: "Glider", color: [220, 60, 60] }, quicksand: { label: "Quicksand", color: [201, 160, 92], solid: false }
+      bucket: { label: "Bucket", color: [148, 163, 184] }, waterBucket: { label: "Water bucket", color: [56, 189, 248] }, boat: { label: "Boat", color: [139, 90, 43] }, glider: { label: "Glider", color: [220, 60, 60] }, quicksand: { label: "Quicksand", color: [201, 160, 92], solid: false }, airplane: { label: "Airplane", color: [226, 232, 240] }
     };
     const flammable = { wood: 1, leaves: 1.4, grass: 1.5, coal: .5, plank: 1 };
     const burningPlanks = new Map(), fireKey = (x, y, z) => `${x + mapOriginX},${y},${z + mapOriginZ}`;
@@ -76,6 +76,7 @@
       { output: "torch", amount: 4, cost: { wood: 1, coal: 1 } },
       { output: "boat", amount: 1, cost: { plank: 5 } },
       { output: "glider", amount: 1, cost: { wood: 3, hide: 2 } },
+      { output: "airplane", amount: 1, cost: { goldIngot: 10, ironIngot: 10, coal: 30 } },
       { output: "workbench", amount: 1, cost: { plank: 4 } },
       { output: "bucket", amount: 1, cost: { ironIngot: 3 } },
       { output: "brick", amount: 2, cost: { stone: 2, dirt: 1 }, requiresWorkbench: true },
@@ -378,9 +379,10 @@
       if (!(mp.peer && !mp.host)) { dayTime = (dayTime + delta / 240) % 1; if (Math.floor(dayTime * 20) !== Math.floor((dayTime - delta / 240) * 20)) { saved.dayTime = dayTime; } }
       const forward = (keys.has("forward") ? 1 : 0) - (keys.has("back") ? 1 : 0), strafe = (keys.has("right") ? 1 : 0) - (keys.has("left") ? 1 : 0);
       const glide = gliding && !boating && !inWater() && !player.onGround; if (gliding && !glide) { gliding = false; statusElement.textContent = "You landed."; }
-      const length = Math.hypot(forward, strafe) || 1, speed = (boating ? 6 : inWater() ? 2 : 4) * (running ? 2 : 1) * (inQuicksand() ? .3 : 1);
+      const length = Math.hypot(forward, strafe) || 1, speed = (boating ? 6 : inWater() ? 2 : 4) * (running ? 2 : 1) * (inQuicksand() ? .3 : 1) * (planeOn ? 0 : 1);
       move((Math.sin(player.yaw) * forward - Math.cos(player.yaw) * strafe) / length * speed * delta, 0, (Math.cos(player.yaw) * forward + Math.sin(player.yaw) * strafe) / length * speed * delta);
       if (boating) { const top = waterTop(player.x, player.z); if (top === null) { boating = false; statusElement.textContent = "Your boat left the water."; } else { player.y = top - .2; player.velocityY = 0; player.onGround = true; } }
+      else if (planeOn) flyPlane(delta);
       else { player.velocityY += (inWater() ? -3 : -18) * delta; if (inQuicksand()) player.velocityY = Math.max(player.velocityY, -1.1); if (glide) { const dive = Math.max(0, -player.pitch), flare = Math.max(0, player.pitch), boost = boosting && boostEnergy > 0 ? 1 : 0, fly = (8 + 6 * dive - 3 * flare) * (1 + 6 * boost); boostEnergy = boost ? Math.max(0, boostEnergy - delta) : Math.min(3, boostEnergy + delta * 1.5); player.velocityY = -1.5 - 4 * dive + .7 * flare + .5 * boost; move(Math.sin(player.yaw) * fly * delta, 0, Math.cos(player.yaw) * fly * delta); if (boosting && boostEnergy <= 0 && !boostEmptyShown) { boostEmptyShown = true; statusElement.textContent = "Boost used up. It recharges while you glide."; } if (boostEnergy > .5) boostEmptyShown = false; } else boostEnergy = Math.min(3, boostEnergy + delta * 1.5); player.onGround = false; move(0, player.velocityY * delta, 0); }
       if (boating || inWater()) { const [vx, vz] = currentAt(Math.floor(player.x) + mapOriginX, Math.floor(player.z) + mapOriginZ), pull = boating ? 1.6 : 1.2; if (vx || vz) { move(vx * pull * delta, 0, vz * pull * delta); if (!currentNoticed) { currentNoticed = true; statusElement.textContent = "The current pulls you along the water."; } } }
       expandMap(); updateAnimals(delta); updateHostiles(delta); updatePets(delta); updateFire(delta); updateSmoke(delta); mpUpdate(delta); updateThrown(delta); updateWeather(delta); applyWeatherEffects(delta);
@@ -757,7 +759,7 @@
     const mpName = () => (mpNameElement.value.trim() || "Player").slice(0, 16);
     function remotePlayers() { const now = performance.now(); mp.players.forEach((peer, id) => { if (now - peer.seen > 6000) mp.players.delete(id); }); return [...mp.players.values()]; }
     function mpSend(data, except) { mp.conns.forEach((conn) => { if (conn !== except && conn.open) conn.send(data); }); }
-    function mpState() { return { t: "s", id: mp.peer.id, name: mpName(), x: player.x + mapOriginX, y: player.y, z: player.z + mapOriginZ, yaw: player.yaw, pitch: player.pitch, h: selected === "torch" && inventory.torch ? 1 : 0, d: dayTime, g: gliding ? 1 : 0, ...(mp.host ? { w: weatherPayload() } : {}) }; }
+    function mpState() { return { t: "s", id: mp.peer.id, name: mpName(), x: player.x + mapOriginX, y: player.y, z: player.z + mapOriginZ, yaw: player.yaw, pitch: player.pitch, h: selected === "torch" && inventory.torch ? 1 : 0, d: dayTime, g: planeOn ? 2 : gliding ? 1 : 0, ...(mp.host ? { w: weatherPayload() } : {}) }; }
     function mpReceive(conn, data) {
       if (!data || typeof data !== "object") return;
       if (!mp.host && data.t === "s" && data.id === `funcraft-${mp.code}` && Number.isFinite(data.d)) dayTime = ((data.d % 1) + 1) % 1;
@@ -765,7 +767,7 @@
       if (!mp.host && data.t === "world") { mpAdopt(data); return; }
       if (data.t === "b" && Array.isArray(data.c)) { mpApplyBlocks(data.c); if (mp.host) mpSend(data, conn); return; }
       if (data.t === "s" && typeof data.id === "string" && [data.x, data.y, data.z, data.yaw, data.pitch].every(Number.isFinite)) {
-        mp.players.set(data.id, { id: data.id, name: String(data.name || "Player").slice(0, 16), x: data.x, y: data.y, z: data.z, yaw: data.yaw, pitch: data.pitch, h: data.h ? 1 : 0, g: data.g ? 1 : 0, seen: performance.now() });
+        mp.players.set(data.id, { id: data.id, name: String(data.name || "Player").slice(0, 16), x: data.x, y: data.y, z: data.z, yaw: data.yaw, pitch: data.pitch, h: data.h ? 1 : 0, g: data.g === 2 ? 2 : data.g ? 1 : 0, seen: performance.now() });
         if (mp.host) mpSend(data, conn);
       } else if (data.t === "bye" && typeof data.id === "string") { mp.players.delete(data.id); if (mp.host) mpSend(data, conn); }
     }
@@ -802,7 +804,7 @@
     mpNameElement.addEventListener("change", () => { saved.mpName = mpName(); persist(); });
     function nameColor(name) { let h = 0; for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) % 360; const r = h * Math.PI / 180; return [.55 + .35 * Math.sin(r), .55 + .35 * Math.sin(r + 2.1), .55 + .35 * Math.sin(r + 4.2)]; }
     function drawRemotePlayers() {
-      const peers = remotePlayers(); if (camMode) peers.push({ x: player.x + mapOriginX, y: player.y, z: player.z + mapOriginZ, yaw: player.yaw, name: mpName(), h: selected === "torch" && inventory.torch ? 1 : 0, g: gliding });
+      const peers = remotePlayers(); if (camMode) peers.push({ x: player.x + mapOriginX, y: player.y, z: player.z + mapOriginZ, yaw: player.yaw, name: mpName(), h: selected === "torch" && inventory.torch ? 1 : 0, g: planeOn ? 2 : gliding });
       if (!peers.length) return;
       const data = [], unit = [[0,0,0],[1,0,0],[1,1,0],[0,1,0],[0,0,1],[1,0,1],[1,1,1],[0,1,1]], quads = [[0,1,2,3],[4,5,6,7],[0,1,5,4],[3,2,6,7],[0,3,7,4],[1,2,6,5]];
       peers.forEach((peer) => {
@@ -812,7 +814,7 @@
         box(0, .7, 0, .5, .7, .28, body); box(-.34, .75, 0, .16, .6, .2, skin); box(.34, .75, 0, .16, .6, .2, skin);
         box(0, 1.4, 0, .4, .4, .4, skin); box(-.09, 1.55, .21, .07, .07, .02, [.05, .05, .05]); box(.09, 1.55, .21, .07, .07, .02, [.05, .05, .05]);
         if (peer.h) box(.34, 1.2, .2, .08, .35, .08, [.95, .75, .2]);
-        if (peer.g) { box(-.9, 1.5, -.1, 1.5, .05, .9, [.86, .24, .24]); box(.9, 1.5, -.1, 1.5, .05, .9, [.86, .24, .24]); }
+        if (peer.g === 2) { box(-2.2, .9, -.2, 4.4, .08, .9, [.9, .92, .96]); box(-.3, .5, -1.4, .6, .6, 2.8, [.8, .22, .22]); box(-.9, .9, -1.4, 1.8, .06, .5, [.9, .92, .96]); box(-.04, .9, -1.4, .08, .6, .5, [.8, .22, .22]); } else if (peer.g) { box(-.9, 1.5, -.1, 1.5, .05, .9, [.86, .24, .24]); box(.9, 1.5, -.1, 1.5, .05, .9, [.86, .24, .24]); }
       });
       gl.bindBuffer(gl.ARRAY_BUFFER, smokeBuffer); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.DYNAMIC_DRAW);
       gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 24, 0); gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 24, 12);
@@ -830,10 +832,22 @@
       });
     }
 
-    let camMode = 0, lastThrow = 0, zooming = false, zoomAmount = 0, gliding = false, running = false, boosting = false, boostEnergy = 3, boostEmptyShown = false;
+    let camMode = 0, lastThrow = 0, zooming = false, zoomAmount = 0, gliding = false, planeOn = false, running = false, boosting = false, boostEnergy = 3, boostEmptyShown = false;
     document.addEventListener("keydown", (event) => { if (event.key === "Shift") running = true; });
     document.addEventListener("keyup", (event) => { if (event.key === "Shift") running = false; });
     window.addEventListener("blur", () => { running = false; });
+    function flyPlane(delta) {
+      const thrust = (keys.has("forward") ? 1.6 : keys.has("back") ? .5 : 1) * 14 * (running ? 1.5 : 1), flat = Math.cos(player.pitch);
+      move(Math.sin(player.yaw) * flat * thrust * delta, 0, Math.cos(player.yaw) * flat * thrust * delta);
+      let climb = Math.sin(player.pitch) * thrust * .9; if (player.y > height - 4) climb = Math.min(climb, 0);
+      player.velocityY = 0; player.onGround = false; move(0, climb * delta, 0);
+    }
+    function toggleAirplane() {
+      if (planeOn) { planeOn = false; statusElement.textContent = "You climbed out of the airplane."; return; }
+      if (!inventory.airplane) { statusElement.textContent = "Craft an airplane first (10 gold ingots + 10 iron ingots + 30 coal for fuel)."; return; }
+      planeOn = true; boating = false; gliding = false; player.y += .3;
+      statusElement.textContent = "Airplane engaged! Look up to climb, look down to dive. W speeds up, S slows down, Shift is turbo. Press O to get out.";
+    }
     function toggleGlide() {
       if (gliding) { gliding = false; statusElement.textContent = "Glider folded."; return; }
       if (!inventory.glider) { statusElement.textContent = "Craft a glider first (3 wood + 2 hide)."; return; }
@@ -898,7 +912,7 @@
       else statusElement.textContent = `Hotkey ${slot} is empty. Select an item and press Shift+${slot}.`;
       event.preventDefault();
     });
-    document.addEventListener("keydown", (event) => { if (event.target.type === "text") return; const action = { w:"forward",W:"forward",ArrowUp:"forward",s:"back",S:"back",ArrowDown:"back",a:"left",A:"left",ArrowLeft:"left",d:"right",D:"right",ArrowRight:"right" }[event.key]; if (action) { keys.add(action); event.preventDefault(); } if (event.key === " ") { jump(); event.preventDefault(); } if (event.key === "e" || event.key === "E") { useContextAction(); event.preventDefault(); } if (event.key === "t" || event.key === "T") { teleportToPlayer(); event.preventDefault(); } if (event.key === "y" || event.key === "Y") { setWaypoint(); event.preventDefault(); } if (event.key === "u" || event.key === "U") { teleportWaypoint(); event.preventDefault(); } if (event.key === "h" || event.key === "H") { teleportHome(); event.preventDefault(); } if (event.key === "l" || event.key === "L") { lightFire(); event.preventDefault(); } if (event.key === "b" || event.key === "B") { toggleBoat(); event.preventDefault(); } if (event.key === "g" || event.key === "G") { toggleGlide(); event.preventDefault(); } if ((event.key === "f" || event.key === "F") && !event.repeat) { boosting = true; if (gliding) statusElement.textContent = "Boost!"; } if (event.key === "q" || event.key === "Q") { throwItem(); event.preventDefault(); } if (event.key === "p" || event.key === "P") { toggleCamera(); event.preventDefault(); } if (event.key === "v" || event.key === "V") { zooming = true; event.preventDefault(); } });
+    document.addEventListener("keydown", (event) => { if (event.target.type === "text") return; const action = { w:"forward",W:"forward",ArrowUp:"forward",s:"back",S:"back",ArrowDown:"back",a:"left",A:"left",ArrowLeft:"left",d:"right",D:"right",ArrowRight:"right" }[event.key]; if (action) { keys.add(action); event.preventDefault(); } if (event.key === " ") { jump(); event.preventDefault(); } if (event.key === "e" || event.key === "E") { useContextAction(); event.preventDefault(); } if (event.key === "t" || event.key === "T") { teleportToPlayer(); event.preventDefault(); } if (event.key === "y" || event.key === "Y") { setWaypoint(); event.preventDefault(); } if (event.key === "u" || event.key === "U") { teleportWaypoint(); event.preventDefault(); } if (event.key === "h" || event.key === "H") { teleportHome(); event.preventDefault(); } if (event.key === "l" || event.key === "L") { lightFire(); event.preventDefault(); } if (event.key === "b" || event.key === "B") { toggleBoat(); event.preventDefault(); } if (event.key === "g" || event.key === "G") { toggleGlide(); event.preventDefault(); } if (event.key === "o" || event.key === "O") { toggleAirplane(); event.preventDefault(); } if ((event.key === "f" || event.key === "F") && !event.repeat) { boosting = true; if (gliding) statusElement.textContent = "Boost!"; } if (event.key === "q" || event.key === "Q") { throwItem(); event.preventDefault(); } if (event.key === "p" || event.key === "P") { toggleCamera(); event.preventDefault(); } if (event.key === "v" || event.key === "V") { zooming = true; event.preventDefault(); } });
     document.addEventListener("keyup", (event) => { if (event.key === "v" || event.key === "V") zooming = false; if (event.key === "f" || event.key === "F") boosting = false; });
     window.addEventListener("blur", () => { zooming = false; });
     document.addEventListener("keyup", (event) => { const action = { w:"forward",W:"forward",ArrowUp:"forward",s:"back",S:"back",ArrowDown:"back",a:"left",A:"left",ArrowLeft:"left",d:"right",D:"right",ArrowRight:"right" }[event.key]; if (action) keys.delete(action); });
