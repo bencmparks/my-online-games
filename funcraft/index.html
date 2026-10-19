@@ -64,7 +64,9 @@
       torch: { label: "Torch", color: [250, 204, 21], solid: false }, fire: { label: "Fire", color: [249, 115, 22], solid: false, hidden: true },
       bucket: { label: "Bucket", color: [148, 163, 184] }, waterBucket: { label: "Water bucket", color: [56, 189, 248] }, boat: { label: "Boat", color: [139, 90, 43] }
     };
-    const flammable = { wood: 1, leaves: 1.4, grass: 1.5, coal: .5 };
+    const flammable = { wood: 1, leaves: 1.4, grass: 1.5, coal: .5, plank: 1 };
+    const burningPlanks = new Map(), fireKey = (x, y, z) => `${x + mapOriginX},${y},${z + mapOriginZ}`;
+    function ignite(x, y, z) { if (world[y][z][x] === "plank") burningPlanks.set(fireKey(x, y, z), 30); world[y][z][x] = "fire"; }
     let fireTimer = 0, boating = false, currentNoticed = false, smoke = [], smokeTimer = 0, fireCells = [];
     const smokeBuffer = gl.createBuffer();
     const recipes = [
@@ -347,11 +349,11 @@
     function mine() { const animal = animalInSight(); if (animal && animal.pet) { statusElement.textContent = "That's your pet! Press E to pet it."; return; } if (animal) { animals.splice(animals.indexOf(animal), 1); inventory.meat = (inventory.meat || 0) + 1; inventory.hide = (inventory.hide || 0) + 1; statusElement.textContent = "You collected food and hide from an animal."; rebuildMesh(); persistAndRender(); return; } const target = raycast(); if (!target) return; const type = blockAt(target.x,target.y,target.z);
       if (type === "fire") { statusElement.textContent = "Fire is too hot! Select a water bucket and right-click the fire to put it out."; return; }
       if (type === "water") { if (!inventory.bucket) { statusElement.textContent = "You need a bucket to collect water. Craft one from 3 iron ingots."; return; } inventory.bucket -= 1; inventory.waterBucket = (inventory.waterBucket || 0) + 1; world[target.y][target.z][target.x] = null; statusElement.textContent = "Filled your bucket with water."; rebuildMesh(); persistAndRender(); return; }
-      if (selected === "torch" && inventory.torch && flammable[type]) { world[target.y][target.z][target.x] = "fire"; statusElement.textContent = `You set the ${types[type].label.toLowerCase()} on fire! Water puts it out.`; rebuildMesh(); persist(); return; }
+      if (selected === "torch" && inventory.torch && flammable[type]) { ignite(target.x, target.y, target.z); statusElement.textContent = `You set the ${types[type].label.toLowerCase()} on fire! Water puts it out.`; rebuildMesh(); persist(); return; }
       world[target.y][target.z][target.x] = null; inventory[type] = (inventory[type] || 0) + 1; statusElement.textContent = `Collected ${types[type].label.toLowerCase()}.`; rebuildMesh(); persistAndRender(); }
     function build() {
       const target = raycast(), place = target?.previous; if (!target) return;
-      if (selected === "waterBucket" && inventory.waterBucket && blockAt(target.x, target.y, target.z) === "fire") { world[target.y][target.z][target.x] = null; inventory.waterBucket -= 1; inventory.bucket = (inventory.bucket || 0) + 1; statusElement.textContent = "Water put out the fire!"; rebuildMesh(); persistAndRender(); return; }
+      if (selected === "waterBucket" && inventory.waterBucket && blockAt(target.x, target.y, target.z) === "fire") { const key = fireKey(target.x, target.y, target.z); world[target.y][target.z][target.x] = burningPlanks.delete(key) ? "plank" : null; inventory.waterBucket -= 1; inventory.bucket = (inventory.bucket || 0) + 1; statusElement.textContent = "Water put out the fire!"; rebuildMesh(); persistAndRender(); return; }
       if (!place || !inventory[selected] || playerOverlaps(place)) return;
       if (selected === "boat") { statusElement.textContent = "Face water and press B to board your boat."; return; }
       if (selected === "bucket") { statusElement.textContent = "Left-click water with a bucket to fill it."; return; }
@@ -363,7 +365,7 @@
       if (selected !== "torch" || !inventory.torch) { statusElement.textContent = "Select a torch from your inventory to light fires with L."; return; }
       const target = raycast(), type = target && blockAt(target.x, target.y, target.z);
       if (!flammable[type]) { statusElement.textContent = "Aim at wood, leaves, grass or coal to light it."; return; }
-      world[target.y][target.z][target.x] = "fire"; statusElement.textContent = `You set the ${types[type].label.toLowerCase()} on fire! Water puts it out.`; rebuildMesh(); persist();
+      ignite(target.x, target.y, target.z); statusElement.textContent = `You set the ${types[type].label.toLowerCase()} on fire! Water puts it out.`; rebuildMesh(); persist();
     }
     function nearWater(x, y, z) { for (let dy = -1; dy <= 1; dy += 1) for (let dz = -1; dz <= 1; dz += 1) for (let dx = -1; dx <= 1; dx += 1) if (blockAt(x + dx, y + dy, z + dz) === "water") return true; return false; }
     function updateFire(delta) {
@@ -373,14 +375,19 @@
       for (let y = 0; y < height; y += 1) for (let z = minZ; z < maxZ; z += 1) for (let x = minX; x < maxX; x += 1) {
         const type = world[y][z][x]; if (type !== "fire" && type !== "torch") continue;
         if (type === "fire") {
-          if (nearWater(x, y, z) || Math.random() < .12 || !dirs.some(([dx, dy, dz]) => flammable[blockAt(x + dx, y + dy, z + dz)])) { changes.push([x, y, z, null]); continue; }
+          const burnKey = fireKey(x, y, z), burn = burningPlanks.get(burnKey);
+          if (burn !== undefined) {
+            if (nearWater(x, y, z)) { burningPlanks.delete(burnKey); changes.push([x, y, z, "plank"]); continue; }
+            if (burn <= 1) { burningPlanks.delete(burnKey); changes.push([x, y, z, null]); continue; }
+            burningPlanks.set(burnKey, burn - 1);
+          } else if (nearWater(x, y, z) || Math.random() < .12 || !dirs.some(([dx, dy, dz]) => flammable[blockAt(x + dx, y + dy, z + dz)])) { changes.push([x, y, z, null]); continue; }
           if (Math.hypot(player.x - (x + .5), player.z - (z + .5)) < 1 && y + 1 > player.y && y < player.y + 1.7) playerInFire = true;
           fireCells.push([x, y, z]);
         }
         const chance = type === "fire" ? .2 : .04;
         dirs.forEach(([dx, dy, dz]) => { const next = blockAt(x + dx, y + dy, z + dz); if (flammable[next] && Math.random() < chance * flammable[next]) changes.push([x + dx, y + dy, z + dz, "fire"]); });
       }
-      changes.forEach(([x, y, z, value]) => { if (value === "fire" && nearWater(x, y, z)) return; world[y][z][x] = value; });
+      changes.forEach(([x, y, z, value]) => { if (value === "fire" && nearWater(x, y, z)) return; if (value === "fire") ignite(x, y, z); else world[y][z][x] = value; });
       if (changes.length) { rebuildMesh(); persist(); }
       if (fireCells.length) { const before = animals.length; animals = animals.filter((animal) => !fireCells.some(([x, y, z]) => Math.abs(animal.x - (x + .5)) < 1 && Math.abs(animal.z - (z + .5)) < 1 && animal.y > y - 1.5 && animal.y < y + 1.5)); if (animals.length < before) { statusElement.textContent = "An animal was killed by the fire!"; rebuildMesh(); persist(); } }
       if (playerInFire && saved.survival && hitCooldown === 0) hurt("fire");
