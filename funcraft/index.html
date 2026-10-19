@@ -37,10 +37,11 @@
     </div>
     <p id="hunger">Hunger: <span id="hunger-value">100</span>/100</p>
     <p><label>Brightness <input id="brightness" type="range" min="0.4" max="1.6" step="0.05" value="1"></label></p>
-    <p><label><input id="disasters" type="checkbox"> Disaster weather: thunderstorms, tornados and floods</label> <span id="weatherLabel"></span></p>
+    <p><a href="hub.html">Change game mode</a> <span id="modeLabel"></span> <span id="weatherLabel"></span></p>
+    <p id="worldsBar">World: <input id="worldName" maxlength="20" placeholder="World name" size="14"> <button id="saveWorld" type="button">Save world</button> <select id="worldList"></select> <button id="playWorld" type="button">Play</button> <button id="deleteWorld" type="button">Delete</button> <span id="worldMsg"></span></p>
     <p>Press Q to throw the selected item (walk over it to pick it up; direct hits on animals collect meat). Hold V to zoom in. Hold Shift to run at double speed. Press G in mid-air to glide once you've crafted a glider (3 wood + 2 hide). Craft an airplane (10 gold ingots + 10 iron ingots + 30 coal for fuel) and press O to fly it: look to steer, W speeds up, S slows down, O gets you out. Press P to change the camera: first person, behind you, or facing you.</p>
     <p>Hotkeys: press a number key 0-9 to select its item. Select an item, then hold Shift and press 0-9 to assign it to that key. <span id="hotkeyList"></span></p>
-    <p><label><input id="survival" type="checkbox"> Survival mode: 5 lives and hostile animals (wolf, bear, boar) and fire damage</label> <span id="lives"></span></p>
+    <p><span id="lives"></span></p>
     <p id="multiplayer"><label>Name <input id="mpName" type="text" maxlength="16" size="12"></label> <button id="mpHost" type="button">Host game</button> <input id="mpCode" type="text" maxlength="4" size="6" placeholder="CODE" aria-label="Room code"> <button id="mpJoin" type="button">Join</button> <button id="mpLeave" type="button" hidden>Leave</button> <span id="mpStatus">Play with a friend: one hosts and shares the 4-letter code, the other joins.</span></p>
     <p id="status" aria-live="polite">Click the world to begin exploring.</p>
   </main>
@@ -84,6 +85,8 @@
     ];
     const guestKey = "funcraft-guest-save", saveDefaults = { world: [], inventory: {}, player: null, worldVersion: 0 };
     const saved = GameProfiles.isUnlocked() ? GameProfiles.getGame("funcraft", saveDefaults) : (() => { try { return { ...saveDefaults, ...JSON.parse(localStorage.getItem(guestKey) || "{}") }; } catch { return { ...saveDefaults }; } })();
+    const gameModes = { survival: [true, false, "Survival"], "survival-disaster": [true, true, "Survival + Disasters"], peaceful: [false, false, "Peaceful"], disaster: [false, true, "Disasters"] };
+    { const mode = gameModes[new URLSearchParams(location.search).get("mode")]; if (mode) { saved.survival = mode[0]; saved.disasters = mode[1]; saved.modeName = mode[2]; } document.querySelector("#modeLabel").textContent = saved.modeName ? "Mode: " + saved.modeName : ""; }
     const player = { x: 5.5, y: 8, z: 5.5, yaw: 0, pitch: -.12, velocityY: 0, onGround: false, hunger: 100 };
     const keys = new Set();
     const skyBuffer = gl.createBuffer(), starField = Array.from({ length: 90 }, () => { const a = Math.random() * Math.PI * 2, e = Math.random() * 1.4 - .2; return [Math.cos(a) * Math.cos(e), Math.sin(e), Math.sin(a) * Math.cos(e)]; });
@@ -260,7 +263,7 @@
       boar: { body: [100, 70, 60], head: [60, 40, 35], scale: .9, ears: .1, tail: [60, 40, 35], hostile: true, speed: 3 }
     };
     let lives = 5, maxLives = 5, hitCooldown = 0, petMeshTimer = 0, hostileMeshTimer = 0, hostileSpawnTimer = 0;
-    const livesElement = document.querySelector("#lives"), survivalElement = document.querySelector("#survival");
+    const livesElement = document.querySelector("#lives"), survivalElement = { get checked() { return !!saved.survival; }, set checked(v) { saved.survival = !!v; }, addEventListener() {} };
     const hostileKinds = () => Object.keys(animalKinds).filter((kind) => animalKinds[kind].hostile);
     function renderLives() { livesElement.textContent = saved.survival ? "❤️".repeat(Math.max(lives, 0)) : ""; }
     function addHostile() { const kinds = hostileKinds(), kind = kinds[Math.floor(Math.random() * kinds.length)], angle = Math.random() * Math.PI * 2, radius = 10 + Math.random() * 6, x = Math.max(2, Math.min(mapWidth - 3, player.x + Math.cos(angle) * radius)), z = Math.max(2, Math.min(mapDepth - 3, player.z + Math.sin(angle) * radius)); animals.push({ x, y: surfaceAt(x, z), z, kind, direction: 0 }); }
@@ -612,9 +615,8 @@
     const weatherLabels = { clear: "☀️ Clear", rain: "🌧️ Rain", storm: "⛈️ Thunderstorm" };
     const flood = { cx: 0, cz: 0, layers: [] };
     const breakable = new Set(["wood", "leaves", "plank", "workbench", "torch"]);
-    const disasterElement = document.querySelector("#disasters"), weatherLabelElement = document.querySelector("#weatherLabel");
+    const disasterElement = { get checked() { return !!saved.disasters; }, set checked(v) { saved.disasters = !!v; }, addEventListener() {} }, weatherLabelElement = document.querySelector("#weatherLabel");
     let tornadoBreakTimer = 0, lastStrikeId = null, shownWeather = "";
-    disasterElement.checked = !!saved.disasters;
     const isClient = () => !!(mp.peer && !mp.host), windVec = () => [0, 0];
     function exposedToSky(x, y, z) { for (let yy = y + 1; yy < height; yy += 1) if (solid(blockAt(x, yy, z))) return false; return true; }
     function setWeather(kind) { weather.kind = kind; [weather.rainTarget, weather.windTarget] = weatherTargets[kind]; }
@@ -788,7 +790,7 @@
       mpStatusElement.textContent = host ? "Creating room..." : "Joining...";
       const peer = mp.peer = host ? new Peer(`funcraft-${code}`) : new Peer();
       peer.on("open", () => {
-        mpHostButton.hidden = mpJoinButton.hidden = mpCodeElement.hidden = true; mpLeaveButton.hidden = false;
+        mpHostButton.hidden = mpJoinButton.hidden = mpCodeElement.hidden = true;         mpLeaveButton.hidden = false; saved.lastRoom = { code, host }; persist();
         if (host) mpStatusElement.textContent = `Room ${code}: waiting for players. Share the code!`;
         else mpAttach(peer.connect(`funcraft-${code}`, { reliable: true }));
       });
@@ -801,9 +803,31 @@
       if (mpPending.length) mpSend({ t: "b", c: mpPending.splice(0) });
       mpSend(mpState());
     }
+    const worldsKey = "funcraft-worlds", worldFields = ["world", "player", "mapWidth", "mapDepth", "mapOriginX", "mapOriginZ", "animals", "dayTime", "inventory", "lives", "worldVersion", "survival", "disasters", "modeName"];
+    const worldNameElement = document.querySelector("#worldName"), worldListElement = document.querySelector("#worldList"), worldMsgElement = document.querySelector("#worldMsg");
+    const readWorlds = () => { try { const w = JSON.parse(localStorage.getItem(worldsKey) || "{}"); return w && typeof w === "object" ? w : {}; } catch { return {}; } };
+    function renderWorldList() { const names = Object.keys(readWorlds()).sort(); worldListElement.replaceChildren(...names.map((n) => { const o = document.createElement("option"); o.value = o.textContent = n; if (n === saved.worldName) o.selected = true; return o; })); if (!names.length) { const o = document.createElement("option"); o.textContent = "(no saved worlds)"; o.value = ""; worldListElement.append(o); } if (saved.worldName) worldMsgElement.textContent = `Playing: ${saved.worldName}`; }
+    function saveWorldAs(name, quiet) {
+      if (mp.peer && !mp.host && mp.adopted) { worldMsgElement.textContent = "Leave the room first: you are in someone else's world."; return false; }
+      persist(); const snap = {}; worldFields.forEach((k) => { if (saved[k] !== undefined) snap[k] = saved[k]; });
+      const worlds = readWorlds(); worlds[name] = JSON.parse(JSON.stringify(snap)); saved.worldName = name;
+      try { localStorage.setItem(worldsKey, JSON.stringify(worlds)); } catch { worldMsgElement.textContent = "Could not save: browser storage is full. Delete a world."; return false; }
+      persist(); renderWorldList(); if (!quiet) worldMsgElement.textContent = `Saved "${name}".`; return true;
+    }
+    document.querySelector("#saveWorld").addEventListener("click", () => { const name = worldNameElement.value.trim() || saved.worldName; if (!name) { worldMsgElement.textContent = "Type a name for your world first."; return; } saveWorldAs(name); worldNameElement.value = ""; });
+    document.querySelector("#playWorld").addEventListener("click", () => {
+      const name = worldListElement.value, snap = readWorlds()[name]; if (!snap) { worldMsgElement.textContent = "Pick a saved world first."; return; }
+      if (mp.peer && !mp.host && mp.adopted) { worldMsgElement.textContent = "Leave the room first."; return; }
+      if (saved.worldName && saved.worldName !== name) saveWorldAs(saved.worldName, true);
+      worldFields.forEach((k) => delete saved[k]); Object.assign(saved, JSON.parse(JSON.stringify(snap))); saved.worldName = name; startWorld(false); renderWorldList(); worldMsgElement.textContent = `Now playing "${name}".`;
+    });
+    document.querySelector("#deleteWorld").addEventListener("click", () => { const name = worldListElement.value, worlds = readWorlds(); if (!worlds[name] || !confirm(`Delete world "${name}"?`)) return; delete worlds[name]; try { localStorage.setItem(worldsKey, JSON.stringify(worlds)); } catch {} if (saved.worldName === name) delete saved.worldName; persist(); renderWorldList(); worldMsgElement.textContent = `Deleted "${name}".`; });
+    window.addEventListener("pagehide", () => { if (saved.worldName) saveWorldAs(saved.worldName, true); });
+    renderWorldList();
     mpHostButton.addEventListener("click", () => mpStart(true));
     mpJoinButton.addEventListener("click", () => mpStart(false));
-    mpLeaveButton.addEventListener("click", () => { if (mp.peer && mp.peer.id) mpSend({ t: "bye", id: mp.peer.id }); mpReset(); mpStatusElement.textContent = "You left the room."; });
+    mpLeaveButton.addEventListener("click", () => { delete saved.lastRoom; persist(); if (mp.peer && mp.peer.id) mpSend({ t: "bye", id: mp.peer.id }); mpReset(); mpStatusElement.textContent = "You left the room."; });
+    if (saved.lastRoom && /^[A-Z]{4}$/.test(saved.lastRoom.code)) setTimeout(() => { if (mp.peer) return; mpCodeElement.value = saved.lastRoom.code; mpStatusElement.textContent = "Rejoining your last room..."; mpStart(!!saved.lastRoom.host); }, 800);
     mpNameElement.addEventListener("change", () => { saved.mpName = mpName(); persist(); });
     function nameColor(name) { let h = 0; for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) % 360; const r = h * Math.PI / 180; return [.55 + .35 * Math.sin(r), .55 + .35 * Math.sin(r + 2.1), .55 + .35 * Math.sin(r + 4.2)]; }
     function drawRemotePlayers() {

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Funcraft Gateways</title>
+  <style>
+    :root { color-scheme: dark; font-family: Arial, sans-serif; color: #fff; background: #0f172a; }
+    body { display: grid; place-items: center; min-height: 100vh; margin: 0; padding: 2rem 1rem; background: radial-gradient(circle at 50% 30%, #4c1d95, #0f172a 70%); }
+    main { width: min(100%, 52rem); text-align: center; }
+    h1 { font-size: clamp(2rem, 6vw, 3rem); margin: 0 0 .5rem; }
+    p { color: #e9d5ff; }
+    .gates { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 1.5rem; margin-top: 2rem; }
+    .gate { display: block; padding: 2.5rem 1rem 1.5rem; color: inherit; text-decoration: none; border: .3rem solid #c084fc; border-radius: 6rem 6rem .5rem .5rem; background: radial-gradient(circle at 50% 40%, #a855f7, #3b0764); box-shadow: 0 0 2rem #a855f7; transition: transform 150ms ease, box-shadow 150ms ease; }
+    .gate:hover, .gate:focus-visible { transform: translateY(-.4rem) scale(1.04); box-shadow: 0 0 3.5rem #e879f9; outline: none; }
+    .gate b { display: block; font-size: 2.5rem; }
+    .gate h2 { margin: .5rem 0 .25rem; font-size: 1.2rem; }
+    .gate span { font-size: .9rem; color: #f5d0fe; }
+    .back { display: inline-block; margin-top: 2rem; color: #fef3c7; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>🌀 Funcraft Gateways</h1>
+    <p>Step through a gateway to pick how you want to play.</p>
+    <div class="gates">
+      <a class="gate" href="index.html?mode=survival"><b>1</b><h2>Survival</h2><span>5 lives, wolves, bears and boars</span></a>
+      <a class="gate" href="index.html?mode=survival-disaster"><b>2</b><h2>Survival Disaster</h2><span>Survival plus storms, tornados and floods</span></a>
+      <a class="gate" href="index.html?mode=peaceful"><b>3</b><h2>Peaceful</h2><span>Calm exploring and building</span></a>
+      <a class="gate" href="index.html?mode=disaster"><b>4</b><h2>Disaster</h2><span>Storms, tornados and floods, no hostile animals</span></a>
+    </div>
+    <a class="back" href="../">← Back to all games</a>
+  </main>
+  <script>
+    addEventListener("keydown", (e) => { const m = { 1: "survival", 2: "survival-disaster", 3: "peaceful", 4: "disaster" }[e.key]; if (m) location.href = "index.html?mode=" + m; });
+  </script>
+</body>
+</html>
