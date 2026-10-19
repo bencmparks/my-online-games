@@ -36,7 +36,7 @@
       <button type="button" data-move="forward">Forward</button><button type="button" data-move="left">←</button><button type="button" data-action="jump">Jump</button><button type="button" data-move="right">→</button><button type="button" data-move="back">Back</button><button id="home" type="button">Home</button><button id="boat" type="button">Boat</button><button id="fullscreen" type="button">Full screen</button><button id="reset" type="button">New world</button>
     </div>
     <p id="hunger">Hunger: <span id="hunger-value">100</span>/100</p>
-    <p><label>Time <select id="timeMode"><option value="auto">Auto (day/night cycle)</option><option value="day">Day</option><option value="sunset">Sunset</option><option value="night">Night</option><option value="sunrise">Sunrise</option></select></label> <label>Brightness <input id="brightness" type="range" min="0.4" max="1.6" step="0.05" value="1"></label></p>
+    <p><label>Brightness <input id="brightness" type="range" min="0.4" max="1.6" step="0.05" value="1"></label></p>
     <p>Hotkeys: press a number key 0-9 to select its item. Select an item, then hold Shift and press 0-9 to assign it to that key. <span id="hotkeyList"></span></p>
     <p><label><input id="survival" type="checkbox"> Survival mode: 5 lives and hostile animals (wolf, bear, boar) and fire damage</label> <span id="lives"></span></p>
     <p id="multiplayer"><label>Name <input id="mpName" type="text" maxlength="16" size="12"></label> <button id="mpHost" type="button">Host game</button> <input id="mpCode" type="text" maxlength="4" size="6" placeholder="CODE" aria-label="Room code"> <button id="mpJoin" type="button">Join</button> <button id="mpLeave" type="button" hidden>Leave</button> <span id="mpStatus">Play with a friend: one hosts and shares the 4-letter code, the other joins.</span></p>
@@ -259,7 +259,7 @@
     }
 
     function update(delta) {
-      if (timeMode === "auto") { dayTime = (dayTime + delta / 240) % 1; if (Math.floor(dayTime * 20) !== Math.floor((dayTime - delta / 240) * 20)) { saved.dayTime = dayTime; } }
+      if (!(mp.peer && !mp.host)) { dayTime = (dayTime + delta / 240) % 1; if (Math.floor(dayTime * 20) !== Math.floor((dayTime - delta / 240) * 20)) { saved.dayTime = dayTime; } }
       const forward = (keys.has("forward") ? 1 : 0) - (keys.has("back") ? 1 : 0), strafe = (keys.has("right") ? 1 : 0) - (keys.has("left") ? 1 : 0);
       const length = Math.hypot(forward, strafe) || 1, speed = boating ? 6 : inWater() ? 2 : 4;
       move((Math.sin(player.yaw) * forward - Math.cos(player.yaw) * strafe) / length * speed * delta, 0, (Math.cos(player.yaw) * forward + Math.sin(player.yaw) * strafe) / length * speed * delta);
@@ -464,9 +464,10 @@
     const mpName = () => (mpNameElement.value.trim() || "Player").slice(0, 16);
     function remotePlayers() { const now = performance.now(); mp.players.forEach((peer, id) => { if (now - peer.seen > 6000) mp.players.delete(id); }); return [...mp.players.values()]; }
     function mpSend(data, except) { mp.conns.forEach((conn) => { if (conn !== except && conn.open) conn.send(data); }); }
-    function mpState() { return { t: "s", id: mp.peer.id, name: mpName(), x: player.x + mapOriginX, y: player.y, z: player.z + mapOriginZ, yaw: player.yaw, pitch: player.pitch, h: selected === "torch" && inventory.torch ? 1 : 0 }; }
+    function mpState() { return { t: "s", id: mp.peer.id, name: mpName(), x: player.x + mapOriginX, y: player.y, z: player.z + mapOriginZ, yaw: player.yaw, pitch: player.pitch, h: selected === "torch" && inventory.torch ? 1 : 0, d: dayTime }; }
     function mpReceive(conn, data) {
       if (!data || typeof data !== "object") return;
+      if (!mp.host && data.t === "s" && data.id === `funcraft-${mp.code}` && Number.isFinite(data.d)) dayTime = ((data.d % 1) + 1) % 1;
       if (data.t === "s" && typeof data.id === "string" && [data.x, data.y, data.z, data.yaw, data.pitch].every(Number.isFinite)) {
         mp.players.set(data.id, { id: data.id, name: String(data.name || "Player").slice(0, 16), x: data.x, y: data.y, z: data.z, yaw: data.yaw, pitch: data.pitch, h: data.h ? 1 : 0, seen: performance.now() });
         if (mp.host) mpSend(data, conn);
@@ -475,7 +476,7 @@
     function mpAttach(conn) {
       conn.on("open", () => { if (!mp.conns.includes(conn)) mp.conns.push(conn); mpStatusElement.textContent = mp.host ? `Room ${mp.code}: ${mp.conns.length} player(s) joined. Share the code!` : `Connected to room ${mp.code}.`; });
       conn.on("data", (data) => mpReceive(conn, data));
-      conn.on("close", () => { mp.conns = mp.conns.filter((c) => c !== conn); mp.players.delete(conn.peer); if (mp.host) mpSend({ t: "bye", id: conn.peer }); else mpStatusElement.textContent = "The host left the game."; });
+      conn.on("close", () => { mp.conns = mp.conns.filter((c) => c !== conn); mp.players.delete(conn.peer); if (mp.host) mpSend({ t: "bye", id: conn.peer }); else { mpReset(); mpStatusElement.textContent = "The host left the game."; } });
     }
     function mpReset() { if (mp.peer) mp.peer.destroy(); mp.peer = null; mp.host = false; mp.conns = []; mp.players.clear(); mpHostButton.hidden = mpJoinButton.hidden = mpCodeElement.hidden = false; mpLeaveButton.hidden = true; }
     function mpStart(host) {
@@ -529,10 +530,9 @@
       });
     }
 
-    const timeModeElement = document.querySelector("#timeMode"), brightnessElement = document.querySelector("#brightness"), hotkeyListElement = document.querySelector("#hotkeyList");
+    const brightnessElement = document.querySelector("#brightness"), hotkeyListElement = document.querySelector("#hotkeyList");
     brightnessElement.value = userBright;
     brightnessElement.addEventListener("input", () => { userBright = Number(brightnessElement.value); persist(); });
-    timeModeElement.addEventListener("change", () => { timeMode = timeModeElement.value; const times = { day: .25, sunset: .5, night: .75, sunrise: 0 }; if (timeMode !== "auto") dayTime = times[timeMode]; persist(); timeModeElement.blur(); });
     function renderHotkeys() { hotkeyListElement.textContent = Object.keys(hotkeys).sort().map((slot) => `${slot}=${types[hotkeys[slot]]?.label || hotkeys[slot]}`).join("  "); }
     renderHotkeys();
     document.addEventListener("keydown", (event) => {
