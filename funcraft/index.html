@@ -28,7 +28,7 @@
   <main>
     <a href="../">← All games</a>
     <h1>Funcraft</h1>
-    <p class="instructions">Click the world to look around. Mine ore and coal with left click, craft a furnace at a workbench, then press E beside the furnace to smelt ore into ingots using coal fuel. Away from stations, E eats food, or tames the animal you're looking at (costs 1 meat; wolves, bears and boars only sometimes accept). Tamed pets follow you and can't be collected. Craft a chest from 8 planks, place it, and press E while looking at it to store your items (airplanes, bricks, anything); empty a chest before breaking it. Flowers grow on grassy plains. Press H or use Home to return to your starting hill, press Y to save a teleport spot where you stand and U to return to it any time, or T to teleport to another player in your lobby (press again for the next one). Craft torches (wood + coal) and left-click wood, leaves, grass or coal while holding one to set it on fire (or press L); fire goes out unless it touches one of those, spreads slowly, and water puts it out. Craft a boat from 5 planks (no workbench needed), face water and press B to sail; Space hops out. Rivers and lakes now cross the land with a current that carries swimmers and boats (rivers flow steadily, lakes drift gently). Craft a bucket (3 iron ingots), left-click water to fill it, and right-click to pour it out; a water bucket is the only way to put out a fire by hand.</p>
+    <p class="instructions">Click the world to look around. Mine ore and coal with left click, craft a furnace at a workbench, then press E beside the furnace to smelt ore into ingots using coal fuel. Away from stations, E eats food, or tames the animal you're looking at (costs 1 meat; wolves, bears and boars only sometimes accept). Tamed pets follow you and can't be collected. Craft a chest from 8 planks, place it, and press E while looking at it to store your items (airplanes, bricks, anything); empty a chest before breaking it. Flowers grow on grassy plains. Craft a door from 4 planks, place it (it is two blocks tall) and press E to open or close it. Look for cherry blossom forests, frosty winter forests and orange autumn forests (in newly explored land). Press H or use Home to return to your starting hill, press Y to save a teleport spot where you stand and U to return to it any time, or T to teleport to another player in your lobby (press again for the next one). Craft torches (wood + coal) and left-click wood, leaves, grass or coal while holding one to set it on fire (or press L); fire goes out unless it touches one of those, spreads slowly, and water puts it out. Craft a boat from 5 planks (no workbench needed), face water and press B to sail; Space hops out. Rivers and lakes now cross the land with a current that carries swimmers and boats (rivers flow steadily, lakes drift gently). Craft a bucket (3 iron ingots), left-click water to fill it, and right-click to pour it out; a water bucket is the only way to put out a fire by hand.</p>
     <div id="game-wrap"><canvas id="game" width="960" height="540" aria-label="Funcraft first-person block world"></canvas><canvas id="tags" aria-hidden="true"></canvas><span id="crosshair" aria-hidden="true"></span></div>
     <div id="inventory" class="inventory" aria-label="Inventory"></div>
     <div id="crafting" class="crafting" aria-label="Crafting bench"></div>
@@ -40,6 +40,7 @@
     <p><label>Brightness <input id="brightness" type="range" min="0.4" max="1.6" step="0.05" value="1"></label></p>
     <p><a href="hub.html">Change game mode</a> <span id="modeLabel"></span> <span id="weatherLabel"></span></p>
     <p id="worldsBar">World: <input id="worldName" maxlength="20" placeholder="World name" size="14"> <button id="saveWorld" type="button">Save world</button> <select id="worldList"></select> <button id="playWorld" type="button">Play</button> <button id="deleteWorld" type="button">Delete</button> <span id="worldMsg"></span></p>
+    <p>Hold left-click to dig: cracks show how far along you are. Hands are slow; craft pickaxes (stone, ore), axes (wood) and shovels (dirt, sand, snow) from planks, stone or iron ingots to dig faster. The best tool you own is used automatically.</p>
     <p>Press Q to throw the selected item (walk over it to pick it up; direct hits on animals collect meat). Hold V to zoom in. Hold Shift to run at double speed. Press G in mid-air to glide once you've crafted a glider (3 wood + 2 hide). Craft an airplane (10 gold ingots + 10 iron ingots + 30 coal for fuel) and press O to fly it: look to steer, W speeds up, S slows down, O gets you out. Press P to change the camera: first person, behind you, or facing you.</p>
     <p>Hotkeys: press a number key 0-9 to select its item. Select an item, then hold Shift and press 0-9 to assign it to that key. <span id="hotkeyList"></span></p>
     <p><span id="lives"></span></p>
@@ -66,9 +67,46 @@
       ironIngot: { label: "Iron ingot", color: [226, 232, 240] }, goldIngot: { label: "Gold ingot", color: [253, 224, 71] },
       meat: { label: "Meat", color: [190, 55, 45] }, hide: { label: "Hide", color: [137, 92, 56] },
       torch: { label: "Torch", color: [250, 204, 21], solid: false }, fire: { label: "Fire", color: [249, 115, 22], solid: false, hidden: true },
-      bucket: { label: "Bucket", color: [148, 163, 184] }, waterBucket: { label: "Water bucket", color: [56, 189, 248] }, boat: { label: "Boat", color: [139, 90, 43] }, glider: { label: "Glider", color: [220, 60, 60] }, quicksand: { label: "Quicksand", color: [201, 160, 92], solid: false }, airplane: { label: "Airplane", color: [226, 232, 240] }, flower: { label: "Flower", color: [236, 72, 153], solid: false }, chest: { label: "Chest", color: [161, 98, 7] }
+      bucket: { label: "Bucket", color: [148, 163, 184] }, waterBucket: { label: "Water bucket", color: [56, 189, 248] }, boat: { label: "Boat", color: [139, 90, 43] }, glider: { label: "Glider", color: [220, 60, 60] }, quicksand: { label: "Quicksand", color: [201, 160, 92], solid: false }, airplane: { label: "Airplane", color: [226, 232, 240] }, flower: { label: "Flower", color: [236, 72, 153], solid: false }, chest: { label: "Chest", color: [161, 98, 7] },
+      cherryLeaves: { label: "Cherry blossom", color: [249, 168, 212] }, fallLeaves: { label: "Autumn leaves", color: [234, 112, 20] }, snowLeaves: { label: "Frosty leaves", color: [203, 228, 222] },
+      door: { label: "Door", color: [150, 95, 45] }, doorOpen: { label: "Open door", color: [150, 95, 45], solid: false, hidden: true }
     };
-    const flammable = { wood: 1, leaves: 1.4, grass: 1.5, coal: .5, plank: 1 };
+    const toolTiers = { wood: [.6, "Wooden", [180, 130, 70]], stone: [.4, "Stone", [120, 130, 145]], iron: [.2, "Iron", [226, 232, 240]] }, toolKinds = { Pick: "pickaxe", Axe: "axe", Shovel: "shovel" };
+    Object.entries(toolTiers).forEach(([tier, [, name, color]]) => Object.entries(toolKinds).forEach(([kind, label]) => { types[tier + kind] = { label: `${name} ${label}`, color }; }));
+    const blockKind = { stone: "Pick", coal: "Pick", ironOre: "Pick", goldOre: "Pick", brick: "Pick", furnace: "Pick", wood: "Axe", plank: "Axe", workbench: "Axe", chest: "Axe", door: "Axe", doorOpen: "Axe", leaves: "Axe", cherryLeaves: "Axe", fallLeaves: "Axe", snowLeaves: "Axe", dirt: "Shovel", grass: "Shovel", sand: "Shovel", snow: "Shovel", quicksand: "Shovel" };
+    const hardness = { dirt: 1.5, grass: 1.5, sand: 1.2, snow: 1, quicksand: 1, leaves: .6, cherryLeaves: .6, fallLeaves: .6, snowLeaves: .6, flower: .3, wood: 4, plank: 2.5, workbench: 3, chest: 3, door: 2, doorOpen: 2, furnace: 6, stone: 5, brick: 6, coal: 6, ironOre: 8, goldOre: 8 };
+    function bestTool(type) { const kind = blockKind[type]; if (!kind) return null; return ["iron", "stone", "wood"].find((tier) => inventory[tier + kind] > 0) || null; }
+    function mineTime(type) { const tier = bestTool(type); return (hardness[type] || 2) * (tier ? toolTiers[tier][0] : 1); }
+    const mining = { down: false, key: "", t: 0, need: 1, target: null };
+    function instantMine() { if (animalInSight()) return true; const t = raycast(); if (!t) return false; const type = blockAt(t.x, t.y, t.z); return type === "fire" || type === "water" || (selected === "torch" && inventory.torch && flammable[type]); }
+    function startMining() { if (instantMine()) { mine(); return; } mining.down = true; mining.key = ""; mining.t = 0; }
+    function stopMining() { mining.down = false; mining.target = null; mining.t = 0; }
+    function tickMining(delta) {
+      if (!mining.down) return; if (document.pointerLockElement !== canvas) { stopMining(); return; }
+      const target = raycast(); if (!target) { mining.target = null; mining.t = 0; mining.key = ""; return; }
+      const type = blockAt(target.x, target.y, target.z), key = `${target.x},${target.y},${target.z},${type}`;
+      if (key !== mining.key) { mining.key = key; mining.t = 0; mining.need = mineTime(type); mining.target = target; const tier = bestTool(type); statusElement.textContent = `Mining ${types[type].label.toLowerCase()} with ${tier ? types[tier + blockKind[type]].label.toLowerCase() : "your hands"} (${mining.need.toFixed(1)}s)...`; }
+      mining.t += delta;
+      if (mining.t >= mining.need) { mining.key = ""; mining.t = 0; mining.target = null; mine(); }
+    }
+    function drawCracks() {
+      if (!mining.down || !mining.target || mining.t <= 0) return;
+      const p = Math.min(mining.t / mining.need, 1), N = 8, { x, y, z } = mining.target, e = .012, data = [], c = [.08, .07, .07];
+      let seed = (x * 73856093) ^ (y * 19349663) ^ (z * 83492791); const rnd = () => { seed = (seed * 1664525 + 1013904223) | 0; return ((seed >>> 8) & 0xffff) / 65535; };
+      const reach = p * 6.2;
+      for (let face = 0; face < 6; face++) {
+        const axis = face >> 1, side = face & 1 ? 1 : 0, a1 = (axis + 1) % 3, a2 = (axis + 2) % 3;
+        const pt = (u, v) => { const q = [0, 0, 0]; q[axis] = side ? 1 + e : -e; q[a1] = u; q[a2] = v; return [x + q[0], y + q[1], z + q[2]]; };
+        for (let cu = 0; cu < N; cu++) for (let cv = 0; cv < N; cv++) {
+          const d = Math.hypot(cu - 3.5, cv - 3.5) + rnd() * 1.6, gap = rnd() < .3;
+          if (d > reach || (gap && d > .8)) continue;
+          const u0 = cu / N, v0 = cv / N, u1 = (cu + 1) / N, v1 = (cv + 1) / N; [pt(u0, v0), pt(u1, v0), pt(u1, v1), pt(u0, v0), pt(u1, v1), pt(u0, v1)].forEach((q) => data.push(...q, ...c));
+        }
+      }      if (!data.length) return;
+      gl.uniform1f(lightOnLocation, 0); gl.bindBuffer(gl.ARRAY_BUFFER, smokeBuffer); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.DYNAMIC_DRAW);
+      gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 24, 0); gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 24, 12); gl.disable(gl.CULL_FACE); gl.drawArrays(gl.TRIANGLES, 0, data.length / 6); gl.enable(gl.CULL_FACE);
+    }
+    const flammable = { wood: 1, cherryLeaves: 1.4, fallLeaves: 1.6, leaves: 1.4, grass: 1.5, coal: .5, plank: 1 };
     const burningPlanks = new Map(), fireKey = (x, y, z) => `${x + mapOriginX},${y},${z + mapOriginZ}`;
     function ignite(x, y, z) { if (world[y][z][x] === "plank") burningPlanks.set(fireKey(x, y, z), 30); world[y][z][x] = "fire"; mpBlock(x, y, z, "fire"); }
     let fireTimer = 0, boating = false, currentNoticed = false, smoke = [], smokeTimer = 0, fireCells = [];
@@ -81,7 +119,9 @@
       { output: "airplane", amount: 1, cost: { goldIngot: 10, ironIngot: 10, coal: 30 } },
       { output: "workbench", amount: 1, cost: { plank: 4 } },
       { output: "chest", amount: 1, cost: { plank: 8 } },
+      { output: "door", amount: 1, cost: { plank: 4 } },
       { output: "bucket", amount: 1, cost: { ironIngot: 3 } },
+      ...[["Pick", 3], ["Axe", 3], ["Shovel", 2]].flatMap(([kind, n]) => [{ output: "wood" + kind, amount: 1, cost: { plank: n } }, { output: "stone" + kind, amount: 1, cost: { stone: n, plank: 2 }, requiresWorkbench: true }, { output: "iron" + kind, amount: 1, cost: { ironIngot: n, plank: 2 }, requiresWorkbench: true }]),
       { output: "brick", amount: 2, cost: { stone: 2, dirt: 1 }, requiresWorkbench: true },
       { output: "furnace", amount: 1, cost: { stone: 8 }, requiresWorkbench: true }
     ];
@@ -177,7 +217,10 @@
       const dist = Math.hypot(x - 24, z - 24), far = smoothStep(26, 42, dist);
       const m = Math.sin(x * .016 + .8) * Math.sin(z * .013 + 2.1) + .45 * Math.sin((x - z) * .009 + 1), d = Math.sin(x * .037 + 3) * Math.sin(z * .041 + .5) + .45 * Math.sin((x + z) * .023 + 2), w = Math.sin(x * .06 + 4) * Math.cos(z * .055 + 1) + .4 * Math.sin((x + z) * .031);
       const mt = smoothStep(.3, 1.1, m) * smoothStep(50, 90, dist), de = smoothStep(.35, .75, d) * far * (1 - smoothStep(.1, .3, mt)), j = Math.sin(x * .033 + 5) * Math.sin(z * .036 + 1.2) + .45 * Math.sin((x + 2 * z) * .02 + .5);
-      return { mt, de, ju: smoothStep(.3, .7, j) * smoothStep(20, 36, dist) * (1 - smoothStep(.1, .3, mt)) * (1 - smoothStep(.2, .5, de)), wo: smoothStep(.1, .4, w) * smoothStep(10, 24, dist) };
+      const ju = smoothStep(.3, .7, j) * smoothStep(20, 36, dist) * (1 - smoothStep(.1, .3, mt)) * (1 - smoothStep(.2, .5, de));
+      const cn = Math.sin(x * .029 + 1.3) * Math.sin(z * .031 + 4) + .45 * Math.sin((x - 2 * z) * .017), fn = Math.sin(x * .027 + 2.2) * Math.sin(z * .03 + 3.1) + .45 * Math.sin((2 * x + z) * .015 + 1), wn = Math.sin(x * .025 + .4) * Math.sin(z * .028 + .9) + .45 * Math.sin((x + z) * .014 + 3);
+      const gate = smoothStep(22, 38, dist) * (1 - smoothStep(.1, .3, mt)) * (1 - smoothStep(.2, .5, de)) * (1 - ju), ch = smoothStep(.3, .6, cn) * gate, wi = smoothStep(.3, .6, wn) * gate * (1 - ch), fa = smoothStep(.3, .6, fn) * gate * (1 - ch) * (1 - wi);
+      return { mt, de, ju, ch, wi, fa, wo: smoothStep(.1, .4, w) * smoothStep(10, 24, dist) };
     }
     const columnCache = new Map();
     function columnInfo(x, z) {
@@ -211,9 +254,9 @@
     function treeAt(x, z) {
       const h = hash2(x, z), roll = h % 1000;
       if (roll >= 150 || Math.hypot(x - 5.5, z - 5.5) < 4) return null;
-      const info = columnInfo(x, z), jungle = info.ju > .5, woods = info.wo > .5;
+      const info = columnInfo(x, z), jungle = info.ju > .5, woods = info.wo > .5 || info.ch > .5 || info.wi > .5 || info.fa > .5;
       if (info.wet || info.mt > .1 || info.de > .3 || info.ground > 8 || (!jungle && (roll >= (woods ? 120 : 14)))) return null;
-      return { top: info.ground, jungle, trunk: jungle ? 4 + (h >>> 10) % 3 : 2 };
+      return { top: info.ground, jungle, trunk: jungle ? 4 + (h >>> 10) % 3 : 2, leaf: info.ch > .5 ? "cherryLeaves" : info.wi > .5 ? "snowLeaves" : info.fa > .5 ? "fallLeaves" : "leaves" };
     }
     function terrainBlock(x, y, z) {
       if (lobbyEdits.size) { const edited = lobbyEdits.get(`${x},${y},${z}`); if (edited !== undefined) return edited; }
@@ -226,15 +269,15 @@
           const tree = treeAt(x + dx, z + dz); if (!tree) continue;
           const top = tree.top, crown = top + tree.trunk, ax = Math.abs(dx), az = Math.abs(dz);
           if (!dx && !dz && y > top && y <= crown) return "wood";
-          if (tree.jungle ? ((y === crown - 1 || y === crown) && ax + az <= 3) || (y === crown + 1 && ax <= 1 && az <= 1) : (ax <= 1 && az <= 1 && y >= crown + 1 && y <= crown + 3)) leaves = true;
+          if (tree.jungle ? ((y === crown - 1 || y === crown) && ax + az <= 3) || (y === crown + 1 && ax <= 1 && az <= 1) : (ax <= 1 && az <= 1 && y >= crown + 1 && y <= crown + 3)) leaves = tree.leaf;
         }
-        if (leaves) return "leaves";
-        if (y === ground + 1 && !info.wet && info.de <= .5 && ground < 18 && ground >= 3 && (((x * 73856093) ^ (z * 19349663)) >>> 0) % 100 < 6) return "flower";
+        if (leaves) return leaves;
+        if (y === ground + 1 && !info.wet && info.de <= .5 && info.wi <= .5 && ground < 18 && ground >= 3 && (((x * 73856093) ^ (z * 19349663)) >>> 0) % 100 < 6) return "flower";
         return null;
       }
       if (info.mt > .3 && y >= ground - 1 && streamAt(x, z)) return "water";
       if (y >= 1 && !info.wet && y <= (info.mt > .25 ? ground : ground - 2) && Math.abs(Math.sin(x * .17 + 2 * Math.sin(z * .11) + y * .3)) < .26 && Math.abs(Math.sin(z * .15 + 2 * Math.sin(x * .09) - y * .35)) < .26) return null;
-      const desert = info.de > .5, quick = desert && info.de > .6 && y >= ground - 2 && Math.sin(x * .21 + 1) * Math.sin(z * .19 + 2) > .8, seed = Math.abs(Math.floor(x) * 31 + Math.floor(z) * 17 + y * 13) % 37, snowy = ground >= 58;
+      const desert = info.de > .5, quick = desert && info.de > .6 && y >= ground - 2 && Math.sin(x * .21 + 1) * Math.sin(z * .19 + 2) > .8, seed = Math.abs(Math.floor(x) * 31 + Math.floor(z) * 17 + y * 13) % 37, snowy = ground >= 58 || info.wi > .5;
       if (quick) return "quicksand";
       if (y === ground) return info.wet ? "dirt" : desert ? "sand" : snowy ? "snow" : ground >= 18 ? "stone" : "grass";
       if (y > ground - 3) return desert ? "sand" : snowy && y >= ground - 1 ? "snow" : ground >= 18 ? "stone" : "dirt";
@@ -323,12 +366,14 @@
         if (type === "torch") lightList.push([x + .5, y + .8, z + .5, 8]);
         if (type === "fire") lightList.push([x + .5, y + .6, z + .5, 11, .4]);
         if (type === "flower") { const col = [[.95, .25, .4], [.98, .85, .2], [.7, .4, .95], [1, 1, 1]][((x + mapOriginX) * 7 + (z + mapOriginZ) * 13) & 3]; addAnimalCube(x + .46, y, z + .46, .08, .45, .08, [.2, .55, .15]); addAnimalCube(x + .32, y + .45, z + .32, .36, .2, .36, col); addAnimalCube(x + .43, y + .5, z + .43, .14, .12, .14, [1, .9, .2]); continue; }
+        if (type === "door") { addAnimalCube(x, y, z + .38, 1, 1, .24, [.59, .37, .18]); addAnimalCube(x + .1, y + .08, z + .34, .8, .84, .32, [.5, .31, .14]); addAnimalCube(x + .78, y + .45, z + .3, .1, .1, .4, [.98, .8, .2]); continue; }
+        if (type === "doorOpen") { addAnimalCube(x, y, z, .16, 1, 1, [.59, .37, .18]); addAnimalCube(x + .1, y + .45, z + .78, .08, .1, .1, [.98, .8, .2]); continue; }
         if (type === "chest") { addAnimalCube(x + .08, y, z + .08, .84, .55, .84, [.63, .38, .03]); addAnimalCube(x + .06, y + .55, z + .06, .88, .2, .88, [.45, .26, .02]); addAnimalCube(x + .44, y + .3, z + .04, .12, .3, .92, [.98, .8, .2]); continue; }
         if (type === "torch") { addAnimalCube(x + .42, y, z + .42, .16, .6, .16, [.55, .33, .12]); addAnimalCube(x + .38, y + .6, z + .38, .24, .24, .24, [1, .82, .15]); continue; }
         if (type === "fire") { addAnimalCube(x + .15, y, z + .15, .7, .5, .7, [.98, .45, .08]); addAnimalCube(x + .3, y + .5, z + .3, .4, .4, .4, [1, .8, .15]); continue; }
         for (let index = 0; index < 6; index += 1) {
           const face = faces[index], neighbor = blockAt(x + face[0][0], y + face[0][1], z + face[0][2]);
-          if (neighbor && neighbor !== "torch" && neighbor !== "fire" && neighbor !== "flower" && neighbor !== "chest" && (type !== "water" || neighbor === "water")) continue;
+          if (neighbor && neighbor !== "torch" && neighbor !== "fire" && neighbor !== "flower" && neighbor !== "chest" && neighbor !== "door" && neighbor !== "doorOpen" && (type !== "water" || neighbor === "water")) continue;
           const shade = [.82, .62, 1, .5, .9, .7][index], base = types[type].color;
           for (let c = 0; c < 6; c += 1) { const corner = corners[index][[0,1,2,0,2,3][c]]; data.push(corner[0] + x, corner[1] + y, corner[2] + z, base[0] / 255 * shade, base[1] / 255 * shade, base[2] / 255 * shade); }
         }
@@ -354,7 +399,7 @@
     function farColumn(x, z) {
       const info = columnInfo(x, z);
       if (info.wet) return { h: 5, type: "water" };
-      const type = info.de > .5 ? "sand" : info.ground >= 58 ? "snow" : info.ground >= 18 ? "stone" : info.ju > .5 || info.wo > .5 ? "leaves" : "grass";
+      const type = info.de > .5 ? "sand" : info.ground >= 58 || info.wi > .5 ? "snow" : info.ground >= 18 ? "stone" : info.ch > .5 ? "cherryLeaves" : info.fa > .5 ? "fallLeaves" : info.ju > .5 || info.wo > .5 ? "leaves" : "grass";
       return { h: info.ground + 1, type };
     }
     function rebuildFar() {
@@ -385,6 +430,7 @@
     }
 
     function update(delta) {
+      tickMining(delta);
       if (!(mp.peer && !mp.host)) { const before = dayTime; dayTime = (dayTime + delta / (dayTime < .5 ? 480 : 80)) % 1; if (Math.floor(dayTime * 20) !== Math.floor(before * 20)) { saved.dayTime = dayTime; } }
       const forward = (keys.has("forward") ? 1 : 0) - (keys.has("back") ? 1 : 0), strafe = (keys.has("right") ? 1 : 0) - (keys.has("left") ? 1 : 0);
       const glide = gliding && !boating && !inWater() && !player.onGround; if (gliding && !glide) { gliding = false; statusElement.textContent = "You landed."; }
@@ -497,6 +543,7 @@
       if (type === "fire") { statusElement.textContent = "Fire is too hot! Select a water bucket and right-click the fire to put it out."; return; }
       if (type === "water") { if (!inventory.bucket) { statusElement.textContent = "You need a bucket to collect water. Craft one from 3 iron ingots."; return; } inventory.bucket -= 1; inventory.waterBucket = (inventory.waterBucket || 0) + 1; world[target.y][target.z][target.x] = null; mpBlock(target.x, target.y, target.z, null); statusElement.textContent = "Filled your bucket with water."; rebuildMesh(); persistAndRender(); return; }
       if (selected === "torch" && inventory.torch && flammable[type]) { ignite(target.x, target.y, target.z); statusElement.textContent = `You set the ${types[type].label.toLowerCase()} on fire! Water puts it out.`; rebuildMesh(); persist(); return; }
+      if (type === "door" || type === "doorOpen") { const py = doorPartner(target.x, target.y, target.z); if (py !== null) { world[py][target.z][target.x] = null; mpBlock(target.x, py, target.z, null); } world[target.y][target.z][target.x] = null; mpBlock(target.x, target.y, target.z, null); dropItem("door", target.x + .5, target.y + .5, target.z + .5); statusElement.textContent = "Broke the door. Walk over it to pick it up."; rebuildMesh(); persistAndRender(); return; }
       if (type === "chest" && Object.values(saved.chests?.[chestKey(target.x, target.y, target.z)] || {}).some((n) => n > 0)) { statusElement.textContent = "Empty the chest first (press E to open it)."; return; }
       if (type === "chest") { if (saved.chests) delete saved.chests[chestKey(target.x, target.y, target.z)]; if (openChestKey === chestKey(target.x, target.y, target.z)) closeChest(); }
       world[target.y][target.z][target.x] = null; mpBlock(target.x, target.y, target.z, null); dropItem(type, target.x + .5, target.y + .5, target.z + .5); statusElement.textContent = `Broke ${types[type].label.toLowerCase()}. Walk over it to pick it up.`; rebuildMesh(); persistAndRender(); }
@@ -506,6 +553,7 @@
       if (!place || !inventory[selected] || playerOverlaps(place)) return;
       if (selected === "boat") { statusElement.textContent = "Face water and press B to board your boat."; return; }
       if (selected === "bucket") { statusElement.textContent = "Left-click water with a bucket to fill it."; return; }
+      if (selected === "door") { if (blockAt(place.x, place.y + 1, place.z) || place.y + 1 >= height || playerOverlaps({ x: place.x, y: place.y + 1, z: place.z })) { statusElement.textContent = "A door needs two free blocks of height."; return; } [place.y, place.y + 1].forEach((cy) => { world[cy][place.z][place.x] = "door"; mpBlock(place.x, cy, place.z, "door"); }); inventory.door -= 1; statusElement.textContent = "Placed door. Press E while looking at it to open or close it."; rebuildMesh(); persistAndRender(); return; }
       const block = selected === "waterBucket" ? "water" : selected;
       world[place.y][place.z][place.x] = block; mpBlock(place.x, place.y, place.z, block); inventory[selected] -= 1; if (selected === "waterBucket") inventory.bucket = (inventory.bucket || 0) + 1;
       statusElement.textContent = `Placed ${types[block].label.toLowerCase()}.`; rebuildMesh(); persistAndRender();
@@ -563,7 +611,13 @@
     function closeChest() { openChestKey = null; chestPanel.hidden = true; }
     document.querySelector("#chestClose").addEventListener("click", closeChest);
     document.addEventListener("keydown", (event) => { if (event.key === "Escape") closeChest(); });
-    function useContextAction() { { const ct = raycast(); if (ct && blockAt(ct.x, ct.y, ct.z) === "chest") { openChest(ct); return; } } if (nearFurnace()) { smeltOre(); return; } if (nearWorkbench()) { workbenchActive = true; renderCrafting(); statusElement.textContent = "Workbench ready. Choose an advanced recipe."; return; } if (!nearWorkbench()) { const target = animalInSight(); if (target && (inventory.meat || target.pet)) { tameAnimal(target); return; } } if (!inventory.meat) { statusElement.textContent = "You do not have food to eat. Look at an animal and press E with meat to tame it."; return; } inventory.meat -= 1; player.hunger = Math.min(100, player.hunger + 35); statusElement.textContent = "You ate food and restored hunger."; persistAndRender(); renderHunger(); }
+    function doorPartner(x, y, z) { return ["door", "doorOpen"].includes(blockAt(x, y + 1, z)) ? y + 1 : ["door", "doorOpen"].includes(blockAt(x, y - 1, z)) ? y - 1 : null; }
+    function toggleDoor(x, y, z) {
+      const next = blockAt(x, y, z) === "door" ? "doorOpen" : "door", py = doorPartner(x, y, z), cells = [[y, next]]; if (py !== null) cells.push([py, next]);
+      if (next === "door" && cells.some(([cy]) => playerOverlaps({ x, y: cy, z }))) { statusElement.textContent = "Something is in the doorway."; return; }
+      cells.forEach(([cy, type]) => { world[cy][z][x] = type; mpBlock(x, cy, z, type); }); statusElement.textContent = next === "door" ? "Door closed." : "Door opened."; rebuildMesh(); persist();
+    }
+    function useContextAction() { { const dt = raycast(); if (dt && ["door", "doorOpen"].includes(blockAt(dt.x, dt.y, dt.z))) { toggleDoor(dt.x, dt.y, dt.z); return; } } { const ct = raycast(); if (ct && blockAt(ct.x, ct.y, ct.z) === "chest") { openChest(ct); return; } } if (nearFurnace()) { smeltOre(); return; } if (nearWorkbench()) { workbenchActive = true; renderCrafting(); statusElement.textContent = "Workbench ready. Choose an advanced recipe."; return; } if (!nearWorkbench()) { const target = animalInSight(); if (target && (inventory.meat || target.pet)) { tameAnimal(target); return; } } if (!inventory.meat) { statusElement.textContent = "You do not have food to eat. Look at an animal and press E with meat to tame it."; return; } inventory.meat -= 1; player.hunger = Math.min(100, player.hunger + 35); statusElement.textContent = "You ate food and restored hunger."; persistAndRender(); renderHunger(); }
     function smeltOre() { const ore = inventory.goldOre ? "goldOre" : inventory.ironOre ? "ironOre" : null; if (!ore) { statusElement.textContent = "You do not have ore to smelt."; return; } if (!inventory.coal) { statusElement.textContent = "You need coal to fuel the furnace."; return; } const ingot = ore === "goldOre" ? "goldIngot" : "ironIngot"; inventory[ore] -= 1; inventory.coal -= 1; inventory[ingot] = (inventory[ingot] || 0) + 1; statusElement.textContent = `Smelted ${types[ore].label} into an ingot using coal.`; persistAndRender(); }
 
     function directionVector() { return [Math.sin(player.yaw) * Math.cos(player.pitch), Math.sin(player.pitch), Math.cos(player.yaw) * Math.cos(player.pitch)]; }
@@ -572,7 +626,7 @@
       gl.uniformMatrix4fv(matrixLocation, false, matrix); gl.enableVertexAttribArray(positionLocation); gl.enableVertexAttribArray(colorLocation); drawSky(sky, eye); gl.uniform1f(brightnessLocation, sky.brightness); uploadLights(eye); gl.uniform1f(lightOnLocation, 1);
       gl.bindBuffer(gl.ARRAY_BUFFER, buffer); gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 24, 0); gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 24, 12); gl.drawArrays(gl.TRIANGLES, 0, vertices);
       updateFar(); if (farVertices) { gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(2, 2); gl.uniformMatrix4fv(matrixLocation, false, multiply(matrix, new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, -mapOriginX,0,-mapOriginZ,1]))); gl.bindBuffer(gl.ARRAY_BUFFER, farBuffer); gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 24, 0); gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 24, 12); gl.drawArrays(gl.TRIANGLES, 0, farVertices); gl.disable(gl.POLYGON_OFFSET_FILL); gl.uniformMatrix4fv(matrixLocation, false, matrix); gl.bindBuffer(gl.ARRAY_BUFFER, buffer); gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 24, 0); gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 24, 12); }
-      drawSmoke(); drawRemotePlayers(); drawThrown(); drawWeather(); drawNameTags(matrix);
+      drawSmoke(); drawRemotePlayers(); drawThrown(); drawCracks(); drawWeather(); drawNameTags(matrix);
     }
     function uploadLights(eye) {
       const now = performance.now() / 1000, lights = [];
@@ -972,7 +1026,9 @@
     document.addEventListener("keyup", (event) => { const action = { w:"forward",W:"forward",ArrowUp:"forward",s:"back",S:"back",ArrowDown:"back",a:"left",A:"left",ArrowLeft:"left",d:"right",D:"right",ArrowRight:"right" }[event.key]; if (action) keys.delete(action); });
     canvas.addEventListener("click", () => { if (document.pointerLockElement !== canvas) canvas.requestPointerLock(); });
     canvas.addEventListener("contextmenu", (event) => event.preventDefault());
-    canvas.addEventListener("mousedown", (event) => { if (document.pointerLockElement === canvas) { if (event.button === 0) mine(); if (event.button === 2) build(); } });
+    canvas.addEventListener("mousedown", (event) => { if (document.pointerLockElement === canvas) { if (event.button === 0) startMining(); if (event.button === 2) build(); } });
+    document.addEventListener("mouseup", (event) => { if (event.button === 0) stopMining(); });
+    window.addEventListener("blur", stopMining);
     document.addEventListener("mousemove", (event) => { if (document.pointerLockElement === canvas) { player.yaw -= event.movementX * .0025; player.pitch = Math.max(-1.45, Math.min(1.45, player.pitch - event.movementY * .0025)); } });
     document.addEventListener("pointerlockchange", () => { if (document.pointerLockElement !== canvas) persist(); });
     document.querySelectorAll("[data-move]").forEach((button) => { const action = button.dataset.move; button.addEventListener("pointerdown", () => keys.add(action)); ["pointerup","pointerleave","pointercancel"].forEach((name) => button.addEventListener(name, () => keys.delete(action))); });
