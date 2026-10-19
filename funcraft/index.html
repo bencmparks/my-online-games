@@ -38,7 +38,7 @@
     <p id="hunger">Hunger: <span id="hunger-value">100</span>/100</p>
     <p><label>Brightness <input id="brightness" type="range" min="0.4" max="1.6" step="0.05" value="1"></label></p>
     <p><label><input id="disasters" type="checkbox"> Disaster weather: thunderstorms, tornados and floods</label> <span id="weatherLabel"></span></p>
-    <p>Press Q to throw the selected item (walk over it to pick it up; direct hits on animals collect meat). Hold V to zoom in. Press G in mid-air to glide once you've crafted a glider (3 wood + 2 hide). Press P to change the camera: first person, behind you, or facing you.</p>
+    <p>Press Q to throw the selected item (walk over it to pick it up; direct hits on animals collect meat). Hold V to zoom in. Hold Shift to run at double speed. Press G in mid-air to glide once you've crafted a glider (3 wood + 2 hide). Press P to change the camera: first person, behind you, or facing you.</p>
     <p>Hotkeys: press a number key 0-9 to select its item. Select an item, then hold Shift and press 0-9 to assign it to that key. <span id="hotkeyList"></span></p>
     <p><label><input id="survival" type="checkbox"> Survival mode: 5 lives and hostile animals (wolf, bear, boar) and fire damage</label> <span id="lives"></span></p>
     <p id="multiplayer"><label>Name <input id="mpName" type="text" maxlength="16" size="12"></label> <button id="mpHost" type="button">Host game</button> <input id="mpCode" type="text" maxlength="4" size="6" placeholder="CODE" aria-label="Room code"> <button id="mpJoin" type="button">Join</button> <button id="mpLeave" type="button" hidden>Leave</button> <span id="mpStatus">Play with a friend: one hosts and shares the 4-letter code, the other joins.</span></p>
@@ -340,7 +340,7 @@
       if (!(mp.peer && !mp.host)) { dayTime = (dayTime + delta / 240) % 1; if (Math.floor(dayTime * 20) !== Math.floor((dayTime - delta / 240) * 20)) { saved.dayTime = dayTime; } }
       const forward = (keys.has("forward") ? 1 : 0) - (keys.has("back") ? 1 : 0), strafe = (keys.has("right") ? 1 : 0) - (keys.has("left") ? 1 : 0);
       const glide = gliding && !boating && !inWater() && !player.onGround; if (gliding && !glide) { gliding = false; statusElement.textContent = "You landed."; }
-      const length = Math.hypot(forward, strafe) || 1, speed = boating ? 6 : inWater() ? 2 : 4;
+      const length = Math.hypot(forward, strafe) || 1, speed = (boating ? 6 : inWater() ? 2 : 4) * (running ? 2 : 1);
       move((Math.sin(player.yaw) * forward - Math.cos(player.yaw) * strafe) / length * speed * delta, 0, (Math.cos(player.yaw) * forward + Math.sin(player.yaw) * strafe) / length * speed * delta);
       if (boating) { const top = waterTop(player.x, player.z); if (top === null) { boating = false; statusElement.textContent = "Your boat left the water."; } else { player.y = top - .2; player.velocityY = 0; player.onGround = true; } }
       else { player.velocityY += (inWater() ? -3 : -18) * delta; if (glide) { const dive = Math.max(0, -player.pitch), flare = Math.max(0, player.pitch); player.velocityY = -1.5 - 4 * dive + .7 * flare; move(Math.sin(player.yaw) * (8 + 6 * dive - 3 * flare) * delta, 0, Math.cos(player.yaw) * (8 + 6 * dive - 3 * flare) * delta); } player.onGround = false; move(0, player.velocityY * delta, 0); }
@@ -742,7 +742,10 @@
       });
     }
 
-    let camMode = 0, lastThrow = 0, zooming = false, zoomAmount = 0, gliding = false;
+    let camMode = 0, lastThrow = 0, zooming = false, zoomAmount = 0, gliding = false, running = false;
+    document.addEventListener("keydown", (event) => { if (event.key === "Shift") running = true; });
+    document.addEventListener("keyup", (event) => { if (event.key === "Shift") running = false; });
+    window.addEventListener("blur", () => { running = false; });
     function toggleGlide() {
       if (gliding) { gliding = false; statusElement.textContent = "Glider folded."; return; }
       if (!inventory.glider) { statusElement.textContent = "Craft a glider first (3 wood + 2 hide)."; return; }
