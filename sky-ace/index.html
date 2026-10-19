@@ -35,14 +35,14 @@
   <main>
     <a href="../">← All games</a>
     <h1>✈️ Sky Ace</h1>
-    <p>Fly your plane in 3D first person, shoot enemy planes, and bomb ships without getting shot down. Earn coins to buy planes and upgrade speed, life and damage.</p>
+    <p>Fly your plane in 3D first person, shoot enemy planes, and launch missiles that dive into the water and swim forward to sink ships without getting shot down. Earn coins to buy planes and upgrade speed, life and damage.</p>
     <p>Coins: <strong id="coins">0</strong> · Score: <strong id="score">0</strong> · Best: <strong id="best">0</strong></p>
     <canvas id="game" width="800" height="500" aria-label="Sky Ace airplane game"></canvas>
     <div id="touch" aria-label="Touch controls">
       <button class="up" data-key="up">↑</button><button class="left" data-key="left">←</button><button class="down" data-key="down">↓</button><button class="right" data-key="right">→</button>
-      <button class="fire" data-key="fire">Shoot</button><button class="bomb" data-key="bomb">Bomb</button>
+      <button class="fire" data-key="fire">Shoot</button><button class="bomb" data-key="bomb">Missile</button>
     </div>
-    <p id="status" aria-live="polite">Pick a plane, then take off (or team up with a friend below)! Move and turn: arrows or W A S D (or a gamepad stick; A/RT shoot, B/LT bomb) · Shoot: left click or Space · Bomb: right click, B or X.</p>
+    <p id="status" aria-live="polite">Pick a plane, then take off (or team up with a friend below)! Move and turn: arrows or W A S D (or a gamepad stick; A/RT shoot, B/LT missile) · Shoot: left click or Space · Missile: right click, B or X.</p>
     <section id="hangar">
       <h3>Choose a level</h3>
       <div id="levels"></div>
@@ -55,6 +55,12 @@
         <button id="coopJoin" type="button">Join a team</button>
         <button id="coopLeave" type="button" hidden>Leave team</button>
         <p id="coopStatus" aria-live="polite">Host a team and share the code, or join a friend's team to fly together. The host picks the level.</p>
+      </div>
+      <div id="practice">
+        <h3>Practice</h3>
+        <select id="pracGround" aria-label="Practice terrain"><option value="sea">Sea (ships)</option><option value="land">Land (tanks)</option></select>
+        <select id="pracTargets" aria-label="Practice targets"><option value="planes">1 plane to shoot down</option><option value="ground">1 ship or tank to hit with missiles</option><option value="both">Both: 1 plane and 1 ship or tank</option></select>
+        <button id="pracGo" type="button">Start practice</button>
       </div>
       <div id="planes"></div>
     </section>
@@ -70,7 +76,11 @@
       falcon: { name: "Falcon", price: 400, speed: 5, hp: 4, damage: 1.5, rate: .19, maxUp: 5, color: "#34d399" },
       hornet: { name: "Hornet", price: 1200, speed: 5.8, hp: 5, damage: 2, rate: .17, maxUp: 7, color: "#fbbf24" },
       thunder: { name: "Thunder", price: 3000, speed: 6.4, hp: 7, damage: 3, rate: .15, maxUp: 9, color: "#fb923c" },
-      phantom: { name: "Phantom", price: 7000, speed: 7.2, hp: 9, damage: 4, rate: .13, maxUp: 12, color: "#c084fc" }
+      phantom: { name: "Phantom", price: 7000, speed: 7.2, hp: 9, damage: 4, rate: .13, maxUp: 12, color: "#c084fc" },
+      viper: { name: "Viper", price: 12000, speed: 8, hp: 10, damage: 5, rate: .12, maxUp: 14, color: "#f43f5e" },
+      comet: { name: "Comet", price: 20000, speed: 8.8, hp: 12, damage: 6, rate: .11, maxUp: 16, color: "#22d3ee" },
+      titan: { name: "Titan", price: 35000, speed: 7.6, hp: 18, damage: 7, rate: .1, maxUp: 18, color: "#94a3b8" },
+      eclipse: { name: "Eclipse", price: 60000, speed: 9.5, hp: 16, damage: 9, rate: .09, maxUp: 20, color: "#e879f9" }
     };
     const order = Object.keys(planes), statLabels = { speed: "Speed", life: "Life", damage: "Damage" };
     const save = GameProfiles.getGame("sky-ace", { coins: 0, owned: ["scout"], selected: "scout", upgrades: {}, best: 0 });
@@ -86,7 +96,17 @@
       { name: "Iron Armada", planes: 16, ships: 8, diff: 8, bonus: 750 },
       { name: "Ace of Aces", planes: 25, ships: 10, diff: 10, bonus: 1200, boss: { name: "The Crimson Baron", hp: 180 } },
       { name: "Final Approach", planes: 22, ships: 8, diff: 11, bonus: 1500 },
-      { name: "Helicopter Gunship", planes: 15, ships: 5, diff: 12, bonus: 2500, boss: { name: "Gunship Apache", hp: 220, heli: true } }
+      { name: "Helicopter Gunship", planes: 15, ships: 5, diff: 12, bonus: 2500, boss: { name: "Gunship Apache", hp: 220, heli: true } },
+      { name: "Desert Raid", planes: 24, ships: 6, diff: 12, bonus: 2800 },
+      { name: "Arctic Strike", planes: 26, ships: 8, diff: 13, bonus: 3200, boss: { name: "Frost Wyrm", hp: 260 } },
+      { name: "Canyon Run", planes: 30, ships: 6, diff: 14, bonus: 3600 },
+      { name: "Volcano Skies", planes: 28, ships: 10, diff: 15, bonus: 4000, boss: { name: "Magma Hornet", hp: 300, heli: true } },
+      { name: "Night Raid", planes: 34, ships: 10, diff: 16, bonus: 4500 },
+      { name: "Sky Fortress", planes: 30, ships: 12, diff: 17, bonus: 5000, boss: { name: "Fortress Core", hp: 360 } },
+      { name: "Meteor Belt", planes: 38, ships: 10, diff: 18, bonus: 5500 },
+      { name: "Rogue Squadron", planes: 40, ships: 12, diff: 19, bonus: 6000, boss: { name: "Wing Commander Vex", hp: 420, heli: true } },
+      { name: "Armada Assault", planes: 36, ships: 16, diff: 20, bonus: 7000 },
+      { name: "The Sky King", planes: 45, ships: 14, diff: 22, bonus: 10000, boss: { name: "The Sky King", hp: 550 } }
     ];
     const levelsEl = document.querySelector("#levels");
     function renderLevels() {
@@ -162,7 +182,7 @@
     function applySnapshot(d) {
       const g = game, p = g.p; g.t = d.gt; g.score = d.sc; scoreEl.textContent = d.sc; g.planeKills = d.pk; g.shipKills = d.sk;
       g.enemies = d.e.map(([x, y, z, ph, hp, maxHp]) => ({ x, y, z, ph, hp, maxHp })); g.ships = d.sh.map(([x, z, hp, maxHp]) => ({ x, z, hp, maxHp }));
-      g.enemyShots = d.es.map(([x, y, z]) => ({ x, y, z })); g.bullets = d.b.map(([x, y, z]) => ({ x, y, z })); g.bombs = d.bo.map(([x, y, z]) => ({ x, y, z }));
+      g.enemyShots = d.es.map(([x, y, z]) => ({ x, y, z })); g.bullets = d.b.map(([x, y, z]) => ({ x, y, z })); g.bombs = d.bo.map(([x, y, z]) => ({ x, y, z, sub: y <= 0 }));
       g.parts = d.pa.map(([x, y, z, c, life, size]) => ({ x, y, z, color: COLORS[c], life, max: 1.1, size }));
       g.boss = d.bs ? { x: d.bs[0], y: d.bs[1], z: d.bs[2], hp: d.bs[3], maxHp: d.bs[4], ph: d.bs[5], big: true, heli: !!g.lv.boss?.heli } : null;
       g.team = [];
@@ -231,18 +251,26 @@
     }
     coopHostEl.addEventListener("click", () => coopStart(true)); coopJoinEl.addEventListener("click", () => coopStart(false)); coopLeaveEl.addEventListener("click", () => { coopStop(); coopStatus("You left the team."); });
 
+    let practiceLevel = null;
+    function startPractice() {
+      if (coop.peer) { statusEl.textContent = "Leave your team to do practice."; return; }
+      const land = document.querySelector("#pracGround").value === "land", what = document.querySelector("#pracTargets").value;
+      practiceLevel = { name: land ? "Practice (land)" : "Practice (sea)", planes: what === "ground" ? 0 : 1, ships: what === "planes" ? 0 : 1, diff: 1, bonus: 0, practice: true, land };
+      startGame(0, false);
+    }
+    document.querySelector("#pracGo").addEventListener("click", startPractice);
     function takeOff() {
       if (coop.peer && !coop.host) return;
       startGame(save.pick, false);
       if (coop.host && coop.conns.length) coopSend({ t: "start", level: save.pick });
     }
     function startGame(num, client) {
-      const id = save.selected, s = stats(id), lv = LEVELS[num - 1];
+      const id = save.selected, s = stats(id), lv = num === 0 ? practiceLevel : LEVELS[num - 1];
       game = { lv, num, client, coop: !!coop.peer, mates: new Map(), team: [], sendT: 0, planeKills: 0, shipKills: 0, boss: null, bossSpawned: false, bossDone: !lv.boss, won: false, t: 0, score: 0, earned: 0, over: false, overTimer: 0, enemyCd: 1.5, shipCd: 3, bullets: [], bombs: [], enemies: [], ships: [], enemyShots: [], parts: [], clouds: [],
         p: { id, x: 0, y: 220, speed: s.speed, hp: s.hp, maxHp: s.hp, damage: s.damage, fireCd: 0, bombCd: 0, inv: 1, vx: 0 } };
       for (let i = 0; i < 18; i += 1) game.clouds.push(newCloud(100 + Math.random() * 2900));
       mode = "fly"; hangarEl.hidden = true; scoreEl.textContent = 0; keys.clear();
-      statusEl.textContent = game.coop ? "Team mission! Stay alive together: the mission fails only when every pilot is shot down." : "Go go go! Shoot planes, dive low to hit ships, and bomb them from above.";
+      statusEl.textContent = game.coop ? "Team mission! Stay alive together: the mission fails only when every pilot is shot down." : "Go go go! Shoot planes, and fire missiles (right click) at ships: they drop into the water and swim forward.";
       if (client) coopSend({ t: "hello", name: pilotName(), plane: id, hp: s.hp, damage: s.damage, rate: planes[id].rate });
     }
     document.querySelector("#fly").addEventListener("click", takeOff);
@@ -255,7 +283,7 @@
         game.parts.push({ x, y, z, vx: Math.cos(a) * Math.cos(b) * force, vy: Math.sin(b) * force, vz: Math.sin(a) * Math.cos(b) * force, life: .5 + Math.random() * .6, max: 1.1, color: colors[i % colors.length], size: 4 + Math.random() * 6 });
       }
     }
-    function reward(coins, points) { game.earned += coins; save.coins += coins; game.score += points; scoreEl.textContent = game.score; coinsEl.textContent = save.coins; if (coop.host && !game.client) coopSend({ t: "r", c: coins }); }
+    function reward(coins, points) { if (game.lv.practice) coins = 0; game.earned += coins; save.coins += coins; game.score += points; scoreEl.textContent = game.score; coinsEl.textContent = save.coins; if (coop.host && !game.client) coopSend({ t: "r", c: coins }); }
     function hurtPlayer() {
       const p = game.p; if (p.inv > 0 || game.over) return;
       p.hp -= 1; p.inv = 1; game.shake = .35;
@@ -327,13 +355,13 @@
       } else { g.overTimer -= dt; if (g.overTimer <= 0) { endRun(); return; } }
 
       g.enemyCd -= dt;
-      if (g.enemyCd <= 0 && !g.over) {
+      if (g.enemyCd <= 0 && !g.over && (!g.lv.practice || (g.lv.planes > 0 && !g.enemies.length && g.planeKills < g.lv.planes))) {
         const hp = 2 + Math.floor(wave() * .6);
         g.enemies.push({ x: clamp(g.p.x + (Math.random() - .5) * 800, -LIMIT_X, LIMIT_X), y: 70 + Math.random() * 330, z: 2400, hp, maxHp: hp, vz: -(280 + Math.random() * 120 + wave() * 12), ph: Math.random() * 6, cd: .8 + Math.random() * 1.2 });
         g.enemyCd = Math.max(.6, 2.2 - g.t * .012) * (.7 + Math.random() * .6);
       }
       g.shipCd -= dt;
-      if (g.shipCd <= 0 && !g.over) {
+      if (g.shipCd <= 0 && !g.over && (!g.lv.practice || (g.lv.ships > 0 && !g.ships.length && g.shipKills < g.lv.ships))) {
         const hp = 8 + wave() * 2;
         g.ships.push({ x: (Math.random() - .5) * 1000, z: 2800, hp, maxHp: hp, vz: -(130 + Math.random() * 50), cd: 1.5 + Math.random() * 1.5 });
         g.shipCd = Math.max(2.5, 6 - g.t * .02) * (.8 + Math.random() * .5);
@@ -360,8 +388,16 @@
         if (bullet.z > 3000) bullet.dead = true;
       });
       g.bombs.forEach((bomb) => {
-        bomb.vy -= 600 * dt; bomb.y += bomb.vy * dt; bomb.z += bomb.vz * dt;
-        if (bomb.y <= 0) explodeBomb(bomb);
+        if (!bomb.sub) {
+          bomb.vy -= 600 * dt; bomb.y += bomb.vy * dt; bomb.z += bomb.vz * dt;
+          if (bomb.y <= 0) { bomb.sub = true; bomb.y = 0; bomb.vz = 700; bomb.age = 0; particles(bomb.x, 4, bomb.z, 16, g.lv.land ? ["#a16207", "#78350f"] : ["#bae6fd", "#ffffff", "#38bdf8"], 160); }
+          return;
+        }
+        bomb.age += dt; bomb.z += bomb.vz * dt;
+        const prey = g.ships.find((ship) => !ship.dead && ship.z > bomb.z - 60 && ship.z < bomb.z + 500 && Math.abs(ship.x - bomb.x) < 260);
+        if (prey) bomb.x += clamp(prey.x - bomb.x, -1, 1) * Math.min(Math.abs(prey.x - bomb.x), 420 * dt);
+        if (g.ships.some((ship) => !ship.dead && Math.abs(ship.x - bomb.x) < 70 && Math.abs(ship.z - bomb.z) < 60)) explodeBomb(bomb);
+        else if (bomb.age > 3.5 || bomb.z > 3200) bomb.dead = true;
       });
       g.enemies.forEach((enemy) => {
         enemy.z += enemy.vz * dt; enemy.x = clamp(enemy.x + Math.sin(g.t * 1.5 + enemy.ph) * 70 * dt, -LIMIT_X, LIMIT_X); enemy.y = clamp(enemy.y + Math.cos(g.t * 1.2 + enemy.ph) * 40 * dt, 60, 430); enemy.cd -= dt;
@@ -387,8 +423,9 @@
     }
 
     function endRun() {
-      save.best = Math.max(save.best, game.score); persist();
-      if (game.won) statusEl.textContent = `Level ${game.num} complete! Score ${game.score}, earned ${game.earned} coins.${game.num >= LEVELS.length ? " You beat every level!" : " Next level unlocked."}`;
+      if (!game.lv.practice) save.best = Math.max(save.best, game.score); persist();
+      if (game.lv.practice) statusEl.textContent = game.won ? "Practice complete! Nice shooting. Pick another practice or a level." : "Your plane exploded in practice. Try again!";
+      else if (game.won) statusEl.textContent = `Level ${game.num} complete! Score ${game.score}, earned ${game.earned} coins.${game.num >= LEVELS.length ? " You beat every level!" : " Next level unlocked."}`;
       else statusEl.textContent = `Your plane exploded! Score ${game.score}, earned ${game.earned} coins. Spend them in the hangar.`;
       mode = "hangar"; hangarEl.hidden = false; keys.clear(); renderHangar();
     }
@@ -449,6 +486,13 @@
       ctx.restore();
       if (ship.hp < ship.maxHp) { ctx.fillStyle = "#450a0a"; ctx.fillRect(q.x - 40 * q.s, q.y - 95 * q.s, 80 * q.s, Math.max(2, 7 * q.s)); ctx.fillStyle = "#4ade80"; ctx.fillRect(q.x - 40 * q.s, q.y - 95 * q.s, 80 * q.s * Math.max(0, ship.hp / ship.maxHp), Math.max(2, 7 * q.s)); }
     }
+    function drawTank(tank) {
+      const q = project(tank.x, 0, tank.z); ctx.save(); ctx.translate(q.x, q.y); ctx.scale(q.s, q.s); ctx.globalAlpha = fade(tank.z);
+      ctx.fillStyle = "#1f2937"; ctx.fillRect(-60, -16, 120, 16); ctx.fillStyle = "#374151"; for (let i = -50; i <= 50; i += 20) { ctx.beginPath(); ctx.arc(i, -8, 7, 0, 7); ctx.fill(); }
+      ctx.fillStyle = "#4d7c0f"; ctx.fillRect(-50, -34, 100, 20); ctx.fillStyle = "#65a30d"; ctx.fillRect(-26, -50, 50, 18); ctx.fillStyle = "#3f6212"; ctx.fillRect(22, -44, 52, 6);
+      ctx.restore();
+      if (tank.hp < tank.maxHp) { ctx.fillStyle = "#450a0a"; ctx.fillRect(q.x - 40 * q.s, q.y - 70 * q.s, 80 * q.s, Math.max(2, 7 * q.s)); ctx.fillStyle = "#4ade80"; ctx.fillRect(q.x - 40 * q.s, q.y - 70 * q.s, 80 * q.s * Math.max(0, tank.hp / tank.maxHp), Math.max(2, 7 * q.s)); }
+    }
     function drawCloud(cloud) {
       const q = project(cloud.x, cloud.y, cloud.z), r = cloud.size * q.s; ctx.fillStyle = `rgb(255 255 255 / ${Math.round(80 * fade(cloud.z))}%)`;
       [[0, 0, 1.5, .6], [.9, -.3, 1, .6], [-.9, -.2, 1, .5]].forEach(([ox, oy, sx, sy]) => { ctx.beginPath(); ctx.ellipse(q.x + ox * r, q.y + oy * r, r * sx, r * sy, 0, 0, 7); ctx.fill(); });
@@ -458,20 +502,20 @@
       ctx.save(); ctx.translate(shakeX, shakeY);
       const sky = ctx.createLinearGradient(0, 0, 0, hz); sky.addColorStop(0, "#0ea5e9"); sky.addColorStop(1, "#e0f2fe"); ctx.fillStyle = sky; ctx.fillRect(-20, -20, W + 40, hz + 20);
       ctx.fillStyle = "#fde047"; ctx.beginPath(); ctx.arc((((600 - p.x * .08 - (g.heading || 0) * 700) % 1600) + 1600) % 1600 - 400, 90 + (p.y - 220) * .08, 34, 0, 7); ctx.fill();
-      const sea = ctx.createLinearGradient(0, hz, 0, H); sea.addColorStop(0, "#38bdf8"); sea.addColorStop(.25, "#0369a1"); sea.addColorStop(1, "#082f49"); ctx.fillStyle = sea; ctx.fillRect(-20, hz, W + 40, hz + 20);
-      ctx.strokeStyle = "rgb(186 230 253 / 40%)"; ctx.lineWidth = 1.5;
+      const sea = ctx.createLinearGradient(0, hz, 0, H), gc = g.lv.land ? ["#bef264", "#4d7c0f", "#1a2e05"] : ["#38bdf8", "#0369a1", "#082f49"]; sea.addColorStop(0, gc[0]); sea.addColorStop(.25, gc[1]); sea.addColorStop(1, gc[2]); ctx.fillStyle = sea; ctx.fillRect(-20, hz, W + 40, hz + 20);
+      ctx.strokeStyle = g.lv.land ? "rgb(20 83 45 / 45%)" : "rgb(186 230 253 / 40%)"; ctx.lineWidth = 1.5;
       const scroll = (g.t * 500) % 300;
       for (let zz = 120 + 300 - scroll; zz < 4000; zz += 300) { const y = hz + p.y / zz * F; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
       for (let wx = -3000; wx <= 3000; wx += 300) { const sx = (((wx - p.x - (g.heading || 0) * 1200 + 3000) % 6000) + 6000) % 6000 - 3000, a = W / 2 + sx / 4000 * F, b = W / 2 + sx / 120 * F; ctx.beginPath(); ctx.moveTo(a, hz + p.y / 4000 * F); ctx.lineTo(b, hz + p.y / 120 * F); ctx.stroke(); }
       const items = [];
       g.clouds.forEach((o) => items.push([o.z, () => drawCloud(o)]));
-      g.ships.forEach((o) => items.push([o.z, () => drawShip(o)]));
+      g.ships.forEach((o) => items.push([o.z, () => (g.lv.land ? drawTank : drawShip)(o)]));
       g.team.forEach((m) => items.push([700, () => drawWingman(m)]));
       g.enemies.forEach((o) => items.push([o.z, () => drawEnemyPlane(o)]));
       if (g.boss) items.push([g.boss.z, () => drawEnemyPlane(g.boss)]);
       g.enemyShots.forEach((o) => items.push([o.z, () => { if (o.z < 8) return; const q = project(o.x, o.y, o.z); ctx.fillStyle = "#ef4444"; ctx.beginPath(); ctx.arc(q.x, q.y, Math.max(2, 14 * q.s), 0, 7); ctx.fill(); ctx.fillStyle = "#fecaca"; ctx.beginPath(); ctx.arc(q.x, q.y, Math.max(1, 6 * q.s), 0, 7); ctx.fill(); }]));
       g.bullets.forEach((o) => items.push([o.z, () => { const a = project(o.x, o.y, o.z), b = project(o.x, o.y, o.z - 120); ctx.strokeStyle = "#fde047"; ctx.lineWidth = Math.max(2, 5 * a.s); ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); }]));
-      g.bombs.forEach((o) => items.push([o.z, () => { if (o.z < 8) return; const q = project(o.x, o.y, o.z); ctx.fillStyle = "#1e293b"; ctx.beginPath(); ctx.ellipse(q.x, q.y, Math.max(2, 14 * q.s), Math.max(2, 10 * q.s), 0, 0, 7); ctx.fill(); }]));
+      g.bombs.forEach((o) => items.push([o.z, () => { if (o.z < 8) return; const q = project(o.x, o.y, o.z); if (o.sub) { ctx.fillStyle = "rgb(224 242 254 / 70%)"; ctx.beginPath(); ctx.ellipse(q.x, q.y, Math.max(3, 16 * q.s), Math.max(1.5, 6 * q.s), 0, 0, 7); ctx.fill(); ctx.fillStyle = "#0c4a6e"; ctx.beginPath(); ctx.ellipse(q.x, q.y, Math.max(2, 7 * q.s), Math.max(1, 3 * q.s), 0, 0, 7); ctx.fill(); } else { ctx.fillStyle = "#dc2626"; ctx.beginPath(); ctx.ellipse(q.x, q.y, Math.max(2, 8 * q.s), Math.max(3, 16 * q.s), 0, 0, 7); ctx.fill(); ctx.fillStyle = "#fbbf24"; ctx.beginPath(); ctx.ellipse(q.x, q.y - Math.max(3, 18 * q.s), Math.max(1.5, 4 * q.s), Math.max(2, 8 * q.s), 0, 0, 7); ctx.fill(); } }]));
       g.parts.forEach((o) => items.push([o.z, () => { if (o.z < 8) return; const q = project(o.x, o.y, o.z); ctx.globalAlpha = Math.max(0, o.life / o.max); ctx.fillStyle = o.color; const s = Math.max(1.5, o.size * q.s * 3); ctx.fillRect(q.x - s / 2, q.y - s / 2, s, s); ctx.globalAlpha = 1; }]));
       items.sort((a, b) => b[0] - a[0]).forEach(([z, fn]) => { if (z > 8) fn(); }); ctx.globalAlpha = 1;
       ctx.restore();
@@ -488,7 +532,7 @@
       if (p.inv > 0 && !game.over) { ctx.fillStyle = `rgb(239 68 68 / ${Math.round(clamp(p.inv, 0, 1) * 35)}%)`; ctx.fillRect(0, 0, W, H); }
     }
     function drawHud() {
-      const p = game.p; ctx.font = "bold 16px Arial"; ctx.textAlign = "left"; ctx.fillStyle = "#0f172a"; ctx.fillText(`Lv ${game.num}: ${game.lv.name}`, 12, 24); ctx.fillText(`Planes ${Math.min(game.planeKills, game.lv.planes)}/${game.lv.planes}  Ships ${Math.min(game.shipKills, game.lv.ships)}/${game.lv.ships}`, 12, 82);
+      const p = game.p; ctx.font = "bold 16px Arial"; ctx.textAlign = "left"; ctx.fillStyle = "#0f172a"; ctx.fillText(`${game.lv.practice ? "" : `Lv ${game.num}: `}${game.lv.name}`, 12, 24); ctx.fillText(`Planes ${Math.min(game.planeKills, game.lv.planes)}/${game.lv.planes}  ${game.lv.land ? "Tanks" : "Ships"} ${Math.min(game.shipKills, game.lv.ships)}/${game.lv.ships}`, 12, 82);
       for (let i = 0; i < p.maxHp; i += 1) { ctx.fillStyle = i < p.hp ? "#ef4444" : "#1e293b"; ctx.fillRect(12 + i * 18, 34, 14, 14); }
       ctx.fillStyle = "#1e293b"; ctx.fillRect(12, 56, 70, 8); ctx.fillStyle = "#fb923c"; ctx.fillRect(12, 56, 70 * clamp(1 - p.bombCd, 0, 1), 8);
       ctx.fillStyle = "#0f172a"; ctx.textAlign = "right"; ctx.fillText(`Score ${game.score}   Coins +${game.earned}`, W - 12, 24);
@@ -505,7 +549,7 @@
       if (mode === "fly") {
         const g = game;
         drawWorld(); drawCockpit(); drawHud(); drawTeamHud();
-        if (g.over) { ctx.fillStyle = "rgb(0 0 0 / 45%)"; ctx.fillRect(0, 0, W, H); ctx.fillStyle = "#fef08a"; ctx.font = "bold 44px Arial"; ctx.textAlign = "center"; ctx.fillText(g.won ? `🏆 Level ${g.num} complete!` : g.coop ? "💥 The whole team was shot down!" : "💥 Your plane exploded!", W / 2, H / 2); }
+        if (g.over) { ctx.fillStyle = "rgb(0 0 0 / 45%)"; ctx.fillRect(0, 0, W, H); ctx.fillStyle = "#fef08a"; ctx.font = "bold 44px Arial"; ctx.textAlign = "center"; ctx.fillText(g.won ? (g.lv.practice ? "🏆 Practice complete!" : `🏆 Level ${g.num} complete!`) : g.coop ? "💥 The whole team was shot down!" : "💥 Your plane exploded!", W / 2, H / 2); }
       } else {
         drawBackground(time);
         drawPlane(W / 2, 200 + Math.sin(time * 2) * 14, planes[save.selected].color, 1, 2.2, time);

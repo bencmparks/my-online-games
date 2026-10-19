@@ -28,10 +28,11 @@
   <main>
     <a href="../">← All games</a>
     <h1>Funcraft</h1>
-    <p class="instructions">Click the world to look around. Mine ore and coal with left click, craft a furnace at a workbench, then press E beside the furnace to smelt ore into ingots using coal fuel. Away from stations, E eats food, or tames the animal you're looking at (costs 1 meat; wolves, bears and boars only sometimes accept). Tamed pets follow you and can't be collected. Press H or use Home to return to your starting hill, press Y to save a teleport spot where you stand and U to return to it any time, or T to teleport to another player in your lobby (press again for the next one). Craft torches (wood + coal) and left-click wood, leaves, grass or coal while holding one to set it on fire (or press L); fire goes out unless it touches one of those, spreads slowly, and water puts it out. Craft a boat from 5 planks (no workbench needed), face water and press B to sail; Space hops out. Rivers and lakes now cross the land with a current that carries swimmers and boats (rivers flow steadily, lakes drift gently). Craft a bucket (3 iron ingots), left-click water to fill it, and right-click to pour it out; a water bucket is the only way to put out a fire by hand.</p>
+    <p class="instructions">Click the world to look around. Mine ore and coal with left click, craft a furnace at a workbench, then press E beside the furnace to smelt ore into ingots using coal fuel. Away from stations, E eats food, or tames the animal you're looking at (costs 1 meat; wolves, bears and boars only sometimes accept). Tamed pets follow you and can't be collected. Craft a chest from 8 planks, place it, and press E while looking at it to store your items (airplanes, bricks, anything); empty a chest before breaking it. Flowers grow on grassy plains. Press H or use Home to return to your starting hill, press Y to save a teleport spot where you stand and U to return to it any time, or T to teleport to another player in your lobby (press again for the next one). Craft torches (wood + coal) and left-click wood, leaves, grass or coal while holding one to set it on fire (or press L); fire goes out unless it touches one of those, spreads slowly, and water puts it out. Craft a boat from 5 planks (no workbench needed), face water and press B to sail; Space hops out. Rivers and lakes now cross the land with a current that carries swimmers and boats (rivers flow steadily, lakes drift gently). Craft a bucket (3 iron ingots), left-click water to fill it, and right-click to pour it out; a water bucket is the only way to put out a fire by hand.</p>
     <div id="game-wrap"><canvas id="game" width="960" height="540" aria-label="Funcraft first-person block world"></canvas><canvas id="tags" aria-hidden="true"></canvas><span id="crosshair" aria-hidden="true"></span></div>
     <div id="inventory" class="inventory" aria-label="Inventory"></div>
     <div id="crafting" class="crafting" aria-label="Crafting bench"></div>
+    <section id="chestPanel" hidden><h3>Chest <button id="chestClose" type="button">Close</button></h3><p>Click an item to move one; Shift-click moves all of it.</p><p><strong>In the chest</strong></p><div id="chestItems" class="inventory"></div><p><strong>Your bag</strong></p><div id="chestBag" class="inventory"></div></section>
     <div class="controls" aria-label="Touch controls">
       <button type="button" data-move="forward">Forward</button><button type="button" data-move="left">←</button><button type="button" data-action="jump">Jump</button><button type="button" data-move="right">→</button><button type="button" data-move="back">Back</button><button id="home" type="button">Home</button><button id="boat" type="button">Boat</button><button id="fullscreen" type="button">Full screen</button><button id="reset" type="button">New world</button>
     </div>
@@ -65,7 +66,7 @@
       ironIngot: { label: "Iron ingot", color: [226, 232, 240] }, goldIngot: { label: "Gold ingot", color: [253, 224, 71] },
       meat: { label: "Meat", color: [190, 55, 45] }, hide: { label: "Hide", color: [137, 92, 56] },
       torch: { label: "Torch", color: [250, 204, 21], solid: false }, fire: { label: "Fire", color: [249, 115, 22], solid: false, hidden: true },
-      bucket: { label: "Bucket", color: [148, 163, 184] }, waterBucket: { label: "Water bucket", color: [56, 189, 248] }, boat: { label: "Boat", color: [139, 90, 43] }, glider: { label: "Glider", color: [220, 60, 60] }, quicksand: { label: "Quicksand", color: [201, 160, 92], solid: false }, airplane: { label: "Airplane", color: [226, 232, 240] }
+      bucket: { label: "Bucket", color: [148, 163, 184] }, waterBucket: { label: "Water bucket", color: [56, 189, 248] }, boat: { label: "Boat", color: [139, 90, 43] }, glider: { label: "Glider", color: [220, 60, 60] }, quicksand: { label: "Quicksand", color: [201, 160, 92], solid: false }, airplane: { label: "Airplane", color: [226, 232, 240] }, flower: { label: "Flower", color: [236, 72, 153], solid: false }, chest: { label: "Chest", color: [161, 98, 7] }
     };
     const flammable = { wood: 1, leaves: 1.4, grass: 1.5, coal: .5, plank: 1 };
     const burningPlanks = new Map(), fireKey = (x, y, z) => `${x + mapOriginX},${y},${z + mapOriginZ}`;
@@ -79,6 +80,7 @@
       { output: "glider", amount: 1, cost: { wood: 3, hide: 2 } },
       { output: "airplane", amount: 1, cost: { goldIngot: 10, ironIngot: 10, coal: 30 } },
       { output: "workbench", amount: 1, cost: { plank: 4 } },
+      { output: "chest", amount: 1, cost: { plank: 8 } },
       { output: "bucket", amount: 1, cost: { ironIngot: 3 } },
       { output: "brick", amount: 2, cost: { stone: 2, dirt: 1 }, requiresWorkbench: true },
       { output: "furnace", amount: 1, cost: { stone: 8 }, requiresWorkbench: true }
@@ -133,7 +135,7 @@
       inventory = !reset && saved.inventory && Object.keys(saved.inventory).length ? saved.inventory : { dirt: 6, stone: 2, wood: 4, grass: 0, leaves: 0, water: 0, plank: 0, brick: 0, workbench: 0, furnace: 0, coal: 0, ironOre: 0, goldOre: 0, ironIngot: 0, goldIngot: 0, meat: 0, hide: 0 };
       const prior = !reset && valid ? saved.player : null;
       Object.assign(player, prior || { x: 5.5, y: 7, z: 5.5, yaw: 0, pitch: -.12, velocityY: 0, onGround: false });
-      player.velocityY = 0; player.hunger = Number.isFinite(player.hunger) ? player.hunger : 100; selected = "dirt"; workbenchNearby = nearWorkbench(); workbenchActive = false; boating = false; saved.worldVersion = version; if (!animals.length) spawnAnimals(); lives = !reset && valid && Number.isFinite(saved.lives) ? saved.lives : maxLives; if (reset) saved.survival = survivalElement.checked; survivalElement.checked = !!saved.survival; if (saved.survival && !animals.some((animal) => animalKinds[animal.kind]?.hostile && !animal.pet)) syncHostiles(); renderLives(); rebuildMesh(); persist(); renderInventory(); renderCrafting(); renderHunger();
+      player.velocityY = 0; player.hunger = Number.isFinite(player.hunger) ? player.hunger : 100; selected = "dirt"; workbenchNearby = nearWorkbench(); workbenchActive = false; boating = false; saved.worldVersion = version; if (!animals.length) spawnAnimals(); if (reset) saved.chests = {}; lives = !reset && valid && Number.isFinite(saved.lives) ? saved.lives : maxLives; if (reset) saved.survival = survivalElement.checked; survivalElement.checked = !!saved.survival; if (saved.survival && !animals.some((animal) => animalKinds[animal.kind]?.hostile && !animal.pet)) syncHostiles(); renderLives(); rebuildMesh(); persist(); renderInventory(); renderCrafting(); renderHunger();
       lastFrame = performance.now(); cancelAnimationFrame(animationFrame); animationFrame = requestAnimationFrame(loop);
     }
 
@@ -226,7 +228,9 @@
           if (!dx && !dz && y > top && y <= crown) return "wood";
           if (tree.jungle ? ((y === crown - 1 || y === crown) && ax + az <= 3) || (y === crown + 1 && ax <= 1 && az <= 1) : (ax <= 1 && az <= 1 && y >= crown + 1 && y <= crown + 3)) leaves = true;
         }
-        return leaves ? "leaves" : null;
+        if (leaves) return "leaves";
+        if (y === ground + 1 && !info.wet && info.de <= .5 && ground < 18 && ground >= 3 && (((x * 73856093) ^ (z * 19349663)) >>> 0) % 100 < 6) return "flower";
+        return null;
       }
       if (info.mt > .3 && y >= ground - 1 && streamAt(x, z)) return "water";
       if (y >= 1 && !info.wet && y <= (info.mt > .25 ? ground : ground - 2) && Math.abs(Math.sin(x * .17 + 2 * Math.sin(z * .11) + y * .3)) < .26 && Math.abs(Math.sin(z * .15 + 2 * Math.sin(x * .09) - y * .35)) < .26) return null;
@@ -318,11 +322,13 @@
         const type = blockAt(x, y, z); if (!type) continue;
         if (type === "torch") lightList.push([x + .5, y + .8, z + .5, 8]);
         if (type === "fire") lightList.push([x + .5, y + .6, z + .5, 11, .4]);
+        if (type === "flower") { const col = [[.95, .25, .4], [.98, .85, .2], [.7, .4, .95], [1, 1, 1]][((x + mapOriginX) * 7 + (z + mapOriginZ) * 13) & 3]; addAnimalCube(x + .46, y, z + .46, .08, .45, .08, [.2, .55, .15]); addAnimalCube(x + .32, y + .45, z + .32, .36, .2, .36, col); addAnimalCube(x + .43, y + .5, z + .43, .14, .12, .14, [1, .9, .2]); continue; }
+        if (type === "chest") { addAnimalCube(x + .08, y, z + .08, .84, .55, .84, [.63, .38, .03]); addAnimalCube(x + .06, y + .55, z + .06, .88, .2, .88, [.45, .26, .02]); addAnimalCube(x + .44, y + .3, z + .04, .12, .3, .92, [.98, .8, .2]); continue; }
         if (type === "torch") { addAnimalCube(x + .42, y, z + .42, .16, .6, .16, [.55, .33, .12]); addAnimalCube(x + .38, y + .6, z + .38, .24, .24, .24, [1, .82, .15]); continue; }
         if (type === "fire") { addAnimalCube(x + .15, y, z + .15, .7, .5, .7, [.98, .45, .08]); addAnimalCube(x + .3, y + .5, z + .3, .4, .4, .4, [1, .8, .15]); continue; }
         for (let index = 0; index < 6; index += 1) {
           const face = faces[index], neighbor = blockAt(x + face[0][0], y + face[0][1], z + face[0][2]);
-          if (neighbor && neighbor !== "torch" && neighbor !== "fire" && (type !== "water" || neighbor === "water")) continue;
+          if (neighbor && neighbor !== "torch" && neighbor !== "fire" && neighbor !== "flower" && neighbor !== "chest" && (type !== "water" || neighbor === "water")) continue;
           const shade = [.82, .62, 1, .5, .9, .7][index], base = types[type].color;
           for (let c = 0; c < 6; c += 1) { const corner = corners[index][[0,1,2,0,2,3][c]]; data.push(corner[0] + x, corner[1] + y, corner[2] + z, base[0] / 255 * shade, base[1] / 255 * shade, base[2] / 255 * shade); }
         }
@@ -491,6 +497,8 @@
       if (type === "fire") { statusElement.textContent = "Fire is too hot! Select a water bucket and right-click the fire to put it out."; return; }
       if (type === "water") { if (!inventory.bucket) { statusElement.textContent = "You need a bucket to collect water. Craft one from 3 iron ingots."; return; } inventory.bucket -= 1; inventory.waterBucket = (inventory.waterBucket || 0) + 1; world[target.y][target.z][target.x] = null; mpBlock(target.x, target.y, target.z, null); statusElement.textContent = "Filled your bucket with water."; rebuildMesh(); persistAndRender(); return; }
       if (selected === "torch" && inventory.torch && flammable[type]) { ignite(target.x, target.y, target.z); statusElement.textContent = `You set the ${types[type].label.toLowerCase()} on fire! Water puts it out.`; rebuildMesh(); persist(); return; }
+      if (type === "chest" && Object.values(saved.chests?.[chestKey(target.x, target.y, target.z)] || {}).some((n) => n > 0)) { statusElement.textContent = "Empty the chest first (press E to open it)."; return; }
+      if (type === "chest") { if (saved.chests) delete saved.chests[chestKey(target.x, target.y, target.z)]; if (openChestKey === chestKey(target.x, target.y, target.z)) closeChest(); }
       world[target.y][target.z][target.x] = null; mpBlock(target.x, target.y, target.z, null); dropItem(type, target.x + .5, target.y + .5, target.z + .5); statusElement.textContent = `Broke ${types[type].label.toLowerCase()}. Walk over it to pick it up.`; rebuildMesh(); persistAndRender(); }
     function build() {
       const target = raycast(), place = target?.previous; if (!target) return;
@@ -542,7 +550,20 @@
     function craft(recipe) { if (recipe.requiresWorkbench && (!nearWorkbench() || !workbenchActive)) { statusElement.textContent = "Press E beside a workbench to use that recipe."; return; } if (!canCraft(recipe)) return; Object.entries(recipe.cost).forEach(([type, amount]) => inventory[type] -= amount); inventory[recipe.output] = (inventory[recipe.output] || 0) + recipe.amount; selected = recipe.output; statusElement.textContent = `Crafted ${recipe.amount} ${types[recipe.output].label.toLowerCase()} blocks.`; persistAndRender(); }
     function persistAndRender() { workbenchNearby = nearWorkbench(); persist(); renderInventory(); renderCrafting(); }
     function renderHunger() { const value = Math.round(player.hunger); if (value !== displayedHunger) { displayedHunger = value; hungerValueElement.textContent = value; } }
-    function useContextAction() { if (nearFurnace()) { smeltOre(); return; } if (nearWorkbench()) { workbenchActive = true; renderCrafting(); statusElement.textContent = "Workbench ready. Choose an advanced recipe."; return; } if (!nearWorkbench()) { const target = animalInSight(); if (target && (inventory.meat || target.pet)) { tameAnimal(target); return; } } if (!inventory.meat) { statusElement.textContent = "You do not have food to eat. Look at an animal and press E with meat to tame it."; return; } inventory.meat -= 1; player.hunger = Math.min(100, player.hunger + 35); statusElement.textContent = "You ate food and restored hunger."; persistAndRender(); renderHunger(); }
+    const chestPanel = document.querySelector("#chestPanel"), chestItemsEl = document.querySelector("#chestItems"), chestBagEl = document.querySelector("#chestBag");
+    let openChestKey = null;
+    const chestKey = (x, y, z) => `${x + mapOriginX},${y},${z + mapOriginZ}`;
+    function chestContents(key) { saved.chests = saved.chests && typeof saved.chests === "object" ? saved.chests : {}; return saved.chests[key] || (saved.chests[key] = {}); }
+    function renderChest() {
+      if (openChestKey === null) return; const contents = chestContents(openChestKey);
+      const fill = (el, source, from, to) => { el.replaceChildren(); Object.keys(types).filter((type) => !types[type].hidden && (source[type] || 0) > 0).forEach((type) => { const b = document.createElement("button"); b.type = "button"; b.textContent = `${types[type].label}: ${source[type]}`; b.addEventListener("click", (event) => { const n = event.shiftKey ? source[type] : 1; source[type] -= n; to[type] = (to[type] || 0) + n; if (type === selected && !inventory[type]) selected = type; renderChest(); persistAndRender(); }); el.append(b); }); if (!el.children.length) el.textContent = "(empty)"; };
+      fill(chestItemsEl, contents, contents, inventory); fill(chestBagEl, inventory, inventory, contents);
+    }
+    function openChest(target) { openChestKey = chestKey(target.x, target.y, target.z); chestPanel.hidden = false; if (document.exitPointerLock) document.exitPointerLock(); renderChest(); statusElement.textContent = "Chest opened. Click items to move them in or out."; }
+    function closeChest() { openChestKey = null; chestPanel.hidden = true; }
+    document.querySelector("#chestClose").addEventListener("click", closeChest);
+    document.addEventListener("keydown", (event) => { if (event.key === "Escape") closeChest(); });
+    function useContextAction() { { const ct = raycast(); if (ct && blockAt(ct.x, ct.y, ct.z) === "chest") { openChest(ct); return; } } if (nearFurnace()) { smeltOre(); return; } if (nearWorkbench()) { workbenchActive = true; renderCrafting(); statusElement.textContent = "Workbench ready. Choose an advanced recipe."; return; } if (!nearWorkbench()) { const target = animalInSight(); if (target && (inventory.meat || target.pet)) { tameAnimal(target); return; } } if (!inventory.meat) { statusElement.textContent = "You do not have food to eat. Look at an animal and press E with meat to tame it."; return; } inventory.meat -= 1; player.hunger = Math.min(100, player.hunger + 35); statusElement.textContent = "You ate food and restored hunger."; persistAndRender(); renderHunger(); }
     function smeltOre() { const ore = inventory.goldOre ? "goldOre" : inventory.ironOre ? "ironOre" : null; if (!ore) { statusElement.textContent = "You do not have ore to smelt."; return; } if (!inventory.coal) { statusElement.textContent = "You need coal to fuel the furnace."; return; } const ingot = ore === "goldOre" ? "goldIngot" : "ironIngot"; inventory[ore] -= 1; inventory.coal -= 1; inventory[ingot] = (inventory[ingot] || 0) + 1; statusElement.textContent = `Smelted ${types[ore].label} into an ingot using coal.`; persistAndRender(); }
 
     function directionVector() { return [Math.sin(player.yaw) * Math.cos(player.pitch), Math.sin(player.pitch), Math.cos(player.yaw) * Math.cos(player.pitch)]; }
@@ -803,7 +824,7 @@
       if (mpPending.length) mpSend({ t: "b", c: mpPending.splice(0) });
       mpSend(mpState());
     }
-    const worldsKey = "funcraft-worlds", worldFields = ["world", "player", "mapWidth", "mapDepth", "mapOriginX", "mapOriginZ", "animals", "dayTime", "inventory", "lives", "worldVersion", "survival", "disasters", "modeName"];
+    const worldsKey = "funcraft-worlds", worldFields = ["world", "player", "mapWidth", "mapDepth", "mapOriginX", "mapOriginZ", "animals", "dayTime", "inventory", "lives", "worldVersion", "survival", "disasters", "modeName", "chests"];
     const worldNameElement = document.querySelector("#worldName"), worldListElement = document.querySelector("#worldList"), worldMsgElement = document.querySelector("#worldMsg");
     const readWorlds = () => { try { const w = JSON.parse(localStorage.getItem(worldsKey) || "{}"); return w && typeof w === "object" ? w : {}; } catch { return {}; } };
     function renderWorldList() { const names = Object.keys(readWorlds()).sort(); worldListElement.replaceChildren(...names.map((n) => { const o = document.createElement("option"); o.value = o.textContent = n; if (n === saved.worldName) o.selected = true; return o; })); if (!names.length) { const o = document.createElement("option"); o.textContent = "(no saved worlds)"; o.value = ""; worldListElement.append(o); } if (saved.worldName) worldMsgElement.textContent = `Playing: ${saved.worldName}`; }
