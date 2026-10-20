@@ -28,15 +28,15 @@
   <main>
     <a href="../">← All games</a>
     <h1>Funcraft</h1>
-    <p class="instructions">Click the world to look around. Mine ore and coal with left click, craft a furnace at a workbench, then press E beside the furnace to smelt ore into ingots using coal fuel. Away from stations, E eats food, or tames the animal you're looking at (costs 1 meat; wolves, bears and boars only sometimes accept). Tamed pets follow you and can't be collected. Craft a chest from 8 planks, place it, and press E while looking at it to store your items (airplanes, bricks, anything); empty a chest before breaking it. Flowers grow on grassy plains. Craft a door from 4 planks, place it (it is two blocks tall) and press E to open or close it. Look for cherry blossom forests, frosty winter forests and orange autumn forests (in newly explored land). Press H or use Home to return to your starting hill, press Y to save a teleport spot where you stand and U to return to it any time, or T to teleport to another player in your lobby (press again for the next one). Craft torches (wood + coal) and left-click wood, leaves, grass or coal while holding one to set it on fire (or press L); fire goes out unless it touches one of those, spreads slowly, and water puts it out. Craft a boat from 5 planks (no workbench needed), face water and press B to sail; Space hops out. Rivers and lakes now cross the land with a current that carries swimmers and boats (rivers flow steadily, lakes drift gently). Craft a bucket (3 iron ingots), left-click water to fill it, and right-click to pour it out; a water bucket is the only way to put out a fire by hand.</p>
-    <div id="game-wrap"><canvas id="game" width="960" height="540" aria-label="Funcraft first-person block world"></canvas><canvas id="tags" aria-hidden="true"></canvas><span id="crosshair" aria-hidden="true"></span></div>
+    <p class="instructions">Click the world to look around. Mine ore and coal with left click, craft a furnace at a workbench, then press E beside the furnace to smelt ore into ingots using coal fuel. Away from stations, E eats food, or tames the animal you're looking at (costs 1 meat; wolves, bears and boars only sometimes accept). Tamed pets follow you and can't be collected. Craft a chest from 8 planks, place it, and press E while looking at it to store your items (airplanes, bricks, anything); empty a chest before breaking it. Flowers grow on grassy plains. Craft a door from 4 planks, place it (it is two blocks tall) and press E to open or close it. Look for cherry blossom forests, frosty winter forests and orange autumn forests (in newly explored land). Press H or use Home to return to your starting hill, press Y to save a teleport spot where you stand and U to return to it any time, or T to teleport to another player in your lobby (press again for the next one). Craft torches (wood + coal) and left-click wood, leaves, grass or coal while holding one to set it on fire (or press L); fire goes out unless it touches one of those, spreads slowly, and water puts it out. Craft a boat from 5 planks (no workbench needed), face water and press B to sail; Space hops out. Rivers and lakes now cross the land with a current that carries swimmers and boats (rivers flow steadily, lakes drift gently). You float half out of the water; hold C to sink and swim under it. Craft a bucket (3 iron ingots), left-click water to fill it, and right-click to pour it out; a water bucket is the only way to put out a fire by hand. Biomes are now much larger, and rivers and ponds freeze into ice in winter forests. Apple, pear, plum, kiwi and cherry trees grow fruit you can pick by breaking leaves. Mine grass for seeds (wheat, carrot, corn, lemon, watermelon), right-click grass or dirt to plant them, and harvest them when ripe (about 40 seconds). Press E to eat any food; each food gives a 10-second power-up (cherry speed, apple super jump, pear fast mining, plum no hunger, kiwi fast swimming, lemon/meat double damage, carrot super sprint, corn wall climb (hold W against a wall), watermelon healing). Animals have 10 health: 10 hits by hand, 8 with a wooden sword (2 planks + 1 wood). Fruit trees only give fruit; plain, autumn and winter leaves give no food. Dig deep for diamonds and moonstone. Under water everything turns blue. In survival mode, zombies join the wolves, bears and boars.</p>
+    <div id="game-wrap"><canvas id="game" width="960" height="540" aria-label="Funcraft first-person block world"></canvas><canvas id="tags" aria-hidden="true"></canvas><span id="crosshair" aria-hidden="true"></span><div id="underwater" aria-hidden="true" style="position:absolute;inset:.3rem;background:rgba(20,90,200,.55);border-radius:.5rem;pointer-events:none;display:none"></div></div>
     <div id="inventory" class="inventory" aria-label="Inventory"></div>
     <div id="crafting" class="crafting" aria-label="Crafting bench"></div>
     <section id="chestPanel" hidden><h3>Chest <button id="chestClose" type="button">Close</button></h3><p>Click an item to move one; Shift-click moves all of it.</p><p><strong>In the chest</strong></p><div id="chestItems" class="inventory"></div><p><strong>Your bag</strong></p><div id="chestBag" class="inventory"></div></section>
     <div class="controls" aria-label="Touch controls">
       <button type="button" data-move="forward">Forward</button><button type="button" data-move="left">←</button><button type="button" data-action="jump">Jump</button><button type="button" data-move="right">→</button><button type="button" data-move="back">Back</button><button id="home" type="button">Home</button><button id="boat" type="button">Boat</button><button id="fullscreen" type="button">Full screen</button><button id="reset" type="button">New world</button>
     </div>
-    <p id="hunger">Hunger: <span id="hunger-value">100</span>/100</p>
+    <p id="hunger">Hunger: <span id="hunger-value">100</span>/100<strong id="buff"></strong></p>
     <p><label>Brightness <input id="brightness" type="range" min="0.4" max="1.6" step="0.05" value="1"></label></p>
     <p><a href="hub.html">Change game mode</a> <span id="modeLabel"></span> <span id="weatherLabel"></span></p>
     <p id="worldsBar">World: <input id="worldName" maxlength="20" placeholder="World name" size="14"> <button id="saveWorld" type="button">Save world</button> <select id="worldList"></select> <button id="playWorld" type="button">Play</button> <button id="deleteWorld" type="button">Delete</button> <span id="worldMsg"></span></p>
@@ -75,8 +75,26 @@
     Object.entries(toolTiers).forEach(([tier, [, name, color]]) => Object.entries(toolKinds).forEach(([kind, label]) => { types[tier + kind] = { label: `${name} ${label}`, color }; }));
     const blockKind = { stone: "Pick", coal: "Pick", ironOre: "Pick", goldOre: "Pick", brick: "Pick", furnace: "Pick", wood: "Axe", plank: "Axe", workbench: "Axe", chest: "Axe", door: "Axe", doorOpen: "Axe", leaves: "Axe", cherryLeaves: "Axe", fallLeaves: "Axe", snowLeaves: "Axe", dirt: "Shovel", grass: "Shovel", sand: "Shovel", snow: "Shovel", quicksand: "Shovel" };
     const hardness = { dirt: 1.5, grass: 1.5, sand: 1.2, snow: 1, quicksand: 1, leaves: .6, cherryLeaves: .6, fallLeaves: .6, snowLeaves: .6, flower: .3, wood: 4, plank: 2.5, workbench: 3, chest: 3, door: 2, doorOpen: 2, furnace: 6, stone: 5, brick: 6, coal: 6, ironOre: 8, goldOre: 8 };
+    const fruitTrees = { appleLeaves: ["Apple tree", "apple", [96, 156, 48], [222, 40, 40]], pearLeaves: ["Pear tree", "pear", [110, 158, 52], [190, 210, 70]], plumLeaves: ["Plum tree", "plum", [84, 140, 70], [110, 40, 130]], kiwiLeaves: ["Kiwi tree", "kiwi", [70, 140, 56], [130, 100, 50]] };
+    const fruitLeaf = { cherryLeaves: "cherry" }, fruitColor = { cherryLeaves: [200, 20, 50] };
+    const produce = { cherry: ["Cherries", [190, 20, 50]], apple: ["Apple", [220, 40, 40]], pear: ["Pear", [190, 210, 70]], plum: ["Plum", [110, 40, 130]], kiwi: ["Kiwi", [130, 100, 50]] };
+    const crops = { wheat: ["Wheat", [226, 190, 80]], carrot: ["Carrot", [240, 120, 20]], corn: ["Corn", [250, 210, 40]], lemon: ["Lemon", [250, 230, 60]], watermelon: ["Watermelon", [40, 150, 60]] };
+    const seedCrop = {}, cropStage = {};
+    types.woodSword = { label: "Wooden sword", color: [180, 130, 70] };
+    Object.entries(produce).forEach(([name, [label, color]]) => { types[name] = { label, color }; });
+    Object.entries(crops).forEach(([name, [label, color]]) => { types[name] = { label, color }; types[name + "Seeds"] = { label: label + " seeds", color: [150, 120, 70] }; seedCrop[name + "Seeds"] = name; });
+    Object.entries(fruitTrees).forEach(([leaf, [label, fruit, color, fruitCol]]) => { types[leaf] = { label: label + " leaves", color }; fruitLeaf[leaf] = fruit; fruitColor[leaf] = fruitCol; });
+    Object.keys(crops).forEach((name) => { types[name + "Sprout"] = { label: crops[name][0] + " sprout", color: [90, 180, 60], solid: false, hidden: true }; types[name + "Ripe"] = { label: "Ripe " + crops[name][0].toLowerCase(), color: crops[name][1], solid: false, hidden: true }; cropStage[name + "Sprout"] = { crop: name, ripe: false }; cropStage[name + "Ripe"] = { crop: name, ripe: true }; hardness[name + "Sprout"] = .2; hardness[name + "Ripe"] = .3; });
+    Object.keys(fruitTrees).forEach((leaf) => { blockKind[leaf] = "Axe"; hardness[leaf] = .6; });
+    types.ice = { label: "Ice", color: [170, 220, 245] }; blockKind.ice = "Pick"; hardness.ice = 1.5;
+    types.diamond = { label: "Diamond", color: [80, 230, 235] }; types.moonstone = { label: "Moonstone", color: [200, 190, 255] };
+    ["diamond", "moonstone"].forEach((gem) => { blockKind[gem] = "Pick"; hardness[gem] = 10; });
+    const cropAge = new Map(), cropGrowSeconds = 40, animalHealth = 10;
+    const foods = { meat: 35, cherry: 6, apple: 10, pear: 10, plum: 8, kiwi: 8, lemon: 4, carrot: 10, corn: 12, watermelon: 14, wheat: 5 };
+    const powerUps = { cherry: ["speed", "Speed boost"], apple: ["jump", "Super jump"], pear: ["mining", "Fast mining"], plum: ["fullness", "No hunger"], kiwi: ["swim", "Fast swimming"], lemon: ["strength", "Double damage"], carrot: ["sprint", "Super sprint"], corn: ["climb", "Wall climb"], watermelon: ["heal", "Healing"], meat: ["strength", "Double damage"] };
+    let buff = null; const hasBuff = (kind) => buff && buff.kind === kind;
     function bestTool(type) { const kind = blockKind[type]; if (!kind) return null; return ["iron", "stone", "wood"].find((tier) => inventory[tier + kind] > 0) || null; }
-    function mineTime(type) { const tier = bestTool(type); return (hardness[type] || 2) * (tier ? toolTiers[tier][0] : 1); }
+    function mineTime(type) { const tier = bestTool(type); return (hardness[type] || 2) * (tier ? toolTiers[tier][0] : 1) * (hasBuff("mining") ? .4 : 1); }
     const mining = { down: false, key: "", t: 0, need: 1, target: null };
     function instantMine() { if (animalInSight()) return true; const t = raycast(); if (!t) return false; const type = blockAt(t.x, t.y, t.z); return type === "fire" || type === "water" || (selected === "torch" && inventory.torch && flammable[type]); }
     function startMining() { if (instantMine()) { mine(); return; } mining.down = true; mining.key = ""; mining.t = 0; }
@@ -106,10 +124,25 @@
       gl.uniform1f(lightOnLocation, 0); gl.bindBuffer(gl.ARRAY_BUFFER, smokeBuffer); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.DYNAMIC_DRAW);
       gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 24, 0); gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 24, 12); gl.disable(gl.CULL_FACE); gl.drawArrays(gl.TRIANGLES, 0, data.length / 6); gl.enable(gl.CULL_FACE);
     }
-    const flammable = { wood: 1, cherryLeaves: 1.4, fallLeaves: 1.6, leaves: 1.4, grass: 1.5, coal: .5, plank: 1 };
+    const flammable = { wood: 1, cherryLeaves: 1.4, fallLeaves: 1.6, leaves: 1.4, grass: 1.5, coal: .5, plank: 1, appleLeaves: 1.4, pearLeaves: 1.4, plumLeaves: 1.4, kiwiLeaves: 1.4 };
     const burningPlanks = new Map(), fireKey = (x, y, z) => `${x + mapOriginX},${y},${z + mapOriginZ}`;
     function ignite(x, y, z) { if (world[y][z][x] === "plank") burningPlanks.set(fireKey(x, y, z), 30); world[y][z][x] = "fire"; mpBlock(x, y, z, "fire"); }
-    let fireTimer = 0, boating = false, currentNoticed = false, smoke = [], smokeTimer = 0, fireCells = [];
+    let fireTimer = 0, cropTimer = 0, boating = false, currentNoticed = false, smoke = [], smokeTimer = 0, fireCells = [];
+    function scanCrops() {
+      cropAge.clear();
+      for (let y = 0; y < world.length; y += 1) for (let z = 0; z < world[y].length; z += 1) for (let x = 0; x < world[y][z].length; x += 1) { const s = cropStage[world[y][z][x]]; if (s && !s.ripe) cropAge.set(fireKey(x, y, z), Math.random() * cropGrowSeconds * .5); }
+    }
+    function updateCrops(delta) {
+      cropTimer += delta; if (cropTimer < 1) return; const step = cropTimer; cropTimer = 0; if (mp.peer && !mp.host) return;
+      let changed = false;
+      [...cropAge.keys()].forEach((key) => {
+        const [kx, y, kz] = key.split(",").map(Number), x = kx - mapOriginX, z = kz - mapOriginZ, current = world[y]?.[z]?.[x], s = cropStage[current];
+        if (!s || s.ripe) { cropAge.delete(key); return; }
+        const age = cropAge.get(key) + step;
+        if (age >= cropGrowSeconds) { world[y][z][x] = s.crop + "Ripe"; mpBlock(x, y, z, s.crop + "Ripe"); cropAge.delete(key); changed = true; } else cropAge.set(key, age);
+      });
+      if (changed) { rebuildMesh(); persist(); }
+    }
     const smokeBuffer = gl.createBuffer();
     const recipes = [
       { output: "plank", amount: 4, cost: { wood: 1 } },
@@ -120,6 +153,7 @@
       { output: "workbench", amount: 1, cost: { plank: 4 } },
       { output: "chest", amount: 1, cost: { plank: 8 } },
       { output: "door", amount: 1, cost: { plank: 4 } },
+      { output: "woodSword", amount: 1, cost: { plank: 2, wood: 1 } },
       { output: "bucket", amount: 1, cost: { ironIngot: 3 } },
       ...[["Pick", 3], ["Axe", 3], ["Shovel", 2]].flatMap(([kind, n]) => [{ output: "wood" + kind, amount: 1, cost: { plank: n } }, { output: "stone" + kind, amount: 1, cost: { stone: n, plank: 2 }, requiresWorkbench: true }, { output: "iron" + kind, amount: 1, cost: { ironIngot: n, plank: 2 }, requiresWorkbench: true }]),
       { output: "brick", amount: 2, cost: { stone: 2, dirt: 1 }, requiresWorkbench: true },
@@ -175,7 +209,7 @@
       inventory = !reset && saved.inventory && Object.keys(saved.inventory).length ? saved.inventory : { dirt: 6, stone: 2, wood: 4, grass: 0, leaves: 0, water: 0, plank: 0, brick: 0, workbench: 0, furnace: 0, coal: 0, ironOre: 0, goldOre: 0, ironIngot: 0, goldIngot: 0, meat: 0, hide: 0 };
       const prior = !reset && valid ? saved.player : null;
       Object.assign(player, prior || { x: 5.5, y: 7, z: 5.5, yaw: 0, pitch: -.12, velocityY: 0, onGround: false });
-      player.velocityY = 0; player.hunger = Number.isFinite(player.hunger) ? player.hunger : 100; selected = "dirt"; workbenchNearby = nearWorkbench(); workbenchActive = false; boating = false; saved.worldVersion = version; if (!animals.length) spawnAnimals(); if (reset) saved.chests = {}; lives = !reset && valid && Number.isFinite(saved.lives) ? saved.lives : maxLives; if (reset) saved.survival = survivalElement.checked; survivalElement.checked = !!saved.survival; if (saved.survival && !animals.some((animal) => animalKinds[animal.kind]?.hostile && !animal.pet)) syncHostiles(); renderLives(); rebuildMesh(); persist(); renderInventory(); renderCrafting(); renderHunger();
+      player.velocityY = 0; player.hunger = Number.isFinite(player.hunger) ? player.hunger : 100; selected = "dirt"; workbenchNearby = nearWorkbench(); workbenchActive = false; boating = false; saved.worldVersion = version; if (!animals.length) spawnAnimals(); if (reset) saved.chests = {}; lives = !reset && valid && Number.isFinite(saved.lives) ? saved.lives : maxLives; if (reset) saved.survival = survivalElement.checked; survivalElement.checked = !!saved.survival; if (saved.survival && !animals.some((animal) => animalKinds[animal.kind]?.hostile && !animal.pet)) syncHostiles(); renderLives(); scanCrops(); rebuildMesh(); persist(); renderInventory(); renderCrafting(); renderHunger();
       lastFrame = performance.now(); cancelAnimationFrame(animationFrame); animationFrame = requestAnimationFrame(loop);
     }
 
@@ -214,11 +248,11 @@
       return [0, 0];
     }
     function biomeAt(x, z) {
-      const dist = Math.hypot(x - 24, z - 24), far = smoothStep(26, 42, dist);
-      const m = Math.sin(x * .016 + .8) * Math.sin(z * .013 + 2.1) + .45 * Math.sin((x - z) * .009 + 1), d = Math.sin(x * .037 + 3) * Math.sin(z * .041 + .5) + .45 * Math.sin((x + z) * .023 + 2), w = Math.sin(x * .06 + 4) * Math.cos(z * .055 + 1) + .4 * Math.sin((x + z) * .031);
-      const mt = smoothStep(.3, 1.1, m) * smoothStep(50, 90, dist), de = smoothStep(.35, .75, d) * far * (1 - smoothStep(.1, .3, mt)), j = Math.sin(x * .033 + 5) * Math.sin(z * .036 + 1.2) + .45 * Math.sin((x + 2 * z) * .02 + .5);
+      const dist = Math.hypot(x - 24, z - 24), far = smoothStep(26, 42, dist), X = x * .5, Z = z * .5;
+      const m = Math.sin(X * .016 + .8) * Math.sin(Z * .013 + 2.1) + .45 * Math.sin((X - Z) * .009 + 1), d = Math.sin(X * .037 + 3) * Math.sin(Z * .041 + .5) + .45 * Math.sin((X + Z) * .023 + 2), w = Math.sin(X * .06 + 4) * Math.cos(Z * .055 + 1) + .4 * Math.sin((X + Z) * .031);
+      const mt = smoothStep(.3, 1.1, m) * smoothStep(50, 90, dist), de = smoothStep(.35, .75, d) * far * (1 - smoothStep(.1, .3, mt)), j = Math.sin(X * .033 + 5) * Math.sin(Z * .036 + 1.2) + .45 * Math.sin((X + 2 * Z) * .02 + .5);
       const ju = smoothStep(.3, .7, j) * smoothStep(20, 36, dist) * (1 - smoothStep(.1, .3, mt)) * (1 - smoothStep(.2, .5, de));
-      const cn = Math.sin(x * .029 + 1.3) * Math.sin(z * .031 + 4) + .45 * Math.sin((x - 2 * z) * .017), fn = Math.sin(x * .027 + 2.2) * Math.sin(z * .03 + 3.1) + .45 * Math.sin((2 * x + z) * .015 + 1), wn = Math.sin(x * .025 + .4) * Math.sin(z * .028 + .9) + .45 * Math.sin((x + z) * .014 + 3);
+      const cn = Math.sin(X * .029 + 1.3) * Math.sin(Z * .031 + 4) + .45 * Math.sin((X - 2 * Z) * .017), fn = Math.sin(X * .027 + 2.2) * Math.sin(Z * .03 + 3.1) + .45 * Math.sin((2 * X + Z) * .015 + 1), wn = Math.sin(X * .025 + .4) * Math.sin(Z * .028 + .9) + .45 * Math.sin((X + Z) * .014 + 3);
       const gate = smoothStep(22, 38, dist) * (1 - smoothStep(.1, .3, mt)) * (1 - smoothStep(.2, .5, de)) * (1 - ju), ch = smoothStep(.3, .6, cn) * gate, wi = smoothStep(.3, .6, wn) * gate * (1 - ch), fa = smoothStep(.3, .6, fn) * gate * (1 - ch) * (1 - wi);
       return { mt, de, ju, ch, wi, fa, wo: smoothStep(.1, .4, w) * smoothStep(10, 24, dist) };
     }
@@ -256,12 +290,12 @@
       if (roll >= 150 || Math.hypot(x - 5.5, z - 5.5) < 4) return null;
       const info = columnInfo(x, z), jungle = info.ju > .5, woods = info.wo > .5 || info.ch > .5 || info.wi > .5 || info.fa > .5;
       if (info.wet || info.mt > .1 || info.de > .3 || info.ground > 8 || (!jungle && (roll >= (woods ? 120 : 14)))) return null;
-      return { top: info.ground, jungle, trunk: jungle ? 4 + (h >>> 10) % 3 : 2, leaf: info.ch > .5 ? "cherryLeaves" : info.wi > .5 ? "snowLeaves" : info.fa > .5 ? "fallLeaves" : "leaves" };
+      return { top: info.ground, jungle, trunk: jungle ? 4 + (h >>> 10) % 3 : 2, leaf: info.ch > .5 ? "cherryLeaves" : info.wi > .5 ? "snowLeaves" : info.fa > .5 ? "fallLeaves" : jungle ? "leaves" : ["appleLeaves", "pearLeaves", "plumLeaves", "kiwiLeaves", "leaves", "leaves"][(h >>> 14) % 6] };
     }
     function terrainBlock(x, y, z) {
       if (lobbyEdits.size) { const edited = lobbyEdits.get(`${x},${y},${z}`); if (edited !== undefined) return edited; }
       const info = columnInfo(x, z), ground = info.ground;
-      if (info.wet && y === 4) return "water";
+      if (info.wet && y === 4) return info.wi > .5 ? "ice" : "water";
       if (y > ground) {
         if (y > ground + 10) return null;
         let leaves = false;
@@ -275,12 +309,15 @@
         if (y === ground + 1 && !info.wet && info.de <= .5 && info.wi <= .5 && ground < 18 && ground >= 3 && (((x * 73856093) ^ (z * 19349663)) >>> 0) % 100 < 6) return "flower";
         return null;
       }
-      if (info.mt > .3 && y >= ground - 1 && streamAt(x, z)) return "water";
+      if (info.mt > .3 && y >= ground - 1 && streamAt(x, z)) return y === ground && (ground >= 58 || info.wi > .5) ? "ice" : "water";
       if (y >= 1 && !info.wet && y <= (info.mt > .25 ? ground : ground - 2) && Math.abs(Math.sin(x * .17 + 2 * Math.sin(z * .11) + y * .3)) < .26 && Math.abs(Math.sin(z * .15 + 2 * Math.sin(x * .09) - y * .35)) < .26) return null;
       const desert = info.de > .5, quick = desert && info.de > .6 && y >= ground - 2 && Math.sin(x * .21 + 1) * Math.sin(z * .19 + 2) > .8, seed = Math.abs(Math.floor(x) * 31 + Math.floor(z) * 17 + y * 13) % 37, snowy = ground >= 58 || info.wi > .5;
       if (quick) return "quicksand";
       if (y === ground) return info.wet ? "dirt" : desert ? "sand" : snowy ? "snow" : ground >= 18 ? "stone" : "grass";
       if (y > ground - 3) return desert ? "sand" : snowy && y >= ground - 1 ? "snow" : ground >= 18 ? "stone" : "dirt";
+      const gem = hash2(x * 7 + y, z * 3 + y * 5) % 100;
+      if (y >= 1 && y <= ground - 6 && gem < 2) return "diamond";
+      if (y >= 1 && y <= ground - 4 && gem >= 2 && gem < 4) return "moonstone";
       return seed === 0 ? "goldOre" : seed < 4 ? "ironOre" : seed < 9 ? "coal" : "stone";
     }
     function expandMap() {
@@ -307,11 +344,12 @@
       eagle: { body: [90, 60, 40], head: [250, 250, 250], scale: .8, tail: [250, 250, 250], fly: 3, wings: [70, 45, 30] },
       wolf: { body: [110, 110, 120], head: [70, 70, 80], scale: 1, ears: .15, tail: [90, 90, 100], hostile: true, speed: 2.6 },
       bear: { body: [80, 50, 30], head: [55, 35, 20], scale: 1.6, ears: .1, tail: [55, 35, 20], hostile: true, speed: 1.9 },
-      boar: { body: [100, 70, 60], head: [60, 40, 35], scale: .9, ears: .1, tail: [60, 40, 35], hostile: true, speed: 3 }
+      boar: { body: [100, 70, 60], head: [60, 40, 35], scale: .9, ears: .1, tail: [60, 40, 35], hostile: true, speed: 3 },
+      zombie: { body: [60, 120, 70], head: [110, 170, 100], scale: 1.1, ears: .05, tail: [40, 80, 50], hostile: true, speed: 2.2 }
     };
     let lives = 5, maxLives = 5, hitCooldown = 0, petMeshTimer = 0, hostileMeshTimer = 0, hostileSpawnTimer = 0;
     const livesElement = document.querySelector("#lives"), survivalElement = { get checked() { return !!saved.survival; }, set checked(v) { saved.survival = !!v; }, addEventListener() {} };
-    const hostileKinds = () => Object.keys(animalKinds).filter((kind) => animalKinds[kind].hostile);
+    const hostileKinds = () => Object.keys(animalKinds).filter((kind) => animalKinds[kind].hostile), underwaterElement = document.querySelector("#underwater"), buffElement = document.querySelector("#buff");
     function renderLives() { livesElement.textContent = saved.survival ? "❤️".repeat(Math.max(lives, 0)) : ""; }
     function addHostile() { const kinds = hostileKinds(), kind = kinds[Math.floor(Math.random() * kinds.length)], angle = Math.random() * Math.PI * 2, radius = 10 + Math.random() * 6, x = Math.max(2, Math.min(mapWidth - 3, player.x + Math.cos(angle) * radius)), z = Math.max(2, Math.min(mapDepth - 3, player.z + Math.sin(angle) * radius)); animals.push({ x, y: surfaceAt(x, z), z, kind, direction: 0 }); }
     function syncHostiles() { animals = animals.filter((animal) => animal.pet || !animalKinds[animal.kind]?.hostile); if (saved.survival) for (let n = 0; n < 4; n += 1) addHostile(); rebuildMesh(); }
@@ -371,9 +409,21 @@
         if (type === "chest") { addAnimalCube(x + .08, y, z + .08, .84, .55, .84, [.63, .38, .03]); addAnimalCube(x + .06, y + .55, z + .06, .88, .2, .88, [.45, .26, .02]); addAnimalCube(x + .44, y + .3, z + .04, .12, .3, .92, [.98, .8, .2]); continue; }
         if (type === "torch") { addAnimalCube(x + .42, y, z + .42, .16, .6, .16, [.55, .33, .12]); addAnimalCube(x + .38, y + .6, z + .38, .24, .24, .24, [1, .82, .15]); continue; }
         if (type === "fire") { addAnimalCube(x + .15, y, z + .15, .7, .5, .7, [.98, .45, .08]); addAnimalCube(x + .3, y + .5, z + .3, .4, .4, .4, [1, .8, .15]); continue; }
+        if (cropStage[type]) {
+          const info = cropStage[type], col = types[info.crop + "Ripe"].color.map((v) => v / 255);
+          addAnimalCube(x + .44, y, z + .44, .12, info.ripe ? .7 : .3, .12, [.2, .6, .15]);
+          if (info.ripe) { addAnimalCube(x + .2, y + .2, z + .2, .25, .3, .25, col); addAnimalCube(x + .55, y + .3, z + .55, .25, .3, .25, col); }
+          continue;
+        }
+        if (fruitColor[type]) {
+          const fc = fruitColor[type].map((v) => v / 255), hh = hash2(x + mapOriginX, z + mapOriginZ + y * 31);
+          if (hh % 2 === 0) addAnimalCube(x + .7, y + .4, z + .7, .26, .26, .26, fc);
+          if (hh % 3 === 0) addAnimalCube(x + .05, y + .5, z + .05, .26, .26, .26, fc);
+          if (hh % 4 === 0) addAnimalCube(x + .7, y + .6, z + .05, .26, .26, .26, fc);
+        }
         for (let index = 0; index < 6; index += 1) {
           const face = faces[index], neighbor = blockAt(x + face[0][0], y + face[0][1], z + face[0][2]);
-          if (neighbor && neighbor !== "torch" && neighbor !== "fire" && neighbor !== "flower" && neighbor !== "chest" && neighbor !== "door" && neighbor !== "doorOpen" && (type !== "water" || neighbor === "water")) continue;
+          if (neighbor && !cropStage[neighbor] && neighbor !== "torch" && neighbor !== "fire" && neighbor !== "flower" && neighbor !== "chest" && neighbor !== "door" && neighbor !== "doorOpen" && (type !== "water" || neighbor === "water")) continue;
           const shade = [.82, .62, 1, .5, .9, .7][index], base = types[type].color;
           for (let c = 0; c < 6; c += 1) { const corner = corners[index][[0,1,2,0,2,3][c]]; data.push(corner[0] + x, corner[1] + y, corner[2] + z, base[0] / 255 * shade, base[1] / 255 * shade, base[2] / 255 * shade); }
         }
@@ -434,14 +484,15 @@
       if (!(mp.peer && !mp.host)) { const before = dayTime; dayTime = (dayTime + delta / (dayTime < .5 ? 480 : 80)) % 1; if (Math.floor(dayTime * 20) !== Math.floor(before * 20)) { saved.dayTime = dayTime; } }
       const forward = (keys.has("forward") ? 1 : 0) - (keys.has("back") ? 1 : 0), strafe = (keys.has("right") ? 1 : 0) - (keys.has("left") ? 1 : 0);
       const glide = gliding && !boating && !inWater() && !player.onGround; if (gliding && !glide) { gliding = false; statusElement.textContent = "You landed."; }
-      const length = Math.hypot(forward, strafe) || 1, speed = (boating ? 6 : inWater() ? 2 : 4) * (running ? 2 : 1) * (inQuicksand() ? .3 : 1) * (planeOn ? 0 : 1);
+      const length = Math.hypot(forward, strafe) || 1, speed = (boating ? 6 : inWater() ? (hasBuff("swim") ? 4 : 2) : 4) * (running ? (hasBuff("sprint") ? 3 : 2) : 1) * (hasBuff("speed") ? 1.5 : 1) * (inQuicksand() ? .3 : 1) * (blockAt(Math.floor(player.x), Math.floor(player.y - .1), Math.floor(player.z)) === "ice" ? 2 : 1) * (planeOn ? 0 : 1);
       move((Math.sin(player.yaw) * forward - Math.cos(player.yaw) * strafe) / length * speed * delta, 0, (Math.cos(player.yaw) * forward + Math.sin(player.yaw) * strafe) / length * speed * delta);
       if (boating) { const top = waterTop(player.x, player.z); if (top === null) { boating = false; statusElement.textContent = "Your boat left the water."; } else { player.y = top - .2; player.velocityY = 0; player.onGround = true; } }
       else if (planeOn) flyPlane(delta);
-      else { player.velocityY += (inWater() ? -3 : -18) * delta; if (inQuicksand()) player.velocityY = Math.max(player.velocityY, -1.1); if (glide) { const dive = Math.max(0, -player.pitch), flare = Math.max(0, player.pitch), boost = boosting && boostEnergy > 0 ? 1 : 0, fly = (8 + 6 * dive - 3 * flare) * (1 + 6 * boost); boostEnergy = boost ? Math.max(0, boostEnergy - delta) : Math.min(3, boostEnergy + delta * 1.5); player.velocityY = -1.5 - 4 * dive + .7 * flare + .5 * boost; move(Math.sin(player.yaw) * fly * delta, 0, Math.cos(player.yaw) * fly * delta); if (boosting && boostEnergy <= 0 && !boostEmptyShown) { boostEmptyShown = true; statusElement.textContent = "Boost used up. It recharges while you glide."; } if (boostEnergy > .5) boostEmptyShown = false; } else boostEnergy = Math.min(3, boostEnergy + delta * 1.5); player.onGround = false; move(0, player.velocityY * delta, 0); }
+      else { player.velocityY += (inWater() ? -3 : -18) * delta; if (inWater() && !keys.has("sink") && player.velocityY <= 2) { const top = waterTop(player.x, player.z); if (top !== null) player.velocityY = Math.max(-3, Math.min(3, (top - .85 - player.y) * 5)); } if (hasBuff("climb") && forward > 0) { const ox = player.x, oz = player.z; player.x += Math.sin(player.yaw) * .15; player.z += Math.cos(player.yaw) * .15; const wall = collides(); player.x = ox; player.z = oz; if (wall) player.velocityY = 4; } if (inQuicksand()) player.velocityY = Math.max(player.velocityY, -1.1); if (glide) { const dive = Math.max(0, -player.pitch), flare = Math.max(0, player.pitch), boost = boosting && boostEnergy > 0 ? 1 : 0, fly = (8 + 6 * dive - 3 * flare) * (1 + 6 * boost); boostEnergy = boost ? Math.max(0, boostEnergy - delta) : Math.min(3, boostEnergy + delta * 1.5); player.velocityY = -1.5 - 4 * dive + .7 * flare + .5 * boost; move(Math.sin(player.yaw) * fly * delta, 0, Math.cos(player.yaw) * fly * delta); if (boosting && boostEnergy <= 0 && !boostEmptyShown) { boostEmptyShown = true; statusElement.textContent = "Boost used up. It recharges while you glide."; } if (boostEnergy > .5) boostEmptyShown = false; } else boostEnergy = Math.min(3, boostEnergy + delta * 1.5); player.onGround = false; move(0, player.velocityY * delta, 0); }
       if (boating || inWater()) { const [vx, vz] = currentAt(Math.floor(player.x) + mapOriginX, Math.floor(player.z) + mapOriginZ), pull = boating ? 1.6 : 1.2; if (vx || vz) { move(vx * pull * delta, 0, vz * pull * delta); if (!currentNoticed) { currentNoticed = true; statusElement.textContent = "The current pulls you along the water."; } } }
-      expandMap(); updateAnimals(delta); updateHostiles(delta); updatePets(delta); updateFire(delta); updateSmoke(delta); mpUpdate(delta); updateThrown(delta); updateWeather(delta); applyWeatherEffects(delta);
-      player.hunger = Math.max(0, player.hunger - delta * .35); renderHunger();
+      expandMap(); updateAnimals(delta); updateHostiles(delta); updatePets(delta); updateFire(delta); updateCrops(delta); updateSmoke(delta); mpUpdate(delta); updateThrown(delta); updateWeather(delta); applyWeatherEffects(delta);
+      if (buff) { buff.left -= delta; if (buff.left <= 0) { buff = null; statusElement.textContent = "Your power-up wore off."; } if (buffElement) buffElement.textContent = buff ? ` ${buff.label}: ${Math.ceil(buff.left)}s` : ""; }
+      player.hunger = Math.max(0, player.hunger - (hasBuff("fullness") ? 0 : delta * .35)); renderHunger();
       if (nearWorkbench() !== workbenchNearby) { workbenchNearby = nearWorkbench(); if (!workbenchNearby) workbenchActive = false; renderCrafting(); }
       if (player.y < -3) respawn();
     }
@@ -485,7 +536,7 @@
     }
     function inQuicksand() { return blockAt(Math.floor(player.x), Math.floor(player.y + .3), Math.floor(player.z)) === "quicksand"; }
     function inWater() { return blockAt(Math.floor(player.x), Math.floor(player.y + .8), Math.floor(player.z)) === "water"; }
-    function jump() { if (boating) { boating = false; player.velocityY = 7; player.onGround = false; statusElement.textContent = "You hopped out of the boat."; return; } if (inQuicksand()) { player.velocityY = 3.2; player.onGround = false; statusElement.textContent = "You are stuck in quicksand! Keep jumping to climb out."; return; } if (player.onGround || inWater()) { player.velocityY = inWater() ? 5 : 7; player.onGround = false; } }
+    function jump() { if (boating) { boating = false; player.velocityY = 7; player.onGround = false; statusElement.textContent = "You hopped out of the boat."; return; } if (inQuicksand()) { player.velocityY = 3.2; player.onGround = false; statusElement.textContent = "You are stuck in quicksand! Keep jumping to climb out."; return; } if (player.onGround || inWater()) { player.velocityY = inWater() ? ((waterTop(player.x, player.z) ?? -99) - player.y < 1.3 ? 6.3 : 3.5) : hasBuff("jump") ? 11 : 7; player.onGround = false; } }
     function waterTop(x, z) { for (let y = height - 1; y >= 0; y -= 1) { const type = blockAt(Math.floor(x), y, Math.floor(z)); if (type === "water") return y + 1; if (type && solid(type)) return null; } return null; }
     function toggleBoat() {
       if (boating) { boating = false; statusElement.textContent = "You got out of the boat."; return; }
@@ -539,14 +590,26 @@
       } return null;
     }
     function animalInSight() { const direction = directionVector(); for (let distance = .2; distance <= 6; distance += .1) { const x = player.x + direction[0] * distance, y = player.y + 1.45 + direction[1] * distance, z = player.z + direction[2] * distance; if (blockAt(Math.floor(x), Math.floor(y), Math.floor(z))) return null; const animal = animals.find((candidate) => Math.abs(candidate.x - x) < .5 && Math.abs(candidate.z - z) < .4 && y >= candidate.y && y <= candidate.y + 1); if (animal) return animal; } return null; }
-    function mine() { const animal = animalInSight(); if (animal && animal.pet) { statusElement.textContent = "That's your pet! Press E to pet it."; return; } if (animal) { animals.splice(animals.indexOf(animal), 1); inventory.meat = (inventory.meat || 0) + 1; inventory.hide = (inventory.hide || 0) + 1; statusElement.textContent = "You collected food and hide from an animal."; rebuildMesh(); persistAndRender(); return; } const target = raycast(); if (!target) return; const type = blockAt(target.x,target.y,target.z);
+    function hitAnimal(animal, dmg) {
+      animal.hp = (animal.hp === undefined ? animalHealth : animal.hp) - dmg;
+      if (animal.hp > .001) { statusElement.textContent = `Hit! Animal health: ${Math.ceil(animal.hp)}/${animalHealth}`; persist(); return false; }
+      animals.splice(animals.indexOf(animal), 1); inventory.meat = (inventory.meat || 0) + 1; inventory.hide = (inventory.hide || 0) + 1; statusElement.textContent = "You collected food and hide from an animal."; rebuildMesh(); persistAndRender(); return true;
+    }
+    function cropDrops(type, target) {
+      const stage = cropStage[type];
+      if (stage) { const seeds = stage.ripe ? 1 + Math.floor(Math.random() * 2) : 1; if (stage.ripe) dropItem(stage.crop, target.x + .5, target.y + .5, target.z + .5); for (let i = 0; i < seeds; i += 1) dropItem(stage.crop + "Seeds", target.x + .5, target.y + .5, target.z + .5); cropAge.delete(fireKey(target.x, target.y, target.z)); return true; }
+      if (fruitColor[type]) { dropItem(fruitLeaf[type], target.x + .5, target.y + .5, target.z + .5); dropItem(fruitLeaf[type], target.x + .5, target.y + .5, target.z + .5); return true; }
+      if (type === "grass" && Math.random() < .18) { const seeds = Object.keys(seedCrop); dropItem(seeds[Math.floor(Math.random() * seeds.length)], target.x + .5, target.y + 1, target.z + .5); }
+      return false;
+    }
+    function mine() { const animal = animalInSight(); if (animal && animal.pet) { statusElement.textContent = "That's your pet! Press E to pet it."; return; } if (animal) { hitAnimal(animal, (selected === "woodSword" && inventory.woodSword > 0 ? 1.25 : 1) * (hasBuff("strength") ? 2 : 1)); return; } const target = raycast(); if (!target) return; const type = blockAt(target.x,target.y,target.z);
       if (type === "fire") { statusElement.textContent = "Fire is too hot! Select a water bucket and right-click the fire to put it out."; return; }
       if (type === "water") { if (!inventory.bucket) { statusElement.textContent = "You need a bucket to collect water. Craft one from 3 iron ingots."; return; } inventory.bucket -= 1; inventory.waterBucket = (inventory.waterBucket || 0) + 1; world[target.y][target.z][target.x] = null; mpBlock(target.x, target.y, target.z, null); statusElement.textContent = "Filled your bucket with water."; rebuildMesh(); persistAndRender(); return; }
       if (selected === "torch" && inventory.torch && flammable[type]) { ignite(target.x, target.y, target.z); statusElement.textContent = `You set the ${types[type].label.toLowerCase()} on fire! Water puts it out.`; rebuildMesh(); persist(); return; }
       if (type === "door" || type === "doorOpen") { const py = doorPartner(target.x, target.y, target.z); if (py !== null) { world[py][target.z][target.x] = null; mpBlock(target.x, py, target.z, null); } world[target.y][target.z][target.x] = null; mpBlock(target.x, target.y, target.z, null); dropItem("door", target.x + .5, target.y + .5, target.z + .5); statusElement.textContent = "Broke the door. Walk over it to pick it up."; rebuildMesh(); persistAndRender(); return; }
       if (type === "chest" && Object.values(saved.chests?.[chestKey(target.x, target.y, target.z)] || {}).some((n) => n > 0)) { statusElement.textContent = "Empty the chest first (press E to open it)."; return; }
       if (type === "chest") { if (saved.chests) delete saved.chests[chestKey(target.x, target.y, target.z)]; if (openChestKey === chestKey(target.x, target.y, target.z)) closeChest(); }
-      world[target.y][target.z][target.x] = null; mpBlock(target.x, target.y, target.z, null); dropItem(type, target.x + .5, target.y + .5, target.z + .5); statusElement.textContent = `Broke ${types[type].label.toLowerCase()}. Walk over it to pick it up.`; rebuildMesh(); persistAndRender(); }
+      world[target.y][target.z][target.x] = null; mpBlock(target.x, target.y, target.z, null); if (!cropDrops(type, target)) dropItem(type, target.x + .5, target.y + .5, target.z + .5); statusElement.textContent = `Broke ${types[type].label.toLowerCase()}. Walk over it to pick it up.`; rebuildMesh(); persistAndRender(); }
     function build() {
       const target = raycast(), place = target?.previous; if (!target) return;
       if (selected === "waterBucket" && inventory.waterBucket && blockAt(target.x, target.y, target.z) === "fire") { const key = fireKey(target.x, target.y, target.z); const restored = burningPlanks.delete(key) ? "plank" : null; world[target.y][target.z][target.x] = restored; mpBlock(target.x, target.y, target.z, restored); inventory.waterBucket -= 1; inventory.bucket = (inventory.bucket || 0) + 1; statusElement.textContent = "Water put out the fire!"; rebuildMesh(); persistAndRender(); return; }
@@ -554,6 +617,12 @@
       if (selected === "boat") { statusElement.textContent = "Face water and press B to board your boat."; return; }
       if (selected === "bucket") { statusElement.textContent = "Left-click water with a bucket to fill it."; return; }
       if (selected === "door") { if (blockAt(place.x, place.y + 1, place.z) || place.y + 1 >= height || playerOverlaps({ x: place.x, y: place.y + 1, z: place.z })) { statusElement.textContent = "A door needs two free blocks of height."; return; } [place.y, place.y + 1].forEach((cy) => { world[cy][place.z][place.x] = "door"; mpBlock(place.x, cy, place.z, "door"); }); inventory.door -= 1; statusElement.textContent = "Placed door. Press E while looking at it to open or close it."; rebuildMesh(); persistAndRender(); return; }
+      if (seedCrop[selected]) {
+        const under = blockAt(target.x, target.y, target.z);
+        if ((under !== "grass" && under !== "dirt") || place.y !== target.y + 1) { statusElement.textContent = "Plant seeds on the top of grass or dirt."; return; }
+        world[place.y][place.z][place.x] = seedCrop[selected] + "Sprout"; mpBlock(place.x, place.y, place.z, seedCrop[selected] + "Sprout"); cropAge.set(fireKey(place.x, place.y, place.z), 0); inventory[selected] -= 1; statusElement.textContent = "Planted! It ripens in about 40 seconds."; rebuildMesh(); persistAndRender(); return;
+      }
+      if (foods[selected] || selected === "woodSword") { statusElement.textContent = selected === "woodSword" ? "The wooden sword is for fighting animals." : "Press E to eat."; return; }
       const block = selected === "waterBucket" ? "water" : selected;
       world[place.y][place.z][place.x] = block; mpBlock(place.x, place.y, place.z, block); inventory[selected] -= 1; if (selected === "waterBucket") inventory.bucket = (inventory.bucket || 0) + 1;
       statusElement.textContent = `Placed ${types[block].label.toLowerCase()}.`; rebuildMesh(); persistAndRender();
@@ -617,12 +686,12 @@
       if (next === "door" && cells.some(([cy]) => playerOverlaps({ x, y: cy, z }))) { statusElement.textContent = "Something is in the doorway."; return; }
       cells.forEach(([cy, type]) => { world[cy][z][x] = type; mpBlock(x, cy, z, type); }); statusElement.textContent = next === "door" ? "Door closed." : "Door opened."; rebuildMesh(); persist();
     }
-    function useContextAction() { { const dt = raycast(); if (dt && ["door", "doorOpen"].includes(blockAt(dt.x, dt.y, dt.z))) { toggleDoor(dt.x, dt.y, dt.z); return; } } { const ct = raycast(); if (ct && blockAt(ct.x, ct.y, ct.z) === "chest") { openChest(ct); return; } } if (nearFurnace()) { smeltOre(); return; } if (nearWorkbench()) { workbenchActive = true; renderCrafting(); statusElement.textContent = "Workbench ready. Choose an advanced recipe."; return; } if (!nearWorkbench()) { const target = animalInSight(); if (target && (inventory.meat || target.pet)) { tameAnimal(target); return; } } if (!inventory.meat) { statusElement.textContent = "You do not have food to eat. Look at an animal and press E with meat to tame it."; return; } inventory.meat -= 1; player.hunger = Math.min(100, player.hunger + 35); statusElement.textContent = "You ate food and restored hunger."; persistAndRender(); renderHunger(); }
+    function useContextAction() { { const dt = raycast(); if (dt && ["door", "doorOpen"].includes(blockAt(dt.x, dt.y, dt.z))) { toggleDoor(dt.x, dt.y, dt.z); return; } } { const ct = raycast(); if (ct && blockAt(ct.x, ct.y, ct.z) === "chest") { openChest(ct); return; } } if (nearFurnace()) { smeltOre(); return; } if (nearWorkbench()) { workbenchActive = true; renderCrafting(); statusElement.textContent = "Workbench ready. Choose an advanced recipe."; return; } if (!nearWorkbench()) { const target = animalInSight(); if (target && ((inventory.meat && !(foods[selected] && selected !== "meat" && inventory[selected])) || target.pet)) { tameAnimal(target); return; } } const pick = foods[selected] && inventory[selected] > 0 ? selected : Object.keys(foods).find((f) => inventory[f] > 0); if (!pick) { statusElement.textContent = "You do not have food to eat. Plant seeds, pick fruit, or hit an animal for meat."; return; } inventory[pick] -= 1; player.hunger = Math.min(100, player.hunger + foods[pick]); statusElement.textContent = `You ate ${types[pick].label.toLowerCase()} and restored hunger.`; const pu = powerUps[pick]; if (pu) { buff = { kind: pu[0], label: pu[1], left: 10 }; if (pu[0] === "heal" && saved.survival) { lives = Math.min(maxLives, lives + 1); renderLives(); } statusElement.textContent += ` ${pu[1]} for 10 seconds!`; } persistAndRender(); renderHunger(); }
     function smeltOre() { const ore = inventory.goldOre ? "goldOre" : inventory.ironOre ? "ironOre" : null; if (!ore) { statusElement.textContent = "You do not have ore to smelt."; return; } if (!inventory.coal) { statusElement.textContent = "You need coal to fuel the furnace."; return; } const ingot = ore === "goldOre" ? "goldIngot" : "ironIngot"; inventory[ore] -= 1; inventory.coal -= 1; inventory[ingot] = (inventory[ingot] || 0) + 1; statusElement.textContent = `Smelted ${types[ore].label} into an ingot using coal.`; persistAndRender(); }
 
     function directionVector() { return [Math.sin(player.yaw) * Math.cos(player.pitch), Math.sin(player.pitch), Math.cos(player.yaw) * Math.cos(player.pitch)]; }
     function draw() {
-      const sky = skyState(); gl.viewport(0, 0, canvas.width, canvas.height); gl.clearColor(sky.color[0], sky.color[1], sky.color[2], 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); const cam = cameraView(), direction = cam.dir, eye = cam.eye, matrix = multiply(perspective(1.05 - .75 * (zoomAmount += ((zooming ? 1 : 0) - zoomAmount) * .2), canvas.width / canvas.height, .05, 600), lookAt(eye, [eye[0] + direction[0], eye[1] + direction[1], eye[2] + direction[2]], [0,1,0]));
+      const sky = skyState(); gl.viewport(0, 0, canvas.width, canvas.height); gl.clearColor(sky.color[0], sky.color[1], sky.color[2], 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); const cam = cameraView(), direction = cam.dir, eye = cam.eye; underwaterElement.style.display = blockAt(Math.floor(eye[0]), Math.floor(eye[1]), Math.floor(eye[2])) === "water" ? "block" : "none"; const matrix = multiply(perspective(1.05 - .75 * (zoomAmount += ((zooming ? 1 : 0) - zoomAmount) * .2), canvas.width / canvas.height, .05, 600), lookAt(eye, [eye[0] + direction[0], eye[1] + direction[1], eye[2] + direction[2]], [0,1,0]));
       gl.uniformMatrix4fv(matrixLocation, false, matrix); gl.enableVertexAttribArray(positionLocation); gl.enableVertexAttribArray(colorLocation); drawSky(sky, eye); gl.uniform1f(brightnessLocation, sky.brightness); uploadLights(eye); gl.uniform1f(lightOnLocation, 1);
       gl.bindBuffer(gl.ARRAY_BUFFER, buffer); gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 24, 0); gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 24, 12); gl.drawArrays(gl.TRIANGLES, 0, vertices);
       updateFar(); if (farVertices) { gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(2, 2); gl.uniformMatrix4fv(matrixLocation, false, multiply(matrix, new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, -mapOriginX,0,-mapOriginZ,1]))); gl.bindBuffer(gl.ARRAY_BUFFER, farBuffer); gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 24, 0); gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 24, 12); gl.drawArrays(gl.TRIANGLES, 0, farVertices); gl.disable(gl.POLYGON_OFFSET_FILL); gl.uniformMatrix4fv(matrixLocation, false, matrix); gl.bindBuffer(gl.ARRAY_BUFFER, buffer); gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 24, 0); gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 24, 12); }
@@ -991,7 +1060,7 @@
           if (blockAt(Math.floor(it.x - mapOriginX), Math.floor(it.y), Math.floor(it.z - mapOriginZ)) === "water") { it.vx *= .92; it.vz *= .92; it.vy *= .92; }
           if (it.own && Math.hypot(it.vx, it.vy, it.vz) > 4) {
             const hit = animals.find((a) => !a.pet && Math.abs(a.x - (it.x - mapOriginX)) < .6 && Math.abs(a.z - (it.z - mapOriginZ)) < .5 && it.y >= a.y - .2 && it.y <= a.y + 1.1);
-            if (hit) { animals.splice(animals.indexOf(hit), 1); inventory.meat = (inventory.meat || 0) + 1; inventory.hide = (inventory.hide || 0) + 1; it.vx *= -.2; it.vz *= -.2; statusElement.textContent = "Direct hit! You collected food and hide."; rebuildMesh(); persistAndRender(); }
+            if (hit) { hitAnimal(hit, 2); it.vx *= -.2; it.vz *= -.2; }
           }
         }
         const near = Math.hypot(it.x - mapOriginX - player.x, it.y - player.y - .9, it.z - mapOriginZ - player.z) < 1.4;
@@ -1020,10 +1089,10 @@
       else statusElement.textContent = `Hotkey ${slot} is empty. Select an item and press Shift+${slot}.`;
       event.preventDefault();
     });
-    document.addEventListener("keydown", (event) => { if (event.target.type === "text") return; const action = { w:"forward",W:"forward",ArrowUp:"forward",s:"back",S:"back",ArrowDown:"back",a:"left",A:"left",ArrowLeft:"left",d:"right",D:"right",ArrowRight:"right" }[event.key]; if (action) { keys.add(action); event.preventDefault(); } if (event.key === " ") { jump(); event.preventDefault(); } if (event.key === "e" || event.key === "E") { useContextAction(); event.preventDefault(); } if (event.key === "t" || event.key === "T") { teleportToPlayer(); event.preventDefault(); } if (event.key === "y" || event.key === "Y") { setWaypoint(); event.preventDefault(); } if (event.key === "u" || event.key === "U") { teleportWaypoint(); event.preventDefault(); } if (event.key === "h" || event.key === "H") { teleportHome(); event.preventDefault(); } if (event.key === "l" || event.key === "L") { lightFire(); event.preventDefault(); } if (event.key === "b" || event.key === "B") { toggleBoat(); event.preventDefault(); } if (event.key === "g" || event.key === "G") { toggleGlide(); event.preventDefault(); } if (event.key === "o" || event.key === "O") { toggleAirplane(); event.preventDefault(); } if ((event.key === "f" || event.key === "F") && !event.repeat) { boosting = true; if (gliding) statusElement.textContent = "Boost!"; } if (event.key === "q" || event.key === "Q") { throwItem(); event.preventDefault(); } if (event.key === "p" || event.key === "P") { toggleCamera(); event.preventDefault(); } if (event.key === "v" || event.key === "V") { zooming = true; event.preventDefault(); } });
+    document.addEventListener("keydown", (event) => { if (event.target.type === "text") return; const action = { w:"forward",W:"forward",ArrowUp:"forward",s:"back",S:"back",ArrowDown:"back",a:"left",A:"left",ArrowLeft:"left",d:"right",D:"right",ArrowRight:"right",c:"sink",C:"sink" }[event.key]; if (action) { keys.add(action); event.preventDefault(); } if (event.key === " ") { jump(); event.preventDefault(); } if (event.key === "e" || event.key === "E") { useContextAction(); event.preventDefault(); } if (event.key === "t" || event.key === "T") { teleportToPlayer(); event.preventDefault(); } if (event.key === "y" || event.key === "Y") { setWaypoint(); event.preventDefault(); } if (event.key === "u" || event.key === "U") { teleportWaypoint(); event.preventDefault(); } if (event.key === "h" || event.key === "H") { teleportHome(); event.preventDefault(); } if (event.key === "l" || event.key === "L") { lightFire(); event.preventDefault(); } if (event.key === "b" || event.key === "B") { toggleBoat(); event.preventDefault(); } if (event.key === "g" || event.key === "G") { toggleGlide(); event.preventDefault(); } if (event.key === "o" || event.key === "O") { toggleAirplane(); event.preventDefault(); } if ((event.key === "f" || event.key === "F") && !event.repeat) { boosting = true; if (gliding) statusElement.textContent = "Boost!"; } if (event.key === "q" || event.key === "Q") { throwItem(); event.preventDefault(); } if (event.key === "p" || event.key === "P") { toggleCamera(); event.preventDefault(); } if (event.key === "v" || event.key === "V") { zooming = true; event.preventDefault(); } });
     document.addEventListener("keyup", (event) => { if (event.key === "v" || event.key === "V") zooming = false; if (event.key === "f" || event.key === "F") boosting = false; });
     window.addEventListener("blur", () => { zooming = false; });
-    document.addEventListener("keyup", (event) => { const action = { w:"forward",W:"forward",ArrowUp:"forward",s:"back",S:"back",ArrowDown:"back",a:"left",A:"left",ArrowLeft:"left",d:"right",D:"right",ArrowRight:"right" }[event.key]; if (action) keys.delete(action); });
+    document.addEventListener("keyup", (event) => { const action = { w:"forward",W:"forward",ArrowUp:"forward",s:"back",S:"back",ArrowDown:"back",a:"left",A:"left",ArrowLeft:"left",d:"right",D:"right",ArrowRight:"right",c:"sink",C:"sink" }[event.key]; if (action) keys.delete(action); });
     canvas.addEventListener("click", () => { if (document.pointerLockElement !== canvas) canvas.requestPointerLock(); });
     canvas.addEventListener("contextmenu", (event) => event.preventDefault());
     canvas.addEventListener("mousedown", (event) => { if (document.pointerLockElement === canvas) { if (event.button === 0) startMining(); if (event.button === 2) build(); } });
