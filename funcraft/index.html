@@ -28,7 +28,7 @@
   <main>
     <a href="../">← All games</a>
     <h1>Funcraft</h1>
-    <p class="instructions">Click the world to look around. Mine ore and coal with left click, craft a furnace at a workbench, then press E beside the furnace to smelt ore into ingots using coal fuel. Away from stations, E eats food, or tames the animal you're looking at (costs 1 meat; wolves, bears and boars only sometimes accept). Tamed pets follow you and can't be collected. Craft a chest from 8 planks, place it, and press E while looking at it to store your items (airplanes, bricks, anything); empty a chest before breaking it. Flowers grow on grassy plains. Craft a door from 4 planks, place it (it is two blocks tall) and press E to open or close it. Look for cherry blossom forests, frosty winter forests and orange autumn forests (in newly explored land). Press H or use Home to return to your starting hill, press Y to save a teleport spot where you stand and U to return to it any time, or T to teleport to another player in your lobby (press again for the next one). Craft torches (wood + coal) and left-click wood, leaves, grass or coal while holding one to set it on fire (or press L); fire goes out unless it touches one of those, spreads slowly, and water puts it out. Craft a boat from 5 planks (no workbench needed), face water and press B to sail; Space hops out. Rivers and lakes now cross the land with a current that carries swimmers and boats (rivers flow steadily, lakes drift gently). You float half out of the water; hold C to sink and swim under it. Craft a bucket (3 iron ingots), left-click water to fill it, and right-click to pour it out; a water bucket is the only way to put out a fire by hand. Biomes are now much larger, and rivers and ponds freeze into ice in winter forests. Apple, pear, plum, kiwi and cherry trees grow fruit you can pick by breaking leaves. Mine grass for seeds (wheat, carrot, corn, lemon, watermelon), right-click grass or dirt to plant them, and harvest them when ripe (about 40 seconds). Press E to eat any food; each food gives a 10-second power-up (cherry speed, apple super jump, pear fast mining, plum no hunger, kiwi fast swimming, lemon/meat double damage, carrot super sprint, corn wall climb (hold W against a wall), watermelon healing). Animals have 10 health: 10 hits by hand, 8 with a wooden sword (2 planks + 1 wood). Fruit trees only give fruit; plain, autumn and winter leaves give no food. Dig deep for diamonds and moonstone. Under water everything turns blue. In survival mode, zombies join the wolves, bears and boars.</p>
+    <p class="instructions">Click the world to look around. Mine ore and coal with left click, craft a furnace at a workbench, then press E beside the furnace to smelt ore into ingots using coal fuel. Away from stations, E eats food, or tames the animal you're looking at (costs 1 meat; wolves, bears and boars only sometimes accept). Tamed pets follow you and can't be collected. Craft a chest from 8 planks, place it, and press E while looking at it to store your items (airplanes, bricks, anything); empty a chest before breaking it. Flowers grow on grassy plains. Craft a door from 4 planks, place it (it is two blocks tall) and press E to open or close it. Craft chairs (2 planks + 1 wood; press E to sit), beds (3 planks + 2 hide; press E at night to sleep until morning) and ladders (3 planks + 1 wood makes 3; hold W to climb, S to climb down). Look for cherry blossom forests, frosty winter forests and orange autumn forests (in newly explored land). Volcanoes with glowing lava craters rise in new land: lava burns you in survival or sends you home, so keep away. Big mine tunnels (5 wide, with wooden supports and torches) run under hills and mountains in new land; look for openings in hillsides. Mines are huge and have ladder shafts up to the surface every 150 blocks and at both ends. New worlds go 40 blocks deeper, with rich diamond, moonstone and gold ore and lava lakes at the very bottom. Press H or use Home to return to your starting hill, press Y to save a teleport spot where you stand and U to return to it any time, or T to teleport to another player in your lobby (press again for the next one). Craft torches (wood + coal) and left-click wood, leaves, grass or coal while holding one to set it on fire (or press L); fire goes out unless it touches one of those, spreads slowly, and water puts it out. Craft a boat from 5 planks (no workbench needed), face water and press B to sail; Space hops out. Rivers and lakes now cross the land with a current that carries swimmers and boats (rivers flow steadily, lakes drift gently). You float half out of the water; hold C to sink and swim under it. Craft a bucket (3 iron ingots), left-click water to fill it, and right-click to pour it out; a water bucket is the only way to put out a fire by hand. Biomes are now much larger, and rivers and ponds freeze into ice in winter forests. Apple, pear, plum, kiwi and cherry trees grow fruit you can pick by breaking leaves. Mine grass for seeds (wheat, carrot, corn, lemon, watermelon), right-click grass or dirt to plant them, and harvest them when ripe (about 40 seconds). Press E to eat any food; each food gives a 10-second power-up (cherry speed, apple super jump, pear fast mining, plum no hunger, kiwi fast swimming, lemon/meat double damage, carrot super sprint, corn wall climb (hold W against a wall), watermelon healing). Animals have 10 health: 10 hits by hand, 8 with a wooden sword (2 planks + 1 wood). Fruit trees only give fruit; plain, autumn and winter leaves give no food. Dig deep for diamonds and moonstone. Under water everything turns blue. In survival mode, zombies join the wolves, bears and boars.</p>
     <div id="game-wrap"><canvas id="game" width="960" height="540" aria-label="Funcraft first-person block world"></canvas><canvas id="tags" aria-hidden="true"></canvas><span id="crosshair" aria-hidden="true"></span><div id="underwater" aria-hidden="true" style="position:absolute;inset:.3rem;background:rgba(20,90,200,.55);border-radius:.5rem;pointer-events:none;display:none"></div></div>
     <div id="inventory" class="inventory" aria-label="Inventory"></div>
     <div id="crafting" class="crafting" aria-label="Crafting bench"></div>
@@ -56,7 +56,8 @@
     const craftingElement = document.querySelector("#crafting");
     const statusElement = document.querySelector("#status");
     const hungerValueElement = document.querySelector("#hunger-value");
-    const initialSize = 48, height = 96, expansionSize = 16, version = 8;
+    const initialSize = 48, expansionSize = 16, version = 8, baseHeight = 96, newDeep = 40; let height = baseHeight, deep = 0;
+    function setDepth(value) { deep = value; height = baseHeight + value; }
     const types = {
       grass: { label: "Grass", color: [101, 163, 13] }, dirt: { label: "Dirt", color: [146, 64, 14] },
       stone: { label: "Stone", color: [100, 116, 139] }, snow: { label: "Snow", color: [248, 250, 252] }, sand: { label: "Sand", color: [237, 201, 120] }, wood: { label: "Wood", color: [146, 64, 14] },
@@ -89,6 +90,9 @@
     types.ice = { label: "Ice", color: [170, 220, 245] }; blockKind.ice = "Pick"; hardness.ice = 1.5;
     types.diamond = { label: "Diamond", color: [80, 230, 235] }; types.moonstone = { label: "Moonstone", color: [200, 190, 255] };
     ["diamond", "moonstone"].forEach((gem) => { blockKind[gem] = "Pick"; hardness[gem] = 10; });
+    types.chair = { label: "Chair", color: [150, 95, 45], solid: false }; types.bed = { label: "Bed", color: [200, 60, 70], solid: false }; types.ladder = { label: "Ladder", color: [150, 95, 45], solid: false };
+    ["chair", "bed", "ladder"].forEach((name) => { blockKind[name] = "Axe"; hardness[name] = .5; });
+    types.lava = { label: "Lava", color: [255, 95, 15], solid: false, hidden: true };
     const cropAge = new Map(), cropGrowSeconds = 40, animalHealth = 10;
     const foods = { meat: 35, cherry: 6, apple: 10, pear: 10, plum: 8, kiwi: 8, lemon: 4, carrot: 10, corn: 12, watermelon: 14, wheat: 5 };
     const powerUps = { cherry: ["speed", "Speed boost"], apple: ["jump", "Super jump"], pear: ["mining", "Fast mining"], plum: ["fullness", "No hunger"], kiwi: ["swim", "Fast swimming"], lemon: ["strength", "Double damage"], carrot: ["sprint", "Super sprint"], corn: ["climb", "Wall climb"], watermelon: ["heal", "Healing"], meat: ["strength", "Double damage"] };
@@ -153,6 +157,9 @@
       { output: "workbench", amount: 1, cost: { plank: 4 } },
       { output: "chest", amount: 1, cost: { plank: 8 } },
       { output: "door", amount: 1, cost: { plank: 4 } },
+      { output: "chair", amount: 1, cost: { plank: 2, wood: 1 } },
+      { output: "bed", amount: 1, cost: { plank: 3, hide: 2 } },
+      { output: "ladder", amount: 3, cost: { plank: 3, wood: 1 } },
       { output: "woodSword", amount: 1, cost: { plank: 2, wood: 1 } },
       { output: "bucket", amount: 1, cost: { ironIngot: 3 } },
       ...[["Pick", 3], ["Axe", 3], ["Shovel", 2]].flatMap(([kind, n]) => [{ output: "wood" + kind, amount: 1, cost: { plank: n } }, { output: "stone" + kind, amount: 1, cost: { stone: n, plank: 2 }, requiresWorkbench: true }, { output: "iron" + kind, amount: 1, cost: { ironIngot: n, plank: 2 }, requiresWorkbench: true }]),
@@ -194,21 +201,22 @@
       for (let z = centerZ - 3; z <= centerZ + 3; z += 1) for (let x = centerX - 3; x <= centerX + 3; x += 1) {
         if (x < 1 || z < 1 || x >= initialSize - 1 || z >= initialSize - 1) continue;
         const edge = Math.abs(x - centerX) === 3 || Math.abs(z - centerZ) === 3;
-        for (let y = 5; y < height; y += 1) next[y][z][x] = null;
-        next[4][z][x] = edge ? "grass" : "water"; next[3][z][x] = "dirt";
+        for (let y = 5 + deep; y < height; y += 1) next[y][z][x] = null;
+        next[4 + deep][z][x] = edge ? "grass" : "water"; next[3 + deep][z][x] = "dirt";
       }
     }
 
     function startWorld(reset) {
       thrown.length = 0; mp.adopted = false; lobbyEdits.clear(); mpPending.length = 0; flood.layers.length = 0; weather.flood = null; weather.tornado = null;
-      const decoded = saved.worldVersion === version ? decodeWorld(saved.world) : null, valid = !!decoded;
+      setDepth(Number(saved.deep) || 0); const decoded = saved.worldVersion === version ? decodeWorld(saved.world) : null, valid = !!decoded;
+      if (reset || !valid) setDepth(newDeep);
       world = !reset && valid ? decoded : generateWorld();
       mapWidth = valid ? saved.mapWidth : initialSize; mapDepth = valid ? saved.mapDepth : initialSize;
       mapOriginX = valid ? saved.mapOriginX : 0; mapOriginZ = valid ? saved.mapOriginZ : 0;
       animals = valid && Array.isArray(saved.animals) ? saved.animals : [];
       inventory = !reset && saved.inventory && Object.keys(saved.inventory).length ? saved.inventory : { dirt: 6, stone: 2, wood: 4, grass: 0, leaves: 0, water: 0, plank: 0, brick: 0, workbench: 0, furnace: 0, coal: 0, ironOre: 0, goldOre: 0, ironIngot: 0, goldIngot: 0, meat: 0, hide: 0 };
       const prior = !reset && valid ? saved.player : null;
-      Object.assign(player, prior || { x: 5.5, y: 7, z: 5.5, yaw: 0, pitch: -.12, velocityY: 0, onGround: false });
+      Object.assign(player, prior || { x: 5.5, y: 7 + deep, z: 5.5, yaw: 0, pitch: -.12, velocityY: 0, onGround: false });
       player.velocityY = 0; player.hunger = Number.isFinite(player.hunger) ? player.hunger : 100; selected = "dirt"; workbenchNearby = nearWorkbench(); workbenchActive = false; boating = false; saved.worldVersion = version; if (!animals.length) spawnAnimals(); if (reset) saved.chests = {}; lives = !reset && valid && Number.isFinite(saved.lives) ? saved.lives : maxLives; if (reset) saved.survival = survivalElement.checked; survivalElement.checked = !!saved.survival; if (saved.survival && !animals.some((animal) => animalKinds[animal.kind]?.hostile && !animal.pet)) syncHostiles(); renderLives(); scanCrops(); rebuildMesh(); persist(); renderInventory(); renderCrafting(); renderHunger();
       lastFrame = performance.now(); cancelAnimationFrame(animationFrame); animationFrame = requestAnimationFrame(loop);
     }
@@ -233,7 +241,7 @@
       return result;
     }
     function persist() {
-      if (!(mp.peer && !mp.host && mp.adopted)) { saved.world = encodeWorld(); saved.player = { x: player.x, y: player.y, z: player.z, yaw: player.yaw, pitch: player.pitch, hunger: player.hunger }; saved.mapWidth = mapWidth; saved.mapDepth = mapDepth; saved.mapOriginX = mapOriginX; saved.mapOriginZ = mapOriginZ; saved.animals = animals; saved.dayTime = dayTime; }
+      if (!(mp.peer && !mp.host && mp.adopted)) { saved.world = encodeWorld(); saved.deep = deep; saved.player = { x: player.x, y: player.y, z: player.z, yaw: player.yaw, pitch: player.pitch, hunger: player.hunger }; saved.mapWidth = mapWidth; saved.mapDepth = mapDepth; saved.mapOriginX = mapOriginX; saved.mapOriginZ = mapOriginZ; saved.animals = animals; saved.dayTime = dayTime; }
       saved.inventory = inventory; saved.lives = lives; saved.bright = userBright; saved.hotkeys = hotkeys;
       try { if (GameProfiles.isUnlocked()) GameProfiles.saveGame("funcraft", saved); else localStorage.setItem(guestKey, JSON.stringify(saved)); } catch { statusElement.textContent = "Could not save: browser storage is full."; }
     }
@@ -256,12 +264,46 @@
       const gate = smoothStep(22, 38, dist) * (1 - smoothStep(.1, .3, mt)) * (1 - smoothStep(.2, .5, de)) * (1 - ju), ch = smoothStep(.3, .6, cn) * gate, wi = smoothStep(.3, .6, wn) * gate * (1 - ch), fa = smoothStep(.3, .6, fn) * gate * (1 - ch) * (1 - wi);
       return { mt, de, ju, ch, wi, fa, wo: smoothStep(.1, .4, w) * smoothStep(10, 24, dist) };
     }
-    const columnCache = new Map();
+    const columnCache = new Map(), volcanoSites = new Map(), mineSites = new Map();
+    function mineSite(gx, gz) {
+      const key = `${gx},${gz}`; if (mineSites.has(key)) return mineSites.get(key);
+      const h = hash2(gx * 97 + 11, gz * 131 + 17); let site = null;
+      if (h % 100 < 80) { const tx = gx * 2560 + 600 + (h >>> 8) % 1360, tz = gz * 2560 + 600 + (h >>> 16) % 1360; if (Math.hypot(tx - 24, tz - 24) > 40) site = { tx, tz }; }
+      mineSites.set(key, site); return site;
+    }
+    function mineBlock(x, y, z) {
+      const gx = Math.floor(x / 2560), gz = Math.floor(z / 2560), s = mineSite(gx, gz); if (!s) return undefined;
+      const y0 = 6, ox = gx * 2560, oz = gz * 2560, dx = x - s.tx, dz = z - s.tz, mod = (n, m) => ((n % m) + m) % m;
+      const room = Math.abs(dx) <= 4 && Math.abs(dz) <= 4, inA = Math.abs(dz) <= 2 && x >= ox + 10 && x <= ox + 2550, inB = Math.abs(dx) <= 2 && z >= oz + 10 && z <= oz + 2550;
+      const shaft = (along, side, inside) => y > y0 && inside && Math.abs(side) <= 1 && (mod(along - 12, 150) <= 2 || (along >= 2546 && along <= 2548));
+      const sA = shaft(x - ox, dz, x >= ox + 10 && x <= ox + 2550), sB = shaft(z - oz, dx, z >= oz + 10 && z <= oz + 2550);
+      if (sA || sB) {
+        const mid = sA ? Math.abs(dz) === 0 && (mod(x - ox - 12, 150) === 1 || x - ox === 2547) : Math.abs(dx) === 0 && (mod(z - oz - 12, 150) === 1 || z - oz === 2547);
+        return mid ? "ladder" : null;
+      }
+      if (!(room || inA || inB) || y <= y0 || y > (room ? y0 + 5 : y0 + 4)) return undefined;
+      if (!room) {
+        const side = inA ? Math.abs(dz) : Math.abs(dx), along = inA ? dx : dz;
+        if (mod(along, 6) === 0) { if (y === y0 + 4) return "plank"; if (side === 2 && y <= y0 + 3) return mod(along, 12) === 0 && y === y0 + 2 ? "torch" : "wood"; }
+      }
+      return null;
+    }
+    function volcanoSite(gx, gz) {
+      const key = `${gx},${gz}`; if (volcanoSites.has(key)) return volcanoSites.get(key);
+      const h = hash2(gx * 211 + 5, gz * 173 + 9); let site = null;
+      if (h % 100 < 40) { const vx = gx * 150 + 35 + (h >>> 8) % 80, vz = gz * 150 + 35 + (h >>> 16) % 80; if (Math.hypot(vx - 24, vz - 24) > 70) site = { vx, vz }; }
+      volcanoSites.set(key, site); return site;
+    }
+    function volcanoAt(x, z) {
+      const site = volcanoSite(Math.floor(x / 150), Math.floor(z / 150)); if (!site) return null;
+      const d = Math.hypot(x - site.vx, z - site.vz); if (d >= 30) return null;
+      return d < 5.5 ? { lava: true, rise: 18 } : { lava: false, rise: d < 7 ? 22 : Math.round(30 * (1 - d / 30)) };
+    }
     function columnInfo(x, z) {
       const key = (x + 32768) * 65536 + (z + 32768), hit = columnCache.get(key); if (hit) return hit;
-      const b = biomeAt(x, z), wet = waterColumn(x, z) && b.mt < .15, base = 4 + Math.round(Math.sin(x * .31) + Math.cos(z * .27)), n = .5 + .5 * Math.sin(x * .05 + z * .033) * Math.cos(z * .042 - x * .028);
+      const b = biomeAt(x, z), vol = volcanoAt(x, z), wet = !vol && waterColumn(x, z) && b.mt < .15, base = 4 + Math.round(Math.sin(x * .31) + Math.cos(z * .27)), n = .5 + .5 * Math.sin(x * .05 + z * .033) * Math.cos(z * .042 - x * .028);
       const lift = Math.round(Math.pow(b.mt, 1.3) * (40 + 46 * n) + b.mt * 2.5 * Math.sin(x * .45) * Math.sin(z * .4));
-      const info = { ...b, wet, ground: wet ? 3 : Math.min(height - 6, base + lift) };
+      const info = { ...b, wet, lava: !!vol?.lava, volcano: !!vol, ground: wet ? 3 : Math.min(baseHeight - 6, vol ? base + vol.rise : base + lift) };
       if (columnCache.size > 120000) columnCache.clear(); columnCache.set(key, info); return info;
     }
     const streamSites = new Map();
@@ -292,8 +334,20 @@
       if (info.wet || info.mt > .1 || info.de > .3 || info.ground > 8 || (!jungle && (roll >= (woods ? 120 : 14)))) return null;
       return { top: info.ground, jungle, trunk: jungle ? 4 + (h >>> 10) % 3 : 2, leaf: info.ch > .5 ? "cherryLeaves" : info.wi > .5 ? "snowLeaves" : info.fa > .5 ? "fallLeaves" : jungle ? "leaves" : ["appleLeaves", "pearLeaves", "plumLeaves", "kiwiLeaves", "leaves", "leaves"][(h >>> 14) % 6] };
     }
+    function deepBlock(x, ny, z) {
+      const gem = hash2(x * 5 + ny, z * 11 + ny * 3) % 100, bottom = -deep;
+      if (ny === bottom) return "stone";
+      if (Math.abs(Math.sin(x * .17 + 2 * Math.sin(z * .11) + ny * .3)) < .27 && Math.abs(Math.sin(z * .15 + 2 * Math.sin(x * .09) - ny * .35)) < .27) return ny <= bottom + 4 ? "lava" : null;
+      if (gem < 3) return "diamond";
+      if (gem < 6) return "moonstone";
+      if (gem < 9) return "goldOre";
+      if (gem < 16) return "ironOre";
+      if (gem < 24) return "coal";
+      return "stone";
+    }
     function terrainBlock(x, y, z) {
       if (lobbyEdits.size) { const edited = lobbyEdits.get(`${x},${y},${z}`); if (edited !== undefined) return edited; }
+      if (deep) { if (y < deep) return deepBlock(x, y - deep, z); y -= deep; }
       const info = columnInfo(x, z), ground = info.ground;
       if (info.wet && y === 4) return info.wi > .5 ? "ice" : "water";
       if (y > ground) {
@@ -310,10 +364,11 @@
         return null;
       }
       if (info.mt > .3 && y >= ground - 1 && streamAt(x, z)) return y === ground && (ground >= 58 || info.wi > .5) ? "ice" : "water";
-      if (y >= 1 && !info.wet && y <= (info.mt > .25 ? ground : ground - 2) && Math.abs(Math.sin(x * .17 + 2 * Math.sin(z * .11) + y * .3)) < .26 && Math.abs(Math.sin(z * .15 + 2 * Math.sin(x * .09) - y * .35)) < .26) return null;
+      const mb = mineBlock(x, y, z); if (mb !== undefined) return mb;
+      if (y >= 1 && !info.wet && y <= (info.mt > .25 ? ground : ground - 2) && Math.abs(Math.sin(x * .17 + 2 * Math.sin(z * .11) + y * .1)) < .26 && Math.abs(Math.sin(z * .15 + 2 * Math.sin(x * .09) - y * .117)) < .26) return null;
       const desert = info.de > .5, quick = desert && info.de > .6 && y >= ground - 2 && Math.sin(x * .21 + 1) * Math.sin(z * .19 + 2) > .8, seed = Math.abs(Math.floor(x) * 31 + Math.floor(z) * 17 + y * 13) % 37, snowy = ground >= 58 || info.wi > .5;
       if (quick) return "quicksand";
-      if (y === ground) return info.wet ? "dirt" : desert ? "sand" : snowy ? "snow" : ground >= 18 ? "stone" : "grass";
+      if (y === ground) return info.lava ? "lava" : info.volcano ? (ground >= 12 ? "stone" : "dirt") : info.wet ? "dirt" : desert ? "sand" : snowy ? "snow" : ground >= 18 ? "stone" : "grass";
       if (y > ground - 3) return desert ? "sand" : snowy && y >= ground - 1 ? "snow" : ground >= 18 ? "stone" : "dirt";
       const gem = hash2(x * 7 + y, z * 3 + y * 5) % 100;
       if (y >= 1 && y <= ground - 6 && gem < 2) return "diamond";
@@ -388,7 +443,7 @@
       if (moved && hostileMeshTimer > .15) { hostileMeshTimer = 0; rebuildMesh(); }
       hostileSpawnTimer += delta; if (hostileSpawnTimer > 25) { hostileSpawnTimer = 0; if (animals.filter((animal) => animalKinds[animal.kind]?.hostile && !animal.pet).length < 4) { addHostile(); rebuildMesh(); } }
     }
-    function spawnAnimals() { while (animals.length < 8) { const x = Math.max(2, Math.min(mapWidth - 3, player.x + (Math.random() * 24 - 12))), z = Math.max(2, Math.min(mapDepth - 3, player.z + (Math.random() * 24 - 12))); const kinds = Object.keys(animalKinds).filter((name) => !animalKinds[name].hostile), kind = kinds[Math.floor(Math.random() * kinds.length)]; if (blockAt(Math.floor(x), 4, Math.floor(z)) === "water") continue; animals.push({ x, y: surfaceAt(x, z) + (animalKinds[kind].fly || 0), z, kind, direction: Math.random() * Math.PI * 2 }); } }
+    function spawnAnimals() { while (animals.length < 8) { const x = Math.max(2, Math.min(mapWidth - 3, player.x + (Math.random() * 24 - 12))), z = Math.max(2, Math.min(mapDepth - 3, player.z + (Math.random() * 24 - 12))); const kinds = Object.keys(animalKinds).filter((name) => !animalKinds[name].hostile), kind = kinds[Math.floor(Math.random() * kinds.length)]; if (blockAt(Math.floor(x), 4 + deep, Math.floor(z)) === "water") continue; animals.push({ x, y: surfaceAt(x, z) + (animalKinds[kind].fly || 0), z, kind, direction: Math.random() * Math.PI * 2 }); } }
     function updateAnimals(delta) { animalTimer += delta; if (animalTimer < 1.2) return; animalTimer = 0; animals.forEach((animal) => { if (animal.pet) return; animal.direction += Math.random() - .5; animal.x = Math.max(1, Math.min(mapWidth - 2, animal.x + Math.sin(animal.direction) * .45)); animal.z = Math.max(1, Math.min(mapDepth - 2, animal.z + Math.cos(animal.direction) * .45)); animal.y = surfaceAt(animal.x, animal.z) + (animalKinds[animal.kind]?.fly || 0); }); rebuildMesh(); }
 
     function rebuildMesh() {
@@ -399,11 +454,15 @@
       ];
       const minX = Math.max(0, Math.floor(player.x) - 36), maxX = Math.min(mapWidth, Math.floor(player.x) + 37), minZ = Math.max(0, Math.floor(player.z) - 36), maxZ = Math.min(mapDepth, Math.floor(player.z) + 37);
       lightList = [];
-      for (let y = 0; y < height; y += 1) for (let z = minZ; z < maxZ; z += 1) for (let x = minX; x < maxX; x += 1) {
+      for (let y = Math.max(0, Math.floor(player.y) - 30); y < height; y += 1) for (let z = minZ; z < maxZ; z += 1) for (let x = minX; x < maxX; x += 1) {
         const type = blockAt(x, y, z); if (!type) continue;
         if (type === "torch") lightList.push([x + .5, y + .8, z + .5, 8]);
         if (type === "fire") lightList.push([x + .5, y + .6, z + .5, 11, .4]);
+        if (type === "lava" && (x + z) % 4 === 0) lightList.push([x + .5, y + 1, z + .5, 9, .3]);
         if (type === "flower") { const col = [[.95, .25, .4], [.98, .85, .2], [.7, .4, .95], [1, 1, 1]][((x + mapOriginX) * 7 + (z + mapOriginZ) * 13) & 3]; addAnimalCube(x + .46, y, z + .46, .08, .45, .08, [.2, .55, .15]); addAnimalCube(x + .32, y + .45, z + .32, .36, .2, .36, col); addAnimalCube(x + .43, y + .5, z + .43, .14, .12, .14, [1, .9, .2]); continue; }
+        if (type === "chair") { addAnimalCube(x + .2, y, z + .2, .6, .12, .6, [.59, .37, .18]); addAnimalCube(x + .2, y + .12, z + .2, .08, .3, .08, [.5, .31, .14]); addAnimalCube(x + .72, y + .12, z + .2, .08, .3, .08, [.5, .31, .14]); addAnimalCube(x + .2, y + .12, z + .72, .08, .3, .08, [.5, .31, .14]); addAnimalCube(x + .72, y + .12, z + .72, .08, .3, .08, [.5, .31, .14]); addAnimalCube(x + .2, y + .42, z + .2, .6, .1, .6, [.69, .45, .22]); addAnimalCube(x + .2, y + .52, z + .2, .6, .5, .1, [.59, .37, .18]); continue; }
+        if (type === "bed") { addAnimalCube(x + .05, y, z + .05, .9, .25, .9, [.5, .31, .14]); addAnimalCube(x + .08, y + .25, z + .08, .84, .18, .84, [.85, .2, .25]); addAnimalCube(x + .12, y + .43, z + .12, .76, .1, .28, [1, 1, 1]); continue; }
+        if (type === "ladder") { addAnimalCube(x + .15, y, z + .45, .08, 1, .1, [.55, .33, .12]); addAnimalCube(x + .77, y, z + .45, .08, 1, .1, [.55, .33, .12]); for (let r = 0; r < 4; r += 1) addAnimalCube(x + .15, y + .1 + r * .25, z + .46, .7, .07, .08, [.7, .45, .2]); continue; }
         if (type === "door") { addAnimalCube(x, y, z + .38, 1, 1, .24, [.59, .37, .18]); addAnimalCube(x + .1, y + .08, z + .34, .8, .84, .32, [.5, .31, .14]); addAnimalCube(x + .78, y + .45, z + .3, .1, .1, .4, [.98, .8, .2]); continue; }
         if (type === "doorOpen") { addAnimalCube(x, y, z, .16, 1, 1, [.59, .37, .18]); addAnimalCube(x + .1, y + .45, z + .78, .08, .1, .1, [.98, .8, .2]); continue; }
         if (type === "chest") { addAnimalCube(x + .08, y, z + .08, .84, .55, .84, [.63, .38, .03]); addAnimalCube(x + .06, y + .55, z + .06, .88, .2, .88, [.45, .26, .02]); addAnimalCube(x + .44, y + .3, z + .04, .12, .3, .92, [.98, .8, .2]); continue; }
@@ -423,7 +482,7 @@
         }
         for (let index = 0; index < 6; index += 1) {
           const face = faces[index], neighbor = blockAt(x + face[0][0], y + face[0][1], z + face[0][2]);
-          if (neighbor && !cropStage[neighbor] && neighbor !== "torch" && neighbor !== "fire" && neighbor !== "flower" && neighbor !== "chest" && neighbor !== "door" && neighbor !== "doorOpen" && (type !== "water" || neighbor === "water")) continue;
+          if (neighbor && !cropStage[neighbor] && neighbor !== "torch" && neighbor !== "fire" && neighbor !== "flower" && neighbor !== "chest" && neighbor !== "door" && neighbor !== "chair" && neighbor !== "bed" && neighbor !== "ladder" && neighbor !== "doorOpen" && (type !== "water" || neighbor === "water")) continue;
           const shade = [.82, .62, 1, .5, .9, .7][index], base = types[type].color;
           for (let c = 0; c < 6; c += 1) { const corner = corners[index][[0,1,2,0,2,3][c]]; data.push(corner[0] + x, corner[1] + y, corner[2] + z, base[0] / 255 * shade, base[1] / 255 * shade, base[2] / 255 * shade); }
         }
@@ -488,13 +547,14 @@
       move((Math.sin(player.yaw) * forward - Math.cos(player.yaw) * strafe) / length * speed * delta, 0, (Math.cos(player.yaw) * forward + Math.sin(player.yaw) * strafe) / length * speed * delta);
       if (boating) { const top = waterTop(player.x, player.z); if (top === null) { boating = false; statusElement.textContent = "Your boat left the water."; } else { player.y = top - .2; player.velocityY = 0; player.onGround = true; } }
       else if (planeOn) flyPlane(delta);
-      else { player.velocityY += (inWater() ? -3 : -18) * delta; if (inWater() && !keys.has("sink") && player.velocityY <= 2) { const top = waterTop(player.x, player.z); if (top !== null) player.velocityY = Math.max(-3, Math.min(3, (top - .85 - player.y) * 5)); } if (hasBuff("climb") && forward > 0) { const ox = player.x, oz = player.z; player.x += Math.sin(player.yaw) * .15; player.z += Math.cos(player.yaw) * .15; const wall = collides(); player.x = ox; player.z = oz; if (wall) player.velocityY = 4; } if (inQuicksand()) player.velocityY = Math.max(player.velocityY, -1.1); if (glide) { const dive = Math.max(0, -player.pitch), flare = Math.max(0, player.pitch), boost = boosting && boostEnergy > 0 ? 1 : 0, fly = (8 + 6 * dive - 3 * flare) * (1 + 6 * boost); boostEnergy = boost ? Math.max(0, boostEnergy - delta) : Math.min(3, boostEnergy + delta * 1.5); player.velocityY = -1.5 - 4 * dive + .7 * flare + .5 * boost; move(Math.sin(player.yaw) * fly * delta, 0, Math.cos(player.yaw) * fly * delta); if (boosting && boostEnergy <= 0 && !boostEmptyShown) { boostEmptyShown = true; statusElement.textContent = "Boost used up. It recharges while you glide."; } if (boostEnergy > .5) boostEmptyShown = false; } else boostEnergy = Math.min(3, boostEnergy + delta * 1.5); player.onGround = false; move(0, player.velocityY * delta, 0); }
+      else { player.velocityY += (inWater() ? -3 : -18) * delta; if (onLadder()) { player.velocityY = forward > 0 ? 3.5 : forward < 0 || keys.has("sink") ? -3 : 0; } if (inWater() && !keys.has("sink") && player.velocityY <= 2) { const top = waterTop(player.x, player.z); if (top !== null) player.velocityY = Math.max(-3, Math.min(3, (top - .85 - player.y) * 5)); } if (hasBuff("climb") && forward > 0) { const ox = player.x, oz = player.z; player.x += Math.sin(player.yaw) * .15; player.z += Math.cos(player.yaw) * .15; const wall = collides(); player.x = ox; player.z = oz; if (wall) player.velocityY = 4; } if (inQuicksand()) player.velocityY = Math.max(player.velocityY, -1.1); if (glide) { const dive = Math.max(0, -player.pitch), flare = Math.max(0, player.pitch), boost = boosting && boostEnergy > 0 ? 1 : 0, fly = (8 + 6 * dive - 3 * flare) * (1 + 6 * boost); boostEnergy = boost ? Math.max(0, boostEnergy - delta) : Math.min(3, boostEnergy + delta * 1.5); player.velocityY = -1.5 - 4 * dive + .7 * flare + .5 * boost; move(Math.sin(player.yaw) * fly * delta, 0, Math.cos(player.yaw) * fly * delta); if (boosting && boostEnergy <= 0 && !boostEmptyShown) { boostEmptyShown = true; statusElement.textContent = "Boost used up. It recharges while you glide."; } if (boostEnergy > .5) boostEmptyShown = false; } else boostEnergy = Math.min(3, boostEnergy + delta * 1.5); player.onGround = false; move(0, player.velocityY * delta, 0); }
       if (boating || inWater()) { const [vx, vz] = currentAt(Math.floor(player.x) + mapOriginX, Math.floor(player.z) + mapOriginZ), pull = boating ? 1.6 : 1.2; if (vx || vz) { move(vx * pull * delta, 0, vz * pull * delta); if (!currentNoticed) { currentNoticed = true; statusElement.textContent = "The current pulls you along the water."; } } }
       expandMap(); updateAnimals(delta); updateHostiles(delta); updatePets(delta); updateFire(delta); updateCrops(delta); updateSmoke(delta); mpUpdate(delta); updateThrown(delta); updateWeather(delta); applyWeatherEffects(delta);
       if (buff) { buff.left -= delta; if (buff.left <= 0) { buff = null; statusElement.textContent = "Your power-up wore off."; } if (buffElement) buffElement.textContent = buff ? ` ${buff.label}: ${Math.ceil(buff.left)}s` : ""; }
       player.hunger = Math.max(0, player.hunger - (hasBuff("fullness") ? 0 : delta * .35)); renderHunger();
       if (nearWorkbench() !== workbenchNearby) { workbenchNearby = nearWorkbench(); if (!workbenchNearby) workbenchActive = false; renderCrafting(); }
       if (player.y < -3) respawn();
+      if (!planeOn && (blockAt(Math.floor(player.x), Math.floor(player.y + .1), Math.floor(player.z)) === "lava" || blockAt(Math.floor(player.x), Math.floor(player.y - .1), Math.floor(player.z)) === "lava")) { if (saved.survival) { if (hitCooldown === 0) hurt("lava"); } else { teleportHome(); statusElement.textContent = "You fell in lava and woke up at home!"; } }
     }
 
     function move(dx, dy, dz) {
@@ -535,6 +595,7 @@
       return false;
     }
     function inQuicksand() { return blockAt(Math.floor(player.x), Math.floor(player.y + .3), Math.floor(player.z)) === "quicksand"; }
+    function onLadder() { const x = Math.floor(player.x), z = Math.floor(player.z); return blockAt(x, Math.floor(player.y + .2), z) === "ladder" || blockAt(x, Math.floor(player.y + 1.2), z) === "ladder"; }
     function inWater() { return blockAt(Math.floor(player.x), Math.floor(player.y + .8), Math.floor(player.z)) === "water"; }
     function jump() { if (boating) { boating = false; player.velocityY = 7; player.onGround = false; statusElement.textContent = "You hopped out of the boat."; return; } if (inQuicksand()) { player.velocityY = 3.2; player.onGround = false; statusElement.textContent = "You are stuck in quicksand! Keep jumping to climb out."; return; } if (player.onGround || inWater()) { player.velocityY = inWater() ? ((waterTop(player.x, player.z) ?? -99) - player.y < 1.3 ? 6.3 : 3.5) : hasBuff("jump") ? 11 : 7; player.onGround = false; } }
     function waterTop(x, z) { for (let y = height - 1; y >= 0; y -= 1) { const type = blockAt(Math.floor(x), y, Math.floor(z)); if (type === "water") return y + 1; if (type && solid(type)) return null; } return null; }
@@ -603,6 +664,7 @@
       return false;
     }
     function mine() { const animal = animalInSight(); if (animal && animal.pet) { statusElement.textContent = "That's your pet! Press E to pet it."; return; } if (animal) { hitAnimal(animal, (selected === "woodSword" && inventory.woodSword > 0 ? 1.25 : 1) * (hasBuff("strength") ? 2 : 1)); return; } const target = raycast(); if (!target) return; const type = blockAt(target.x,target.y,target.z);
+      if (type === "lava") { statusElement.textContent = "Lava is too hot to collect!"; return; }
       if (type === "fire") { statusElement.textContent = "Fire is too hot! Select a water bucket and right-click the fire to put it out."; return; }
       if (type === "water") { if (!inventory.bucket) { statusElement.textContent = "You need a bucket to collect water. Craft one from 3 iron ingots."; return; } inventory.bucket -= 1; inventory.waterBucket = (inventory.waterBucket || 0) + 1; world[target.y][target.z][target.x] = null; mpBlock(target.x, target.y, target.z, null); statusElement.textContent = "Filled your bucket with water."; rebuildMesh(); persistAndRender(); return; }
       if (selected === "torch" && inventory.torch && flammable[type]) { ignite(target.x, target.y, target.z); statusElement.textContent = `You set the ${types[type].label.toLowerCase()} on fire! Water puts it out.`; rebuildMesh(); persist(); return; }
@@ -686,7 +748,7 @@
       if (next === "door" && cells.some(([cy]) => playerOverlaps({ x, y: cy, z }))) { statusElement.textContent = "Something is in the doorway."; return; }
       cells.forEach(([cy, type]) => { world[cy][z][x] = type; mpBlock(x, cy, z, type); }); statusElement.textContent = next === "door" ? "Door closed." : "Door opened."; rebuildMesh(); persist();
     }
-    function useContextAction() { { const dt = raycast(); if (dt && ["door", "doorOpen"].includes(blockAt(dt.x, dt.y, dt.z))) { toggleDoor(dt.x, dt.y, dt.z); return; } } { const ct = raycast(); if (ct && blockAt(ct.x, ct.y, ct.z) === "chest") { openChest(ct); return; } } if (nearFurnace()) { smeltOre(); return; } if (nearWorkbench()) { workbenchActive = true; renderCrafting(); statusElement.textContent = "Workbench ready. Choose an advanced recipe."; return; } if (!nearWorkbench()) { const target = animalInSight(); if (target && ((inventory.meat && !(foods[selected] && selected !== "meat" && inventory[selected])) || target.pet)) { tameAnimal(target); return; } } const pick = foods[selected] && inventory[selected] > 0 ? selected : Object.keys(foods).find((f) => inventory[f] > 0); if (!pick) { statusElement.textContent = "You do not have food to eat. Plant seeds, pick fruit, or hit an animal for meat."; return; } inventory[pick] -= 1; player.hunger = Math.min(100, player.hunger + foods[pick]); statusElement.textContent = `You ate ${types[pick].label.toLowerCase()} and restored hunger.`; const pu = powerUps[pick]; if (pu) { buff = { kind: pu[0], label: pu[1], left: 10 }; if (pu[0] === "heal" && saved.survival) { lives = Math.min(maxLives, lives + 1); renderLives(); } statusElement.textContent += ` ${pu[1]} for 10 seconds!`; } persistAndRender(); renderHunger(); }
+    function useContextAction() { { const fx = raycast(), ft = fx && blockAt(fx.x, fx.y, fx.z); if (ft === "chair") { player.x = fx.x + .5; player.z = fx.z + .5; player.y = fx.y + .1; player.velocityY = 0; statusElement.textContent = "You sat on the chair."; return; } if (ft === "bed") { if (mp.peer && !mp.host) { statusElement.textContent = "Only the host can sleep to skip the night."; return; } if (dayTime >= .5) { dayTime = .02; saved.dayTime = dayTime; if (saved.survival) { lives = maxLives; renderLives(); } statusElement.textContent = "You slept until morning."; persist(); } else statusElement.textContent = "You can only sleep at night."; return; } } { const dt = raycast(); if (dt && ["door", "doorOpen"].includes(blockAt(dt.x, dt.y, dt.z))) { toggleDoor(dt.x, dt.y, dt.z); return; } } { const ct = raycast(); if (ct && blockAt(ct.x, ct.y, ct.z) === "chest") { openChest(ct); return; } } if (nearFurnace()) { smeltOre(); return; } if (nearWorkbench()) { workbenchActive = true; renderCrafting(); statusElement.textContent = "Workbench ready. Choose an advanced recipe."; return; } if (!nearWorkbench()) { const target = animalInSight(); if (target && ((inventory.meat && !(foods[selected] && selected !== "meat" && inventory[selected])) || target.pet)) { tameAnimal(target); return; } } const pick = foods[selected] && inventory[selected] > 0 ? selected : Object.keys(foods).find((f) => inventory[f] > 0); if (!pick) { statusElement.textContent = "You do not have food to eat. Plant seeds, pick fruit, or hit an animal for meat."; return; } inventory[pick] -= 1; player.hunger = Math.min(100, player.hunger + foods[pick]); statusElement.textContent = `You ate ${types[pick].label.toLowerCase()} and restored hunger.`; const pu = powerUps[pick]; if (pu) { buff = { kind: pu[0], label: pu[1], left: 10 }; if (pu[0] === "heal" && saved.survival) { lives = Math.min(maxLives, lives + 1); renderLives(); } statusElement.textContent += ` ${pu[1]} for 10 seconds!`; } persistAndRender(); renderHunger(); }
     function smeltOre() { const ore = inventory.goldOre ? "goldOre" : inventory.ironOre ? "ironOre" : null; if (!ore) { statusElement.textContent = "You do not have ore to smelt."; return; } if (!inventory.coal) { statusElement.textContent = "You need coal to fuel the furnace."; return; } const ingot = ore === "goldOre" ? "goldIngot" : "ironIngot"; inventory[ore] -= 1; inventory.coal -= 1; inventory[ingot] = (inventory[ingot] || 0) + 1; statusElement.textContent = `Smelted ${types[ore].label} into an ingot using coal.`; persistAndRender(); }
 
     function directionVector() { return [Math.sin(player.yaw) * Math.cos(player.pitch), Math.sin(player.pitch), Math.cos(player.yaw) * Math.cos(player.pitch)]; }
@@ -892,9 +954,9 @@
         world[y][lz][lx] = value; mpMeshDirty = true;
       });
     }
-    function mpSnapshot() { return { t: "world", world: encodeWorld(), w: mapWidth, d: mapDepth, ox: mapOriginX, oz: mapOriginZ, animals, px: player.x + mapOriginX, py: player.y, pz: player.z + mapOriginZ, edits: [...lobbyEdits] }; }
+    function mpSnapshot() { return { t: "world", deep, world: encodeWorld(), w: mapWidth, d: mapDepth, ox: mapOriginX, oz: mapOriginZ, animals, px: player.x + mapOriginX, py: player.y, pz: player.z + mapOriginZ, edits: [...lobbyEdits] }; }
     function mpAdopt(data) {
-      const next = decodeWorld(data.world, data.d, data.w); if (!next || ![data.w, data.d, data.ox, data.oz, data.px, data.py, data.pz].every(Number.isFinite)) return;
+      const priorDeep = deep; setDepth(Number(data.deep) || 0); const next = decodeWorld(data.world, data.d, data.w); if (!next) setDepth(priorDeep); if (!next || ![data.w, data.d, data.ox, data.oz, data.px, data.py, data.pz].every(Number.isFinite)) return;
       world = next; mapWidth = data.w; mapDepth = data.d; mapOriginX = data.ox; mapOriginZ = data.oz; animals = Array.isArray(data.animals) ? data.animals : [];
       lobbyEdits.clear(); (Array.isArray(data.edits) ? data.edits : []).forEach(([key, value]) => lobbyEdits.set(key, value)); burningPlanks.clear(); thrown.length = 0;
       player.x = Math.max(1, data.px - mapOriginX + 1); player.z = Math.max(1, data.pz - mapOriginZ); player.y = data.py + .5; player.velocityY = 0; mp.adopted = true; gliding = false;
@@ -947,7 +1009,7 @@
       if (mpPending.length) mpSend({ t: "b", c: mpPending.splice(0) });
       mpSend(mpState());
     }
-    const worldsKey = "funcraft-worlds", worldFields = ["world", "player", "mapWidth", "mapDepth", "mapOriginX", "mapOriginZ", "animals", "dayTime", "inventory", "lives", "worldVersion", "survival", "disasters", "modeName", "chests"];
+    const worldsKey = "funcraft-worlds", worldFields = ["world", "player", "mapWidth", "mapDepth", "mapOriginX", "mapOriginZ", "animals", "dayTime", "inventory", "lives", "worldVersion", "deep", "survival", "disasters", "modeName", "chests"];
     const worldNameElement = document.querySelector("#worldName"), worldListElement = document.querySelector("#worldList"), worldMsgElement = document.querySelector("#worldMsg");
     const readWorlds = () => { try { const w = JSON.parse(localStorage.getItem(worldsKey) || "{}"); return w && typeof w === "object" ? w : {}; } catch { return {}; } };
     function renderWorldList() { const names = Object.keys(readWorlds()).sort(); worldListElement.replaceChildren(...names.map((n) => { const o = document.createElement("option"); o.value = o.textContent = n; if (n === saved.worldName) o.selected = true; return o; })); if (!names.length) { const o = document.createElement("option"); o.textContent = "(no saved worlds)"; o.value = ""; worldListElement.append(o); } if (saved.worldName) worldMsgElement.textContent = `Playing: ${saved.worldName}`; }

@@ -108,6 +108,16 @@
       { name: "Armada Assault", planes: 36, ships: 16, diff: 20, bonus: 7000 },
       { name: "The Sky King", planes: 45, ships: 14, diff: 22, bonus: 10000, boss: { name: "The Sky King", hp: 550 } }
     ];
+    const extraNames = ["Dawn Patrol", "Coral Chase", "Thunder Alley", "Ghost Squadron", "Dust Storm", "Ice Fjord", "Jungle Strike", "Lightning Run", "Iron Skies", "Red Horizon", "Typhoon Eye", "Steel Rain", "Crimson Tide", "Void Rift", "Solar Flare", "Shadow Fleet", "Phantom Pass", "Blitz Valley", "Dragon Reach", "Eclipse Raid", "Nova Strike", "Titan Sea", "Warp Gate", "Omega Fleet", "Sky Reaper", "Last Light", "Doom Armada", "Apex Squadron", "Heli Swarm Prep"];
+    const extraBosses = ["Tempest Lord", "Iron Kraken", "Dread Wasp", "Obsidian Hawk", "Sun Reaper", "Skybreaker", "Storm Empress", "Doom Gunship", "Eclipse Drake", "Star Hunter", "Warlord Rex", "Void Leviathan", "Omega Hornet", "Sky Tyrant"];
+    for (let n = 21; n <= 49; n += 1) {
+      const k = n - 20, boss = n % 2 === 0, lv = { name: extraNames[k - 1], planes: Math.min(70, 46 + k), ships: Math.min(24, 14 + Math.floor(k / 2)), diff: 22 + Math.floor(k * .8), bonus: 10000 + k * 600 };
+      if (boss) lv.boss = { name: extraBosses[k / 2 - 1], hp: 600 + k * 45, heli: (k / 2) % 2 === 0 };
+      LEVELS.push(lv);
+    }
+    LEVELS.push({ name: "Helicopter Storm", planes: 21, ships: 0, diff: 30, bonus: 30000, squad: { helis: 20, eliteMult: 3 } });
+    LEVELS.forEach((lv) => { if (lv.boss) { lv.planes = 0; lv.ships = 0; lv.boss.hp = Math.round(lv.boss.hp * 1.3); } });
+    const levelGoal = (lv) => lv.squad ? `destroy ${lv.squad.helis} helicopters and 1 elite plane with triple life` : lv.boss ? `defeat the boss ${lv.boss.name} (no other planes or ships)` : `destroy ${lv.planes} planes and ${lv.ships} ships`;
     const levelsEl = document.querySelector("#levels");
     function renderLevels() {
       levelsEl.replaceChildren();
@@ -116,7 +126,7 @@
         b.className = save.pick === n ? "picked" : ""; b.disabled = n > save.unlocked;
         b.textContent = n > save.unlocked ? `🔒 ${n}` : `${n}. ${lv.name}`; levelsEl.append(b);
       });
-      document.querySelector("#goal").textContent = `Level ${save.pick}: destroy ${LEVELS[save.pick - 1].planes} planes and ${LEVELS[save.pick - 1].ships} ships${LEVELS[save.pick - 1].boss ? ` and defeat the boss ${LEVELS[save.pick - 1].boss.name}` : ""} (bonus ${LEVELS[save.pick - 1].bonus} coins).`;
+      document.querySelector("#goal").textContent = `Level ${save.pick}: ${levelGoal(LEVELS[save.pick - 1])} (bonus ${LEVELS[save.pick - 1].bonus} coins).`;
     }
     levelsEl.addEventListener("click", (event) => { const b = event.target.closest("button[data-level]"); if (!b || b.disabled) return; save.pick = Number(b.dataset.level); persist(); renderLevels(); });
     const keys = new Set(), clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -174,14 +184,14 @@
         t: "s", gt: g.t, sc: g.score, pk: g.planeKills, sk: g.shipKills, o: g.over ? 1 : 0, w: g.won ? 1 : 0,
         pl: [["host", pilotName(), p.id, r(p.x), r(p.y), p.hp, p.maxHp, p.inv > 0 ? 1 : 0], ...[...g.mates].map(([id, m]) => [id, m.name, m.plane, r(m.x), r(m.y), m.hp, m.maxHp, m.inv > 0 ? 1 : 0])],
         bs: g.boss ? [r(g.boss.x), r(g.boss.y), r(g.boss.z), g.boss.hp, g.boss.maxHp, g.boss.ph] : 0,
-        e: g.enemies.map((e) => [r(e.x), r(e.y), r(e.z), e.ph, e.hp, e.maxHp]), sh: g.ships.map((s) => [r(s.x), r(s.z), s.hp, s.maxHp]),
+        e: g.enemies.map((e) => [r(e.x), r(e.y), r(e.z), e.ph, e.hp, e.maxHp, e.heli ? 1 : e.elite ? 2 : 0]), sh: g.ships.map((s) => [r(s.x), r(s.z), s.hp, s.maxHp]),
         es: g.enemyShots.map((s) => [r(s.x), r(s.y), r(s.z)]), b: g.bullets.map((s) => [r(s.x), r(s.y), r(s.z)]), bo: g.bombs.map((s) => [r(s.x), r(s.y), r(s.z)]),
         pa: g.parts.slice(-70).map((s) => [r(s.x), r(s.y), r(s.z), Math.max(0, COLORS.indexOf(s.color)), +s.life.toFixed(2), r(s.size)])
       };
     }
     function applySnapshot(d) {
       const g = game, p = g.p; g.t = d.gt; g.score = d.sc; scoreEl.textContent = d.sc; g.planeKills = d.pk; g.shipKills = d.sk;
-      g.enemies = d.e.map(([x, y, z, ph, hp, maxHp]) => ({ x, y, z, ph, hp, maxHp })); g.ships = d.sh.map(([x, z, hp, maxHp]) => ({ x, z, hp, maxHp }));
+      g.enemies = d.e.map(([x, y, z, ph, hp, maxHp, kind]) => ({ x, y, z, ph, hp, maxHp, heli: kind === 1, elite: kind === 2 })); g.ships = d.sh.map(([x, z, hp, maxHp]) => ({ x, z, hp, maxHp }));
       g.enemyShots = d.es.map(([x, y, z]) => ({ x, y, z })); g.bullets = d.b.map(([x, y, z]) => ({ x, y, z })); g.bombs = d.bo.map(([x, y, z]) => ({ x, y, z, sub: y <= 0 }));
       g.parts = d.pa.map(([x, y, z, c, life, size]) => ({ x, y, z, color: COLORS[c], life, max: 1.1, size }));
       g.boss = d.bs ? { x: d.bs[0], y: d.bs[1], z: d.bs[2], hp: d.bs[3], maxHp: d.bs[4], ph: d.bs[5], big: true, heli: !!g.lv.boss?.heli } : null;
@@ -355,13 +365,14 @@
       } else { g.overTimer -= dt; if (g.overTimer <= 0) { endRun(); return; } }
 
       g.enemyCd -= dt;
-      if (g.enemyCd <= 0 && !g.over && (!g.lv.practice || (g.lv.planes > 0 && !g.enemies.length && g.planeKills < g.lv.planes))) {
-        const hp = 2 + Math.floor(wave() * .6);
-        g.enemies.push({ x: clamp(g.p.x + (Math.random() - .5) * 800, -LIMIT_X, LIMIT_X), y: 70 + Math.random() * 330, z: 2400, hp, maxHp: hp, vz: -(280 + Math.random() * 120 + wave() * 12), ph: Math.random() * 6, cd: .8 + Math.random() * 1.2 });
-        g.enemyCd = Math.max(.6, 2.2 - g.t * .012) * (.7 + Math.random() * .6);
+      if (g.enemyCd <= 0 && !g.over && !g.lv.boss && (g.lv.squad ? (g.squadSpawned || 0) < g.lv.squad.helis + 1 : true) && (!g.lv.practice || (g.lv.planes > 0 && !g.enemies.length && g.planeKills < g.lv.planes))) {
+        const hp = 2 + Math.floor(wave() * .6), squad = g.lv.squad, index = g.squadSpawned || 0, spawned = { x: clamp(g.p.x + (Math.random() - .5) * 800, -LIMIT_X, LIMIT_X), y: 70 + Math.random() * 330, z: 2400, hp, maxHp: hp, vz: -(280 + Math.random() * 120 + wave() * 12), ph: Math.random() * 6, cd: .8 + Math.random() * 1.2 };
+        if (squad) { g.squadSpawned = index + 1; if (index < squad.helis) spawned.heli = true; else { spawned.elite = true; spawned.hp = spawned.maxHp = hp * squad.eliteMult; } }
+        g.enemies.push(spawned);
+        g.enemyCd = squad ? .9 : Math.max(.6, 2.2 - g.t * .012) * (.7 + Math.random() * .6);
       }
       g.shipCd -= dt;
-      if (g.shipCd <= 0 && !g.over && (!g.lv.practice || (g.lv.ships > 0 && !g.ships.length && g.shipKills < g.lv.ships))) {
+      if (g.shipCd <= 0 && !g.over && !g.lv.boss && (!g.lv.practice || (g.lv.ships > 0 && !g.ships.length && g.shipKills < g.lv.ships))) {
         const hp = 8 + wave() * 2;
         g.ships.push({ x: (Math.random() - .5) * 1000, z: 2800, hp, maxHp: hp, vz: -(130 + Math.random() * 50), cd: 1.5 + Math.random() * 1.5 });
         g.shipCd = Math.max(2.5, 6 - g.t * .02) * (.8 + Math.random() * .5);
@@ -375,8 +386,8 @@
         const b = g.boss; b.ph += dt; b.z = Math.max(1100, b.z - 300 * dt);
         b.x = Math.sin(b.ph * .7) * 380; b.y = 250 + Math.cos(b.ph * .9) * 120; b.cd -= dt;
         if (b.cd <= 0 && b.z <= 1400) {
-          if (b.heli) { aimShot(b.x - 40, b.y, b.z, 900, 70); aimShot(b.x + 40, b.y, b.z, 900, 70); b.cd = .4; }
-          else { for (let i = 0; i < 3; i += 1) aimShot(b.x + (i - 1) * 90, b.y, b.z, 620, 260); b.cd = Math.max(.9, 2.2 - wave() * .1); }
+          if (b.heli) { for (let i = 0; i < 3; i += 1) aimShot(b.x + (i - 1) * 60, b.y, b.z, 1000, 80); b.cd = .35; }
+          else { for (let i = 0; i < 5; i += 1) aimShot(b.x + (i - 2) * 80, b.y, b.z, 760, 240); b.cd = Math.max(.6, 1.6 - wave() * .06); }
         }
       }
       g.clouds.forEach((cloud) => { cloud.z -= 500 * dt; if (cloud.z < 40) Object.assign(cloud, newCloud(3000)); });
@@ -450,7 +461,7 @@
     function project(x, y, z) { const p = game.p, s = F / z; return { x: W / 2 + (x - p.x) * s, y: H / 2 - (y - p.y) * s, s }; }
     function fade(z) { return clamp((3000 - z) / 700, 0, 1); }
     function drawHeli(h) {
-      const q = project(h.x, h.y, h.z); ctx.save(); ctx.translate(q.x, q.y); ctx.scale(q.s * 3, q.s * 3); ctx.globalAlpha = fade(h.z);
+      const q = project(h.x, h.y, h.z), sc = h.big ? 3 : 1.2; ctx.save(); ctx.translate(q.x, q.y); ctx.scale(q.s * sc, q.s * sc); ctx.globalAlpha = fade(h.z);
       ctx.rotate(Math.sin(game.t * 1.5) * .12);
       ctx.fillStyle = "#334155"; ctx.fillRect(-4, -34, 8, 14);
       ctx.fillStyle = "#475569"; ctx.beginPath(); ctx.ellipse(0, 0, 30, 22, 0, 0, 7); ctx.fill();
@@ -461,16 +472,17 @@
       ctx.fillStyle = "#0f172a"; ctx.fillRect(-95 * spin, -38, 190 * spin, 4);
       ctx.restore();
     }
+    function enemyBar(enemy, q) { if (enemy.hp < enemy.maxHp && !enemy.big) { ctx.fillStyle = "#450a0a"; ctx.fillRect(q.x - 30 * q.s, q.y - 45 * q.s, 60 * q.s, Math.max(2, 6 * q.s)); ctx.fillStyle = "#4ade80"; ctx.fillRect(q.x - 30 * q.s, q.y - 45 * q.s, 60 * q.s * Math.max(0, enemy.hp / enemy.maxHp), Math.max(2, 6 * q.s)); } }
     function drawEnemyPlane(enemy) {
-      if (enemy.heli) { drawHeli(enemy); return; }
-      const q = project(enemy.x, enemy.y, enemy.z), big = enemy.big; ctx.save(); ctx.translate(q.x, q.y); ctx.scale(q.s * (big ? 3 : 1), q.s * (big ? 3 : 1)); ctx.globalAlpha = fade(enemy.z);
+      if (enemy.heli) { drawHeli(enemy); enemyBar(enemy, project(enemy.x, enemy.y, enemy.z)); return; }
+      const q = project(enemy.x, enemy.y, enemy.z), big = enemy.big, elite = enemy.elite, sc = big ? 3 : elite ? 1.7 : 1; ctx.save(); ctx.translate(q.x, q.y); ctx.scale(q.s * sc, q.s * sc); ctx.globalAlpha = fade(enemy.z);
       ctx.rotate(Math.sin(game.t * 1.5 + enemy.ph) * .25);
-      ctx.fillStyle = big ? "#581c87" : "#991b1b"; ctx.beginPath(); ctx.moveTo(-60, 6); ctx.lineTo(-8, -6); ctx.lineTo(8, -6); ctx.lineTo(60, 6); ctx.lineTo(8, 14); ctx.lineTo(-8, 14); ctx.fill();
-      ctx.fillStyle = big ? "#9333ea" : "#dc2626"; ctx.beginPath(); ctx.ellipse(0, 4, 13, 14, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = big ? "#581c87" : elite ? "#a16207" : "#991b1b"; ctx.beginPath(); ctx.moveTo(-60, 6); ctx.lineTo(-8, -6); ctx.lineTo(8, -6); ctx.lineTo(60, 6); ctx.lineTo(8, 14); ctx.lineTo(-8, 14); ctx.fill();
+      ctx.fillStyle = big ? "#9333ea" : elite ? "#facc15" : "#dc2626"; ctx.beginPath(); ctx.ellipse(0, 4, 13, 14, 0, 0, 7); ctx.fill();
       ctx.fillRect(-4, -26, 8, 20); ctx.fillStyle = "#fecaca"; ctx.beginPath(); ctx.ellipse(0, -2, 6, 7, 0, 0, 7); ctx.fill();
       ctx.fillStyle = "#1e293b"; ctx.beginPath(); ctx.arc(0, 6, 5, 0, 7); ctx.fill();
       ctx.restore();
-      if (enemy.hp < enemy.maxHp && !big) { ctx.fillStyle = "#450a0a"; ctx.fillRect(q.x - 30 * q.s, q.y - 45 * q.s, 60 * q.s, Math.max(2, 6 * q.s)); ctx.fillStyle = "#4ade80"; ctx.fillRect(q.x - 30 * q.s, q.y - 45 * q.s, 60 * q.s * Math.max(0, enemy.hp / enemy.maxHp), Math.max(2, 6 * q.s)); }
+      enemyBar(enemy, q);
     }
     function drawWingman(m) {
       const q = project(m.x, m.y, 700), color = planes[m.plane]?.color || "#60a5fa"; ctx.save(); ctx.translate(q.x, q.y); ctx.scale(q.s, q.s); ctx.globalAlpha = m.hp > 0 ? 1 : .35;
