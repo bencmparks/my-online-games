@@ -159,6 +159,7 @@
         else {
           html += `<button data-act="select" data-id="${id}" ${save.selected === id ? "disabled" : ""}>${save.selected === id ? "Selected" : "Select"}</button>`;
           if (team.length && save.selected !== id && plane.price > 0) html += `<button data-act="gift" data-id="${id}" ${pendingGift ? "disabled" : ""}>Gift to teammate</button>`;
+          if (save.selected !== id && plane.price > 0) html += `<button data-act="sell" data-id="${id}">Sell for ${Math.floor(plane.price / 2)} coins</button>`;
           Object.keys(statLabels).forEach((key) => {
             const lvl = level(id, key), maxed = lvl >= plane.maxUp, cost = upgradeCost(id, key);
             html += `<div class="upgrade"><span>${statLabels[key]} ${lvl}/${plane.maxUp}</span><button data-act="upgrade" data-id="${id}" data-key="${key}" ${maxed || save.coins < cost ? "disabled" : ""}>${maxed ? "Maxed" : `+ ${cost}`}</button></div>`;
@@ -172,6 +173,10 @@
       const id = button.dataset.id, plane = planes[id], act = button.dataset.act;
       if (act === "buy" && save.coins >= plane.price && !save.owned.includes(id)) { save.coins -= plane.price; save.owned.push(id); save.selected = id; statusEl.textContent = `You bought the ${plane.name}!`; }
       if (act === "select" && save.owned.includes(id)) save.selected = id;
+      if (act === "sell" && save.owned.includes(id) && save.selected !== id && plane.price > 0 && pendingGift?.id !== id) {
+        const gain = Math.floor(plane.price / 2); save.coins += gain; save.owned = save.owned.filter((o) => o !== id); delete save.upgrades[id];
+        statusEl.textContent = `Sold the ${plane.name} for ${gain} coins.`;
+      }
       if (act === "gift" && save.owned.includes(id) && save.selected !== id && plane.price > 0 && !pendingGift) {
         const target = teammates()[giftToEl.selectedIndex < 0 ? 0 : giftToEl.selectedIndex];
         if (target) { pendingGift = { id, conn: target.conn }; target.conn.send({ t: "gift", plane: id, up: save.upgrades[id] || {}, from: pilotName() }); statusEl.textContent = `Offering the ${plane.name} to ${target.name}...`; }
