@@ -62,6 +62,7 @@
         <select id="pracTargets" aria-label="Practice targets"><option value="planes">1 plane to shoot down</option><option value="ground">1 ship or tank to hit with missiles</option><option value="both">Both: 1 plane and 1 ship or tank</option></select>
         <button id="pracGo" type="button">Start practice</button>
       </div>
+      <div id="giftBar" hidden>Gift an unequipped plane to: <select id="giftTo" aria-label="Teammate to gift a plane to"></select></div>
       <div id="planes"></div>
     </section>
   </main>
@@ -141,7 +142,13 @@
     function stats(id) { const plane = planes[id]; return { speed: plane.speed * (1 + .08 * level(id, "speed")), hp: plane.hp + level(id, "life"), damage: plane.damage * (1 + .2 * level(id, "damage")) }; }
     function upgradeCost(id, key) { return Math.round(60 * (1 + order.indexOf(id) * .8) * (1 + level(id, key) * .7) / 10) * 10; }
 
+    function teammates() { return coop.host ? coop.conns.filter((c) => c.open).map((c) => ({ conn: c, name: c.pilotName || "Pilot" })) : coop.conn?.open ? [{ conn: coop.conn, name: coop.hostName || "Host" }] : []; }
+    const giftBarEl = document.querySelector("#giftBar"), giftToEl = document.querySelector("#giftTo");
+    let pendingGift = null;
     function renderHangar() {
+      if (pendingGift && !pendingGift.conn.open) pendingGift = null;
+      const team = teammates(), picked = giftToEl.selectedIndex;
+      giftBarEl.hidden = !team.length; giftToEl.replaceChildren(...team.map((t, i) => { const o = document.createElement("option"); o.value = i; o.textContent = t.name; return o; })); if (picked > 0 && picked < team.length) giftToEl.selectedIndex = picked;
       coinsEl.textContent = save.coins; bestEl.textContent = save.best; renderLevels();
       planesEl.replaceChildren();
       order.forEach((id) => {
@@ -151,6 +158,7 @@
         if (!owned) html += `<button data-act="buy" data-id="${id}" ${save.coins < plane.price ? "disabled" : ""}>Buy for ${plane.price} coins</button>`;
         else {
           html += `<button data-act="select" data-id="${id}" ${save.selected === id ? "disabled" : ""}>${save.selected === id ? "Selected" : "Select"}</button>`;
+          if (team.length && save.selected !== id && plane.price > 0) html += `<button data-act="gift" data-id="${id}" ${pendingGift ? "disabled" : ""}>Gift to teammate</button>`;
           Object.keys(statLabels).forEach((key) => {
             const lvl = level(id, key), maxed = lvl >= plane.maxUp, cost = upgradeCost(id, key);
             html += `<div class="upgrade"><span>${statLabels[key]} ${lvl}/${plane.maxUp}</span><button data-act="upgrade" data-id="${id}" data-key="${key}" ${maxed || save.coins < cost ? "disabled" : ""}>${maxed ? "Maxed" : `+ ${cost}`}</button></div>`;
@@ -164,6 +172,10 @@
       const id = button.dataset.id, plane = planes[id], act = button.dataset.act;
       if (act === "buy" && save.coins >= plane.price && !save.owned.includes(id)) { save.coins -= plane.price; save.owned.push(id); save.selected = id; statusEl.textContent = `You bought the ${plane.name}!`; }
       if (act === "select" && save.owned.includes(id)) save.selected = id;
+      if (act === "gift" && save.owned.includes(id) && save.selected !== id && plane.price > 0 && !pendingGift) {
+        const target = teammates()[giftToEl.selectedIndex < 0 ? 0 : giftToEl.selectedIndex];
+        if (target) { pendingGift = { id, conn: target.conn }; target.conn.send({ t: "gift", plane: id, up: save.upgrades[id] || {}, from: pilotName() }); statusEl.textContent = `Offering the ${plane.name} to ${target.name}...`; }
+      }
       if (act === "upgrade") { const key = button.dataset.key, cost = upgradeCost(id, key); if (level(id, key) < plane.maxUp && save.coins >= cost) { save.coins -= cost; save.upgrades[id] = save.upgrades[id] || {}; save.upgrades[id][key] = level(id, key) + 1; statusEl.textContent = `${plane.name} ${statLabels[key].toLowerCase()} upgraded!`; } }
       persist(); renderHangar();
     });
@@ -175,7 +187,7 @@
     function renderCoop() {
       const active = !!coop.peer, client = active && !coop.host;
       coopHostEl.hidden = coopJoinEl.hidden = coopCodeEl.hidden = active; coopLeaveEl.hidden = !active;
-      flyEl.disabled = client; flyEl.textContent = client ? "Waiting for the host to take off..." : "Take off!";
+      flyEl.disabled = client; flyEl.textContent = client ? "Waiting for the host to take off..." : "Take off!"; renderHangar();
     }
     function coopStop() {
       coop.conns.forEach((c) => c.close()); coop.conn?.close(); coop.peer?.destroy();
@@ -220,6 +232,24 @@
     }
     function coopReceive(conn, d) {
       if (!d || typeof d !== "object") return;
+      if (d.t === "who") { const name = String(d.name || "Pilot").slice(0, 12); if (coop.host) conn.pilotName = name; else coop.hostName = name; renderHangar(); return; }
+      if (d.t === "gift") {
+        const plane = planes[d.plane], ok = !!plane && plane.price > 0 && !save.owned.includes(d.plane);
+        if (ok) {
+          save.owned.push(d.plane); const up = {}; Object.keys(statLabels).forEach((key) => { up[key] = clamp(Math.floor(Number(d.up?.[key]) || 0), 0, plane.maxUp); }); save.upgrades[d.plane] = up;
+          statusEl.textContent = `${String(d.from || "A teammate").slice(0, 12)} gave you the ${plane.name}!`; persist();
+        }
+        conn.send({ t: "giftAck", plane: d.plane, ok }); renderHangar(); return;
+      }
+      if (d.t === "giftAck") {
+        if (pendingGift && pendingGift.id === d.plane && pendingGift.conn === conn) {
+          const id = pendingGift.id; pendingGift = null;
+          if (d.ok && save.owned.includes(id) && save.selected !== id) { save.owned = save.owned.filter((o) => o !== id); delete save.upgrades[id]; statusEl.textContent = `You gave away the ${planes[id].name}.`; persist(); }
+          else statusEl.textContent = "Your teammate already has that plane.";
+          renderHangar();
+        }
+        return;
+      }
       if (coop.host) {
         if (d.t === "hello" && game && mode === "fly" && !game.client) {
           const hp = clamp(Number(d.hp) || 3, 1, 40);
@@ -234,6 +264,7 @@
     }
     function coopAttach(conn) {
       conn.on("open", () => {
+        conn.send({ t: "who", name: pilotName() });
         if (coop.host) {
           coop.conns.push(conn); coopStatus(`Team room ${coop.code}: ${coop.conns.length} pilot(s) joined. Pick a level and take off!`);
           if (mode === "fly" && game && !game.client) conn.send({ t: "start", level: game.num });
@@ -243,7 +274,7 @@
       conn.on("data", (d) => coopReceive(conn, d));
       conn.on("close", () => {
         if (coop.host) {
-          coop.conns = coop.conns.filter((c) => c !== conn); game?.mates?.delete(conn.peer); coopStatus(`A pilot left. ${coop.conns.length} pilot(s) in team room ${coop.code}.`);
+          coop.conns = coop.conns.filter((c) => c !== conn); game?.mates?.delete(conn.peer); renderHangar(); coopStatus(`A pilot left. ${coop.conns.length} pilot(s) in team room ${coop.code}.`);
           if (mode === "fly" && game && !game.over && !game.client) checkAllDown();
         } else {
           coopStatus("The host left the team."); if (mode === "fly" && game?.client && !game.over) { game.over = true; game.overTimer = .5; } coopStop();
