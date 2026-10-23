@@ -80,7 +80,10 @@
       viper: { name: "Viper", price: 12000, speed: 8, hp: 10, damage: 5, rate: .12, maxUp: 14, color: "#f43f5e" },
       comet: { name: "Comet", price: 20000, speed: 8.8, hp: 12, damage: 6, rate: .11, maxUp: 16, color: "#22d3ee" },
       titan: { name: "Titan", price: 35000, speed: 7.6, hp: 18, damage: 7, rate: .1, maxUp: 18, color: "#94a3b8" },
-      eclipse: { name: "Eclipse", price: 60000, speed: 9.5, hp: 16, damage: 9, rate: .09, maxUp: 20, color: "#e879f9" }
+      eclipse: { name: "Eclipse", price: 60000, speed: 9.5, hp: 16, damage: 9, rate: .09, maxUp: 20, color: "#e879f9" },
+      nova: { name: "Nova", price: 90000, speed: 10, hp: 18, damage: 11, rate: .085, maxUp: 20, color: "#fde047" },
+      apex: { name: "Apex", price: 130000, speed: 10.6, hp: 20, damage: 13, rate: .08, maxUp: 20, color: "#2dd4bf" },
+      tempest: { name: "Tempest", price: 200000, speed: 11.5, hp: 20, damage: 16, rate: .08, maxUp: 20, color: "#fb7185" }
     };
     const order = Object.keys(planes), statLabels = { speed: "Speed", life: "Life", damage: "Damage" };
     const save = GameProfiles.getGame("sky-ace", { coins: 0, owned: ["scout"], selected: "scout", upgrades: {}, best: 0 });
@@ -116,8 +119,8 @@
       LEVELS.push(lv);
     }
     LEVELS.push({ name: "Helicopter Storm", planes: 21, ships: 0, diff: 30, bonus: 30000, squad: { helis: 20, eliteMult: 3 } });
-    LEVELS.forEach((lv) => { if (lv.boss) { lv.planes = 0; lv.ships = 0; lv.boss.hp = Math.round(lv.boss.hp * 1.3); } });
-    const levelGoal = (lv) => lv.squad ? `destroy ${lv.squad.helis} helicopters and 1 elite plane with triple life` : lv.boss ? `defeat the boss ${lv.boss.name} (no other planes or ships)` : `destroy ${lv.planes} planes and ${lv.ships} ships`;
+    LEVELS.forEach((lv) => { if (lv.boss) { lv.planes = 0; lv.ships = 0; lv.boss.hp = Math.round(lv.boss.hp * 1.3); } else if (!lv.squad) { lv.planes = Math.min(lv.planes, 20); lv.ships = Math.min(lv.ships, 5); lv.tough = 1 + lv.diff * .3; lv.fast = Math.min(2, 1 + lv.diff * .045); } });
+    const levelGoal = (lv) => lv.squad ? `destroy ${lv.squad.helis} helicopters and 1 elite plane with triple life` : lv.boss ? `defeat the boss ${lv.boss.name} (no other planes or ships)` : `destroy ${lv.planes} planes and ${lv.ships} ${lv.land ? "tanks" : "ships"}${lv.tough ? " (tougher and faster)" : ""}`;
     const levelsEl = document.querySelector("#levels");
     function renderLevels() {
       levelsEl.replaceChildren();
@@ -364,18 +367,19 @@
         });
       } else { g.overTimer -= dt; if (g.overTimer <= 0) { endRun(); return; } }
 
+      const tough = g.lv.tough || 1, fast = g.lv.fast || 1;
       g.enemyCd -= dt;
       if (g.enemyCd <= 0 && !g.over && !g.lv.boss && (g.lv.squad ? (g.squadSpawned || 0) < g.lv.squad.helis + 1 : true) && (!g.lv.practice || (g.lv.planes > 0 && !g.enemies.length && g.planeKills < g.lv.planes))) {
-        const hp = 2 + Math.floor(wave() * .6), squad = g.lv.squad, index = g.squadSpawned || 0, spawned = { x: clamp(g.p.x + (Math.random() - .5) * 800, -LIMIT_X, LIMIT_X), y: 70 + Math.random() * 330, z: 2400, hp, maxHp: hp, vz: -(280 + Math.random() * 120 + wave() * 12), ph: Math.random() * 6, cd: .8 + Math.random() * 1.2 };
+        const hp = Math.round((2 + Math.floor(wave() * .6)) * tough), squad = g.lv.squad, index = g.squadSpawned || 0, spawned = { x: clamp(g.p.x + (Math.random() - .5) * 800, -LIMIT_X, LIMIT_X), y: 70 + Math.random() * 330, z: 2400, hp, maxHp: hp, vz: -(280 + Math.random() * 120 + wave() * 12) * fast, ph: Math.random() * 6, cd: (.8 + Math.random() * 1.2) / fast };
         if (squad) { g.squadSpawned = index + 1; if (index < squad.helis) spawned.heli = true; else { spawned.elite = true; spawned.hp = spawned.maxHp = hp * squad.eliteMult; } }
         g.enemies.push(spawned);
-        g.enemyCd = squad ? .9 : Math.max(.6, 2.2 - g.t * .012) * (.7 + Math.random() * .6);
+        g.enemyCd = (squad ? .9 : Math.max(.6, 2.2 - g.t * .012) * (.7 + Math.random() * .6)) / fast;
       }
       g.shipCd -= dt;
       if (g.shipCd <= 0 && !g.over && !g.lv.boss && (!g.lv.practice || (g.lv.ships > 0 && !g.ships.length && g.shipKills < g.lv.ships))) {
-        const hp = 8 + wave() * 2;
-        g.ships.push({ x: (Math.random() - .5) * 1000, z: 2800, hp, maxHp: hp, vz: -(130 + Math.random() * 50), cd: 1.5 + Math.random() * 1.5 });
-        g.shipCd = Math.max(2.5, 6 - g.t * .02) * (.8 + Math.random() * .5);
+        const hp = Math.round((8 + wave() * 2) * tough);
+        g.ships.push({ x: (Math.random() - .5) * 1000, z: 2800, hp, maxHp: hp, vz: -(130 + Math.random() * 50) * fast, cd: (1.5 + Math.random() * 1.5) / fast });
+        g.shipCd = Math.max(2.5, 6 - g.t * .02) * (.8 + Math.random() * .5) / fast;
       }
 
       if (g.lv.boss && !g.bossSpawned && g.t > 6 && !g.over) {
