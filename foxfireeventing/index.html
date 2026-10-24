@@ -11,7 +11,7 @@
 <body>
   <header class="site">
     <div class="wrap">
-      <a class="brand" href="#home">Foxfire Eventing</a>
+      <a class="brand" href="#home"><span class="wm-top">F<img class="fox-o" src="images/fox-o.png" alt="o">xfire</span> <span class="wm-bottom">EVENTING</span></a>
       <nav>
         <a href="#home">Home</a>        <a href="#about">About</a>
         <a href="#training">Training</a>
@@ -26,7 +26,7 @@
 
   <main id="top">
     <div class="hero">
-      <img class="logo" src="images/logo.png" alt="Foxfire Eventing logo: two clasped hands with a jumping horse and rider" width="380" height="380">      <h1>Foxfire Eventing, Inc.</h1>
+      <img class="logo" src="images/logo-hands.png" alt="Foxfire Eventing logo: two clasped hands with a jumping horse and rider" width="380" height="380">            <h1 class="wordmark" aria-label="Foxfire Eventing, Inc."><span class="wm-top">F<img class="fox-o" src="images/fox-o.png" alt="o">xfire</span><span class="wm-bottom">EVENTING</span></h1>
       <p class="tagline">Learning through service</p>
       <p class="lead">A youth-founded, volunteer-run horse organization in central Virginia. Everyone is a volunteer, and nobody is paid to teach, feed, or muck stalls.</p>
       <a class="btn" href="https://givebutter.com/PwZth7">Donate</a>
@@ -270,9 +270,6 @@
       <button type="button" style="background:#2b2b2b" data-color="#2b2b2b" aria-label="Charcoal"></button>
     </div>
     <button type="button" class="btn small" id="resetColor">Reset to maroon</button>
-    <hr>
-    <h3>Photo background</h3>
-    <label>Show photo <input type="checkbox" id="photoOn"></label>
   </div>
 
   <script>
@@ -282,16 +279,10 @@
       var sections = document.querySelectorAll('main > section');
       var hero = document.querySelector('.hero');
       var navLinks = document.querySelectorAll('header.site nav a');
-      var photos = {
-        home: 'team-picnic', about: 'riding-lesson', training: 'team-picnic',
-        eventing: 'barn-walk', horses: 'riding-lesson', give: 'barn-flowers',
-        partners: 'barn-walk', visit: 'barn-flowers'
-      };
 
       function show() {
         var id = location.hash.slice(1);
         var target = id && document.querySelector('main > section#' + id);
-        root.style.setProperty('--photo', 'url("images/' + photos[target ? id : 'home'] + '.jpg")');
         hero.hidden = !!target;
         sections.forEach(function (s) { s.classList.toggle('active', s === target); });
         navLinks.forEach(function (a) {
@@ -336,15 +327,6 @@
         if (e.target.dataset.color) save(e.target.dataset.color);
       });
       document.getElementById('resetColor').addEventListener('click', function () { save(DEFAULT); });
-
-      var photoOn = document.getElementById('photoOn');
-      function applyPhoto() {
-        document.body.classList.toggle('has-photo', photoOn.checked);
-        try { localStorage.setItem('foxfire-photo-on', photoOn.checked ? '1' : '0'); } catch (e) {}
-      }
-      try { photoOn.checked = localStorage.getItem('foxfire-photo-on') === '1'; } catch (e) {}
-      photoOn.addEventListener('change', applyPhoto);
-      applyPhoto();
     })();
   </script>
 </body>
