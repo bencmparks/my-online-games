@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tank Duel | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#1a2e05;color:#ecfccb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:linear-gradient(145deg,#1a2e05,#365314)}
+main{width:min(100%,42rem);padding:1.5rem;border:.2rem solid #a3e635;border-radius:1.25rem;background:rgb(26 46 5 / 92%);text-align:center}a{color:#bef264}h1{margin:.6rem 0;color:#fef08a}
+canvas{display:block;width:100%;height:auto;margin:1rem 0;border:.2rem solid #84cc16;border-radius:.6rem;background:#4d7c0f}button{padding:.65rem 1rem;border:0;border-radius:.5rem;background:#fef08a;color:#1a2e05;cursor:pointer;font:inherit;font-weight:bold}#status{min-height:1.5rem;color:#fef08a;font-weight:bold}.p1{color:#93c5fd}.p2{color:#fca5a5}
+</style></head>
+<body><main><a href="../">← All games</a><h1>🪖 Tank Duel</h1><p>Inspired by the Atari classic Combat. Drive around the walls and shoot your rival; bullets bounce! Each tank has 5 lives: a bullet costs 1, a bomb 2 and a fireball 3. Last tank standing wins. Use <strong>Edit board</strong> to draw your own walls.</p>
+<p><span class="p1">P1 (blue): A/D turn, W/S drive, Space fire, E bomb, R fireball, Q laser</span><br><span class="p2">P2 (red): ←/→ turn, ↑/↓ drive, Enter fire, / bomb, . fireball, , laser (or the robot)</span></p>
+<p>You get 3 fireballs a match. Bombs explode after 2 seconds (3 out at a time). The laser is an instant beam that smashes every wall in its path and does 2 damage to a tank it hits (1.5 second recharge).</p>
+<p><label>Opponent <select id="opp"><option value="two">2 players</option><option value="bot">Face the robot</option></select></label></p>
+<p><span class="p1">P1: <strong id="s1"></strong></span> · <span class="p2">P2: <strong id="s2"></strong></span></p>
+<canvas id="game" width="600" height="400" aria-label="Tank Duel game"></canvas><button id="start" type="button">New match</button> <button id="edit" type="button">Edit board</button> <button id="clear" type="button">Clear board</button> <button id="def" type="button">Default board</button><p id="status" aria-live="polite">Fight!</p></main>
+<script>
+const canvas=document.querySelector("#game"),oppEl=document.querySelector("#opp"),ctx=canvas.getContext("2d"),statusEl=document.querySelector("#status"),W=600,H=400,R=14;
+const walls=[];let cells,editing=false,paint=null;const CW=20,CX=30,CY=20,HP=5,BALLS=3;
+const reserved=(x,y)=>(x<4||x>=26)&&y>=6&&y<=13;
+function defCells(){cells=Array.from({length:CY},()=>Array(CX).fill(false));[[6,3,1,7],[22,10,1,7],[13,7,3,1],[13,11,3,1],[3,15,5,1],[22,4,5,1]].forEach(([x,y,w,h])=>{for(let j=y;j<y+h;j+=1)for(let i=x;i<x+w;i+=1)cells[j][i]=true})}
+function rebuild(){walls.length=0;cells.forEach((r,y)=>r.forEach((v,x)=>{if(v)walls.push([x*CW,y*CW,CW,CW])}))}
+function loadCells(){defCells();try{const s=JSON.parse(localStorage.getItem("tankBoard"));if(Array.isArray(s)&&s.length===CY&&s.every(r=>Array.isArray(r)&&r.length===CX))cells=s.map((r,y)=>r.map((v,x)=>!!v&&!reserved(x,y)))}catch{}rebuild()}
+function saveCells(){try{localStorage.setItem("tankBoard",JSON.stringify(cells))}catch{}}
+const keys={};let tanks,bullets,bombs,balls,wires,booms,over;
+const CTRL=[{l:"KeyA",r:"KeyD",f:"KeyW",b:"KeyS",s:"Space",bm:"KeyE",fb:"KeyR",wr:"KeyQ"},{l:"ArrowLeft",r:"ArrowRight",f:"ArrowUp",b:"ArrowDown",s:"Enter",bm:"Slash",fb:"Period",wr:"Comma"}];
+function place(){const mk=(x,a,c)=>({x,y:200,a,cd:0,c,hp:HP,balls:BALLS,inv:0,bcd:0,fcd:0,wcd:0});tanks=[mk(50,0,"#3b82f6"),mk(550,Math.PI,"#ef4444")];bullets=[];bombs=[];balls=[];wires=[];booms=[]}
+function newMatch(){over=false;place();show();statusEl.textContent=editing?"Click or drag on the board to add or remove walls.":"Fight!"}
+function show(){tanks.forEach((t,i)=>document.querySelector("#s"+(i+1)).textContent="❤".repeat(Math.max(0,t.hp))+" 🔥".repeat(t.balls))}
+function hurt(i,n){const t=tanks[i];if(over||t.inv>0)return;t.hp-=n;t.inv=50;show();if(t.hp<=0){over=true;statusEl.textContent=`Player ${2-i} wins the match! Click New match to play again.`}}
+const hitRect=(x,y,r,w)=>x+r>w[0]&&x-r<w[0]+w[2]&&y+r>w[1]&&y-r<w[1]+w[3];
+const blocked=(x,y,r)=>x<r||y<r||x>W-r||y>H-r||walls.some(w=>hitRect(x,y,r,w));
+function smash(x,y,r=CW){for(let cy=Math.floor((y-r)/CW);cy<=Math.floor((y+r)/CW);cy+=1)for(let cx=Math.floor((x-r)/CW);cx<=Math.floor((x+r)/CW);cx+=1)if(cells[cy]?.[cx]&&Math.hypot((cx+.5)*CW-x,(cy+.5)*CW-y)<=r+CW/2)cells[cy][cx]=false}
+function explode(b){bombs=bombs.filter(o=>o!==b);booms.push({x:b.x,y:b.y,t:18});tanks.forEach((t,i)=>{if(Math.hypot(t.x-b.x,t.y-b.y)<75)hurt(i,2)})}
+function laser(i){const t=tanks[i],dx=Math.cos(t.a),dy=Math.sin(t.a);let x=t.x+dx*R,y=t.y+dy*R,hit=false;
+while(x>0&&y>0&&x<W&&y<H){smash(x,y,CW/2);tanks.forEach((o,j)=>{if(!hit&&j!==i&&Math.hypot(o.x-x,o.y-y)<R){hit=true;hurt(j,2)}});x+=dx*4;y+=dy*4}
+wires.push({x1:t.x,y1:t.y,x2:x,y2:y,t:14});rebuild()}
+function aiKeys(){const t=tanks[1],f=tanks[0],c=CTRL[1];["l","r","f","b","s","fb"].forEach(k=>keys[c[k]]=false);
+const ai=aiState;ai.moved=Math.hypot(t.x-ai.lx,t.y-ai.ly);ai.lx=t.x;ai.ly=t.y;
+if(ai.unstick>0){ai.unstick-=1;keys[c.b]=true;keys[ai.dir>0?c.r:c.l]=true;return}
+if(ai.moved<.2)ai.stuck+=1;else ai.stuck=0;if(ai.stuck>12){ai.stuck=0;ai.unstick=30;ai.dir=Math.random()<.5?1:-1;return}
+const dx=f.x-t.x,dy=f.y-t.y;let diff=Math.atan2(dy,dx)-t.a;diff=Math.atan2(Math.sin(diff),Math.cos(diff));
+let clear=true;const dist=Math.hypot(dx,dy);for(let d=20;d<dist;d+=8)if(blocked(t.x+dx/dist*d,t.y+dy/dist*d,3)){clear=false;break}
+if(diff>.08)keys[c.r]=true;else if(diff<-.08)keys[c.l]=true;
+if(clear&&Math.abs(diff)<.2&&dist<420&&Math.random()<.5)keys[c.s]=true;
+if(clear&&Math.abs(diff)<.08&&t.balls>0&&Math.random()<.05)keys[c.fb]=true;
+if(Math.abs(diff)<.9&&(dist>170||!clear))keys[c.f]=true;else if(clear&&dist<110)keys[c.b]=true}
+const aiState={lx:0,ly:0,moved:0,stuck:0,unstick:0,dir:1};
+function step(){if(over||editing)return;
+if(oppEl.value==="bot")aiKeys();
+tanks.forEach((t,i)=>{const c=CTRL[i];t.cd=Math.max(0,t.cd-1);t.inv=Math.max(0,t.inv-1);t.bcd=Math.max(0,t.bcd-1);t.fcd=Math.max(0,t.fcd-1);t.wcd=Math.max(0,t.wcd-1);if(keys[c.l])t.a-=.06;if(keys[c.r])t.a+=.06;
+const mv=(keys[c.f]?2.2:0)-(keys[c.b]?1.6:0);if(mv){const nx=t.x+Math.cos(t.a)*mv,ny=t.y+Math.sin(t.a)*mv;if(!blocked(nx,t.y,R))t.x=nx;if(!blocked(t.x,ny,R))t.y=ny}
+if(keys[c.s]&&!t.cd&&bullets.filter(b=>b.o===i).length<3){t.cd=22;bullets.push({x:t.x+Math.cos(t.a)*(R+6),y:t.y+Math.sin(t.a)*(R+6),vx:Math.cos(t.a)*5,vy:Math.sin(t.a)*5,o:i,age:0})}
+if(keys[c.bm]&&!t.bcd&&bombs.filter(b=>b.o===i).length<3){t.bcd=20;bombs.push({x:t.x,y:t.y,t:120,o:i})}
+if(keys[c.fb]&&!t.fcd&&t.balls>0){t.fcd=25;t.balls-=1;show();balls.push({x:t.x+Math.cos(t.a)*(R+6),y:t.y+Math.sin(t.a)*(R+6),vx:Math.cos(t.a)*7,vy:Math.sin(t.a)*7,o:i})}
+if(keys[c.wr]&&!t.wcd){t.wcd=90;laser(i)}});
+bombs.slice().forEach(b=>{b.t-=1;if(b.t<=0)explode(b)});wires.forEach(w=>w.t-=1);wires=wires.filter(w=>w.t>0);booms.forEach(b=>b.t-=1);booms=booms.filter(b=>b.t>0);
+balls.forEach(f=>{f.x+=f.vx;f.y+=f.vy;if(blocked(f.x,f.y,4))f.dead=true;else tanks.forEach((t,i)=>{if(!f.dead&&i!==f.o&&Math.hypot(t.x-f.x,t.y-f.y)<R+4){f.dead=true;hurt(i,3);booms.push({x:f.x,y:f.y,t:12})}})});balls=balls.filter(f=>!f.dead);
+for(const b of bullets){b.age+=1;const nx=b.x+b.vx,ny=b.y+b.vy;if(blocked(nx,b.y,3))b.vx*=-1;else b.x=nx;if(blocked(b.x,ny,3))b.vy*=-1;else b.y=ny;
+tanks.forEach((t,i)=>{if(b.dead||over||(i===b.o&&b.age<12))return;if(Math.hypot(t.x-b.x,t.y-b.y)<R){b.dead=true;hurt(i,1)}})}
+bullets=bullets.filter(b=>!b.dead&&b.age<260)}
+function draw(){ctx.fillStyle="#4d7c0f";ctx.fillRect(0,0,W,H);
+if(editing){ctx.strokeStyle="rgb(255 255 255 / 12%)";ctx.lineWidth=1;for(let x=0;x<=W;x+=CW){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}for(let y=0;y<=H;y+=CW){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
+ctx.fillStyle="rgb(0 0 0 / 22%)";for(let y=0;y<CY;y+=1)for(let x=0;x<CX;x+=1)if(reserved(x,y))ctx.fillRect(x*CW,y*CW,CW,CW)}
+ctx.fillStyle="#365314";walls.forEach(w=>ctx.fillRect(...w));
+wires.forEach(w=>{ctx.strokeStyle="#f43f5e";ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(w.x1,w.y1);ctx.lineTo(w.x2,w.y2);ctx.stroke();ctx.strokeStyle="#fff";ctx.lineWidth=2;ctx.stroke()});
+bombs.forEach(b=>{ctx.fillStyle=b.t%20<10?"#0f172a":"#dc2626";ctx.beginPath();ctx.arc(b.x,b.y,8,0,7);ctx.fill()});
+booms.forEach(b=>{ctx.fillStyle="rgb(251 146 60 / 55%)";ctx.beginPath();ctx.arc(b.x,b.y,75*(1-b.t/20),0,7);ctx.fill()});
+tanks.forEach(t=>{if(t.hp<=0||(t.inv>0&&Math.floor(t.inv/4)%2))return;ctx.save();ctx.translate(t.x,t.y);ctx.rotate(t.a);ctx.fillStyle=t.c;ctx.fillRect(-R,-R+2,R*2,R*2-4);ctx.fillStyle="#0f172a";ctx.fillRect(0,-3,R+8,6);ctx.restore()});
+ctx.fillStyle="#fef08a";bullets.forEach(b=>{ctx.beginPath();ctx.arc(b.x,b.y,3,0,7);ctx.fill()});
+balls.forEach(f=>{ctx.fillStyle="#f97316";ctx.beginPath();ctx.arc(f.x,f.y,7,0,7);ctx.fill();ctx.fillStyle="#fef08a";ctx.beginPath();ctx.arc(f.x,f.y,3,0,7);ctx.fill()})}
+function loop(){step();draw();requestAnimationFrame(loop)}
+function paintAt(e){const r=canvas.getBoundingClientRect(),x=Math.floor((e.clientX-r.left)/r.width*CX),y=Math.floor((e.clientY-r.top)/r.height*CY);
+if(x<0||y<0||x>=CX||y>=CY||reserved(x,y)||cells[y][x]===paint)return;cells[y][x]=paint;rebuild()}
+canvas.addEventListener("pointerdown",e=>{if(!editing)return;const r=canvas.getBoundingClientRect(),x=Math.floor((e.clientX-r.left)/r.width*CX),y=Math.floor((e.clientY-r.top)/r.height*CY);if(cells[y]?.[x]===undefined)return;paint=!cells[y][x];canvas.setPointerCapture(e.pointerId);paintAt(e)});
+canvas.addEventListener("pointermove",e=>{if(editing&&paint!==null)paintAt(e)});
+["pointerup","pointercancel"].forEach(t=>canvas.addEventListener(t,()=>{paint=null}));
+document.querySelector("#edit").addEventListener("click",e=>{editing=!editing;e.target.textContent=editing?"Play this board":"Edit board";if(!editing)saveCells();newMatch();e.target.blur()});
+document.querySelector("#clear").addEventListener("click",e=>{cells=cells.map(r=>r.map(()=>false));rebuild();saveCells();newMatch();e.target.blur()});
+document.querySelector("#def").addEventListener("click",e=>{defCells();rebuild();saveCells();newMatch();e.target.blur()});
+document.addEventListener("keydown",e=>{if(["Space","Enter","ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Slash","Period","Comma"].includes(e.code)&&e.target===document.body)e.preventDefault();keys[e.code]=true});
+document.addEventListener("keyup",e=>{keys[e.code]=false});window.addEventListener("blur",()=>Object.keys(keys).forEach(k=>keys[k]=false));
+oppEl.addEventListener("change",()=>{oppEl.blur();newMatch()});
+document.querySelector("#start").addEventListener("click",e=>{newMatch();e.target.blur()});
+loadCells();newMatch();loop();
+</script></body></html>

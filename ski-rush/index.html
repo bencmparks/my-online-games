@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ski Rush | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#1d4ed8,#0b1020)}
+main{width:min(100%,40rem);padding:1.5rem;border:.2rem solid #93c5fd;border-radius:1.25rem;background:rgb(8 12 30 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.6rem 0;color:#93c5fd;letter-spacing:.05em;font-size:1.6rem}
+canvas{display:block;width:100%;max-width:30rem;height:auto;margin:1rem auto;border:.2rem solid #475569;border-radius:.4rem;background:#f8fafc;touch-action:none}
+.pad{display:flex;justify-content:center;gap:1.5rem;user-select:none;-webkit-user-select:none}
+button{border:0;border-radius:.5rem;background:#93c5fd;color:#1e293b;cursor:pointer;font:inherit;font-weight:bold;touch-action:none;width:7rem;height:4rem;font-size:1.4rem}
+</style></head>
+<body><main><a href="../">← All games</a><h1>⛷️ Ski Rush</h1>
+<p>Race down the mountain! Dodge trees and rocks, grab coins, and ski between the red gates for bonus points. You go faster the further you ski. Crash three times and the run is over.</p>
+<p><strong>←/→</strong> or <strong>A/D</strong> steer · <strong>↓</strong> tuck for speed · drag on the game or use the buttons · <strong>E / Space</strong> start</p>
+<canvas id="g" width="480" height="640" aria-label="Ski Rush game"></canvas>
+<div class="pad"><button data-k="left" type="button">◀</button><button data-k="right" type="button">▶</button></div>
+</main>
+<script>
+const C=document.querySelector("#g"),x=C.getContext("2d"),W=480,H=640,SY=170;
+let mode="title",px=W/2,vx=0,dist=0,sp=5,score=0,hits=3,inv=0,obs=[],coins=[],gates=[],trail=[],hi=0,t=0,held={},ptr=null,next=0,msg=null,tuck=false;
+try{hi=+localStorage.getItem("skiRushHi")||0}catch(e){}
+function rnd(a,b){return a+Math.random()*(b-a)}
+function start(){px=W/2;vx=0;dist=0;sp=5;score=0;hits=3;inv=0;obs=[];coins=[];gates=[];trail=[];next=300;msg=null;mode="play";for(let y=300;y<1000;y+=90)spawn(y)}
+function spawn(y){
+ const r=Math.random();
+ if(r<.22){const gx=rnd(110,W-110);gates.push({x:gx,y,w:130,ok:null})}
+ else if(r<.45){const gx=rnd(30,W-30);for(let i=0;i<4;i+=1)coins.push({x:gx+Math.sin(i)*12,y:y+i*28,got:false})}
+ else{const n=1+Math.floor(Math.random()*3);for(let i=0;i<n;i+=1)obs.push({k:Math.random()<.78?"tree":"rock",x:rnd(24,W-24),y:y+i*30,r:Math.random()<.5?16:20})}
+}
+function update(){
+ t+=1;if(mode!=="play")return;
+ tuck=!!held.down;
+ const d=(held.right?1:0)-(held.left?1:0);
+ if(ptr!==null)vx+=Math.max(-1,Math.min(1,(ptr-px)/40))*.9;else vx+=d*.9;
+ vx*=.86;px+=vx;px=Math.max(14,Math.min(W-14,px));
+ sp=Math.min(14,5+dist/2200)*(tuck?1.25:1);dist+=sp;score+=sp*.02;
+ if(inv>0)inv-=1;
+ next-=sp;
+ while(next<=0){spawn(H+60);next+=rnd(70,130)-Math.min(30,dist/500)}
+ for(const a of[obs,coins,gates])for(const o of a)o.y-=sp;
+ obs=obs.filter(o=>o.y>-50);coins=coins.filter(c=>c.y>-30&&!c.got);
+ for(const g of gates){if(g.ok===null&&g.y<SY){g.ok=Math.abs(px-g.x)<g.w/2-6;if(g.ok){score+=15;msg={s:"GATE +15",l:40}}else{msg={s:"Missed gate",l:40}}}}
+ gates=gates.filter(g=>g.y>-30);
+ for(const c of coins)if(Math.hypot(c.x-px,c.y-SY)<20){c.got=true;score+=5}
+ if(inv===0)for(const o of obs)if(Math.hypot(o.x-px,o.y-SY)<o.r+9){hits-=1;inv=70;vx*=-.5;msg={s:"CRASH!",l:40};if(hits<=0){mode="over";const s=Math.floor(score);if(s>hi){hi=s;try{localStorage.setItem("skiRushHi",hi)}catch(e){}}}break}
+ if(t%2===0){trail.push({x:px,y:SY+14});if(trail.length>30)trail.shift()}
+ trail.forEach(p=>p.y-=sp*2);
+ if(msg){msg.l-=1;if(msg.l<=0)msg=null}
+}
+const KEYS={ArrowLeft:"left",KeyA:"left",ArrowRight:"right",KeyD:"right",ArrowDown:"down",KeyS:"down"};
+addEventListener("keydown",e=>{if(e.code==="KeyE"||e.code==="Space"||e.code==="Enter"){e.preventDefault();if(mode!=="play")start();return}const k=KEYS[e.code];if(k){e.preventDefault();held[k]=true}});
+addEventListener("keyup",e=>{const k=KEYS[e.code];if(k)held[k]=false});
+addEventListener("blur",()=>{held={}});
+document.querySelectorAll("[data-k]").forEach(b=>{const k=b.dataset.k;b.addEventListener("pointerdown",e=>{e.preventDefault();held[k]=true;if(mode!=="play")start()});["pointerup","pointerleave","pointercancel"].forEach(ev=>b.addEventListener(ev,()=>{held[k]=false}))});
+function cx(e){const b=C.getBoundingClientRect();return(e.clientX-b.left)/b.width*W}
+C.addEventListener("pointerdown",e=>{e.preventDefault();if(mode!=="play"){start();return}ptr=cx(e);C.setPointerCapture(e.pointerId)});
+C.addEventListener("pointermove",e=>{if(ptr!==null)ptr=cx(e)});
+["pointerup","pointercancel"].forEach(ev=>C.addEventListener(ev,()=>{ptr=null}));
+function text(s,a,b,size=18,color="#fff",align="left"){x.font=`bold ${size}px Arial,sans-serif`;x.fillStyle=color;x.textAlign=align;x.lineWidth=4;x.strokeStyle="#0f172a";x.strokeText(s,a,b);x.fillText(s,a,b)}
+function draw(){
+ x.fillStyle="#f1f5f9";x.fillRect(0,0,W,H);
+ x.fillStyle="#dbeafe";for(let i=0;i<14;i+=1){const y=((i*97-dist*.8)%H+H)%H;x.fillRect((i*131)%W,y,30,3)}
+ if(trail.length>1){x.strokeStyle="#cbd5e1";x.lineWidth=3;x.beginPath();trail.forEach((p,i)=>i?x.lineTo(p.x-5,p.y):x.moveTo(p.x-5,p.y));x.stroke();x.beginPath();trail.forEach((p,i)=>i?x.lineTo(p.x+5,p.y):x.moveTo(p.x+5,p.y));x.stroke()}
+ for(const g of gates){const c=g.ok===false?"#94a3b8":g.ok?"#22c55e":"#ef4444";x.fillStyle=c;x.fillRect(g.x-g.w/2-4,g.y-22,8,26);x.fillRect(g.x+g.w/2-4,g.y-22,8,26);if(g.ok===null){x.strokeStyle="rgb(239 68 68 / 35%)";x.lineWidth=2;x.setLineDash([6,6]);x.beginPath();x.moveTo(g.x-g.w/2,g.y);x.lineTo(g.x+g.w/2,g.y);x.stroke();x.setLineDash([])}}
+ for(const c of coins){x.fillStyle="#fde047";x.strokeStyle="#a16207";x.lineWidth=2;x.beginPath();x.arc(c.x,c.y,8,0,7);x.fill();x.stroke()}
+ for(const o of obs){
+  if(o.k==="tree"){x.fillStyle="#78350f";x.fillRect(o.x-3,o.y+8,6,12);x.fillStyle="#166534";for(let i=0;i<3;i+=1){x.beginPath();x.moveTo(o.x,o.y-o.r-4+i*10);x.lineTo(o.x-o.r+i*2,o.y+8+i*3-4);x.lineTo(o.x+o.r-i*2,o.y+8+i*3-4);x.fill()}x.fillStyle="#fff";x.fillRect(o.x-4,o.y-o.r-2,8,4)}
+  else{x.fillStyle="#64748b";x.beginPath();x.ellipse(o.x,o.y,o.r,o.r*.75,0,0,7);x.fill();x.fillStyle="#94a3b8";x.beginPath();x.ellipse(o.x-4,o.y-4,o.r*.5,o.r*.35,0,0,7);x.fill()}
+ }
+ if(!(inv>0&&Math.floor(t/4)%2)){
+  x.save();x.translate(px,SY);x.rotate(vx*.05);
+  x.fillStyle="#ef4444";x.fillRect(-9,-18,18,tuck?18:22);x.fillStyle="#fcd9b6";x.beginPath();x.arc(0,-24,7,0,7);x.fill();x.fillStyle="#1d4ed8";x.fillRect(-8,-33,16,6);
+  x.fillStyle="#111827";x.fillRect(-9,tuck?2:6,5,22);x.fillRect(4,tuck?2:6,5,22);x.restore()}
+ text(`${Math.floor(score)}`,16,36,30);text(`BEST ${hi}`,16,60,15,"#fde047");text("❤️".repeat(Math.max(0,hits)),W-16,36,22,"#fff","right");
+ if(msg)text(msg.s,W/2,110,28,msg.s==="CRASH!"||msg.s==="Missed gate"?"#fca5a5":"#86efac","center");
+ if(mode!=="play"){
+  x.fillStyle="rgb(2 6 23 / 55%)";x.fillRect(0,0,W,H);
+  if(mode==="title")text("SKI RUSH",W/2,250,54,"#93c5fd","center");
+  else{text("WIPEOUT!",W/2,230,50,"#f87171","center");text(`Score ${Math.floor(score)}`,W/2,280,26,"#fff","center")}
+  if(Math.floor(t/30)%2)text("Press E or tap to ski",W/2,350,22,"#fff","center")}
+}
+function frame(){update();draw();requestAnimationFrame(frame)}
+frame();
+</script></body></html>

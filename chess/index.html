@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Chess | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#1c1917;color:#fafaf9}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:linear-gradient(145deg,#1c1917,#44403c)}
+main{width:min(100%,36rem);padding:1.2rem;border:.2rem solid #d6a85c;border-radius:1.25rem;background:rgb(28 25 23 / 94%);text-align:center}a{color:#fcd34d}h1{margin:.5rem 0;color:#fcd34d}
+.opts{display:flex;flex-wrap:wrap;gap:.6rem;justify-content:center;margin:.6rem 0}.opts label{display:flex;gap:.3rem;align-items:center}select,button.new{font:inherit;padding:.4rem .7rem;border-radius:.4rem}button.new{border:0;background:#fcd34d;color:#1c1917;font-weight:bold;cursor:pointer}
+#board{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));grid-template-rows:repeat(8,minmax(0,1fr));width:100%;aspect-ratio:1;border:.25rem solid #92400e;border-radius:.3rem;overflow:hidden;margin:.8rem 0}
+.sq{position:relative;display:grid;place-items:center;min-width:0;min-height:0;width:100%;height:100%;padding:0;margin:0;border:0;border-radius:0;font-size:clamp(1.6rem,8vw,2.8rem);line-height:1;cursor:pointer}
+.sq.light{background:#f0d9b5}.sq.dark{background:#b58863}.sq.last{box-shadow:inset 0 0 0 .2rem rgb(250 204 21 / 80%)}.sq.sel{background:#facc15}.sq.check{background:#ef4444}
+.sq.move::after{content:"";position:absolute;width:30%;aspect-ratio:1;border-radius:50%;background:rgb(21 128 61 / 65%)}.sq.move.cap::after{width:88%;background:none;border:.25rem solid rgb(21 128 61 / 75%)}
+.w{color:#fff;text-shadow:0 0 2px #000,0 0 2px #000,0 0 3px #000}.b{color:#111;text-shadow:0 0 2px #fff}
+#status{min-height:1.5rem;color:#fef08a;font-weight:bold}small{color:#d6d3d1}
+#duel{position:fixed;inset:0;display:grid;align-content:center;justify-items:center;padding:1rem;background:rgb(15 10 40 / 92%);z-index:5}#duel h2{color:#c4b5fd;margin:.2rem}#duel span.w,#duel span.b{font-size:2.4rem}#duel .big{font-size:3rem;margin:.3rem}#duel[hidden]{display:none}.spell{font-size:2.6rem;margin:.3rem;padding:.4rem .8rem;border:.15rem solid #a78bfa;border-radius:.8rem;background:#312e81;cursor:pointer}
+</style></head>
+<body><main><a href="../">← All games</a><h1>♞ Chess</h1>
+<div class="opts"><label>Mode <select id="mode"><option value="classic">Classic chess</option><option value="wizard">Wizard chess (spell duels)</option><option value="hack">Chess hack (shuffled pieces)</option></select></label><label>Opponent <select id="opp"><option value="cpu">Computer (you are white)</option><option value="two">2 players</option></select></label><button class="new" id="new" type="button">New game</button></div>
+<p id="desc"></p><div id="board" aria-label="Chess board"></div><p id="status" aria-live="polite"></p><small>Pawns promote to queens automatically.</small><div id="duel" hidden></div></main>
+<script>
+const boardEl=document.querySelector("#board"),duelEl=document.querySelector("#duel"),statusEl=document.querySelector("#status"),modeEl=document.querySelector("#mode"),oppEl=document.querySelector("#opp"),descEl=document.querySelector("#desc");
+const GLYPH={K:"♚",Q:"♛",R:"♜",B:"♝",N:"♞",P:"♟"},VAL={P:100,N:320,B:330,R:500,Q:900,K:0};
+const KN=[[1,2],[2,1],[-1,2],[-2,1],[1,-2],[2,-1],[-1,-2],[-2,-1]],KG=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]],ROOK=KG.slice(0,4),BISH=KG.slice(4);
+let st,sel=null,dests=[],last=null,over=false,busy=false,gameId=0;
+const opp=c=>c==="w"?"b":"w",inb=(r,c)=>r>=0&&r<8&&c>=0&&c<8;
+function startPos(mode){const b=Array.from({length:8},()=>Array(8).fill(null));
+if(mode!=="hack"){const back=["R","N","B","Q","K","B","N","R"];back.forEach((p,c)=>{b[0][c]="b"+p;b[7][c]="w"+p;b[1][c]="bP";b[6][c]="wP"});return{b,turn:"w",cas:{wK:true,wQ:true,bK:true,bQ:true},ep:null}}
+const pieces=["R","R","N","N","B","B","Q","K",...Array(8).fill("P")];
+const bishopsApart=()=>{const cols=pieces.flatMap((p,i)=>p==="B"?[(6+Math.floor(i/8)+i%8)%2]:[]);return cols[0]!==cols[1]};
+do{for(let i=pieces.length-1;i>0;i-=1){const j=Math.floor(Math.random()*(i+1));[pieces[i],pieces[j]]=[pieces[j],pieces[i]]}}while(!bishopsApart());
+pieces.forEach((p,i)=>{const r=6+Math.floor(i/8),c=i%8;b[r][c]="w"+p;b[7-r][c]="b"+p});
+return{b,turn:"w",cas:{wK:false,wQ:false,bK:false,bQ:false},ep:null}}
+function attacked(b,r,c,by){const pr=r+(by==="w"?1:-1);for(const dc of[-1,1])if(inb(pr,c+dc)&&b[pr][c+dc]===by+"P")return true;
+for(const[dr,dc]of KN)if(inb(r+dr,c+dc)&&b[r+dr][c+dc]===by+"N")return true;
+for(const[dr,dc]of KG)if(inb(r+dr,c+dc)&&b[r+dr][c+dc]===by+"K")return true;
+const ray=(dirs,kinds)=>{for(const[dr,dc]of dirs){let y=r+dr,x=c+dc;while(inb(y,x)){const p=b[y][x];if(p){if(p[0]===by&&kinds.includes(p[1]))return true;break}y+=dr;x+=dc}}return false};
+return ray(ROOK,"RQ")||ray(BISH,"BQ")}
+const inCheck=(b,col)=>{for(let r=0;r<8;r+=1)for(let c=0;c<8;c+=1)if(b[r][c]===col+"K")return attacked(b,r,c,opp(col));return false};
+function pseudo(s,r,c){const b=s.b,p=b[r][c],col=p[0],t=p[1],out=[],add=(tr,tc,x={})=>out.push({fr:r,fc:c,tr,tc,...x});
+if(t==="P"){const d=col==="w"?-1:1,home=col==="w"?6:1,end=col==="w"?0:7;
+if(inb(r+d,c)&&!b[r+d][c]){add(r+d,c,{promo:r+d===end});if(r===home&&!b[r+2*d][c])add(r+2*d,c,{dbl:true})}
+for(const dc of[-1,1]){const y=r+d,x=c+dc;if(!inb(y,x))continue;if(b[y][x]&&b[y][x][0]!==col)add(y,x,{promo:y===end});else if(s.ep&&s.ep[0]===y&&s.ep[1]===x)add(y,x,{ep:true})}}
+else if(t==="N"||t==="K"){for(const[dr,dc]of t==="N"?KN:KG){const y=r+dr,x=c+dc;if(inb(y,x)&&(!b[y][x]||b[y][x][0]!==col))add(y,x)}
+if(t==="K"){const row=col==="w"?7:0,e=opp(col);if(r===row&&c===4&&!attacked(b,row,4,e)){
+if(s.cas[col+"K"]&&b[row][7]===col+"R"&&!b[row][5]&&!b[row][6]&&!attacked(b,row,5,e)&&!attacked(b,row,6,e))add(row,6,{castle:"K"});
+if(s.cas[col+"Q"]&&b[row][0]===col+"R"&&!b[row][1]&&!b[row][2]&&!b[row][3]&&!attacked(b,row,3,e)&&!attacked(b,row,2,e))add(row,2,{castle:"Q"})}}}
+else for(const[dr,dc]of t==="R"?ROOK:t==="B"?BISH:KG){let y=r+dr,x=c+dc;while(inb(y,x)){if(b[y][x]){if(b[y][x][0]!==col)add(y,x);break}add(y,x);y+=dr;x+=dc}}
+return out}
+function apply(s,m){const b=s.b.map(row=>row.slice()),p=b[m.fr][m.fc],col=p[0],cas={...s.cas};
+b[m.tr][m.tc]=m.promo?col+"Q":p;b[m.fr][m.fc]=null;if(m.ep)b[m.fr][m.tc]=null;
+if(m.castle){const row=m.tr;if(m.castle==="K"){b[row][5]=b[row][7];b[row][7]=null}else{b[row][3]=b[row][0];b[row][0]=null}}
+if(p[1]==="K"){cas[col+"K"]=false;cas[col+"Q"]=false}
+[[7,0,"wQ"],[7,7,"wK"],[0,0,"bQ"],[0,7,"bK"]].forEach(([r,c,k])=>{if((m.fr===r&&m.fc===c)||(m.tr===r&&m.tc===c))cas[k]=false});
+return{b,turn:opp(s.turn),cas,ep:m.dbl?[(m.fr+m.tr)/2,m.fc]:null}}
+function legal(s){const out=[];for(let r=0;r<8;r+=1)for(let c=0;c<8;c+=1){const p=s.b[r][c];if(p&&p[0]===s.turn)for(const m of pseudo(s,r,c))if(!inCheck(apply(s,m).b,s.turn))out.push(m)}return out}
+function evaluate(s){let v=0;for(let r=0;r<8;r+=1)for(let c=0;c<8;c+=1){const p=s.b[r][c];if(!p)continue;let x=VAL[p[1]];if(p[1]==="P"||p[1]==="N"){const cen=3.5-Math.abs(c-3.5)+3.5-Math.abs(r-3.5);x+=cen*4}if(p[1]==="P")x+=(p[0]==="w"?6-r:r-1)*4;v+=p[0]==="w"?x:-x}return s.turn==="w"?v:-v}
+function search(s,depth,alpha,beta){const ms=legal(s);if(!ms.length)return inCheck(s.b,s.turn)?-99999-depth:0;if(!depth)return evaluate(s);
+ms.sort((a,c)=>(s.b[c.tr][c.tc]?VAL[s.b[c.tr][c.tc][1]]:0)-(s.b[a.tr][a.tc]?VAL[s.b[a.tr][a.tc][1]]:0));
+for(const m of ms){const v=-search(apply(s,m),depth-1,-beta,-alpha);if(v>=beta)return beta;if(v>alpha)alpha=v}return alpha}
+function aiMove(){const ms=legal(st);if(!ms.length)return;let bestV=-Infinity,bests=[];
+for(const m of ms){const v=-search(apply(st,m),2,-Infinity,Infinity)+Math.random()*2;if(v>bestV+.001){bestV=v;bests=[m]}else if(Math.abs(v-bestV)<=.001)bests.push(m)}
+attempt(bests[Math.floor(Math.random()*bests.length)])}
+// Wizard chess: a capture starts a spell duel. Fire beats ice, ice beats lightning, lightning beats fire. Stronger pieces have more hearts.
+const SP=[["fire","🔥"],["ice","❄️"],["bolt","⚡"]],BEATS={fire:"ice",ice:"bolt",bolt:"fire"},HP={P:1,N:2,B:2,R:3,Q:4,K:5},sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const humans=()=>oppEl.value==="cpu"?["w"]:["w","b"],icon=k=>SP.find(s=>s[0]===k)[1];
+function attempt(m){const att=st.b[m.fr][m.fc],tgt=st.b[m.tr][m.tc]||(m.ep?st.b[m.fr][m.tc]:null);
+if(modeEl.value==="wizard"&&tgt&&att[1]!=="K")duel(m,att,tgt);else play(m)}
+function pick(side,head){return new Promise(res=>{if(!humans().includes(side)){res(SP[Math.floor(Math.random()*3)][0]);return}
+duelEl.innerHTML=head+`<p><strong>${side==="w"?"White":"Black"}</strong>, cast a spell:</p>`;const row=document.createElement("div");
+SP.forEach(([k,i])=>{const b=document.createElement("button");b.type="button";b.className="spell";b.textContent=i;b.setAttribute("aria-label",k);b.addEventListener("click",()=>res(k));row.append(b)});duelEl.append(row)})}
+async function duel(m,att,def){busy=true;const id=gameId,hp={a:HP[att[1]],d:HP[def[1]]},as=att[0],ds=def[0];duelEl.hidden=false;
+const head=()=>`<h2>⚔️ Wizard duel!</h2><p><span class="${as}">${GLYPH[att[1]]}</span> attacker ${"❤️".repeat(hp.a)}<br><span class="${ds}">${GLYPH[def[1]]}</span> defender ${"❤️".repeat(hp.d)}</p>`;
+while(hp.a>0&&hp.d>0){const a=await pick(as,head()),d=await pick(ds,head());let msg;
+if(a===d)msg="The spells fizzle. Tie!";else if(BEATS[a]===d){hp.d-=1;msg="The attacker lands a hit!"}else{hp.a-=1;msg="The defender strikes back!"}
+duelEl.innerHTML=head()+`<p class="big">${icon(a)} vs ${icon(d)}</p><p>${msg}</p>`;await sleep(1100);if(id!==gameId)return}
+duelEl.hidden=true;
+if(hp.d<=0){play(m);return}
+const b=st.b.map(r=>r.slice()),cas={...st.cas};b[m.fr][m.fc]=null;[[7,0,"wQ"],[7,7,"wK"],[0,0,"bQ"],[0,7,"bK"]].forEach(([r,c,k])=>{if(m.fr===r&&m.fc===c)cas[k]=false});
+commit({b,turn:opp(st.turn),cas,ep:null},m,`The ${as==="w"?"white":"black"} attacker was defeated! `)}
+function play(m){commit(apply(st,m),m,"")}
+function commit(ns,m,note){st=ns;last=m;sel=null;dests=[];const ms=legal(st),chk=inCheck(st.b,st.turn),name=st.turn==="w"?"White":"Black";
+if(!ms.length){over=true;statusEl.textContent=note+(chk?`Checkmate! ${opp(st.turn)==="w"?"White":"Black"} wins.`:"Stalemate: it's a draw.")}
+else statusEl.textContent=`${note}${name} to move${chk?" — check!":""}`;busy=false;render();
+if(!over&&oppEl.value==="cpu"&&st.turn==="b"){busy=true;setTimeout(aiMove,350)}}
+function click(r,c){if(over||busy)return;const p=st.b[r][c];
+const m=dests.find(d=>d.tr===r&&d.tc===c);if(m){attempt(m);return}
+if(p&&p[0]===st.turn&&(oppEl.value==="two"||st.turn==="w")){sel=[r,c];dests=legal(st).filter(x=>x.fr===r&&x.fc===c)}else{sel=null;dests=[]}render()}
+function render(){boardEl.replaceChildren();const chk=inCheck(st.b,st.turn);
+for(let r=0;r<8;r+=1)for(let c=0;c<8;c+=1){const p=st.b[r][c],sq=document.createElement("button");sq.type="button";sq.className="sq "+((r+c)%2?"dark":"light");
+if(last&&((last.fr===r&&last.fc===c)||(last.tr===r&&last.tc===c)))sq.classList.add("last");
+if(sel&&sel[0]===r&&sel[1]===c)sq.classList.add("sel");
+if(chk&&p===st.turn+"K")sq.classList.add("check");
+const d=dests.find(x=>x.tr===r&&x.tc===c);if(d){sq.classList.add("move");if(p||d.ep)sq.classList.add("cap")}
+if(p){sq.textContent=GLYPH[p[1]];sq.classList.add(p[0]);sq.setAttribute("aria-label",(p[0]==="w"?"White ":"Black ")+p[1])}
+sq.addEventListener("click",()=>click(r,c));boardEl.append(sq)}}
+function newGame(){gameId+=1;st=startPos(modeEl.value);sel=null;dests=[];last=null;over=false;busy=false;
+descEl.textContent=modeEl.value==="hack"?"Chess hack: both sides' 16 pieces are shuffled randomly across their first two rows (bishops always start on opposite colors; no castling).":modeEl.value==="wizard"?"Wizard chess: every capture is a spell duel! Pick fire 🔥 (beats ice), ice ❄️ (beats lightning) or lightning ⚡ (beats fire). Stronger pieces have more hearts; the loser of the duel is destroyed. Kings never duel.":"Classic chess rules, including castling and en passant.";
+statusEl.textContent="White to move";duelEl.hidden=true;render()}
+[modeEl,oppEl].forEach(e=>e.addEventListener("change",()=>{e.blur();newGame()}));document.querySelector("#new").addEventListener("click",newGame);newGame();
+</script></body></html>

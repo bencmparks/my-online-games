@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Space Rocks | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#312e81,#0b1020)}
+main{width:min(100%,44rem);padding:1.5rem;border:.2rem solid #a78bfa;border-radius:1.25rem;background:rgb(8 12 30 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.6rem 0;color:#a78bfa;letter-spacing:.05em;font-size:1.6rem}
+canvas{display:block;width:100%;height:auto;margin:1rem 0;border:.2rem solid #475569;border-radius:.4rem;background:#020617;touch-action:none}
+.pad{display:flex;justify-content:center;align-items:center;gap:1.5rem;margin-top:.5rem;user-select:none;-webkit-user-select:none}.dpad{display:grid;grid-template-columns:repeat(3,3.2rem);grid-template-rows:repeat(3,3.2rem);gap:.2rem}
+button{border:0;border-radius:.5rem;background:#a78bfa;color:#1e293b;cursor:pointer;font:inherit;font-weight:bold;touch-action:none}.dpad button{font-size:1.3rem}.a{width:4.5rem;height:4.5rem;border-radius:50%;font-size:1rem}
+</style></head>
+<body><main><a href="../">← All games</a><h1>☄️ Space Rocks</h1>
+<p>Fly your ship through an asteroid field and blast every rock. Big rocks split into smaller ones. You have 3 lives, and each wave brings more rocks, so don't crash!</p>
+<p><strong>←/→</strong> turn · <strong>↑</strong> thrust · <strong>E / Space</strong> fire and start · <strong>↓</strong> hyperjump (random teleport)</p>
+<canvas id="g" width="640" height="480" aria-label="Space Rocks game"></canvas>
+<div class="pad"><div class="dpad"><span></span><button data-k="up" type="button">▲</button><span></span><button data-k="left" type="button">◀</button><span></span><button data-k="right" type="button">▶</button><span></span><button data-k="down" type="button">⚡</button><span></span></div><button class="a" data-k="act" type="button">FIRE</button></div>
+</main>
+<script>
+const C=document.querySelector("#g"),x=C.getContext("2d"),W=640,H=480,TAU=Math.PI*2;
+let mode="title",ship,rocks=[],bullets=[],parts=[],score=0,lives=3,wave=0,hi=0,t=0,held={},cool=0,respawn=0,msg=0,stars=[];
+try{hi=+localStorage.getItem("spaceRocksHi")||0}catch(e){}
+for(let i=0;i<70;i+=1)stars.push([Math.random()*W,Math.random()*H,Math.random()*1.6+.4]);
+const RAD=[0,12,22,38];
+function mkRock(size,px,py){
+ const sp=(Math.random()*1.1+.5)*(4-size)*.55+.3,a=Math.random()*TAU,n=9+Math.floor(Math.random()*4);
+ return{size,x:px,y:py,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,r:RAD[size],rot:0,vr:(Math.random()-.5)*.04,sh:Array.from({length:n},(_,i)=>.78+Math.random()*.32)}
+}
+function newShip(){ship={x:W/2,y:H/2,vx:0,vy:0,a:-Math.PI/2,inv:150}}
+function startWave(){
+ wave+=1;rocks=[];const n=Math.min(9,3+wave);
+ for(let i=0;i<n;i+=1){let px,py;do{px=Math.random()*W;py=Math.random()*H}while(Math.hypot(px-ship.x,py-ship.y)<170);rocks.push(mkRock(3,px,py))}
+ msg=120
+}
+function start(){score=0;lives=3;wave=0;bullets=[];parts=[];newShip();startWave();mode="play"}
+function boom(px,py,n,c){for(let i=0;i<n;i+=1){const a=Math.random()*TAU,s=Math.random()*3+.5;parts.push({x:px,y:py,vx:Math.cos(a)*s,vy:Math.sin(a)*s,l:25+Math.random()*20,c})}}
+function fire(){if(cool>0||respawn>0)return;cool=12;bullets.push({x:ship.x+Math.cos(ship.a)*14,y:ship.y+Math.sin(ship.a)*14,vx:Math.cos(ship.a)*8+ship.vx*.4,vy:Math.sin(ship.a)*8+ship.vy*.4,l:60})}
+function press(k){
+ if(mode!=="play"){if(k==="act")start();return}
+ if(k==="act")fire();else if(k==="down"&&respawn<=0){boom(ship.x,ship.y,10,"#a78bfa");ship.x=Math.random()*W;ship.y=Math.random()*H;ship.vx=ship.vy=0;ship.inv=60;if(Math.random()<.12)die()}
+}
+function die(){
+ boom(ship.x,ship.y,30,"#fff");lives-=1;
+ if(lives<=0){mode="over";if(score>hi){hi=score;try{localStorage.setItem("spaceRocksHi",hi)}catch(e){}}}
+ else{respawn=90}
+}
+const wrap=o=>{o.x=(o.x+W)%W;o.y=(o.y+H)%H};
+function update(){
+ t+=1;if(mode==="title")return;
+ if(cool>0)cool-=1;if(msg>0)msg-=1;
+ if(mode==="play"){
+  if(respawn>0){respawn-=1;if(respawn===0)newShip()}
+  else{
+   if(held.left)ship.a-=.075;if(held.right)ship.a+=.075;
+   if(held.up){ship.vx+=Math.cos(ship.a)*.14;ship.vy+=Math.sin(ship.a)*.14;if(t%2===0)parts.push({x:ship.x-Math.cos(ship.a)*10,y:ship.y-Math.sin(ship.a)*10,vx:-Math.cos(ship.a)*2+(Math.random()-.5),vy:-Math.sin(ship.a)*2+(Math.random()-.5),l:12,c:"#fb923c"})}
+   if(held.act&&cool<=0)fire();
+   const sp=Math.hypot(ship.vx,ship.vy);if(sp>7){ship.vx*=7/sp;ship.vy*=7/sp}
+   ship.vx*=.992;ship.vy*=.992;ship.x+=ship.vx;ship.y+=ship.vy;wrap(ship);if(ship.inv>0)ship.inv-=1}
+ }
+ for(const b of bullets){b.x+=b.vx;b.y+=b.vy;b.l-=1;wrap(b)}bullets=bullets.filter(b=>b.l>0);
+ for(const r of rocks){r.x+=r.vx;r.y+=r.vy;r.rot+=r.vr;wrap(r)}
+ const add=[];
+ for(const b of bullets)for(const r of rocks)if(!r.dead&&b.l>0&&Math.hypot(b.x-r.x,b.y-r.y)<r.r){
+  b.l=0;r.dead=true;score+=[0,100,50,20][r.size];boom(r.x,r.y,8+r.size*4,"#cbd5e1");
+  if(r.size>1){add.push(mkRock(r.size-1,r.x,r.y),mkRock(r.size-1,r.x,r.y))}break}
+ rocks=rocks.filter(r=>!r.dead).concat(add);
+ if(mode==="play"&&respawn<=0&&ship.inv<=0)for(const r of rocks)if(Math.hypot(ship.x-r.x,ship.y-r.y)<r.r*.9+8){die();break}
+ parts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.l-=1});parts=parts.filter(p=>p.l>0);
+ if(mode==="play"&&!rocks.length){score+=wave*100;startWave()}
+}
+const KEYS={ArrowUp:"up",KeyW:"up",ArrowDown:"down",KeyS:"down",ArrowLeft:"left",KeyA:"left",ArrowRight:"right",KeyD:"right",KeyE:"act",Space:"act",Enter:"act"};
+addEventListener("keydown",e=>{const k=KEYS[e.code];if(!k)return;e.preventDefault();held[k]=true;if(!e.repeat)press(k)});
+addEventListener("keyup",e=>{const k=KEYS[e.code];if(k)held[k]=false});
+addEventListener("blur",()=>{held={}});
+document.querySelectorAll("[data-k]").forEach(b=>{const k=b.dataset.k;b.addEventListener("pointerdown",e=>{e.preventDefault();held[k]=true;press(k)});["pointerup","pointerleave","pointercancel"].forEach(ev=>b.addEventListener(ev,()=>{held[k]=false}))});
+function text(s,a,b,size=18,color="#fff",align="left"){x.font=`bold ${size}px Arial,sans-serif`;x.fillStyle=color;x.textAlign=align;x.lineWidth=4;x.strokeStyle="#000";x.strokeText(s,a,b);x.fillText(s,a,b)}
+function drawShip(px,py,a,s=1){x.save();x.translate(px,py);x.rotate(a);x.scale(s,s);x.beginPath();x.moveTo(15,0);x.lineTo(-11,-10);x.lineTo(-6,0);x.lineTo(-11,10);x.closePath();x.stroke();x.restore()}
+function draw(){
+ x.fillStyle="#020617";x.fillRect(0,0,W,H);
+ x.fillStyle="#cbd5e1";stars.forEach(([a,b,s])=>x.fillRect(a,b,s,s));
+ x.lineWidth=2;x.strokeStyle="#94a3b8";
+ for(const r of rocks){x.save();x.translate(r.x,r.y);x.rotate(r.rot);x.beginPath();r.sh.forEach((m,i)=>{const a=i/r.sh.length*TAU;i?x.lineTo(Math.cos(a)*r.r*m,Math.sin(a)*r.r*m):x.moveTo(Math.cos(a)*r.r*m,Math.sin(a)*r.r*m)});x.closePath();x.fillStyle="#1e293b";x.fill();x.stroke();x.restore()}
+ x.fillStyle="#fde047";for(const b of bullets)x.fillRect(b.x-2,b.y-2,4,4);
+ for(const p of parts){x.globalAlpha=Math.min(1,p.l/15);x.fillStyle=p.c;x.fillRect(p.x,p.y,2.5,2.5)}x.globalAlpha=1;
+ if(mode==="play"&&respawn<=0&&!(ship.inv>0&&Math.floor(t/5)%2)){x.strokeStyle="#a78bfa";x.lineWidth=2.5;drawShip(ship.x,ship.y,ship.a)}
+ text(`SCORE ${score}`,14,28,20);text(`BEST ${hi}`,W-14,28,16,"#fde047","right");text(`WAVE ${wave}`,W/2,28,16,"#7dd3fc","center");
+ x.strokeStyle="#a78bfa";x.lineWidth=2;for(let i=0;i<lives;i+=1)drawShip(24+i*26,56,-Math.PI/2,.8);
+ if(msg>0&&mode==="play")text(`WAVE ${wave}`,W/2,H/2-60,40,"#a78bfa","center");
+ if(mode==="title"||mode==="over"){
+  x.fillStyle="rgb(2 6 23 / 70%)";x.fillRect(0,0,W,H);
+  if(mode==="title")text("SPACE ROCKS",W/2,190,56,"#a78bfa","center");
+  else{text("GAME OVER",W/2,190,52,"#f87171","center");text(`Score ${score}`,W/2,240,26,"#fff","center")}
+  if(Math.floor(t/30)%2)text("Press E or FIRE",W/2,310,24,"#fff","center")}
+}
+function frame(){update();draw();requestAnimationFrame(frame)}
+frame();
+</script></body></html>

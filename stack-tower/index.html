@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Stack Tower | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#9d174d,#0b1020)}
+main{width:min(100%,44rem);padding:1.5rem;border:.2rem solid #f472b6;border-radius:1.25rem;background:rgb(8 12 30 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.6rem 0;color:#f472b6;letter-spacing:.05em;font-size:1.6rem}
+canvas{display:block;width:100%;height:auto;margin:1rem 0;border:.2rem solid #475569;border-radius:.4rem;background:#0b1020;touch-action:none}
+.pad{display:flex;justify-content:center;margin-top:.5rem;user-select:none;-webkit-user-select:none}
+button{border:0;border-radius:.5rem;background:#f472b6;color:#1e293b;cursor:pointer;font:inherit;font-weight:bold;touch-action:none;width:10rem;height:4rem;font-size:1.2rem}
+</style></head>
+<body><main><a href="../">← All games</a><h1>🏗️ Stack Tower</h1>
+<p>Drop sliding blocks to build the tallest tower you can. Any part that hangs over is cut off, so the tower gets thinner. Land a perfect stack to keep your block size and earn a combo!</p>
+<p><strong>E / Space / click / tap</strong> drop the block</p>
+<canvas id="g" width="640" height="480" aria-label="Stack Tower game"></canvas>
+<div class="pad"><button data-k="act" type="button">DROP</button></div>
+</main>
+<script>
+const C=document.querySelector("#g"),x=C.getContext("2d"),W=640,H=480,BH=26,BASE=300;
+let mode="title",stack=[],cur=null,cam=0,camT=0,score=0,hi=0,t=0,combo=0,fall=[],fx=[],held={};
+try{hi=+localStorage.getItem("stackTowerHi")||0}catch(e){}
+const hue=n=>(n*14+200)%360;
+function spawn(){
+ const top=stack[stack.length-1],n=stack.length,dir=n%2?1:-1,sp=Math.min(7.5,2.4+n*.12);
+ cur={w:top.w,h:BH,x:dir>0?-top.w:W,y:top.y-BH,v:-dir*sp,hue:hue(n)}
+}
+function start(){stack=[{x:W/2-100,w:200,y:BASE,h:BH,hue:hue(0)}];score=0;combo=0;cam=0;camT=0;fall=[];fx=[];mode="play";spawn()}
+function drop(){
+ const top=stack[stack.length-1],l=Math.max(cur.x,top.x),r=Math.min(cur.x+cur.w,top.x+top.w),ov=r-l;
+ if(ov<=0){fall.push({x:cur.x,y:cur.y,w:cur.w,h:BH,vy:0,hue:cur.hue});cur=null;mode="over";if(score>hi){hi=score;try{localStorage.setItem("stackTowerHi",hi)}catch(e){}}return}
+ const perfect=Math.abs(cur.x-top.x)<5;
+ let nx=l,nw=ov;
+ if(perfect){nx=top.x;nw=top.w;combo+=1;if(combo>=3)nw=Math.min(300,nw+8);fx.push({x:nx+nw/2,y:cur.y,l:30,s:combo>1?`PERFECT ×${combo}`:"PERFECT"})}
+ else{combo=0;if(cur.x<l)fall.push({x:cur.x,y:cur.y,w:l-cur.x,h:BH,vy:0,hue:cur.hue});else if(cur.x+cur.w>r)fall.push({x:r,y:cur.y,w:cur.x+cur.w-r,h:BH,vy:0,hue:cur.hue})}
+ stack.push({x:nx,w:nw,y:cur.y,h:BH,hue:cur.hue});score+=1+(perfect?combo:0);
+ camT=Math.max(0,(BASE-cur.y)-160);spawn()
+}
+function press(k){if(k!=="act")return;if(mode==="play")drop();else start()}
+function update(){
+ t+=1;cam+=(camT-cam)*.1;
+ fall.forEach(f=>{f.vy+=.5;f.y+=f.vy});fall=fall.filter(f=>f.y-cam<H+60);fx.forEach(f=>f.l-=1);fx=fx.filter(f=>f.l>0);
+ if(mode!=="play"||!cur)return;
+ cur.x+=cur.v;if(cur.x<-cur.w*.5+0&&cur.v<0||cur.x>W-cur.w*.5&&cur.v>0)cur.v*=-1
+}
+const KEYS={KeyE:"act",Space:"act",Enter:"act",ArrowUp:"act"};
+addEventListener("keydown",e=>{const k=KEYS[e.code];if(!k)return;e.preventDefault();if(!e.repeat)press(k)});
+document.querySelectorAll("[data-k]").forEach(b=>{b.addEventListener("pointerdown",e=>{e.preventDefault();press(b.dataset.k)})});
+C.addEventListener("pointerdown",e=>{e.preventDefault();press("act")});
+function text(s,a,b,size=18,color="#fff",align="left"){x.font=`bold ${size}px Arial,sans-serif`;x.fillStyle=color;x.textAlign=align;x.lineWidth=4;x.strokeStyle="#000";x.strokeText(s,a,b);x.fillText(s,a,b)}
+function block(b){const y=b.y+cam;if(y>H||y<-BH)return;x.fillStyle=`hsl(${b.hue} 80% 55%)`;x.fillRect(b.x,y,b.w,b.h-1);x.fillStyle="rgb(255 255 255 / 30%)";x.fillRect(b.x,y,b.w,5);x.fillStyle="rgb(0 0 0 / 22%)";x.fillRect(b.x,y+b.h-6,b.w,5)}
+function draw(){
+ const g=x.createLinearGradient(0,0,0,H);const h0=(200+stack.length*3)%360;g.addColorStop(0,`hsl(${h0} 60% 18%)`);g.addColorStop(1,`hsl(${h0} 70% 38%)`);x.fillStyle=g;x.fillRect(0,0,W,H);
+ x.fillStyle="rgb(255 255 255 / 40%)";for(let i=0;i<40;i+=1)x.fillRect((i*131)%W,((i*97+cam*.2)%H),2,2);
+ x.fillStyle="#1e293b";x.fillRect(0,BASE+BH+cam,W,H);
+ stack.forEach(block);fall.forEach(block);if(cur)block(cur);
+ fx.forEach(f=>{x.globalAlpha=f.l/30;text(f.s,f.x,f.y+cam-(30-f.l),20,"#fde047","center");x.globalAlpha=1});
+ text(String(score),W/2,60,54,"#fff","center");text(`BEST ${hi}`,W-14,28,16,"#fde047","right");
+ if(combo>1)text(`COMBO ×${combo}`,14,28,18,"#f9a8d4");
+ if(mode==="title"){x.fillStyle="rgb(2 6 23 / 55%)";x.fillRect(0,0,W,H);text("STACK TOWER",W/2,190,56,"#f472b6","center");if(Math.floor(t/30)%2)text("Press E, click or tap to start",W/2,270,24,"#fff","center")}
+ if(mode==="over"){x.fillStyle="rgb(2 6 23 / 55%)";x.fillRect(0,0,W,H);text("TOWER FELL!",W/2,190,52,"#f87171","center");text(`Height ${score}`,W/2,235,26,"#fff","center");if(Math.floor(t/30)%2)text("Press E or click to retry",W/2,300,22,"#fff","center")}
+}
+function frame(){update();draw();requestAnimationFrame(frame)}
+frame();
+</script></body></html>

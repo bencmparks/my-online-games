@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Moon Lander | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#334155,#0b1020)}
+main{width:min(100%,44rem);padding:1.5rem;border:.2rem solid #e2e8f0;border-radius:1.25rem;background:rgb(8 12 30 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.6rem 0;color:#e2e8f0;letter-spacing:.05em;font-size:1.6rem}
+canvas{display:block;width:100%;height:auto;margin:1rem 0;border:.2rem solid #475569;border-radius:.4rem;background:#020617;touch-action:none}
+.pad{display:flex;justify-content:center;align-items:center;gap:1.5rem;margin-top:.5rem;user-select:none;-webkit-user-select:none}.dpad{display:grid;grid-template-columns:repeat(3,3.2rem);grid-template-rows:repeat(3,3.2rem);gap:.2rem}
+button{border:0;border-radius:.5rem;background:#e2e8f0;color:#1e293b;cursor:pointer;font:inherit;font-weight:bold;touch-action:none}.dpad button{font-size:1.3rem}.a{width:4.5rem;height:4.5rem;border-radius:50%;font-size:1rem}
+</style></head>
+<body><main><a href="../">← All games</a><h1>🚀 Moon Lander</h1>
+<p>Land your craft gently on a flat pad. Come in slow, level and with fuel to spare. Each level has stronger gravity and smaller pads. Crash and the mission is over!</p>
+<p><strong>↑ / W</strong> thrust · <strong>←/→</strong> rotate · <strong>E / Space</strong> start and continue</p>
+<canvas id="g" width="640" height="480" aria-label="Moon Lander game"></canvas>
+<div class="pad"><div class="dpad"><span></span><button data-k="up" type="button">▲</button><span></span><button data-k="left" type="button">◀</button><span></span><button data-k="right" type="button">▶</button><span></span><button data-k="down" type="button" disabled>·</button><span></span></div><button class="a" data-k="act" type="button">START</button></div>
+</main>
+<script>
+const C=document.querySelector("#g"),x=C.getContext("2d"),W=640,H=480;
+let mode="title",L,level=1,score=0,hi=0,fuel=0,t=0,held={},terr=[],pads=[],stars=[],parts=[],msg="",gold=0;
+try{hi=+localStorage.getItem("moonLanderHi")||0}catch(e){}
+for(let i=0;i<80;i+=1)stars.push([Math.random()*W,Math.random()*300,Math.random()*1.6+.4]);
+function genTerrain(){
+ const n=64,seg=W/(n-1);terr=[];pads=[];let y=360,i=0;
+ const np=Math.max(1,3-Math.floor((level-1)/2)),padW=Math.max(44,100-level*8),starts=[];
+ for(let k=0;k<np;k+=1)starts.push(Math.floor((k+.5)*(n-6)/np+Math.random()*4)+1);
+ const wLen=Math.ceil(padW/seg);
+ while(i<n){
+  const ps=starts.findIndex(s=>i===s);
+  if(ps>=0){const bonus=[2,3,5][Math.min(ps,2)];const py=Math.max(300,Math.min(430,y));pads.push({x0:i*seg,x1:(i+wLen-1)*seg,y:py,m:np===1?2:bonus});for(let k=0;k<wLen&&i<n;k+=1,i+=1)terr.push(py);y=py;continue}
+  y+=(Math.random()-.5)*60;y=Math.max(250,Math.min(450,y));terr.push(y);i+=1}
+ return seg
+}
+let SEG=10;
+function groundY(px){const f=Math.max(0,Math.min(terr.length-1.001,px/SEG)),i=Math.floor(f);return terr[i]+(terr[i+1]-terr[i])*(f-i)}
+function begin(){
+ SEG=genTerrain();fuel=Math.max(500,1000-level*50);parts=[];
+ L={x:60+Math.random()*60,y:60,vx:1.2,vy:0,a:0,g:.015+level*.003};mode="play";msg=""
+}
+function start(){level=1;score=0;gold=0;begin()}
+function press(k){
+ if(mode==="title"||mode==="over"){if(k==="act")start()}
+ else if(mode==="landed"){if(k==="act"){level+=1;begin()}}
+}
+function boom(px,py,c){for(let i=0;i<40;i+=1){const a=Math.random()*6.28,s=Math.random()*4+.5;parts.push({x:px,y:py,vx:Math.cos(a)*s,vy:Math.sin(a)*s-1,l:30+Math.random()*30,c})}}
+function update(){
+ t+=1;parts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.04;p.l-=1});parts=parts.filter(p=>p.l>0);
+ if(mode!=="play")return;
+ if(held.left)L.a-=.035;if(held.right)L.a+=.035;L.a=Math.max(-1.2,Math.min(1.2,L.a));
+ if(held.up&&fuel>0){const th=.075;L.vx+=Math.sin(L.a)*th;L.vy-=Math.cos(L.a)*th;fuel-=1;
+  if(t%2===0)parts.push({x:L.x-Math.sin(L.a)*14,y:L.y+Math.cos(L.a)*14,vx:-Math.sin(L.a)*2+(Math.random()-.5),vy:Math.cos(L.a)*2+(Math.random()-.5),l:14,c:"#fb923c"})}
+ L.vy+=L.g;L.x+=L.vx;L.y+=L.vy;
+ if(L.x<10){L.x=10;L.vx=Math.abs(L.vx)*.3}if(L.x>W-10){L.x=W-10;L.vx=-Math.abs(L.vx)*.3}if(L.y<12){L.y=12;L.vy=Math.max(0,L.vy)}
+ const foot=L.y+12,gy=Math.max(groundY(L.x-9),groundY(L.x+9));
+ if(L.y+12>=gy){
+  const pad=pads.find(p=>L.x-8>=p.x0-2&&L.x+8<=p.x1+2&&Math.abs(gy-p.y)<2);
+  const ok=pad&&Math.abs(L.vy)<1.6&&Math.abs(L.vx)<1.1&&Math.abs(L.a)<.28;
+  if(ok){const bonus=Math.round((200+fuel/2+(1.6-Math.abs(L.vy))*60)*pad.m);score+=bonus;gold=bonus;mode="landed";L.y=gy-12;L.vx=L.vy=0;msg=`+${bonus} (×${pad.m} pad)`;
+   if(score>hi){hi=score;try{localStorage.setItem("moonLanderHi",hi)}catch(e){}}}
+  else{mode="over";boom(L.x,L.y,"#fb923c");boom(L.x,L.y,"#fff");msg=!pad?"Missed the landing pad!":Math.abs(L.a)>=.28?"Too tilted!":"Too fast!"}
+ }
+}
+const KEYS={ArrowUp:"up",KeyW:"up",ArrowLeft:"left",KeyA:"left",ArrowRight:"right",KeyD:"right",KeyE:"act",Space:"act",Enter:"act"};
+addEventListener("keydown",e=>{const k=KEYS[e.code];if(!k)return;e.preventDefault();held[k]=true;if(!e.repeat)press(k)});
+addEventListener("keyup",e=>{const k=KEYS[e.code];if(k)held[k]=false});
+addEventListener("blur",()=>{held={}});
+document.querySelectorAll("[data-k]").forEach(b=>{const k=b.dataset.k;b.addEventListener("pointerdown",e=>{e.preventDefault();held[k]=true;press(k)});["pointerup","pointerleave","pointercancel"].forEach(ev=>b.addEventListener(ev,()=>{held[k]=false}))});
+function text(s,a,b,size=18,color="#fff",align="left"){x.font=`bold ${size}px Arial,sans-serif`;x.fillStyle=color;x.textAlign=align;x.lineWidth=4;x.strokeStyle="#000";x.strokeText(s,a,b);x.fillText(s,a,b)}
+function drawLander(){
+ x.save();x.translate(L.x,L.y);x.rotate(L.a);
+ x.fillStyle="#e2e8f0";x.beginPath();x.arc(0,-2,9,Math.PI,0);x.fill();x.fillRect(-9,-2,18,8);
+ x.fillStyle="#38bdf8";x.beginPath();x.arc(0,-4,4,0,7);x.fill();
+ x.strokeStyle="#cbd5e1";x.lineWidth=2.5;x.beginPath();x.moveTo(-8,6);x.lineTo(-13,12);x.moveTo(8,6);x.lineTo(13,12);x.moveTo(-16,12);x.lineTo(-10,12);x.moveTo(10,12);x.lineTo(16,12);x.stroke();
+ if(held.up&&fuel>0&&mode==="play"){x.fillStyle="#fb923c";x.beginPath();x.moveTo(-5,8);x.lineTo(0,18+Math.random()*10);x.lineTo(5,8);x.fill()}
+ x.restore()
+}
+function draw(){
+ x.fillStyle="#020617";x.fillRect(0,0,W,H);
+ x.fillStyle="#cbd5e1";stars.forEach(([a,b,s])=>x.fillRect(a,b,s,s));
+ if(terr.length){
+  x.fillStyle="#475569";x.beginPath();x.moveTo(0,H);terr.forEach((y,i)=>x.lineTo(i*SEG,y));x.lineTo(W,H);x.closePath();x.fill();
+  x.strokeStyle="#94a3b8";x.lineWidth=2;x.beginPath();terr.forEach((y,i)=>i?x.lineTo(i*SEG,y):x.moveTo(0,y));x.stroke();
+  for(const p of pads){x.fillStyle="#4ade80";x.fillRect(p.x0,p.y-3,p.x1-p.x0,5);text(`×${p.m}`,(p.x0+p.x1)/2,p.y+22,14,"#bbf7d0","center")}}
+ if(L&&mode!=="over"&&mode!=="title")drawLander();
+ for(const p of parts){x.globalAlpha=Math.min(1,p.l/20);x.fillStyle=p.c;x.fillRect(p.x,p.y,3,3)}x.globalAlpha=1;
+ if(mode!=="title"){
+  text(`SCORE ${score}`,14,28,20);text(`LEVEL ${level}`,W/2,28,18,"#7dd3fc","center");text(`BEST ${hi}`,W-14,28,16,"#fde047","right");
+  const sp=Math.abs(L.vy),ok=sp<1.6;
+  text(`FUEL ${Math.max(0,Math.round(fuel/10))}%`,14,54,16,fuel<150?"#f87171":"#4ade80");
+  text(`Speed ↓ ${L.vy.toFixed(1)}`,14,76,16,ok?"#4ade80":"#f87171");text(`Drift → ${L.vx.toFixed(1)}`,14,98,16,Math.abs(L.vx)<1.1?"#4ade80":"#f87171");
+  text(`Tilt ${Math.round(L.a*57.3)}°`,14,120,16,Math.abs(L.a)<.28?"#4ade80":"#f87171")}
+ if(mode==="title"){x.fillStyle="rgb(2 6 23 / 60%)";x.fillRect(0,0,W,H);text("MOON LANDER",W/2,170,56,"#e2e8f0","center");text("Land softly on the green pads",W/2,215,22,"#a7f3d0","center");if(Math.floor(t/30)%2)text("Press E or START",W/2,290,24,"#fff","center")}
+ if(mode==="landed"){text("LANDED!",W/2,170,50,"#4ade80","center");text(msg,W/2,215,24,"#fde047","center");if(Math.floor(t/30)%2)text("Press E for the next level",W/2,270,22,"#fff","center")}
+ if(mode==="over"){text("CRASH!",W/2,170,54,"#f87171","center");text(msg,W/2,215,24,"#fff","center");text(`Final score ${score}`,W/2,255,22,"#fde047","center");if(Math.floor(t/30)%2)text("Press E to try again",W/2,310,22,"#fff","center")}
+}
+function frame(){update();draw();requestAnimationFrame(frame)}
+frame();
+</script></body></html>

@@ -16,6 +16,7 @@
     button { min-height: 2.5rem; padding: 0 .9rem; border: 0; border-radius: .5rem; background: #fde68a; color: #1e293b; font: inherit; font-weight: bold; cursor: pointer; }
     button:disabled { opacity: .45; cursor: not-allowed; }
     #levels { display: flex; flex-wrap: wrap; gap: .4rem; justify-content: center; }
+    #pager { display: flex; gap: .5rem; justify-content: center; align-items: center; margin: .4rem 0; flex-wrap: wrap; }
     #levels button.picked { background: #4ade80; }
     #fly { min-height: 3rem; font-size: 1.1rem; background: #4ade80; }
     #touch { display: grid; grid-template-columns: repeat(3, 3.2rem) 1rem repeat(2, 5rem); gap: .35rem; justify-content: center; margin: .5rem 0; }
@@ -45,6 +46,7 @@
     <p id="status" aria-live="polite">Pick a plane, then take off (or team up with a friend below)! Move and turn: arrows or W A S D (or a gamepad stick; A/RT shoot, B/LT missile) · Shoot: left click or Space · Missile: right click, B or X.</p>
     <section id="hangar">
       <h3>Choose a level</h3>
+      <div id="pager"><button id="pagePrev" type="button">◀</button> <span id="pageLabel"></span> <button id="pageNext" type="button">▶</button> <button id="pageCur" type="button">Go to my level</button></div>
       <div id="levels"></div>
       <p id="goal"></p>
       <button id="fly" type="button">Take off!</button>
@@ -84,7 +86,7 @@
       eclipse: { name: "Eclipse", price: 60000, speed: 9.5, hp: 16, damage: 9, rate: .09, maxUp: 20, color: "#e879f9" },
       nova: { name: "Nova", price: 90000, speed: 10, hp: 18, damage: 11, rate: .085, maxUp: 20, color: "#fde047" },
       apex: { name: "Apex", price: 130000, speed: 10.6, hp: 20, damage: 13, rate: .08, maxUp: 20, color: "#2dd4bf" },
-      tempest: { name: "Tempest", price: 200000, speed: 11.5, hp: 20, damage: 16, rate: .08, maxUp: 20, color: "#fb7185" }
+      tempest: { name: "Tempest", price: 200000, speed: 11.5, hp: 20, damage: 160, rate: .08, maxUp: 20, color: "#fb7185" }
     };
     const order = Object.keys(planes), statLabels = { speed: "Speed", life: "Life", damage: "Damage" };
     const save = GameProfiles.getGame("sky-ace", { coins: 0, owned: ["scout"], selected: "scout", upgrades: {}, best: 0 });
@@ -119,20 +121,34 @@
       if (boss) lv.boss = { name: extraBosses[k / 2 - 1], hp: 600 + k * 45, heli: (k / 2) % 2 === 0 };
       LEVELS.push(lv);
     }
+    const advAdj = ["Burning", "Frozen", "Silent", "Roaring", "Crimson", "Golden", "Shattered", "Hidden", "Endless", "Savage", "Radiant", "Midnight", "Iron", "Stormy", "Phantom", "Rogue", "Ancient", "Furious", "Hollow", "Neon", "Scarlet", "Silver", "Thunder", "Wild", "Lost", "Rising", "Fallen", "Blazing", "Cosmic", "Grim"];
+    const advNoun = ["Skies", "Strait", "Canyon", "Armada", "Squadron", "Horizon", "Reef", "Summit", "Gauntlet", "Fortress", "Cyclone", "Archipelago", "Outpost", "Corridor", "Vortex", "Frontier", "Convoy", "Harbor", "Ridge", "Tempest", "Blockade", "Expanse", "Rift", "Delta", "Pass", "Citadel", "Raid", "Chase", "Strike", "Run"];
+    const advBoss = ["Tyrant", "Wraith", "Kraken", "Hornet", "Colossus", "Reaper", "Drake", "Warlord", "Leviathan", "Baron"];
+    for (let n = 50; n <= 999; n += 1) {
+      const k = n - 49, a = k - 1, name = `${advAdj[a % 30]} ${advNoun[Math.floor(a / 30) % 30]}`, lv = { name, planes: 20, ships: 3 + Math.floor((k % 40) / 8), diff: 30 + Math.floor(k / 45), bonus: 40000 + k * 60 };
+      if (k % 5 === 0) lv.boss = { name: `${advAdj[(a * 7) % 30]} ${advBoss[k % 10]}`, hp: Math.round(1100 + k * 2.5), heli: k % 10 === 0 };
+      LEVELS.push(lv);
+    }
     LEVELS.push({ name: "Boss Apocalypse", planes: 0, ships: 0, diff: 30, bonus: 60000, boss: { name: "The Overlord", hp: 0 }, swarm: { finalMult: 10 } });
     LEVELS.forEach((lv) => { if (lv.boss) { lv.planes = 0; lv.ships = 0; lv.boss.hp = Math.round(lv.boss.hp * 1.3); } else if (!lv.squad) { lv.planes = Math.min(lv.planes, 20); lv.ships = Math.min(lv.ships, 5); lv.tough = 1 + lv.diff * .3; lv.fast = Math.min(2, 1 + lv.diff * .045); } });
-    LEVELS.forEach((lv) => { if (lv.swarm) { lv.swarm.roster = LEVELS.filter((o) => o.boss && !o.swarm).map((o) => ({ name: o.boss.name, hp: o.boss.hp * 100, heli: !!o.boss.heli })); lv.swarm.count = lv.swarm.roster.length; } });
+    LEVELS.forEach((lv) => { if (lv.swarm) { lv.swarm.roster = LEVELS.slice(0, 49).filter((o) => o.boss && !o.swarm).map((o) => ({ name: o.boss.name, hp: o.boss.hp * 100, heli: !!o.boss.heli })); lv.swarm.count = lv.swarm.roster.length; } });
     const levelGoal = (lv) => lv.swarm ? `defeat ${lv.swarm.count} bosses at once, then The Overlord with ${lv.swarm.finalMult}x their combined life` : lv.squad ? `destroy ${lv.squad.helis} helicopters and 1 elite plane with triple life` : lv.boss ? `defeat the boss ${lv.boss.name} (no other planes or ships)` : `destroy ${lv.planes} planes and ${lv.ships} ${lv.land ? "tanks" : "ships"}${lv.tough ? " (tougher and faster)" : ""}`;
     const levelsEl = document.querySelector("#levels");
+    const PAGE = 50; let levelPage = Math.floor((save.pick - 1) / PAGE);
     function renderLevels() {
-      levelsEl.replaceChildren();
-      LEVELS.forEach((lv, i) => {
-        const n = i + 1, b = document.createElement("button"); b.type = "button"; b.dataset.level = n;
+      levelsEl.replaceChildren(); const pages = Math.ceil(LEVELS.length / PAGE); levelPage = clamp(levelPage, 0, pages - 1);
+      document.querySelector("#pageLabel").textContent = `Levels ${levelPage * PAGE + 1}–${Math.min(LEVELS.length, (levelPage + 1) * PAGE)} of ${LEVELS.length} (unlocked ${save.unlocked})`;
+      document.querySelector("#pagePrev").disabled = levelPage === 0; document.querySelector("#pageNext").disabled = levelPage >= pages - 1;
+      LEVELS.slice(levelPage * PAGE, (levelPage + 1) * PAGE).forEach((lv, j) => {
+        const i = levelPage * PAGE + j, n = i + 1, b = document.createElement("button"); b.type = "button"; b.dataset.level = n;
         b.className = save.pick === n ? "picked" : ""; b.disabled = n > save.unlocked;
         b.textContent = n > save.unlocked ? `🔒 ${n}` : `${n}. ${lv.name}`; levelsEl.append(b);
       });
       document.querySelector("#goal").textContent = `Level ${save.pick}: ${levelGoal(LEVELS[save.pick - 1])} (bonus ${LEVELS[save.pick - 1].bonus} coins).`;
     }
+    document.querySelector("#pagePrev").onclick = () => { levelPage -= 1; renderLevels(); };
+    document.querySelector("#pageNext").onclick = () => { levelPage += 1; renderLevels(); };
+    document.querySelector("#pageCur").onclick = () => { levelPage = Math.floor((save.pick - 1) / PAGE); renderLevels(); };
     levelsEl.addEventListener("click", (event) => { const b = event.target.closest("button[data-level]"); if (!b || b.disabled) return; save.pick = Number(b.dataset.level); persist(); renderLevels(); });
     const keys = new Set(), clamp = (value, min, max) => Math.max(min, Math.min(max, value));
     let mode = "hangar", game = null, last = performance.now(), idleTime = 0;
@@ -140,7 +156,7 @@
 
     function persist() { GameProfiles.saveGame("sky-ace", save); }
     function level(id, key) { return (save.upgrades[id] && save.upgrades[id][key]) || 0; }
-    function stats(id) { const plane = planes[id]; return { speed: plane.speed * (1 + .08 * level(id, "speed")), hp: plane.hp + level(id, "life"), damage: plane.damage * (1 + .2 * level(id, "damage")) }; }
+    function stats(id) { const plane = planes[id]; return { speed: plane.speed * (1 + .08 * level(id, "speed")), hp: (plane.hp + level(id, "life")) * 5, damage: plane.damage * (1 + .2 * level(id, "damage")) * 5 }; }
     function upgradeCost(id, key) { return Math.round(60 * (1 + order.indexOf(id) * .8) * (1 + level(id, key) * .7) / 10) * 10; }
 
     function teammates() { return coop.host ? coop.conns.filter((c) => c.open).map((c) => ({ conn: c, name: c.pilotName || "Pilot" })) : coop.conn?.open ? [{ conn: coop.conn, name: coop.hostName || "Host" }] : []; }
@@ -259,8 +275,8 @@
       }
       if (coop.host) {
         if (d.t === "hello" && game && mode === "fly" && !game.client) {
-          const hp = clamp(Number(d.hp) || 3, 1, 40);
-          game.mates.set(conn.peer, { id: conn.peer, name: String(d.name || "Pilot").slice(0, 12), plane: planes[d.plane] ? d.plane : "scout", x: 0, y: 220, hp, maxHp: hp, damage: clamp(Number(d.damage) || 1, .5, 20), rate: clamp(Number(d.rate) || .22, .08, .5), fireCd: 0, bombCd: 0, inv: 1, fire: false, bomb: false });
+          const hp = clamp(Number(d.hp) || 3, 1, 400);
+          game.mates.set(conn.peer, { id: conn.peer, name: String(d.name || "Pilot").slice(0, 12), plane: planes[d.plane] ? d.plane : "scout", x: 0, y: 220, hp, maxHp: hp, damage: clamp(Number(d.damage) || 1, .5, 5000), rate: clamp(Number(d.rate) || .22, .08, .5), fireCd: 0, bombCd: 0, inv: 1, fire: false, bomb: false });
         }
         if (d.t === "i") { const m = game?.mates?.get(conn.peer); if (m) { m.x = clamp(Number(d.x) || 0, -LIMIT_X, LIMIT_X); m.y = clamp(Number(d.y) || 0, MIN_Y, MAX_Y); m.fire = !!d.f; m.bomb = !!d.b; } }
       } else {
@@ -438,7 +454,7 @@
         if (m.cd <= 0 && m.z <= 1500) { aimShot(m.x, m.y, m.z, m.heli ? 1000 : 760, m.heli ? 80 : 240); m.cd = (m.heli ? .8 : 2.2) + Math.random(); }
       });
       if (g.lv.boss && !g.bossSpawned && g.t > 6 && !g.over && (!g.lv.swarm || (g.swarmSpawned && !g.swarm.length))) {
-        const sw = g.lv.swarm, hp = sw ? sw.roster.reduce((a, r) => a + r.hp, 0) * sw.finalMult : g.lv.boss.hp; g.bossSpawned = true; g.boss = { x: 0, y: 250, z: 2200, hp, maxHp: hp, ph: 0, cd: 2, big: true, heli: !!g.lv.boss.heli };
+        const sw = g.lv.swarm, hp = sw ? sw.roster.reduce((a, r) => a + r.hp, 0) * sw.finalMult / 2 : g.lv.boss.hp; g.bossSpawned = true; g.boss = { x: 0, y: 250, z: 2200, hp, maxHp: hp, ph: 0, cd: 2, big: true, heli: !!g.lv.boss.heli };
         statusEl.textContent = `Boss incoming: ${g.lv.boss.name}!`;
       }
       if (g.boss && !g.over) {
@@ -607,7 +623,7 @@
     }
     function drawHud() {
       const p = game.p; ctx.font = "bold 16px Arial"; ctx.textAlign = "left"; ctx.fillStyle = "#0f172a"; ctx.fillText(`${game.lv.practice ? "" : `Lv ${game.num}: `}${game.lv.name}`, 12, 24); ctx.fillText(`Planes ${Math.min(game.planeKills, game.lv.planes)}/${game.lv.planes}  ${game.lv.land ? "Tanks" : "Ships"} ${Math.min(game.shipKills, game.lv.ships)}/${game.lv.ships}`, 12, 82);
-      for (let i = 0; i < p.maxHp; i += 1) { ctx.fillStyle = i < p.hp ? "#ef4444" : "#1e293b"; ctx.fillRect(12 + i * 18, 34, 14, 14); }
+      ctx.fillStyle = "#1e293b"; ctx.fillRect(12, 34, 180, 14); ctx.fillStyle = "#ef4444"; ctx.fillRect(12, 34, 180 * Math.max(0, p.hp / p.maxHp), 14); ctx.fillStyle = "#fff"; ctx.font = "bold 11px Arial"; ctx.textAlign = "left"; ctx.fillText(`${Math.max(0, p.hp)} / ${p.maxHp}`, 16, 45);
       ctx.fillStyle = "#1e293b"; ctx.fillRect(12, 56, 70, 8); ctx.fillStyle = "#fb923c"; ctx.fillRect(12, 56, 70 * clamp(1 - p.bombCd, 0, 1), 8);
       ctx.fillStyle = "#0f172a"; ctx.textAlign = "right"; ctx.fillText(`Score ${game.score}   Coins +${game.earned}`, W - 12, 24);
       ctx.fillText(`Alt ${Math.round(p.y)} m`, W - 12, 46);

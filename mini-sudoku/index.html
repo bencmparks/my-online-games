@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Mini Sudoku | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#134e4a,#0b1020)}
+main{width:min(100%,34rem);padding:1.5rem;border:.2rem solid #2dd4bf;border-radius:1.25rem;background:rgb(8 12 30 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.6rem 0;color:#2dd4bf;letter-spacing:.05em;font-size:1.6rem}
+button{border:0;border-radius:.5rem;background:#2dd4bf;color:#1e293b;cursor:pointer;font:inherit;font-weight:bold;min-height:2.6rem;min-width:2.8rem;padding:0 .8rem;margin:.15rem}
+button.on{outline:.2rem solid #fff}.row{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;margin:.4rem 0}
+#b{display:grid;margin:1rem auto;width:min(100%,28rem);aspect-ratio:1;border:.2rem solid #e5e7eb;user-select:none}
+.c{display:grid;place-items:center;background:#111827;border:1px solid #334155;font-size:clamp(1rem,6vw,1.8rem);cursor:pointer;color:#7dd3fc;min-width:0;min-height:0}
+.c.g{color:#e5e7eb;font-weight:bold;background:#1e293b}.c.rel{background:#164e63}.c.g.rel{background:#1e4a5a}.c.sel{background:#0d9488!important;color:#fff}.c.bad{color:#f87171!important;background:#450a0a!important}
+.c.br{border-right:.2rem solid #e5e7eb}.c.bb{border-bottom:.2rem solid #e5e7eb}
+.n{display:grid;width:100%;height:100%;font-size:clamp(.45rem,2vw,.75rem);color:#94a3b8;place-items:center;line-height:1}
+#m{min-height:1.5rem;font-weight:bold;color:#fde68a}
+</style></head>
+<body><main><a href="../">← All games</a><h1>🔢 Mini Sudoku</h1>
+<p>Fill every row, column and box with each number exactly once. Click a cell, then use the number pad or keyboard digits. <strong>N</strong> toggles notes · <strong>Backspace/Delete/0</strong> clears · <strong>H</strong> hint · arrow keys move.</p>
+<div class="row" id="sz"></div><div class="row" id="df"></div>
+<div>⏱ <span id="t">0:00</span> · 🏆 Best: <span id="bt">–</span></div>
+<div id="b" aria-label="Sudoku board"></div><div id="m"></div>
+<div class="row" id="pad"></div>
+<div class="row"><button id="nt" type="button">✏️ Notes: off</button><button id="hn" type="button">💡 Hint</button><button id="nw" type="button">New puzzle</button></div>
+</main>
+<script>
+const $=s=>document.querySelector(s),CFG={4:[2,2],6:[2,3],9:[3,3]},CL={4:[10,8,6],6:[22,18,14],9:[40,34,28]},DN=["Easy","Medium","Hard"];
+let N=4,D=0,P,S,V,NT,sel=-1,notes=false,t0=0,done=false,hints=0;const PR={};
+const sh=a=>{for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
+function peers(n){const[br,bc]=CFG[n],p=[];for(let i=0;i<n*n;i++){const r=i/n|0,c=i%n,s=new Set;for(let k=0;k<n;k++){s.add(r*n+k);s.add(k*n+c)}const r0=r-r%br,c0=c-c%bc;for(let a=0;a<br;a++)for(let b=0;b<bc;b++)s.add((r0+a)*n+c0+b);s.delete(i);p.push([...s])}return p}
+// counts solutions up to lim within a node budget (MRV backtracking)
+function solve(g,n,pr,lim,budget,rand){let cnt=0,nodes=0,over=false,first=null;
+ const rec=()=>{if(over||cnt>=lim)return;if(++nodes>budget){over=true;return}
+  let bi=-1,bc=null;for(let i=0;i<g.length;i++)if(!g[i]){const u=new Set(pr[i].map(j=>g[j])),c=[];for(let v=1;v<=n;v++)if(!u.has(v))c.push(v);if(!c.length)return;if(!bc||c.length<bc.length){bi=i;bc=c;if(c.length===1)break}}
+  if(bi<0){cnt++;if(!first)first=g.slice();return}
+  if(rand)sh(bc);for(const v of bc){g[bi]=v;rec();if(over||cnt>=lim)break}g[bi]=0};
+ rec();return{n:cnt,over,sol:first}}
+function gen(n,d){PR[n]=PR[n]||peers(n);const pr=PR[n],full=solve(Array(n*n).fill(0),n,pr,1,1e6,true).sol,g=full.slice(),keep=CL[n][d];let left=n*n;
+ for(const i of sh([...g.keys()])){if(left<=keep)break;const v=g[i];g[i]=0;const r=solve(g.slice(),n,pr,2,n===9?3000:50000);if(r.n===1&&!r.over)left--;else g[i]=v}
+ return{p:g,s:full}}
+const key=()=>"miniSudokuBest"+N+DN[D],fmt=s=>Math.floor(s/60)+":"+String(s%60).padStart(2,"0");
+function best(){let b=null;try{b=localStorage.getItem(key())}catch(e){}$("#bt").textContent=b?fmt(+b):"–"}
+function newGame(){const r=gen(N,D);S=r.s;P=r.p;V=P.slice();NT=P.map(()=>new Set);sel=-1;done=false;hints=0;$("#m").textContent="";t0=Date.now();$("#t").textContent="0:00";best();build();draw()}
+function conflicts(){const bad=new Set;V.forEach((v,i)=>{if(v&&PR[N][i].some(j=>V[j]===v))bad.add(i)});return bad}
+function build(){const b=$("#b"),[br,bc]=CFG[N];b.style.gridTemplate=`repeat(${N},1fr)/repeat(${N},1fr)`;b.innerHTML="";
+ for(let i=0;i<N*N;i++){const e=document.createElement("div"),r=i/N|0,c=i%N;e.className="c"+(c%bc===bc-1&&c<N-1?" br":"")+(r%br===br-1&&r<N-1?" bb":"");e.onclick=()=>{sel=i;draw()};b.append(e)}}
+function draw(){const bad=conflicts(),cs=$("#b").children,rel=sel>=0?new Set(PR[N][sel]):new Set,[br,bc]=CFG[N];
+ for(let i=0;i<N*N;i++){const e=cs[i];e.classList.toggle("g",!!P[i]);e.classList.toggle("sel",i===sel);e.classList.toggle("rel",rel.has(i));e.classList.toggle("bad",bad.has(i));
+  e.textContent="";if(V[i])e.textContent=V[i];else if(NT[i].size){const n=document.createElement("div");n.className="n";n.style.gridTemplate=`repeat(${br},1fr)/repeat(${bc},1fr)`;for(let v=1;v<=N;v++){const s=document.createElement("span");s.textContent=NT[i].has(v)?v:"";n.append(s)}e.append(n)}}
+ $("#nt").textContent="✏️ Notes: "+(notes?"on":"off");$("#nt").classList.toggle("on",notes)}
+function put(v){if(done||sel<0||P[sel])return;if(v&&notes){NT[sel].has(v)?NT[sel].delete(v):NT[sel].add(v);V[sel]=0}
+ else{V[sel]=v;NT[sel].clear();if(v)PR[N][sel].forEach(j=>NT[j].delete(v))}
+ draw();check()}
+function check(){if(V.some(v=>!v)||conflicts().size)return;done=true;const s=Math.floor((Date.now()-t0)/1000);let m="🎉 Solved in "+fmt(s)+"!"+(hints?" (hints used, no record)":"");
+ if(!hints)try{const b=+localStorage.getItem(key());if(!b||s<b){localStorage.setItem(key(),s);m+=" New best!"}}catch(e){}
+ $("#m").textContent=m;best()}
+function hint(){if(done)return;let i=sel;if(i<0||P[i]||V[i]===S[i]){const l=[...V.keys()].filter(k=>V[k]!==S[k]);if(!l.length)return;i=l[Math.random()*l.length|0]}
+ sel=i;hints++;V[i]=S[i];P[i]=S[i];NT[i].clear();draw();check()}
+for(const n of [4,6,9]){const b=document.createElement("button");b.textContent=n+"×"+n;b.dataset.n=n;b.onclick=()=>{N=n;mark();newGame()};$("#sz").append(b)}
+DN.forEach((d,i)=>{const b=document.createElement("button");b.textContent=d;b.dataset.d=i;b.onclick=()=>{D=i;mark();newGame()};$("#df").append(b)});
+function mark(){document.querySelectorAll("#sz button").forEach(b=>b.classList.toggle("on",+b.dataset.n===N));document.querySelectorAll("#df button").forEach(b=>b.classList.toggle("on",+b.dataset.d===D));
+ $("#pad").innerHTML="";for(let v=1;v<=N;v++){const b=document.createElement("button");b.textContent=v;b.onclick=()=>put(v);$("#pad").append(b)}const x=document.createElement("button");x.textContent="⌫";x.onclick=()=>put(0);$("#pad").append(x)}
+$("#nt").onclick=()=>{notes=!notes;draw()};$("#hn").onclick=hint;$("#nw").onclick=newGame;
+addEventListener("keydown",e=>{const k=e.key;if(/^[0-9]$/.test(k)){if(+k<=N)put(+k)}else if(k==="Backspace"||k==="Delete")put(0);else if(k==="n"||k==="N"){notes=!notes;draw()}else if(k==="h"||k==="H")hint();
+ else if(k.startsWith("Arrow")){e.preventDefault();if(sel<0)sel=0;else{const r=sel/N|0,c=sel%N,dr={ArrowUp:-1,ArrowDown:1}[k]||0,dc={ArrowLeft:-1,ArrowRight:1}[k]||0;sel=((r+dr+N)%N)*N+(c+dc+N)%N}draw()}});
+setInterval(()=>{if(!done)$("#t").textContent=fmt(Math.floor((Date.now()-t0)/1000))},500);
+mark();newGame();
+</script></body></html>

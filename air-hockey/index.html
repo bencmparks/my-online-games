@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Air Hockey | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#0e7490,#0b1020)}
+main{width:min(100%,44rem);padding:1.5rem;border:.2rem solid #22d3ee;border-radius:1.25rem;background:rgb(8 12 30 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.6rem 0;color:#22d3ee;letter-spacing:.05em;font-size:1.6rem}
+canvas{display:block;width:100%;height:auto;margin:1rem 0;border:.2rem solid #475569;border-radius:.4rem;background:#0b1020;touch-action:none}
+.pad{display:flex;justify-content:center;align-items:center;gap:1.5rem;margin-top:.5rem;user-select:none;-webkit-user-select:none}.dpad{display:grid;grid-template-columns:repeat(3,3.2rem);grid-template-rows:repeat(3,3.2rem);gap:.2rem}
+button{border:0;border-radius:.5rem;background:#22d3ee;color:#1e293b;cursor:pointer;font:inherit;font-weight:bold;touch-action:none}.dpad button{font-size:1.3rem}.a{width:4.5rem;height:4.5rem;border-radius:50%;font-size:1rem}
+</style></head>
+<body><main><a href="../">← All games</a><h1>🏒 Air Hockey</h1>
+<p>Smack the puck into the other goal! You are the blue paddle on the left; the computer plays red on the right. First to 7 wins.</p>
+<p><strong>Mouse / touch drag</strong> or <strong>arrows/WASD</strong> move your paddle · <strong>E / Space</strong> start · title screen: <strong>↑/↓</strong> difficulty</p>
+<canvas id="g" width="640" height="400" aria-label="Air Hockey game"></canvas>
+<div class="pad"><div class="dpad"><span></span><button data-k="up" type="button">▲</button><span></span><button data-k="left" type="button">◀</button><span></span><button data-k="right" type="button">▶</button><span></span><button data-k="down" type="button">▼</button><span></span></div><button class="a" data-k="act" type="button">START</button></div>
+</main>
+<script>
+const C=document.querySelector("#g"),x=C.getContext("2d"),W=640,H=400,PR=26,UR=16,GOAL=130,WIN=7;
+const DIFFS=["Easy","Medium","Hard"],DSP=[3.4,5,6.8],DREACT=[.7,.9,1],DCOL=["#4ade80","#facc15","#f87171"];
+let mode="title",diff=1,me,ai,puck,sc=[0,0],t=0,held={},ptr=null,msg="",serve=0,trail=[];
+try{diff=Math.max(0,Math.min(2,+localStorage.getItem("airHockeyDiff")||1))}catch(e){}
+function reset(dir){
+ me={x:90,y:H/2,px:90,py:H/2,vx:0,vy:0};ai={x:W-90,y:H/2,vx:0,vy:0};
+ puck={x:W/2,y:H/2,vx:0,vy:0};serve=60;puck.dir=dir;trail=[]
+}
+function start(){sc=[0,0];mode="play";reset(Math.random()<.5?1:-1)}
+function press(k){
+ if(mode==="title"){if(k==="up")setD(diff+1);else if(k==="down")setD(diff-1);else if(k==="act")start()}
+ else if(mode==="over"&&k==="act")mode="title"
+}
+function setD(d){diff=(d+3)%3;try{localStorage.setItem("airHockeyDiff",diff)}catch(e){}}
+function hit(pd,pvx,pvy,rad){
+ const dx=puck.x-pd.x,dy=puck.y-pd.y,d=Math.hypot(dx,dy),min=PR+UR;
+ if(d<min&&d>.001){const nx=dx/d,ny=dy/d;puck.x=pd.x+nx*min;puck.y=pd.y+ny*min;
+  const rel=(puck.vx-pvx)*nx+(puck.vy-pvy)*ny;
+  if(rel<0){puck.vx-=1.9*rel*nx;puck.vy-=1.9*rel*ny}
+  const s=Math.hypot(puck.vx,puck.vy);if(s>16){puck.vx*=16/s;puck.vy*=16/s}
+  if(s<3){puck.vx+=nx*2;puck.vy+=ny*2}}
+}
+function update(){
+ t+=1;if(mode!=="play")return;
+ const ox=me.x,oy=me.y;
+ if(ptr){const dx=ptr.x-me.x,dy=ptr.y-me.y,d=Math.hypot(dx,dy),m=Math.min(d,14);if(d>1){me.x+=dx/d*m;me.y+=dy/d*m}}
+ else{me.x+=((held.right?1:0)-(held.left?1:0))*6;me.y+=((held.down?1:0)-(held.up?1:0))*6}
+ me.x=Math.max(PR,Math.min(W/2-PR,me.x));me.y=Math.max(PR,Math.min(H-PR,me.y));me.vx=me.x-ox;me.vy=me.y-oy;
+ if(serve>0){serve-=1;if(serve===0){puck.vx=puck.dir*4;puck.vy=(Math.random()-.5)*4}}
+ else{
+  const ax=ai.x,ay=ai.y,sp=DSP[diff];let tx,ty,boost=1;
+  if(puck.x>W/2-10&&puck.vx<2.5){
+   const gy=me.y<H/2?H/2+60:H/2-60,ux=puck.x,uy=puck.y-gy,um=Math.hypot(ux,uy)||1,dx0=ux/um,dy0=uy/um,gap=PR+UR+10;
+   const sx=puck.x+dx0*gap,sy=puck.y+dy0*gap,rx=ai.x-puck.x,ry=ai.y-puck.y,along=rx*dx0+ry*dy0,perp=Math.abs(-rx*dy0+ry*dx0);
+   if((along>PR+UR-4&&perp<PR)||Math.hypot(ai.x-sx,ai.y-sy)<14){tx=puck.x-dx0*14;ty=puck.y-dy0*14;boost=diff===0?1.3:1.9}
+   else{tx=Math.min(W-PR,Math.max(W/2+PR,sx));ty=Math.max(PR,Math.min(H-PR,sy));boost=1.2}
+  }else{tx=W-80;ty=H/2+(puck.y-H/2)*DREACT[diff]*.8;if(puck.vx>0&&puck.x>W/2)ty=puck.y}
+  const dx=tx-ai.x,dy=ty-ai.y,d=Math.hypot(dx,dy),m=Math.min(d,sp*boost);if(d>1){ai.x+=dx/d*m;ai.y+=dy/d*m}
+  ai.x=Math.max(W/2+PR,Math.min(W-PR,ai.x));ai.y=Math.max(PR,Math.min(H-PR,ai.y));ai.vx=ai.x-ax;ai.vy=ai.y-ay;
+  puck.x+=puck.vx;puck.y+=puck.vy;puck.vx*=.995;puck.vy*=.995;
+  if(t%2===0){trail.push({x:puck.x,y:puck.y});if(trail.length>8)trail.shift()}
+  if(puck.y<UR){puck.y=UR;puck.vy=Math.abs(puck.vy)}if(puck.y>H-UR){puck.y=H-UR;puck.vy=-Math.abs(puck.vy)}
+  const inGoal=Math.abs(puck.y-H/2)<GOAL/2;
+  if(puck.x<UR&&!inGoal){puck.x=UR;puck.vx=Math.abs(puck.vx)}
+  if(puck.x>W-UR&&!inGoal){puck.x=W-UR;puck.vx=-Math.abs(puck.vx)}
+  hit(me,me.vx,me.vy);hit(ai,ai.vx,ai.vy);
+  if(puck.x<-UR){sc[1]+=1;scored(-1)}else if(puck.x>W+UR){sc[0]+=1;scored(1)}
+ }
+}
+function scored(dir){
+ if(sc[0]>=WIN||sc[1]>=WIN){mode="over";msg=sc[0]>=WIN?"YOU WIN!":"The computer wins!";return}
+ reset(-dir)
+}
+const KEYS={ArrowUp:"up",KeyW:"up",ArrowDown:"down",KeyS:"down",ArrowLeft:"left",KeyA:"left",ArrowRight:"right",KeyD:"right",KeyE:"act",Space:"act",Enter:"act"};
+addEventListener("keydown",e=>{const k=KEYS[e.code];if(!k)return;e.preventDefault();held[k]=true;if(!e.repeat)press(k)});
+addEventListener("keyup",e=>{const k=KEYS[e.code];if(k)held[k]=false});
+addEventListener("blur",()=>{held={}});
+document.querySelectorAll("[data-k]").forEach(b=>{const k=b.dataset.k;b.addEventListener("pointerdown",e=>{e.preventDefault();held[k]=true;press(k)});["pointerup","pointerleave","pointercancel"].forEach(ev=>b.addEventListener(ev,()=>{held[k]=false}))});
+const pos=e=>{const r=C.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*W,y:(e.clientY-r.top)/r.height*H}};
+C.addEventListener("pointerdown",e=>{e.preventDefault();if(mode==="play")ptr=pos(e);else if(mode==="title"&&pos(e).y>300){setD(diff+1)}});
+C.addEventListener("pointermove",e=>{if(mode==="play"&&(e.pointerType==="mouse"||ptr))ptr=pos(e)});
+["pointerup","pointercancel"].forEach(ev=>C.addEventListener(ev,e=>{if(e.pointerType!=="mouse")ptr=null}));
+function text(s,a,b,size=18,color="#fff",align="left"){x.font=`bold ${size}px Arial,sans-serif`;x.fillStyle=color;x.textAlign=align;x.lineWidth=4;x.strokeStyle="#000";x.strokeText(s,a,b);x.fillText(s,a,b)}
+function paddle(p,c,r=PR){x.fillStyle="rgb(0 0 0 / 30%)";x.beginPath();x.arc(p.x+3,p.y+4,r,0,7);x.fill();x.fillStyle=c;x.beginPath();x.arc(p.x,p.y,r,0,7);x.fill();x.fillStyle="rgb(255 255 255 / 35%)";x.beginPath();x.arc(p.x,p.y,r*.55,0,7);x.fill();x.strokeStyle="#fff";x.lineWidth=2;x.beginPath();x.arc(p.x,p.y,r,0,7);x.stroke()}
+function draw(){
+ x.fillStyle="#0e3a4a";x.fillRect(0,0,W,H);
+ x.strokeStyle="rgb(255 255 255 / 55%)";x.lineWidth=3;x.strokeRect(2,2,W-4,H-4);
+ x.beginPath();x.moveTo(W/2,0);x.lineTo(W/2,H);x.stroke();x.beginPath();x.arc(W/2,H/2,60,0,7);x.stroke();
+ x.fillStyle="#0b1020";x.fillRect(0,H/2-GOAL/2,8,GOAL);x.fillRect(W-8,H/2-GOAL/2,8,GOAL);
+ x.fillStyle="#38bdf8";x.fillRect(0,H/2-GOAL/2,4,GOAL);x.fillStyle="#f87171";x.fillRect(W-4,H/2-GOAL/2,4,GOAL);
+ if(me){
+  trail.forEach((p,i)=>{x.globalAlpha=i/trail.length*.4;x.fillStyle="#fff";x.beginPath();x.arc(p.x,p.y,UR*(.4+i/16),0,7);x.fill()});x.globalAlpha=1;
+  paddle(me,"#38bdf8");paddle(ai,"#f87171");paddle(puck,"#111",UR);
+  text(String(sc[0]),W/2-60,60,48,"#38bdf8","center");text(String(sc[1]),W/2+60,60,48,"#f87171","center");
+  if(serve>0&&mode==="play")text(serve>30?"Ready…":"GO!",W/2,H/2-80,36,"#fde047","center")}
+ if(mode==="title"){x.fillStyle="rgb(2 6 23 / 65%)";x.fillRect(0,0,W,H);text("AIR HOCKEY",W/2,150,58,"#22d3ee","center");text(`▲ Difficulty: ${DIFFS[diff]} ▼`,W/2,225,26,DCOL[diff],"center");text("First to 7 goals wins",W/2,262,18,"#e5e7eb","center");if(Math.floor(t/30)%2)text("Press E or START",W/2,340,24,"#fff","center")}
+ if(mode==="over"){x.fillStyle="rgb(2 6 23 / 70%)";x.fillRect(0,0,W,H);text(msg,W/2,170,52,sc[0]>=WIN?"#facc15":"#f87171","center");text(`${sc[0]} – ${sc[1]}`,W/2,225,32,"#fff","center");if(Math.floor(t/30)%2)text("Press E for the menu",W/2,300,22,"#fff","center")}
+}
+function frame(){update();draw();requestAnimationFrame(frame)}
+frame();
+</script></body></html>

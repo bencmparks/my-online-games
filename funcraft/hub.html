@@ -28,6 +28,10 @@
       <a class="gate" href="index.html?mode=survival-disaster"><b>2</b><h2>Survival Disaster</h2><span>Survival plus storms, tornados and floods</span></a>
       <a class="gate" href="index.html?mode=peaceful"><b>3</b><h2>Peaceful</h2><span>Calm exploring and building</span></a>
       <a class="gate" href="index.html?mode=disaster"><b>4</b><h2>Disaster</h2><span>Storms, tornados and floods, no hostile animals</span></a>
+      <a class="gate" href="index.html?mode=skyblock"><b>5</b><h2>Skyblock</h2><span>Start on a tiny floating island and bridge to others</span></a>
+      <a class="gate" href="index.html?mode=oneblock"><b>6</b><h2>OneBlock</h2>      <span>Break one endless block that changes as you go</span></a>
+      <a class="gate" href="index.html?mode=bedwars"><b>7</b><h2>Bedwars</h2><span>Defend your bed, fight robots and destroy their beds</span></a>
+      <a class="gate" href="index.html?mode=containment"><b>8</b><h2>Containment Breach</h2><span>Dark facility, keycards, SCP-173, giant zombie boss, win coins to buy and upgrade guns</span></a>
     </div>
     <h2 style="margin-top:2.5rem">2D Versions</h2>
     <p>The same four modes as a side-scrolling 2D game.</p>
@@ -40,7 +44,7 @@
     <a class="back" href="../">← Back to all games</a>
   </main>
   <script>
-    addEventListener("keydown", (e) => { const m = { 1: "survival", 2: "survival-disaster", 3: "peaceful", 4: "disaster" }[e.key]; if (m) location.href = "index.html?mode=" + m; });
+    addEventListener("keydown", (e) => { const m = { 1: "survival", 2: "survival-disaster", 3: "peaceful", 4: "disaster", 5: "skyblock", 6: "oneblock", 7: "bedwars", 8: "containment" }[e.key]; if (m) location.href = "index.html?mode=" + m; });
   </script>
 </body>
 </html>

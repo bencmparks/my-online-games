@@ -1,0 +1,633 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>The Lost Light is Bright | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#010309;color:#d5dbe6}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#141b2b,#010309)}
+main{width:min(100%,44rem);padding:1.5rem;border:.2rem solid #c9a20f;border-radius:1.25rem;background:rgb(1 4 14 / 94%);text-align:center}a{color:#6bb8dc}h1{margin:.6rem 0;color:#e0b80f;letter-spacing:.06em;font-size:1.5rem}
+canvas{display:block;width:100%;height:auto;margin:1rem 0;border:.2rem solid #3b4656;border-radius:.4rem;background:#0f172a;image-rendering:pixelated;touch-action:none}
+#status{min-height:1.5rem;color:#e0c040;font-weight:bold}
+.pad{display:flex;justify-content:center;align-items:center;gap:1.5rem;margin-top:.5rem;user-select:none;-webkit-user-select:none}.dpad{display:grid;grid-template-columns:repeat(3,3.2rem);grid-template-rows:repeat(3,3.2rem);gap:.2rem}
+button{border:0;border-radius:.5rem;background:#c9a20f;color:#020617;cursor:pointer;font:inherit;font-weight:bold;touch-action:none}.dpad button{font-size:1.3rem}.a{width:4.5rem;height:4.5rem;border-radius:50%;font-size:1.4rem}
+</style></head>
+<body><main><a href="../">← All games</a><h1>🗝️ The Lost Light is Bright</h1>
+<p>A pixel-art adventure across 60 areas and 20 realms. The Bright Light has shattered into 20 shards. Open the chest at your door, grab the sword and bring the light back.</p>
+<p><strong>Arrows/WASD</strong> move · <strong>E</strong> confirm/continue · <strong>I</strong> menu (craft, skills, quests) · walk into things to talk, open or fight · monsters chase you slowly · paths north lead to highlands · caves in the wilds lead to dungeons (find keys, beat the guardian) · south gates in villages lead to Brightwick Town (shops, inn, boss arena).</p>
+<canvas id="g" width="640" height="480" aria-label="The Lost Light is Bright 2D role-playing game"></canvas>
+<p id="status" aria-live="polite"></p>
+<div class="pad"><div class="dpad"><span></span><button data-k="up" type="button">▲</button><span></span><button data-k="left" type="button">◀</button><span></span><button data-k="right" type="button">▶</button><span></span><button data-k="down" type="button">▼</button><span></span></div><button class="a" data-k="act" type="button">E</button><button class="a" data-k="menu" type="button" aria-label="Menu">☰</button></div>
+</main>
+<script>
+const C=document.querySelector("#g"),x=C.getContext("2d"),statusEl=document.querySelector("#status");
+x.imageSmoothingEnabled=false;
+const TS=32,PX=4,W=640,H=480,COLS=20,ROWS=15,ZONES=60;
+const rnd=n=>Math.floor(Math.random()*n);
+const hash=(a,b)=>((a*374761393+b*668265263)^(a*b*40503))>>>0;
+const rng=seed=>{let s=seed>>>0;return()=>{s=(Math.imul(s,1664525)+1013904223)>>>0;return s/4294967296}};
+const shade=(hex,f)=>"#"+[1,3,5].map(i=>Math.min(255,Math.round(parseInt(hex.slice(i,i+2),16)*f)).toString(16).padStart(2,"0")).join("");
+
+function mk(rows,pal){const c=document.createElement("canvas");c.width=c.height=TS;const g=c.getContext("2d");rows.forEach((r,j)=>[...r].forEach((ch,i)=>{if(ch!=="."&&pal[ch]){g.fillStyle=pal[ch];g.fillRect(i*PX,j*PX,PX,PX)}}));return c}
+const HERO=["..bbbb..",".bbbbbb.",".bffffb.",".fkffkf.","..ffff..",".gggggg.",".gggggg.","..l..l.."];
+const SLIME=["........","..gggg..",".gggggg.","gkwggkwg","gggggggg","gggggggg",".gggggg.","........"];
+const KING=[".y.yy.y.",".yyyyyy.",".gggggg.","gkwggkwg","gggggggg","gggggggg",".gggggg.","........"];
+const BAT=["b......b","bb.bb.bb","bbbbbbbb",".brbbrb.","..bbbb..","...bb...","........","........"];
+const IMP=["b..bb..b",".b.bb.b.","..bbbb..",".bwbbwb.","..bbbb..",".rrrrrr.","..r..r..","..b..b.."];
+const KNIGHT=["..gggg..",".gggggg.",".gkkkkg.",".gggggg.","dggddggd","dggddggd",".dd..dd.",".dd..dd."];
+const SPIDER=["b......b",".b.bb.b.","..bbbb..","b.brrb.b","..bbbb..",".b.bb.b.","b......b","........"];
+const GHOST=["..wwww..",".wwwwww.","wkkwwkkw","wkkwwkkw","wwwwwwww","wwwwwwww","wwwwwwww","w.ww.ww."];
+const GOLEM=["..rrrr..","rrrrrrrr","rryrryrr","rrrrrrrr","rrddddrr","rrrrrrrr",".rr..rr.","rrr..rrr"];
+const MAGE=["..rrrr..",".rrrrrr.",".rkffkr.","..ffff..","rrrrrrrr","rrryyrrr","rrrrrrrr",".rr..rr."];
+const SP={
+ hero:mk(HERO,{b:"#7c4a1e",f:"#f4c28a",k:"#111",g:"#2f9e44",l:"#5a3a1a"}),
+ elder:mk(HERO,{b:"#e5e7eb",f:"#f4c28a",k:"#111",g:"#2563eb",l:"#1e3a8a"}),
+ guard:mk(HERO,{b:"#94a3b8",f:"#f4c28a",k:"#111",g:"#64748b",l:"#334155"}),
+ villager:mk(HERO,{b:"#111827",f:"#e0a96d",k:"#111",g:"#f59e0b",l:"#78350f"}),
+ hermit:mk(HERO,{b:"#d4d4d8",f:"#e0a96d",k:"#111",g:"#7c3aed",l:"#4c1d95"}),
+ chest:mk(["........",".bbbbbb.","bddddddb","bbbyybbb","bddyyddb","bddddddb","bbbbbbbb","........"],{b:"#7c4a1e",d:"#a8672a",y:"#facc15"}),
+ chestOpen:mk(["........","bbbbbbbb","b.dddd.b","bkkkkkkb","bkyyykkb","bddddddb","bbbbbbbb","........"],{b:"#7c4a1e",d:"#a8672a",y:"#facc15",k:"#2b1b0c"}),
+ crystal:mk(["...cc...","..cwcc..",".cwwccc.","cwwwcccc",".cwcccc.","..cccc..","...cc...","........"],{c:"#22d3ee",w:"#e0f2fe"}),
+ tree:mk(["..gggg..",".gggdgg.","gggggggg","gdgggdgg",".gggggg.","...tt...","...tt...","..tttt.."],{g:"#1d6f33",d:"#2f9e44",t:"#6b4423"}),
+ quester:mk(HERO,{b:"#b91c1c",f:"#f4c28a",k:"#111",g:"#dc2626",l:"#450a0a"}),
+ smith:mk(HERO,{b:"#374151",f:"#f4c28a",k:"#111",g:"#78350f",l:"#1f2937"}),
+ potioneer:mk(HERO,{b:"#a21caf",f:"#f4c28a",k:"#111",g:"#c026d3",l:"#581c87"}),
+ trader:mk(HERO,{b:"#065f46",f:"#e0a96d",k:"#111",g:"#10b981",l:"#064e3b"}),
+ innkeep:mk(HERO,{b:"#fde68a",f:"#f4c28a",k:"#111",g:"#fb923c",l:"#7c2d12"}),
+ arena:mk(HERO,{b:"#7f1d1d",f:"#e0a96d",k:"#111",g:"#475569",l:"#111827"}),
+ wanderer:mk(HERO,{b:"#0f766e",f:"#f4c28a",k:"#111",g:"#14b8a6",l:"#134e4a"}),
+ sign:mk(["........",".bbbbbb.",".bwwwwb.",".bwbbwb.",".bbbbbb.","...tt...","...tt...","...tt..."],{b:"#7c4a1e",w:"#e5d3b3",t:"#4a2f12"}),
+ shrine:mk(["..y..y..","..yyyy..",".cccccc.","..cwwc..","..cwwc..","..cccc..",".cccccc.","cccccccc"],{y:"#facc15",c:"#94a3b8",w:"#67e8f9"}),
+ rock:mk(["..rrrr..",".rrllrr.","rrlrrrrr","rrrrrdrr","rrrrrrrd","rrdrrrrr",".rrrrdr.","..rrrr.."],{r:"#5b5470",l:"#7a7396",d:"#403a52"})
+};
+
+// [realm, enemy adjective, ground, accent, accent2, obstacle, boss, boss colour, intro, outro, boss quote]
+const CH=[
+["Pixelton","Green","#3f9142","#22c55e","#ef4444","tree","Slime King","#a855f7","The village of Pixelton once glowed with the Bright Light. Now the light is shattered into 20 shards and darkness creeps in. Find the first shard!","The first Light Shard glows in your hand. Pixelton shines again, a little.","Nobody takes MY shard!"],
+["Mossy Marsh","Bog","#4a7c3a","#65a30d","#a16207","tree","Bog Hag","#4d7c0f","Murky water and croaking toads. The Bog Hag brews a darkness potion here.","The Hag's cauldron cracks and a shard rolls out.","Heh heh, fresh meat!"],
+["Sunbaked Dunes","Dune","#c9a35a","#f59e0b","#dc2626","rock","Scorpion Queen","#b45309","Endless dunes shimmer under a dim sun. Something large burrows beneath the sand.","The Scorpion Queen collapses and drops a shard.","Skitter skitter... you are my dinner!"],
+["Frostpeak","Frost","#cbd5e1","#38bdf8","#a5f3fc","rock","Frost Wyrm","#0ea5e9","Snow whips across icy peaks. The Frost Wyrm froze a shard inside a glacier.","You chip the shard from the melting ice.","Winter is eternal!"],
+["Ember Fields","Ash","#6b4a3a","#f97316","#facc15","rock","Magma Golem","#ea580c","Ash rains over cracked, glowing ground. A golem forged from lava guards a shard.","The golem cools into stone, revealing a shard.","MELT. BURN. CRUSH."],
+["Coral Coast","Reef","#e8d9a8","#14b8a6","#f472b6","rock","Kraken","#0d9488","Waves crash on pale sands. The Kraken drags ships under to hide its shard.","The Kraken sinks back into the sea. A shard washes ashore.","The deep will swallow you!"],
+["Whispering Woods","Elder","#2f6b3a","#16a34a","#84cc16","tree","Elder Treant","#166534","Ancient trees whisper your name. The Elder Treant has grown around a shard.","Roots untangle and the shard falls free.","Leave my forest, little sprout."],
+["Crystal Caverns","Gem","#4c3f6b","#a78bfa","#22d3ee","rock","Crystal Spider","#7c3aed","Gems glitter in the dark. The Crystal Spider weaves webs that eat the light.","The webs dissolve. A shard sparkles among the gems.","Sssstay in my web..."],
+["Clockwork City","Gear","#6b7280","#9ca3af","#f59e0b","rock","Brass Colossus","#b45309","Gears turn and pipes hiss. A brass giant guards the city's power core: a shard.","The colossus grinds to a halt. The shard spins free.","INTRUDER DETECTED."],
+["Ghostwood","Ghost","#8b9a8d","#e2e8f0","#a5b4fc","tree","Phantom Knight","#818cf8","Pale mist drifts through bare trees. A cursed knight still guards his master's shard.","The knight's armour falls silent. The shard remains.","None shall pass... ever."],
+["Candy Canyon","Sugar","#f0abfc","#f472b6","#fde047","rock","Gumdrop Giant","#ec4899","Everything is sweet and shiny, which is very suspicious. A giant gumdrop sits on a shard.","The giant melts into syrup. You take the shard.","Wanna taste... defeat?"],
+["Storm Plateau","Storm","#64748b","#60a5fa","#fde047","rock","Thunder Hawk","#2563eb","Lightning splits the sky. The Thunder Hawk nests on a shard of pure light.","The hawk soars away. The shard drops from its nest.","SCREEEE!"],
+["Mushroom Hollow","Spore","#7c4a3a","#ef4444","#fde68a","tree","Spore Lord","#b91c1c","Giant mushrooms glow softly. The Spore Lord rules this hollow with sleepy clouds.","The spores fade and a shard glows beneath a cap.","Yawwwn... sleep now."],
+["Sunken Ruins","Drowned","#3b7a80","#06b6d4","#34d399","rock","Drowned King","#0e7490","Half-flooded temples hide old secrets. The Drowned King still wears his crown and a shard.","The king dissolves into bubbles. The shard sinks into your hand.","I rule the deep!"],
+["Sky Garden","Cloud","#86d17a","#e0f2fe","#fbbf24","tree","Cloud Dragon","#7dd3fc","Floating islands drift between the clouds. A dragon guards the highest garden.","The dragon bows and gives up its shard.","Fall from my skies!"],
+["Bone Desert","Bone","#d6cdb4","#e7e5e4","#a8a29e","rock","Skeleton Emperor","#d6d3d1","Bleached bones crunch underfoot. The Skeleton Emperor commands an undead army.","The emperor rattles apart. His shard clatters free.","Rise, my armies!"],
+["Obsidian Keep","Obsidian","#3b3b4f","#6366f1","#f43f5e","rock","Dread Lord","#4338ca","A fortress of black glass looms. The Dread Lord keeps shards as trophies.","The keep trembles. A shard rolls from the throne.","Kneel before the Dread Lord!"],
+["Starfall Steppe","Star","#3b4a7a","#fde047","#c084fc","rock","Meteor Beast","#a16207","Fallen stars crater the plains. A beast made of meteor rock guards a bright shard.","The beast cracks open. A shard blazes inside.","BOOM! BOOM!"],
+["Shadow Marsh","Shade","#3a2f4f","#a855f7","#f43f5e","tree","Night Queen","#6b21a8","The last light flickers out here. The Night Queen drinks the glow of every shard.","The queen fades to dust. Nineteen shards hum in your pack.","Darkness is a gift."],
+["Void Throne","Void","#1f1b2e","#facc15","#a855f7","rock","The Shadow King","#312e81","Beyond everything lies the Void Throne. The Shadow King, ruler of the Dark Land of Darkness, holds the last shard and the heart of the Bright Light.","The Shadow King shatters. The Bright Light returns!","I am the dark. I am the end!"]
+];
+const BASE={slime:{label:"Slime",hp:12,atk:2,xp:8,gold:3},fslime:{label:"Brute",hp:18,atk:4,xp:14,gold:5},bat:{label:"Bat",hp:10,atk:3,xp:10,gold:4},spider:{label:"Spider",hp:14,atk:3,xp:12,gold:4,venom:1},ghost:{label:"Wraith",hp:12,atk:4,xp:14,gold:5,dodge:.25},golem:{label:"Golem",hp:30,atk:3,xp:20,gold:7,armor:2},mage:{label:"Mage",hp:12,atk:5,xp:18,gold:8,hex:1},imp:{label:"Imp",hp:9,atk:4,xp:12,gold:5},knight:{label:"Knight",hp:34,atk:4,xp:24,gold:9,armor:3},boss:{hp:60,atk:6,xp:100,gold:50},dboss:{hp:48,atk:5,xp:70,gold:40}};
+const MATN={gel:"Gel",wing:"Wing",silk:"Silk",essence:"Essence",ore:"Ore"};
+const DROPS={slime:["gel"],fslime:["gel","ore"],bat:["wing"],spider:["silk"],ghost:["essence","wing"],golem:["ore"],mage:["essence"],imp:["essence","wing"],knight:["ore","silk"]};
+const pool=c=>{const a=["slime","fslime","bat"];if(c>=1)a.push("spider");if(c>=3)a.push("ghost");if(c>=5)a.push("golem");if(c>=7)a.push("mage");if(c>=2)a.push("imp");if(c>=9)a.push("knight");return a};
+const SK={power:{n:"Power Strike",mp:3,lv:2,d:"Double damage"},guard:{n:"Ward",mp:2,lv:3,d:"Halve damage for 2 turns"},mend:{n:"Mend",mp:4,lv:4,d:"Heal 30% HP"},cleanse:{n:"Cleanse",mp:2,lv:5,d:"Cure poison, weak, stun"},bolt:{n:"Fire Bolt",mp:4,lv:6,d:"Ignores armor, burns 3 turns"},frost:{n:"Frost Nova",mp:5,lv:8,d:"Freezes foe for a turn"},drain:{n:"Drain",mp:6,lv:10,d:"Steal HP from the foe"}};
+const SKL=Object.keys(SK);
+const TAL=[["might","Might","+1 ATK"],["vit","Vitality","+6 max HP"],["iron","Iron Skin","+1 DEF"],["focus","Focus","+3 max MP"],["scholar","Scholar","+10% XP"],["fortune","Fortune","+10% gold, better loot"]];
+const spCache={};
+function spr(kind,c){const key=kind+c;if(!spCache[key]){const ch=CH[c],m={slime:()=>mk(SLIME,{g:ch[3],k:"#111",w:"#fff"}),fslime:()=>mk(SLIME,{g:ch[4],k:"#111",w:"#fde047"}),bat:()=>mk(BAT,{b:ch[3],r:"#f87171"}),spider:()=>mk(SPIDER,{b:shade(ch[4],.7),r:"#f87171"}),ghost:()=>mk(GHOST,{w:"#e2e8f0",k:"#111"}),golem:()=>mk(GOLEM,{r:shade(ch[3],.8),d:shade(ch[3],.5),y:ch[4]}),imp:()=>mk(IMP,{b:ch[3],w:"#fde047",r:shade(ch[4],.8)}),knight:()=>mk(KNIGHT,{g:"#94a3b8",k:"#111",d:shade(ch[3],.6)}),dboss:()=>mk(KING,{g:ch[3],k:"#111",w:"#fff",y:ch[7]}),mage:()=>mk(MAGE,{r:shade(ch[3],.7),f:"#f4c28a",k:"#111",y:ch[4]}),boss:()=>mk(KING,{g:ch[7],k:"#111",w:"#fff",y:ch[4]})};spCache[key]=m[kind]()}return spCache[key]}
+function enemyDef(e){const c=e.c,f=1+.6*c,xf=1+.5*c,b=BASE[e.kind],boss=e.kind==="boss"||e.kind==="dboss";
+ return{name:boss?(e.kind==="dboss"?DB[c][1]:CH[c][6]):`${CH[c][1]} ${b.label}`,hp:Math.round(b.hp*f),atk:b.atk+Math.round(c*2.5),xp:Math.round(b.xp*xf),gold:Math.round(b.gold*xf),boss,c,kind:e.kind,armor:b.armor?Math.round(b.armor*(1+.4*c)):0,dodge:b.dodge||0,venom:!!b.venom,hex:!!b.hex}}
+
+const ROWS_V=["####################","#..................#","#.HHHH.......~~....#","#.HHHH.......~~....#","#.WWDW.............#","#...p..............#","#...ppppppppppp....E","#..................#","#.......#..........#","#..................#","#.....~~~..........#","#.....~~~......##..#","#..................#","#..................#","####################"];
+const SOLID="#~HWDL",PORT="ENSTOUv";
+const DB=[["Slime Warren","Gel Baron","Squish squish!"],["Hag's Hollow","Toad Witch","Ribbit... doom!"],["Scarab Tomb","Pharaoh Beetle","Dust to dust."],["Glacier Vault","Ice Warden","Chill out... forever."],["Magma Tunnels","Lava Drake","Burn!"],["Sea Grotto","Tide Siren","Sing with me..."],["Root Labyrinth","Thorn Beast","Tangled forever."],["Geode Mines","Prism Golem","I shine brighter!"],["Boiler Works","Steam Engine","SYSTEM OVERLOAD."],["Haunted Crypt","Banshee Matron","Wail with me!"],["Fudge Dungeon","Choco Knight","Sweet defeat!"],["Thunder Spire","Storm Mage","Zap zap zap!"],["Fungus Burrow","Mycelium Mother","Join the colony."],["Flooded Vault","Eel Warden","Shocking."],["Cloud Palace","Wind Sage","Blow away!"],["Catacombs","Bone Collector","Add your bones."],["Glass Dungeon","Mirror Knight","Fight yourself."],["Crater Mine","Comet Wyrm","Falling stars!"],["Nightmare Depths","Dream Eater","Sleep forever."],["The Abyss","Void Titan","The end begins."]];
+const TIPS=["Dark caves in the wilds lead to dungeons with keys, locked doors and a guardian boss.","The trader in Brightwick Town pays gold for monster parts.","Shrines bless you, but only once each.","Beaten bosses can be rematched in the Brightwick arena for loot.","Paths north of the wilds lead to highlands with sky chests.","Every Pixelton-style village has a south gate to Brightwick Town."];
+const TOWN=["####################","#..................#","#.HHHH..HHHH..HHHH.#","#.HHHH..HHHH..HHHH.#","#.WWDW..WWDW..WWDW.#","#..................#","#pppppppppppppppppp#","#..................#","#..................#","#.HHHH..~~....HHHH.#","#.HHHH..~~....HHHH.#","#.WWDW........WWDW.#","#..................#","#..................#","#########T##########"];
+function genTown(){return{zi:200,c:0,k:4,name:"Brightwick Town",base:"#6fa35a",dark:false,obs:"tree",rows:TOWN,ents:[
+ {t:"npc",id:"shop_smith",spr:"smith",name:"Smith Brant (Forge)",x:4,y:5},{t:"npc",id:"shop_potion",spr:"potioneer",name:"Potion Seller",x:10,y:5},{t:"npc",id:"shop_trader",spr:"trader",name:"Trader Mog",x:16,y:5},
+ {t:"npc",id:"shop_inn",spr:"innkeep",name:"Innkeeper (Inn)",x:4,y:12},{t:"npc",id:"shop_arena",spr:"arena",name:"Arena Master",x:16,y:12},
+ {t:"npc",id:"talk",spr:"villager",name:"Townsfolk",x:7,y:8,lines:["Brightwick is where every road meets. Heroes come from all 20 realms!"]},
+ {t:"npc",id:"talk",spr:"wanderer",name:"Wanderer",x:13,y:8,lines:[TIPS[0],TIPS[3]]},
+ {t:"npc",id:"talk",spr:"elder",name:"Old Sage",x:7,y:13,lines:["The Light Shards make you stronger. Smiths craft gear up to tier 20.","Use the south gate to return to where you came from."]},
+ {t:"chest",id:"mats",x:1,y:13}]}}
+const dcol=(c,s)=>2+Math.floor(rng(c*977+s*131+5)()*16);
+function genDungeon(zi){
+ const c=Math.floor((zi-1000)/20),s=(zi-1000)%20,ch=CH[c],last=s===11,lock=!last&&s%3!==2,vault=s%3===1,b=s?dcol(c,s-1):9,u=last?-1:dcol(c,s),vx=u>=10?2:15,
+  z={zi,c,k:5,s,name:`${DB[c][0]} · Room ${s+1}/12`,base:ch[2],dark:true,obs:"rock",ents:[]},pl=pool(c);
+ for(let a=0;a<80;a+=1){
+  const r=rng(zi*6007+a*97+3),g=Array.from({length:ROWS},(_,j)=>Array.from({length:COLS},(_,i)=>i===0||j===0||i===COLS-1||j===ROWS-1?"#":".")),dens=a<50?.1:0;
+  for(let j=1;j<ROWS-1;j+=1)for(let i=1;i<COLS-1;i+=1)if(r()<dens)g[j][i]="#";
+  if(a<50)for(let n=0;n<2;n+=1){const j=4+Math.floor(r()*7),gap=2+Math.floor(r()*16);for(let i=1;i<COLS-1;i+=1)if(Math.abs(i-gap)>1)g[j][i]="#"}
+  g[13][b]=g[12][b]=".";if(!last)g[1][u]=g[2][u]=".";
+  if(last)for(let j=1;j<=5;j+=1)for(let i=6;i<=12;i+=1)g[j][i]=".";
+  if(s===10)for(let j=6;j<=8;j+=1)for(let i=8;i<=10;i+=1)g[j][i]=".";
+  if(vault){for(let j=1;j<=3;j+=1)for(let i=vx;i<=vx+2;i+=1)g[j][i]="#";g[2][vx+1]=g[3][vx+1]=g[4][vx+1]="."}
+  const cells=[];
+  for(let j=1;j<=11;j+=1)for(let i=1;i<COLS-1;i+=1){if(g[j][i]!=="."||(last&&j<=5&&i>=6&&i<=12)||(s===10&&j>=6&&j<=8&&i>=8&&i<=10)||(Math.abs(i-u)<=1&&j<=2)||(vault&&j<=4&&i>=vx&&i<=vx+2))continue;cells.push([i,j])}
+  for(let i=cells.length-1;i>0;i-=1){const n=Math.floor(r()*(i+1));[cells[i],cells[n]]=[cells[n],cells[i]]}
+  const pk=()=>pl[pl.length-1-Math.floor(r()*Math.min(4,pl.length))],ents=[],add=o=>{const q=cells.pop();ents.push(Object.assign({x:q[0],y:q[1]},o))};
+  if(last){ents.push({t:"enemy",kind:"boss",c,x:9,y:4},{t:"crystal",c,x:9,y:2},{t:"chest",id:"reward",x:12,y:2})}
+  else if(s===10){ents.push({t:"enemy",kind:"dboss",c,x:9,y:7});add({t:"chest",id:"key",seal:true})}
+  else if(lock)add({t:"chest",id:"key"});
+  if(vault){if(!last&&(lock||s===10))add({t:"chest",id:"key"});ents.push({t:"chest",id:"vault",x:vx+1,y:2})}
+  add({t:"chest",id:s%2?"mats":"gold"});
+  for(let n=0;n<3+Math.floor(s/3);n+=1)add({t:"enemy",kind:pk(),c});
+  const gb=g.map(row=>row.slice());ents.forEach(e=>{gb[e.y][e.x]="#"});
+  const seen=reachable(gb,b,13);
+  if(ents.every(e=>[[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dy])=>seen.has((e.x+dx)+","+(e.y+dy))))&&(last||seen.has(u+",1"))&&(!vault||seen.has((vx+1)+",4"))){
+   g[14][b]="U";if(!last)g[0][u]=lock?"L":"v";if(vault)g[3][vx+1]="L";z.rows=g.map(r2=>r2.join(""));z.ents=ents;return z}
+ }
+ return z}
+const GROUND={path:["#c9a367","#b88f52","#d7b57f"]};
+function reachable(g,sx=1,sy=6){const seen=new Set([sx+","+sy]),q=[[sx,sy]];while(q.length){const[a,b]=q.pop();for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const i=a+dx,j=b+dy,key=i+","+j;if(i<0||j<0||i>=COLS||j>=ROWS||seen.has(key)||SOLID.includes(g[j][i]))continue;seen.add(key);q.push([i,j])}}return seen}
+function genHigh(c){
+ const ch=CH[c],zi=100+c,z={zi,c,k:3,name:`${ch[0]} Highlands`,base:shade(ch[2],1.3),dark:false,obs:"rock",ents:[]},pl=pool(c);
+ for(let a=0;a<40;a+=1){
+  const r=rng(zi*7717+a),g=Array.from({length:ROWS},(_,j)=>Array.from({length:COLS},(_,i)=>i===0||j===0||i===COLS-1||j===ROWS-1?"#":"."));
+  g[14][9]="S";
+  for(let j=1;j<ROWS-1;j+=1)for(let i=1;i<COLS-1;i+=1){if(i===9&&j>=11)continue;if(r()<(a<25?.14:.03))g[j][i]=r()<.2?"~":"#"}
+  const cells=[];for(let j=1;j<=10;j+=1)for(let i=1;i<COLS-1;i+=1)if(g[j][i]===".")cells.push([i,j]);
+  for(let i=cells.length-1;i>0;i-=1){const n=Math.floor(r()*(i+1));[cells[i],cells[n]]=[cells[n],cells[i]]}
+  const ents=[];let q=cells.pop();ents.push({t:"chest",id:"sky",x:q[0],y:q[1]});q=cells.pop();ents.push({t:"chest",id:"gold",x:q[0],y:q[1]});
+  for(let n=0;n<3;n+=1){q=cells.pop();ents.push({t:"enemy",kind:pl[pl.length-1-Math.floor(r()*Math.min(3,pl.length))],c,x:q[0],y:q[1]})}
+  q=cells.pop();ents.push({t:"shrine",x:q[0],y:q[1]});q=cells.pop();ents.push({t:"chest",id:"mats",x:q[0],y:q[1]});
+  const seen=reachable(g,9,13);
+  if(ents.every(e=>[[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dy])=>seen.has((e.x+dx)+","+(e.y+dy))))){z.rows=g.map(r2=>r2.join(""));z.ents=ents;return z}
+ }
+ z.rows=ROWS_V.map((row,j)=>j===14?"#########S#########".slice(0,20):row.replace(/[HWD~pE]/g,".").replace(/^\./,"#").replace(/\.$/,"#"));
+ z.rows[14]="#########S##########";z.ents=[{t:"chest",id:"sky",x:9,y:4}];return z}
+function genZone(zi){
+ if(zi>=1000)return genDungeon(zi);
+ if(zi===200)return genTown();
+ if(zi>=100)return genHigh(zi-100);
+ const c=Math.floor(zi/3),k=zi%3,ch=CH[c],z={zi,c,k,name:`${ch[0]} ${["Village","Wilds","Depths"][k]}`,base:ch[2],dark:k===2,obs:k===2?"rock":ch[5],ents:[]};
+ if(zi===0){z.rows=ROWS_V.map((row,j)=>j===14?"#########T##########":row);z.ents=[{t:"npc",id:"sign",spr:"sign",name:"Sign",x:8,y:13,lines:["South gate: Brightwick Town. Shops, an inn and a boss arena!"]},{t:"chest",id:"start",x:5,y:7},{t:"npc",id:"elder",spr:"elder",name:"Elder Pix",x:10,y:4},{t:"npc",id:"guard",spr:"guard",name:"Gate Guard",x:18,y:6},{t:"npc",id:"merchant",spr:"villager",name:"Merchant",x:3,y:10},{t:"npc",id:"quest",spr:"quester",name:"Captain Rue",x:12,y:10}];return z}
+ for(let a=0;a<40;a+=1){
+  const r=rng(zi*9973+a*131+7),g=Array.from({length:ROWS},(_,j)=>Array.from({length:COLS},(_,i)=>i===0||j===0||i===COLS-1||j===ROWS-1?"#":"."));
+  g[6][0]="E";if(zi<ZONES-1)g[6][19]="E";if(k===1)g[0][9]="N";
+  const dens=a<25?.12:.04;
+  for(let j=1;j<ROWS-1;j+=1)for(let i=1;i<COLS-1;i+=1){if(j>=5&&j<=7)continue;if(r()<dens)g[j][i]=r()<.25&&k!==2?"~":"#"}
+  if(k===1)g[1][9]=".";
+  if(k<2){g[13][9]=".";g[14][9]=k===0?"T":"O"}
+  if(k===0){["HHHH","HHHH","WWDW"].forEach((row,j)=>[...row].forEach((ch2,i)=>{g[2+j][2+i]=ch2}));for(let i=1;i<19;i+=1)if(g[6][i]===".")g[6][i]="p"}
+  const cells=[];for(let j=1;j<ROWS-1;j+=1)for(let i=2;i<COLS-2;i+=1)if(g[j][i]==="."&&j!==6&&!(j===1&&i===9)&&!(i===9&&j===13))cells.push([i,j]);
+  for(let i=cells.length-1;i>0;i-=1){const n=Math.floor(r()*(i+1));[cells[i],cells[n]]=[cells[n],cells[i]]}
+  const take=()=>cells.pop(),ents=[];
+  const pl=pool(c),pickKind=()=>pl[Math.floor(r()*pl.length)];
+  if(k===0){let q=take();ents.push({t:"npc",id:"healer",spr:"elder",name:"Village Healer",x:q[0],y:q[1]});q=take();ents.push({t:"npc",id:"merchant",spr:"villager",name:"Merchant",x:q[0],y:q[1]});q=take();ents.push({t:"chest",id:"gold",x:q[0],y:q[1]});q=take();ents.push({t:"npc",id:"quest",spr:"quester",name:"Captain "+["Rue","Vale","Thorn","Wren","Cass"][c%5],x:q[0],y:q[1]});q=take();ents.push({t:"chest",id:"mats",x:q[0],y:q[1]});q=take();ents.push({t:"npc",id:"sign",spr:"sign",name:"Sign",x:q[0],y:q[1],lines:["South gate: Brightwick Town. Shops, inn, arena and more."]})}
+  else if(k===1){let q=take();ents.push({t:"npc",id:"hermit",spr:"hermit",name:"Old Hermit",x:q[0],y:q[1]});q=take();ents.push({t:"chest",id:"potions",x:q[0],y:q[1]});q=take();ents.push({t:"chest",id:"mats",x:q[0],y:q[1]});q=take();ents.push({t:"shrine",x:q[0],y:q[1]});q=take();ents.push({t:"npc",id:"talk",spr:"wanderer",name:"Wanderer",x:q[0],y:q[1],lines:[TIPS[(c+1)%TIPS.length],TIPS[(c*2+4)%TIPS.length]]});q=take();ents.push({t:"npc",id:"sign",spr:"sign",name:"Sign",x:q[0],y:q[1],lines:["South: a dark cave. DANGER! Dungeon with keys, locked doors and a boss.","North: a path to the highlands."]});for(let n=0;n<5;n+=1){q=take();ents.push({t:"enemy",kind:pickKind(),c,x:q[0],y:q[1]})}}
+  else{let q=take();ents.push({t:"chest",id:"gear",x:q[0],y:q[1]});q=take();ents.push({t:"chest",id:"mats",x:q[0],y:q[1]});for(let n=0;n<3;n+=1){q=take();ents.push({t:"enemy",kind:pickKind(),c,x:q[0],y:q[1]})}if(zi<ZONES-1)ents.push({t:"gate",c,x:18,y:6})}
+  const seen=reachable(g);
+  if(ents.every(e=>[[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dy])=>seen.has((e.x+dx)+","+(e.y+dy))))&&seen.has("18,6")&&(k!==1||seen.has("9,1"))&&(k>1||seen.has("9,13"))){z.rows=g.map(r2=>r2.join(""));z.ents=ents;return z}
+ }
+ z.rows=ROWS_V.map((row,j)=>j===6?"E"+"p".repeat(18)+(zi<ZONES-1?"E":"#"):row.replace(/[HWD~p]/g,"."));
+ z.ents=k===2&&zi<ZONES-1?[{t:"gate",c,x:18,y:6}]:[];return z}
+
+function bake(z){
+ const c=document.createElement("canvas");c.width=W;c.height=H;const g=c.getContext("2d");
+ const base=z.dark?shade(z.base,.6):z.base,pal=[base,shade(base,1.15),shade(base,.85)],pp=z.dark?GROUND.path.map(h=>shade(h,.6)):GROUND.path;
+ const speck=(i,j,p)=>{g.fillStyle=p[0];g.fillRect(i*TS,j*TS,TS,TS);for(let n=0;n<5;n+=1){const h=hash(i*7+n,j*13+n);g.fillStyle=p[1+(h>>6)%2];g.fillRect(i*TS+(h%8)*PX,j*TS+((h>>3)%8)*PX,PX,PX)}};
+ z.rows.forEach((row,j)=>[...row].forEach((ch,i)=>{
+  const gx=i*TS,gy=j*TS;
+  speck(i,j,"pENSTOUv".includes(ch)?pp:pal);
+  if(ch==="N"||ch==="S"){g.fillStyle="#7c4a1e";g.fillRect(gx+PX*2,gy+PX*(ch==="N"?5:1),PX*4,PX*2);g.fillStyle="#facc15";g.fillRect(gx+PX*3,gy+PX*(ch==="N"?1:3),PX*2,PX*4)}
+  if(ch==="#")g.drawImage(z.obs==="rock"?SP.rock:SP.tree,gx,gy);
+  else if(ch==="~"){g.fillStyle="#2563eb";g.fillRect(gx,gy,TS,TS);g.fillStyle="#60a5fa";for(let n=0;n<3;n+=1){const h=hash(i*5+n,j*11+n);g.fillRect(gx+(h%5)*PX,gy+((h>>3)%8)*PX,3*PX,PX)}}
+  else if(ch==="H"){g.fillStyle="#b91c1c";g.fillRect(gx,gy,TS,TS);g.fillStyle="#991b1b";for(let r=1;r<8;r+=2)g.fillRect(gx,gy+r*PX,TS,PX)}
+  else if(ch==="W"||ch==="D"){g.fillStyle="#e5d3b3";g.fillRect(gx,gy,TS,TS);
+   if(ch==="W"){g.fillStyle="#475569";g.fillRect(gx+PX*2,gy+PX*2,PX*4,PX*4);g.fillStyle="#7dd3fc";g.fillRect(gx+PX*3,gy+PX*3,PX*2,PX*2)}
+   else{g.fillStyle="#6b4423";g.fillRect(gx+PX*2,gy+PX,PX*4,PX*7);g.fillStyle="#facc15";g.fillRect(gx+PX*5,gy+PX*4,PX,PX)}}
+  else if(ch==="L"){g.fillStyle="#6b4423";g.fillRect(gx,gy,TS,TS);g.fillStyle="#3b2a14";for(let n=1;n<8;n+=2)g.fillRect(gx+n*PX,gy,PX,TS);g.fillStyle="#facc15";g.fillRect(gx+PX*3,gy+PX*3,PX*2,PX*3)}
+  if(ch==="T"){g.fillStyle="#7c4a1e";g.fillRect(gx+PX,gy,PX*6,PX*2);g.fillRect(gx+PX,gy,PX,TS);g.fillRect(gx+PX*6,gy,PX,TS);g.fillStyle="#facc15";g.fillRect(gx+PX*2,gy+PX*3,PX*4,PX*2)}
+  else if(ch==="O"){g.fillStyle="#3b3b4f";g.fillRect(gx,gy,TS,TS);g.fillStyle="#020617";g.beginPath();g.arc(gx+TS/2,gy+TS,TS*.45,Math.PI,0);g.fill()}
+  else if(ch==="U"||ch==="v"){g.fillStyle="#1e293b";g.fillRect(gx+PX,gy+PX,PX*6,PX*6);g.fillStyle=ch==="v"?"#facc15":"#22d3ee";for(let n=0;n<3;n+=1)g.fillRect(gx+PX*2,gy+PX*(2+n*2),PX*4,PX)}
+ }));
+ z.bg=c;return z}
+
+let mode="title",t=0,zi=0,Z={},V=new Set(),p,dlg=null,B=null,held={},moveCd=0,graceT=0,mt=0,ms=0,mmsg="";
+const cz=()=>Z[zi]||(Z[zi]=bake(genZone(zi)));
+function newGame(){Z={};V=new Set();zi=0;p={x:4,y:7,dir:"right",hp:25,max:25,mp:6,mmax:6,sp:0,atk:1,def:0,lv:1,xp:0,gold:0,potions:0,sword:false,shards:0,got:{},fire:false,fb:0,keys:0,ret:0,upg:{hp:0,mp:0,atk:0,def:0},bd:[],wt:0,at:0,ct:0,inv:{gel:0,wing:0,silk:0,essence:0,ore:0},kills:{},qs:{},tal:{might:0,vit:0,iron:0,focus:0,scholar:0,fortune:0},skills:[],st:{poison:0,weak:0,stun:0,ward:0}};B=null}
+newGame();
+
+const alive=e=>!e.dead&&!e.gone;
+const entAt=(z,i,j)=>z.ents.find(e=>alive(e)&&e.x===i&&e.y===j);
+const isBoss=k=>k==="boss"||k==="dboss";
+const bossDead=z=>z.ents.some(e=>e.kind==="boss"&&e.dead);
+function say(name,lines,cb){dlg={name,lines,i:0,c:0,cb};mode="dialog"}
+function giveXp(n){const out=[];p.xp+=n;while(p.xp>=p.lv*20){p.xp-=p.lv*20;p.lv+=1;p.max+=8;p.hp=Math.min(p.max,p.hp+8);p.atk+=1;p.sp+=1;p.mmax+=2;p.mp=Math.min(p.mmax,p.mp+2);out.push(`Level up! You are now level ${p.lv}. (+8 max HP, +1 ATK, +1 skill point)`)}return out}
+const MAT_ORDER=["gel","wing","silk","essence","ore"];
+function questDef(id){
+ const f=id[0],zn=+id.slice(1),c=Math.floor(zn/3),r=rng(zn*7919+(f==="v"?1:2)),pl=pool(c),kind=zn===0?"slime":pl[Math.floor(r()*pl.length)];
+ const q={id,c,kind,rew:{gold:12+7*c,xp:15+10*c,pot:1+(r()<.5?1:0),sp:(f==="v"&&c%2===1)||(f==="h"&&c%3===2)?1:0,ore:f==="h"&&c>=1?1:0}};
+ if(zn===0||r()<.55){q.t="kill";q.n=zn===0?3:3+Math.floor(c/3)+Math.floor(r()*3);q.title=`Hunt ${q.n} ${BASE[kind].label}${q.n>1?"s":""}`}
+ else{const d=DROPS[kind];q.t="collect";q.mat=d[Math.floor(r()*d.length)];q.n=2+Math.floor(c/3)+Math.floor(r()*3);q.title=`Gather ${q.n} ${MATN[q.mat]}`}
+ return q}
+const qProg=(q,s)=>Math.max(0,Math.min(q.n,q.t==="kill"?(p.kills[q.kind]||0)-s.base:p.inv[q.mat]));
+const rewText=w=>[`${w.gold} gold`,`${w.xp} XP`,`${w.pot} Potion${w.pot>1?"s":""}`].concat(w.sp?["1 skill point"]:[],w.ore?["1 Ore"]:[]).join(", ");
+function questTalk(e,z){
+ const qid=(e.id==="hermit"?"h":"v")+z.zi,q=questDef(qid),s=p.qs[qid],lead=[];
+ if(e.id==="hermit"){p.hp=p.max;p.mp=p.mmax;lead.push("(The hermit shares some tea. HP and MP restored.)")}
+ if(!s)say(e.name,lead.concat([`I could use a hero's help. Task: ${q.title}.`,`Reward: ${rewText(q.rew)}.`,"Press I to check your quest log."]),()=>{p.qs[qid]={st:"active",base:p.kills[q.kind]||0}});
+ else if(s.st==="active"){
+  if(qProg(q,s)>=q.n){const w=q.rew;if(q.t==="collect")p.inv[q.mat]-=q.n;s.st="done";p.gold+=w.gold;p.potions+=w.pot;p.sp+=w.sp;p.inv.ore+=w.ore;
+   say(e.name,lead.concat([`${q.title}: done! Wonderful work.`,`You receive ${rewText(w)}.`],giveXp(w.xp)))}
+  else say(e.name,lead.concat([`${q.title}: ${qProg(q,s)}/${q.n}. Keep at it!`]))}
+ else say(e.name,lead.concat(["Thanks again, hero. The realm is safer thanks to you."]))
+}
+function checkQuests(){const out=[];for(const id in p.qs){const s=p.qs[id];if(s.st!=="active"||s.n)continue;const q=questDef(id);if(qProg(q,s)>=q.n){s.n=1;out.push(`Quest ready: ${q.title}. Return to turn it in.`)}}return out}
+const SPD={imp:24,knight:60,slime:50,fslime:44,bat:28,spider:34,ghost:40,golem:70,mage:55};
+function chase(){
+ const z=cz();if(graceT>0){graceT-=1;return}
+ for(const e of z.ents){
+  if(e.t!=="enemy"||isBoss(e.kind)||!alive(e))continue;
+  const dx=p.x-e.x,dy=p.y-e.y;
+  if(Math.max(Math.abs(dx),Math.abs(dy))>6)continue;
+  e.cd=(e.cd||0)-1;if(e.cd>0)continue;
+  if(Math.abs(dx)+Math.abs(dy)===1){startBattle(e);return}
+  e.cd=SPD[e.kind];
+  const sx=Math.sign(dx),sy=Math.sign(dy),opts=Math.abs(dx)>=Math.abs(dy)?[[sx,0],[0,sy]]:[[0,sy],[sx,0]];
+  for(const[mx,my]of opts){
+   if(!mx&&!my)continue;const nx=e.x+mx,ny=e.y+my;
+   if(nx<1||ny<1||nx>=COLS-1||ny>=ROWS-1)continue;
+   const tc=z.rows[ny][nx];
+   if(SOLID.includes(tc)||PORT.includes(tc)||entAt(z,nx,ny)||(nx===p.x&&ny===p.y))continue;
+   e.x=nx;e.y=ny;break}
+ }
+}
+function enterZone(n,px,py){
+ zi=n;p.x=px;p.y=py;moveCd=10;graceT=75;const z=cz(),ch=CH[z.c];
+ if(!V.has(n)){V.add(n);
+  if(z.k===0&&n>0)say(ch[0],[ch[8]]);
+  else if(z.k===4)say("Brightwick",["Welcome to Brightwick Town, the crossroads of all realms! The forge, potion seller, trader, inn and boss arena are all here. Walk up to a shopkeeper to trade."]);
+  else if(z.k===5&&z.s===0)say("Narrator",[`${DB[z.c][0]}: 12 rooms of monsters, locked doors and hidden vaults. A guardian waits near the end.`,"Find keys in chests, unlock the doors at the top of each room and keep going deeper."]);
+  else if(z.k===5&&z.s===10)say("Narrator",[`${DB[z.c][1]} guards the key to the final door. Beyond it, ${CH[z.c][6]} holds the Light Shard.`]);
+  else if(z.k===5&&z.s===11)say("Narrator",[`${CH[z.c][6]} awaits. "${CH[z.c][10]}"`]);
+  else if(z.k===3)say("Narrator",["You climb a winding path into the highlands. Thin air, big views, and treasure no one has touched."]);
+  else if(z.k===2)say("Narrator",[`A dark barrier blocks the east gate. Fetch the Light Shard from the ${DB[z.c][0]} (the cave south of the ${ch[0]} Wilds).`])}
+}
+
+function interact(e,z){
+ const ch=CH[z.c];
+ if(e.t==="chest"){if(e.open)return;e.open=true;
+  if(e.id==="start"){p.sword=true;p.atk+=3;p.potions+=1;p.gold+=5;
+   say("Chest",["You open the old chest... a glow fills the room!","Found: Rusty Sword (ATK +3), 1 Potion and 5 gold.","Tip: press I (or the ☰ button) to craft gear, learn skills and read your quest log.","A note reads: \"Hero of Pixelton, the Bright Light is shattered. Gather all 20 shards. Speak to the gate guard.\""])}
+  else if(e.id==="gold"){const g=10+5*z.c;p.gold+=g;p.potions+=1;say("Chest",[`Found: ${g} gold and 1 Potion!`])}
+  else if(e.id==="potions"){p.potions+=3;p.gold+=10;say("Chest",["Found: 3 Potions and 10 gold!"])}
+  else if(e.id==="key"){if(e.seal&&!z.ents.some(m=>m.kind==="dboss"&&m.dead)){e.open=false;say("Chest",["A dark aura seals this chest. Defeat the guardian first!"]);return}p.keys+=1;say("Chest",["Found: a Dungeon Key! Use it on the locked door."])}
+  else if(e.id==="mats"){const a=MAT_ORDER[rnd(MAT_ORDER.length)],b=MAT_ORDER[rnd(MAT_ORDER.length)],g=5+3*z.c;p.inv[a]+=2;p.inv[b]+=1;p.gold+=g;say("Chest",[`Found: 2 ${MATN[a]}, 1 ${MATN[b]} and ${g} gold!`])}
+  else if(e.id==="vault"){const g=50+20*z.c;p.gold+=g;p.potions+=3;p.inv.essence+=2;p.inv.ore+=1;say("Vault",[`Vault treasure! ${g} gold, 3 Potions, 2 Essence and 1 Ore.`])}
+  else if(e.id==="reward"){if(!bossDead(z)){e.open=false;say("Chest",["A dark aura seals the chest. Defeat the boss first!"]);return}
+   const g=60+20*z.c;p.gold+=g;p.sp+=1;p.max+=10;p.hp=p.max;p.inv.ore+=2;p.inv.essence+=1;const lines=[`${CH[z.c][6]}'s hoard! +10 max HP, 1 skill point, ${g} gold, 2 Ore and 1 Essence.`];if(z.c===0&&!p.fire){p.fire=true;lines.push("You also found the Dragon Charm! In battle choose Fire Breath for a huge burning blast. It has a long cooldown (10 turns).")}say("Treasure",lines)}
+  else if(e.id==="sky"){p.sp+=1;p.potions+=2;p.inv.essence+=1;say("Sky Chest",["Found: 1 skill point, 2 Potions and 1 Essence!"])}
+  else{p.atk+=1;p.def+=1;say("Chest",[`Found: ${ch[1]} Charm (ATK +1, DEF +1)!`])}
+ }else if(e.t==="npc"){
+  if(e.lines)say(e.name,e.lines);
+  else if(e.id.startsWith("shop_"))openShop(e.id.slice(5));
+  else if(e.id==="elder"){if(!p.sword)say(e.name,["Hero! The Bright Light that lit our world has shattered into 20 shards!","A chest appeared at your door last night. I believe it holds our hope. Open it!"]);
+   else{p.hp=p.max;p.mp=p.mmax;say(e.name,["That blade suits you. May the Bright Light guide you!","(Elder Pix restores your health and MP.)"])}}
+  else if(e.id==="guard"){if(!p.sword)say(e.name,["Halt! The wilds are full of slimes.","Come back when you are armed."]);
+   else say(e.name,["A sword! Then you are the hero from the prophecy.","Go east. The first Light Shard lies in the Pixelton Depths."],()=>{e.gone=true})}
+  else if(e.id==="merchant"){const price=10+2*z.c;if(p.gold>=price){p.gold-=price;p.potions+=1;say(e.name,[`One potion for ${price} gold. Thank you!`])}else say(e.name,[`Potions cost ${price} gold. Monsters drop coins!`,"Come back when you have some."])}
+  else if(e.id==="healer"){p.hp=p.max;p.mp=p.mmax;say(e.name,[`Rest, hero. The ${ch[6]} lurks in the ${DB[z.c][0]}, the cave south of the wilds.`,"(Your health and MP are fully restored.)"])}
+  else questTalk(e,z)
+ }else if(e.t==="shrine"){
+  if(e.used){p.hp=p.max;p.mp=p.mmax;say("Shrine",["The shrine hums softly. Your health and MP are restored."]);return}
+  e.used=true;p.hp=p.max;p.mp=p.mmax;const r=rnd(4);
+  say("Shrine",["A warm light washes over you.",r===0?"Blessing: +1 ATK!":r===1?"Blessing: +1 DEF!":r===2?"Blessing: +8 max HP!":"Blessing: +3 max MP!"]);
+  if(r===0)p.atk+=1;else if(r===1)p.def+=1;else if(r===2){p.max+=8;p.hp+=8}else{p.mmax+=3;p.mp+=3}
+ }else if(e.t==="enemy")startBattle(e);
+ else if(e.t==="gate"){if(p.got[e.c]){e.gone=true;say("Barrier",["The Light Shard shines and the dark barrier fades. The way east is open!"])}else say("Barrier",[`A wall of darkness blocks the way. Bring the Light Shard from the ${DB[e.c][0]}, the cave south of the ${ch[0]} wilds.`])}
+ else if(e.t==="crystal"){
+  if(!bossDead(z))say("Light Shard",[`The shard pulses with light, but ${ch[6]} still stands.`]);
+  else{e.gone=true;p.shards+=1;p.got[e.c]=true;p.sp+=1;p.mp=p.mmax;p.atk+=1;p.max+=5;p.hp=p.max;
+   if(p.shards>=20)mode="end";else say(ch[0],[ch[9],`Light Shards: ${p.shards}/20. The barrier in the ${ch[0]} depths will fade now.`])}
+ }
+}
+
+function tryMove(dx,dy){
+ p.dir=dx<0?"left":dx>0?"right":p.dir;
+ const nx=p.x+dx,ny=p.y+dy,z=cz();
+ if(nx<0||ny<0||nx>=COLS||ny>=ROWS)return;
+ const tc=z.rows[ny][nx];
+ if(tc==="L"){if(p.keys>0){p.keys-=1;z.rows[ny]=z.rows[ny].slice(0,nx)+(ny===0?"v":".")+z.rows[ny].slice(nx+1);bake(z);say("Door",["The key turns. The door unlocks!"])}else say("Locked Door",["It is locked. A key must be hidden somewhere on this floor."]);return}
+ if(SOLID.includes(tc))return;
+ const e=entAt(z,nx,ny);if(e){interact(e,z);return}
+ p.x=nx;p.y=ny;
+ if(tc==="E")enterZone(nx===0?zi-1:zi+1,nx===0?18:1,6);
+ else if(tc==="N")enterZone(100+z.c,9,13);
+ else if(tc==="S")enterZone(z.c*3+1,9,1);
+ else if(tc==="T"){if(zi===200)enterZone(p.ret,9,13);else{p.ret=zi;enterZone(200,9,13)}}
+ else if(tc==="O")enterZone(1000+z.c*20,9,13);
+ else if(tc==="U"){if(z.s>0)enterZone(zi-1,p.x,1);else enterZone(z.c*3+1,9,13)}
+ else if(tc==="v")enterZone(zi+1,p.x,13)
+}
+
+function startBattle(e){const d=enemyDef(e);B={ent:e,e:d,max:d.hp,hp:d.hp,sel:0,sub:false,es:{burn:0,freeze:0},n:0,enraged:false,last:0,log:d.boss?`${d.name} appears. "${d.kind==="dboss"?DB[d.c][2]:CH[d.c][10]}"`:`A ${d.name} appears!`,q:[],timer:60,over:null,shake:0,hurt:0};mode="battle"}
+const bq=fn=>B.q.push(fn);
+const ATK=()=>Math.max(1,Math.round(p.atk*(p.st.weak?.7:1)));
+function killCheck(){
+ if(B.hp>0||B.over)return null;
+ B.over="win";const e=B.e,g=Math.round(e.gold*(1+.1*p.tal.fortune)),n=Math.round(e.xp*(1+.1*p.tal.scholar));
+ p.gold+=g;p.kills[e.kind]=(p.kills[e.kind]||0)+1;
+ giveXp(n).forEach(m=>bq(()=>m));
+ const d=rollDrops(e);if(d)bq(()=>d);
+ return `${e.name} is defeated! +${n} XP, +${g} gold.`
+}
+function rollDrops(e){
+ const got=[];
+ if(e.boss){p.inv.ore+=2;p.inv.essence+=1;got.push("2 Ore","1 Essence")}
+ else if(Math.random()<.7+.08*p.tal.fortune){const m=DROPS[e.kind][rnd(DROPS[e.kind].length)];p.inv[m]+=1;got.push(`1 ${MATN[m]}`)}
+ return got.length?`Loot: ${got.join(", ")}.`:null
+}
+function strike(mult,pierce,label){return()=>{
+ B.last=0;
+ if(!pierce&&B.e.dodge&&Math.random()<B.e.dodge)return `${B.e.name} slips away from your ${label}!`;
+ let d=Math.round((ATK()+rnd(3))*mult);if(!pierce)d=Math.max(1,d-B.e.armor);
+ B.hp=Math.max(0,B.hp-d);B.shake=12;B.last=d;return `Your ${label} hits for ${d}!`}}
+function enemyTurn(){
+ if(p.fb>0)p.fb-=1;
+ bq(()=>{
+  if(B.over||B.hp<=0||B.es.burn<=0)return null;
+  B.es.burn-=1;const d=3+B.e.c*2;B.hp=Math.max(0,B.hp-d);B.shake=8;const k=killCheck();
+  return `${B.e.name} burns for ${d}!`+(k?" "+k:"")});
+ bq(()=>{
+  if(B.over)return null;
+  const e=B.e,pre=[];
+  if(B.es.freeze>0){B.es.freeze-=1;return `${e.name} is frozen and can't move!`}
+  if(e.boss&&!B.enraged&&B.hp<B.max/2){B.enraged=true;e.atk=Math.round(e.atk*1.3);pre.push(`${e.name} flies into a rage!`)}
+  B.n+=1;
+  const slam=e.boss&&e.c%4===2&&B.n%4===0;
+  let d=Math.max(1,e.atk+rnd(3)-p.def);if(slam)d=Math.round(d*1.5);
+  if(p.st.ward>0)d=Math.max(1,Math.round(d/2));
+  p.hp=Math.max(0,p.hp-d);B.hurt=12;
+  let m=`${e.name} ${slam?"slams":"hits"} you for ${d}!`;
+  if(slam&&Math.random()<.6){p.st.stun=1;m+=" Stunned!"}
+  if((e.venom||(e.boss&&e.c%4===1))&&Math.random()<(e.boss?.5:.35)){p.st.poison=3;m+=" Poisoned!"}
+  if(e.hex&&Math.random()<.3){p.st.weak=3;m+=" Weakened!"}
+  if(e.boss&&e.c%4===3){const h=Math.round(d*.5);B.hp=Math.min(B.max,B.hp+h);m+=` It drains ${h} HP.`}
+  if(p.hp<=0)B.over="lose";
+  return pre.concat(m).join(" ")});
+ bq(()=>{
+  if(B.over)return null;
+  let m=null;
+  if(p.st.poison>0){const d=2+B.e.c;p.st.poison-=1;p.hp=Math.max(0,p.hp-d);if(p.hp<=0)B.over="lose";m=`Poison deals ${d} damage to you.`}
+  if(p.st.weak>0)p.st.weak-=1;
+  if(p.st.ward>0)p.st.ward-=1;
+  return m})
+}
+function battleMenu(){return B.sub?p.skills.map(k=>SK[k]).concat([{n:"Back"}]):[{n:"Attack"},{n:"Skill"},{n:`Potion (${p.potions})`}].concat(p.fire?[{n:`Fire Breath (${p.fb>0?p.fb:"ready"})`}]:[],[{n:"Run"}])}
+function stunned(){p.st.stun-=1;bq(()=>"You are stunned and can't act!");enemyTurn()}
+function playerChoice(i){
+ if(B.q.length||B.timer||B.over)return;
+ const items=battleMenu();if(i<0||i>=items.length)return;
+ if(B.sub){
+  if(i===items.length-1){B.sub=false;B.sel=1;return}
+  const k=p.skills[i],s=SK[k];
+  if(p.mp<s.mp){bq(()=>"Not enough MP!");return}
+  B.sub=false;B.sel=0;
+  if(p.st.stun>0){stunned();return}
+  bq(()=>{p.mp-=s.mp;return null});
+  if(k==="power")bq(strike(2,false,"Power Strike"));
+  else if(k==="bolt"){bq(strike(1.2,true,"Fire Bolt"));bq(()=>{if(B.hp<=0)return null;B.es.burn=3;return `${B.e.name} is burning!`})}
+  else if(k==="frost"){bq(strike(.7,false,"Frost Nova"));bq(()=>{if(B.hp<=0)return null;if(B.e.boss&&Math.random()<.5)return `${B.e.name} resists the frost!`;B.es.freeze=1;return `${B.e.name} is frozen!`})}
+  else if(k==="drain"){bq(strike(1,true,"Drain"));bq(()=>{if(B.last<=0)return null;const h=Math.min(p.max-p.hp,Math.round(B.last*.6));p.hp+=h;return `You steal ${h} HP.`})}
+  else if(k==="mend")bq(()=>{const h=Math.min(Math.round(p.max*.3)+8,p.max-p.hp);p.hp+=h;return `Mend restores ${h} HP.`});
+  else if(k==="guard")bq(()=>{p.st.ward=2;return "A shimmering ward surrounds you."});
+  else bq(()=>{p.st.poison=p.st.weak=p.st.stun=0;const h=Math.min(5,p.max-p.hp);p.hp+=h;return "Cleanse purges your ailments."});
+  bq(killCheck);enemyTurn();return}
+ if(i===0){
+  if(p.st.stun>0){stunned();return}
+  bq(()=>{p.mp=Math.min(p.mmax,p.mp+1);return null});bq(strike(1,false,"strike"));bq(killCheck);enemyTurn()}
+ else if(i===1){
+  if(!p.skills.length){bq(()=>"You know no skills yet. Press I to learn some!");return}
+  B.sub=true;B.sel=0}
+ else if(i===2){
+  if(p.potions<=0){bq(()=>"You have no potions!");return}
+  if(p.st.stun>0){stunned();return}
+  bq(()=>{p.potions-=1;p.st.poison=0;const h=Math.min(Math.round(p.max*.4)+10,p.max-p.hp);p.hp+=h;return `You drink a potion and recover ${h} HP.`});enemyTurn()}
+ else if(p.fire&&i===3){
+  if(p.fb>0){bq(()=>`Fire Breath is recharging (${p.fb} turns).`);return}
+  if(p.st.stun>0){stunned();return}
+  p.fb=11;bq(strike(3,true,"Fire Breath"));bq(()=>{if(B.hp<=0)return null;B.es.burn=3;return `${B.e.name} is burning!`});bq(killCheck);enemyTurn()}
+ else{if(B.e.boss){bq(()=>`You can't run from the ${B.e.name}!`);return}
+  if(Math.random()<.7)bq(()=>{B.over="run";return "You got away safely!"});
+  else{bq(()=>"You couldn't escape!");enemyTurn()}}
+}
+function battleUpdate(){
+ B.shake=Math.max(0,B.shake-1);B.hurt=Math.max(0,B.hurt-1);
+ if(B.timer>0){B.timer-=1;return}
+ while(B.q.length){const m=B.q.shift()();if(m!==null){B.log=m;B.timer=50;return}}
+ if(B.over)endBattle()
+}
+function endBattle(){
+ const o=B.over,e=B.ent,d=B.e;B=null;p.st={poison:0,weak:0,stun:0,ward:0};
+ if(o==="win"){e.dead=true;mode="explore";const lines=[];if(d.boss&&!e.arena){if(!p.bd.some(b=>b.kind===d.kind&&b.c===d.c))p.bd.push({kind:d.kind,c:d.c});lines.push(`The ${d.name} is defeated!`,d.kind==="boss"?"A Light Shard floats free. Take it!":"The guardian's treasure is unguarded now.")}lines.push(...checkQuests());if(lines.length)say("Narrator",lines)}
+ else if(o==="run"){e.cd=120;mode="explore"}
+ else mode="gameover"
+}
+
+let S=null;
+const SELL={gel:3,wing:5,silk:6,essence:9,ore:12};
+const RUMORS=["They say every realm hides a dark cave with a boss at the bottom.","Keys are found in chests guarded by monsters on each dungeon floor.","The arena pays well in Ore and Essence.","Save your Ore for gear. Blades, mail and charms go up to tier 20."];
+const price=()=>12+2*p.shards;
+function openShop(kind){S={kind,sel:0,msg:""};mode="shop"}
+function shopItems(){
+ const k=S.kind,L=[],u=p.upg;
+ if(k==="potion"){
+  L.push({n:"Potion",d:`Heals 40% HP +10. You carry ${p.potions}.`,c:price(),f:()=>{p.potions+=1}});
+  L.push({n:"Potion x5",d:"Five potions at a discount.",c:price()*4,f:()=>{p.potions+=5}});
+  L.push({n:`Life Elixir (${u.hp}/10)`,d:"+6 max HP permanently.",c:100+40*u.hp,x:u.hp>=10&&"Sold out",f:()=>{u.hp+=1;p.max+=6;p.hp+=6}});
+  L.push({n:`Mana Crystal (${u.mp}/10)`,d:"+2 max MP permanently.",c:90+35*u.mp,x:u.mp>=10&&"Sold out",f:()=>{u.mp+=1;p.mmax+=2;p.mp+=2}})}
+ else if(k==="smith"){
+  L.push({n:`Whetstone (${u.atk}/10)`,d:"+1 ATK permanently.",c:120+60*u.atk,x:u.atk>=10&&"Sold out",f:()=>{u.atk+=1;p.atk+=1}});
+  L.push({n:`Armor Polish (${u.def}/10)`,d:"+1 DEF permanently.",c:120+60*u.def,x:u.def>=10&&"Sold out",f:()=>{u.def+=1;p.def+=1}});
+  L.push({n:"Smelt Ore",d:"Melt 3 Gel into 1 Ore for 10 gold.",c:10,x:p.inv.gel<3&&"Need 3 Gel",f:()=>{p.inv.gel-=3;p.inv.ore+=1}})}
+ else if(k==="trader"){
+  MAT_ORDER.forEach(m=>L.push({n:`Sell all ${MATN[m]} (${p.inv[m]})`,d:`${SELL[m]} gold each.`,c:0,x:p.inv[m]<1&&"Nothing to sell",f:()=>{const g=p.inv[m]*SELL[m],n=p.inv[m];p.inv[m]=0;p.gold+=g;return `Sold ${n} ${MATN[m]} for ${g} gold.`}}));
+  L.push({n:"Buy Ore",d:"One Ore for crafting.",c:45,f:()=>{p.inv.ore+=1}});
+  L.push({n:"Buy Essence",d:"One Essence for crafting.",c:35,f:()=>{p.inv.essence+=1}})}
+ else if(k==="inn"){
+  L.push({n:"Rest",d:"Fully restore HP and MP, cure ailments.",c:10+2*p.lv,f:()=>{p.hp=p.max;p.mp=p.mmax;return "You sleep soundly. HP and MP restored."}});
+  L.push({n:"Hear a rumor",d:"Free gossip.",c:0,f:()=>RUMORS[rnd(RUMORS.length)]})}
+ else p.bd.forEach(b=>{const nm=b.kind==="boss"?CH[b.c][6]:DB[b.c][1];L.push({n:`Fight ${nm}`,d:`${b.kind==="boss"?CH[b.c][0]:DB[b.c][0]} boss rematch. Drops Ore and Essence.`,c:70+25*b.c,f:()=>{S=null;startBattle({t:"enemy",kind:b.kind,c:b.c,arena:true,x:0,y:0})}}) });
+ return L}
+function shopPress(k){
+ const L=shopItems();
+ if(k==="menu"||k==="left"||k==="q"){S=null;mode="explore";moveCd=10;return}
+ if(k==="up"||k==="down"){if(L.length)S.sel=(S.sel+(k==="up"?L.length-1:1))%L.length;S.msg="";return}
+ if(k!=="act"||!L.length)return;
+ const it=L[Math.min(S.sel,L.length-1)];
+ if(it.x){S.msg=it.x;return}
+ if(p.gold<it.c){S.msg="Not enough gold.";return}
+ p.gold-=it.c;const r=it.f();if(mode==="shop")S.msg=r||"Done!"
+}
+function drawShop(){
+ const L=shopItems(),T={potion:"Potion Shop",smith:"The Forge",trader:"Trader Mog",inn:"Brightwick Inn",arena:"Boss Arena"}[S.kind];
+ x.fillStyle="#0b1020";x.fillRect(0,0,W,H);box(12,10,W-24,H-20);
+ text(T,36,46,22,"#e0c040");text(`Gold ${p.gold}`,W-30,46,16,"#fde047","right");
+ if(!L.length)text("Defeat realm bosses and dungeon guardians to challenge them here.",36,110,14,"#94a3b8");
+ S.sel=Math.min(S.sel,Math.max(0,L.length-1));
+ const st=Math.max(0,Math.min(S.sel-3,L.length-8));
+ L.slice(st,st+8).forEach((it,j)=>{const i=st+j,on=i===S.sel;text((on?"▶ ":"  ")+it.n,36,92+j*34,16,on?"#e0c040":it.x?"#64748b":"#fff");text(it.c?`${it.c}g`:"free",W-36,92+j*34,16,p.gold>=it.c?"#fde047":"#ef4444","right")});
+ if(L[S.sel])text(L[S.sel].d,36,H-66,14,"#94a3b8");
+ text(S.msg,36,H-42,15,"#86efac");
+ text("↑/↓ choose · E buy · Q/I/Esc leave",W/2,H-22,12,"#64748b","center")
+}
+const GEAR=[["Blade","wt","+2 ATK"],["Mail","at","+1 DEF"],["Charm","ct","+4 max HP, +1 max MP"]];
+function gearCost(s,t){return s===0?{ore:1+(t>>1),gel:2+t}:s===1?Object.assign({wing:1+t,gel:2+(t>>1)},t>=3?{silk:t-2}:{}):{essence:1+(t>>1),gel:1+t}}
+const rows=()=>mt===0?3:mt===1?TAL.length+SKL.length:1;
+function menuPress(k){
+ if(k==="menu"){mode="explore";return}
+ if(k==="left"||k==="right"){mt=(mt+(k==="left"?3:1))%4;ms=0;mmsg="";return}
+ if(k==="up"||k==="down"){const n=rows();ms=(ms+(k==="up"?n-1:1))%n;mmsg="";return}
+ if(k!=="act")return;
+ if(mt===0){
+  const[nm,key,eff]=GEAR[ms],cur=p[key],t=cur+1;
+  if(cur>=20){mmsg="Already at max tier.";return}
+  if(t>p.shards+1){mmsg=`Tier ${t} needs ${t-1} Light Shards.`;return}
+  const cost=gearCost(ms,t);
+  if(!Object.entries(cost).every(([m,v])=>p.inv[m]>=v)){mmsg="Not enough materials.";return}
+  Object.entries(cost).forEach(([m,v])=>{p.inv[m]-=v});p[key]=t;
+  if(ms===0)p.atk+=2;else if(ms===1)p.def+=1;else{p.max+=4;p.hp+=4;p.mmax+=1}
+  mmsg=`Crafted ${CH[t-1][1]} ${nm}! (${eff})`}
+ else if(mt===1){
+  if(ms<TAL.length){const[id,nm]=TAL[ms];
+   if(p.sp<1){mmsg="No skill points left.";return}if(p.tal[id]>=5){mmsg=`${nm} is maxed.`;return}
+   p.sp-=1;p.tal[id]+=1;if(id==="might")p.atk+=1;else if(id==="vit"){p.max+=6;p.hp+=6}else if(id==="iron")p.def+=1;else if(id==="focus"){p.mmax+=3;p.mp+=3}
+   mmsg=`${nm} rank ${p.tal[id]}!`}
+  else{const key=SKL[ms-TAL.length],s=SK[key];
+   if(p.skills.includes(key)){mmsg="Already learned.";return}if(p.lv<s.lv){mmsg=`${s.n} needs level ${s.lv}.`;return}if(p.sp<1){mmsg="No skill points left.";return}
+   p.sp-=1;p.skills=SKL.filter(n=>p.skills.includes(n)||n===key);mmsg=`Learned ${s.n}! Use it from the Skill battle menu.`}}
+}
+function press(k){
+ if(mode==="title"&&k==="act"){mode="explore";say("Narrator",["The Bright Light once shone over every realm. Then the Dark Land of Darkness swallowed it, and the light shattered into 20 shards.","Monster lords hold the shards in 20 realms. Without them the world fades.","You wake up at dawn in Pixelton. A mysterious chest sits right beside you..."])}
+ else if(mode==="dialog"&&k==="act"){const d=dlg;if(d.c<d.lines[d.i].length){d.c=d.lines[d.i].length;return}d.i+=1;d.c=0;if(d.i>=d.lines.length){dlg=null;mode="explore";d.cb&&d.cb()}}
+ else if(mode==="battle"&&B&&!B.q.length&&!B.timer&&!B.over){
+  const n=battleMenu().length;
+  if(k==="up"||k==="left")B.sel=(B.sel+n-1)%n;else if(k==="down"||k==="right")B.sel=(B.sel+1)%n;else if(k==="act")playerChoice(B.sel);
+  else if(/^[1-9]$/.test(k))playerChoice(+k-1)}
+ else if(mode==="explore"&&k==="menu"){mode="menu";mt=0;ms=0;mmsg=""}
+ else if(mode==="menu")menuPress(k)
+ else if(mode==="shop"&&S)shopPress(k)
+ else if(mode==="gameover"&&k==="act"){p.hp=p.max;p.mp=p.mmax;p.gold=Math.floor(p.gold/2);const home=(zi>=1000?Math.floor((zi-1000)/20):zi>=200?0:zi>=100?zi-100:Math.floor(zi/3))*3;mode="explore";enterZone(home,home?1:4,home?6:7);say("Village Healer",["You wake up in the nearest village. The healer patched you up.","(You lost half your gold.) Try again, hero!"])}
+ else if(mode==="end"&&k==="act"){newGame();mode="title"}
+}
+const KEYS={ArrowUp:"up",KeyW:"up",ArrowDown:"down",KeyS:"down",ArrowLeft:"left",KeyA:"left",ArrowRight:"right",KeyD:"right",KeyE:"act",KeyI:"menu",KeyQ:"q",Tab:"menu",Escape:"menu",Digit1:"1",Digit2:"2",Digit3:"3",Digit4:"4",Digit5:"5",Digit6:"6",Digit7:"7",Digit8:"8"};
+addEventListener("keydown",e=>{const k=KEYS[e.code];if(!k)return;e.preventDefault();held[k]=true;if(!e.repeat)press(k)});
+addEventListener("keyup",e=>{const k=KEYS[e.code];if(k)held[k]=false});
+addEventListener("blur",()=>{held={}});
+document.querySelectorAll("[data-k]").forEach(b=>{const k=b.dataset.k;b.addEventListener("pointerdown",e=>{e.preventDefault();held[k]=true;press(k)});["pointerup","pointerleave","pointercancel"].forEach(ev=>b.addEventListener(ev,()=>{held[k]=false}))});
+
+function update(){
+ t+=1;
+ if(mode==="dialog"&&dlg){const len=dlg.lines[dlg.i].length;if(dlg.c<len)dlg.c=Math.min(len,dlg.c+1)}
+ else if(mode==="battle"&&B)battleUpdate();
+ else if(mode==="explore"){chase();if(mode!=="explore")return;if(moveCd>0)moveCd-=1;else{const d=held.up?[0,-1]:held.down?[0,1]:held.left?[-1,0]:held.right?[1,0]:null;if(d){tryMove(d[0],d[1]);moveCd=7}}}
+}
+
+function wrap(s,n){const out=[];let line="";s.split(" ").forEach(w=>{if((line+" "+w).trim().length>n){out.push(line);line=w}else line=(line+" "+w).trim()});if(line)out.push(line);return out}
+function box(a,b,w,h,edge="#e0c040"){x.fillStyle="#0b1020";x.fillRect(a,b,w,h);x.strokeStyle=edge;x.lineWidth=4;x.strokeRect(a+2,b+2,w-4,h-4)}
+function text(s,a,b,size=18,color="#fff",align="left"){x.font=`bold ${size}px "Courier New",monospace`;x.fillStyle=color;x.textAlign=align;x.fillText(s,a,b)}
+function bar(a,b,w,v,max,color){x.fillStyle="#1f2937";x.fillRect(a,b,w,12);x.fillStyle=color;x.fillRect(a,b,w*Math.max(0,v)/max,12);x.strokeStyle="#fff";x.lineWidth=2;x.strokeRect(a,b,w,12)}
+
+function drawExplore(){
+ const z=cz();x.drawImage(z.bg,0,0);
+ const list=z.ents.filter(alive).map(e=>({e,y:e.y})).concat([{p:true,y:p.y}]).sort((a,b)=>a.y-b.y);
+ list.forEach(o=>{
+  if(o.p){x.save();if(p.dir==="left"){x.translate((p.x+1)*TS,0);x.scale(-1,1);x.drawImage(SP.hero,0,p.y*TS)}else x.drawImage(SP.hero,p.x*TS,p.y*TS);x.restore();return}
+  const e=o.e,gx=e.x*TS,gy=e.y*TS;
+  if(e.t==="chest"){x.drawImage(e.open?SP.chestOpen:SP.chest,gx,gy);if(!e.open&&e.id==="start"){x.fillStyle="#fde047";for(let k=0;k<4;k+=1){const a=t/20+k*1.6;x.fillRect(gx+16+Math.cos(a)*18,gy+14+Math.sin(a)*14,4,4)}}}
+  else if(e.t==="npc")x.drawImage(SP[e.spr],gx,gy);
+  else if(e.t==="shrine"){x.globalAlpha=e.used?.5:1;x.drawImage(SP.shrine,gx,gy);x.globalAlpha=1}
+  else if(e.t==="gate"){x.fillStyle="#1e1b4b";x.globalAlpha=.7+.2*Math.sin(t/10);x.fillRect(gx,gy,TS,TS);x.fillStyle="#7c3aed";x.fillRect(gx+8,gy+4,PX,TS-8);x.fillRect(gx+20,gy+4,PX,TS-8);x.globalAlpha=1}
+  else if(e.t==="crystal"){x.globalAlpha=.5+.3*Math.sin(t/12);x.fillStyle="#22d3ee";x.fillRect(gx-8,gy-8,TS+16,TS+16);x.globalAlpha=1;x.drawImage(SP.crystal,gx,gy-2+Math.sin(t/15)*3)}
+  else if(e.t==="enemy"){const bob=Math.sin(t/10+e.x)*2;if(isBoss(e.kind))x.drawImage(spr(e.kind,e.c),gx-16,gy-32+bob,TS*2,TS*2);else x.drawImage(spr(e.kind,e.c),gx,gy+bob)}
+ });
+ box(8,8,290,z.k===5?108:84,"#3b4656");if(z.k===5)text(`Keys ${p.keys}`,18,104,14,"#fde047");
+ z.ents.forEach(e=>{if(e.t==="npc"&&alive(e)&&Math.abs(e.x-p.x)+Math.abs(e.y-p.y)<=3)text(e.name,e.x*TS+16,e.y*TS-4,12,"#fff","center")});
+ text(`HP ${p.hp}/${p.max}  MP ${p.mp}/${p.mmax}  LV ${p.lv}`,18,32,16);text(`ATK ${p.atk} DEF ${p.def} Potions ${p.potions} Gold ${p.gold}`,18,56,14,"#e0c040");text(`Light Shards ${p.shards}/20${p.sp?`  ·  ${p.sp} skill pt${p.sp>1?"s":""}!`:""}`,18,80,14,"#67e8f9");
+ text("[I] Menu",W-12,H-8,13,"#e2e8f0","right");
+ x.fillStyle="rgb(2 6 23 / 70%)";x.fillRect(W-290,8,282,26);text(z.name,W-18,27,15,"#6bb8dc","right")
+}
+function drawDialog(){
+ const d=dlg;box(16,H-150,W-32,134);
+ x.fillStyle="#c9a20f";x.fillRect(32,H-168,200,28);text(d.name,42,H-148,16,"#020617");
+ wrap(d.lines[d.i].slice(0,d.c),50).forEach((l,i)=>text(l,34,H-108+i*26,18));
+ if(d.c>=d.lines[d.i].length&&Math.floor(t/20)%2)text("▼",W-44,H-30,18,"#e0c040")
+}
+function drawBattle(){
+ const z=cz(),sx=B.shake?rnd(10)-5:0,big=B.e.boss?240:192,g=shade(z.base,z.dark?.5:.7);
+ x.fillStyle=shade(z.base,.3);x.fillRect(0,0,W,H);x.fillStyle=g;x.fillRect(0,250,W,H-250);
+ x.save();x.globalAlpha=B.hp>0?1:.4;x.drawImage(spr(B.e.kind,B.e.c),420-big/2+sx,230-big+Math.sin(t/12)*4,big,big);x.restore();
+ x.drawImage(SP.hero,70+(B.hurt?rnd(8)-4:0),170,140,140);
+ box(16,16,320,64,"#ef4444");text(B.e.name,28,42,18);bar(28,52,296,B.hp,B.max,"#ef4444");
+ const st=o=>Object.entries(o).filter(([,v])=>v>0).map(([k])=>k).join(" ");
+ text(st(B.es).replace("burn","🔥burn").replace("freeze","❄freeze"),324,42,13,"#fbbf24","right");
+ box(344,260,280,70,"#22c55e");text(`You  LV ${p.lv}  HP ${p.hp}/${p.max}`,356,286,16);bar(356,298,256,p.hp,p.max,"#22c55e");text(`MP ${p.mp}/${p.mmax}  ${st(p.st)}`,356,324,13,"#93c5fd");
+ box(16,H-140,W-32,124);
+ if(B.sub&&!B.q.length&&!B.timer&&!B.over){battleMenu().forEach((o,i)=>{const bad=o.mp&&p.mp<o.mp;text((B.sel===i?"▶ ":"  ")+(o.mp?`${o.n} (${o.mp})`:o.n),32+(i%2)*300,H-108+Math.floor(i/2)*26,16,B.sel===i?"#e0c040":bad?"#64748b":"#fff")});if(SK[p.skills[B.sel]])text(SK[p.skills[B.sel]].d,32,H-24,13,"#94a3b8");return}
+ wrap(B.log,34).forEach((l,i)=>text(l,32,H-104+i*26,18));
+ if(!B.q.length&&!B.timer&&!B.over){battleMenu().forEach((o,i)=>text((B.sel===i?"▶ ":"  ")+o.n,440,H-110+i*(p.fire?22:26),p.fire?16:18,B.sel===i?"#e0c040":"#fff"))}
+}
+function drawMenu(){
+ x.fillStyle="#0b1020";x.fillRect(0,0,W,H);box(12,10,W-24,H-20);
+ ["Craft","Skills","Quests","Bag"].forEach((n,i)=>{text(n,40+i*110,44,18,mt===i?"#e0c040":"#94a3b8");if(mt===i){x.fillStyle="#e0c040";x.fillRect(40+i*110,50,n.length*11,3)}});
+ text(`Skill pts ${p.sp}  ·  Gold ${p.gold}`,W-30,44,14,"#67e8f9","right");
+ const sel=(i,y,s,c="#fff")=>text((ms===i?"▶ ":"  ")+s,36,y,15,ms===i?"#e0c040":c);
+ if(mt===0)GEAR.forEach(([nm,key,eff],s)=>{const cur=p[key],t=cur+1;
+  if(cur>=20){sel(s,100+s*84,`${nm}: MAX tier`);return}
+  sel(s,100+s*84,`${CH[t-1][1]} ${nm}  (tier ${cur}→${t})  ${eff}`);
+  text(t>p.shards+1?`Needs ${t-1} Light Shards`:Object.entries(gearCost(s,t)).map(([m,v])=>`${MATN[m]} ${p.inv[m]}/${v}`).join("  "),70,122+s*84,14,t>p.shards+1?"#f87171":Object.entries(gearCost(s,t)).every(([m,v])=>p.inv[m]>=v)?"#86efac":"#94a3b8")});
+ else if(mt===1){
+  TAL.forEach(([id,nm,d],i)=>sel(i,80+i*23,`${nm} ${p.tal[id]}/5  ${d}`));
+  SKL.forEach((k,i)=>{const s=SK[k],has=p.skills.includes(k);sel(TAL.length+i,86+(TAL.length+i)*23,`${s.n} (MP ${s.mp}) Lv${s.lv}${has?"  [learned]":""}`,has?"#86efac":p.lv<s.lv?"#64748b":"#fff")});
+  const cur=ms>=TAL.length?SK[SKL[ms-TAL.length]]:null;text(cur?cur.d:TAL[ms][2],36,H-62,14,"#94a3b8")}
+ else if(mt===2){
+  const act=Object.keys(p.qs).filter(id=>p.qs[id].st==="active");
+  if(!act.length)text("No active quests. Talk to captains in villages and hermits in the wilds.",36,100,14,"#94a3b8");
+  act.slice(0,7).forEach((id,i)=>{const q=questDef(id),s=p.qs[id],pr=qProg(q,s);text(`${q.title}  ${pr}/${q.n}${pr>=q.n?"  ✔ turn in":""}`,36,92+i*44,15,pr>=q.n?"#86efac":"#fff");text(`${CH[q.c][0]} ${id[0]==="v"?"Village":"Wilds"} · reward: ${rewText(q.rew)}`,52,112+i*44,12,"#94a3b8")});
+  text(`Completed: ${Object.values(p.qs).filter(s=>s.st==="done").length}`,36,H-62,14,"#e0c040")}
+ else{
+  text(`Potions ${p.potions}`,36,90,16);MAT_ORDER.forEach((m,i)=>text(`${MATN[m]}: ${p.inv[m]}`,36,120+i*24,15,"#fde68a"));
+  text(`Weapon tier ${p.wt} · Armor tier ${p.at} · Charm tier ${p.ct}`,36,270,15);
+  text(`Monsters slain: ${Object.values(p.kills).reduce((a,b)=>a+b,0)}  ·  Skills: ${p.skills.length}/${SKL.length}`,36,298,15);
+  text(`ATK ${p.atk}  DEF ${p.def}  HP ${p.max}  MP ${p.mmax}`,36,326,15,"#e0c040");text(`Keys ${p.keys}  ·  Bosses beaten ${p.bd.length}/40`,36,354,15,"#fde047")}
+ text(mmsg,36,H-38,15,"#fde047");
+ text("←/→ tab · ↑/↓ choose · E use · I/Esc close",W/2,H-20,12,"#64748b","center")
+}
+function drawTitle(){
+ x.fillStyle="#0b1020";x.fillRect(0,0,W,H);for(let i=0;i<60;i+=1){const h=hash(i,3);x.fillStyle=h%3?"#475569":"#fde047";x.fillRect(h%W,(h>>8)%260,4,4)}
+ text("THE LOST LIGHT",W/2,110,52,"#e0b80f","center");text("is Bright",W/2,150,26,"#6bb8dc","center");
+ x.drawImage(SP.chest,W/2-64,200+Math.sin(t/15)*4,128,128);
+ if(Math.floor(t/30)%2)text("Press E or tap the button to begin",W/2,400,20,"#fff","center")
+}
+function drawEnd(){
+ x.fillStyle="#0b1020";x.fillRect(0,0,W,H);x.fillStyle="#22d3ee";x.globalAlpha=.25+.1*Math.sin(t/10);x.fillRect(0,0,W,H);x.globalAlpha=1;
+ x.drawImage(SP.crystal,W/2-64,120+Math.sin(t/15)*6,128,128);
+ text("THE BRIGHT LIGHT RETURNS!",W/2,80,34,"#e0b80f","center");
+ text("All 20 shards are restored. The Dark Land of Darkness fades.",W/2,290,16,"#fff","center");text(`Hero level ${p.lv}  ·  Gold ${p.gold}`,W/2,325,18,"#e0c040","center");
+ if(Math.floor(t/30)%2)text("Press E to play again",W/2,420,20,"#fff","center")
+}
+function drawOver(){
+ x.fillStyle="rgb(127 29 29 / 80%)";x.fillRect(0,0,W,H);text("YOU FELL IN BATTLE",W/2,220,38,"#fff","center");if(Math.floor(t/30)%2)text("Press E to wake up in the nearest village",W/2,270,20,"#e0c040","center")
+}
+
+function objective(){
+ if(mode==="title"||mode==="end")return "";
+ if(!p.sword)return "Open the glowing chest next to you!";
+ const z=cz(),ch=CH[z.c];
+ if(z.k===4)return "Brightwick Town · Walk up to shopkeepers to trade. The south gate leads back.";
+ if(z.k===5)return z.s===11?`${DB[z.c][0]} · Defeat ${CH[z.c][6]} and take the Light Shard.`:z.s===10?`${DB[z.c][0]} ${z.s+1}/12 · Defeat ${DB[z.c][1]} to unseal the key.`:`${DB[z.c][0]} ${z.s+1}/12 · Find keys and unlock the door at the top of the room.`;
+ if(z.k===3)return `${ch[0]} Highlands · Grab the treasure, then head back south.`;
+ if(zi===0)return z.ents.find(e=>e.id==="guard").gone?"Head east through the gate.":"Talk to the gate guard at the east gate.";
+ if(z.k===0)return `Realm ${z.c+1}/20 · Rest and shop, then head east.`;
+ if(z.k===1)return `Realm ${z.c+1}/20 · Cross the wilds heading east. A path north leads to the highlands.`;
+ return p.got[z.c]?"The shard is yours. Break the barrier and head east.":`Get the Light Shard from the ${DB[z.c][0]} (cave south of the wilds) to break the barrier.`
+}
+let lastObj="";
+function draw(){
+ if(mode==="title")drawTitle();
+ else if(mode==="end")drawEnd();
+ else if(mode==="battle"&&B)drawBattle();
+ else if(mode==="menu")drawMenu();
+ else if(mode==="shop"&&S)drawShop();
+ else{drawExplore();if(mode==="dialog"&&dlg)drawDialog();if(mode==="gameover")drawOver()}
+ x.fillStyle="rgb(8 10 40 / 28%)";x.fillRect(0,0,W,H);
+ const o=objective();if(o!==lastObj){lastObj=o;statusEl.textContent=o}
+}
+function frame(){update();draw();requestAnimationFrame(frame)}
+frame();
+</script></body></html>

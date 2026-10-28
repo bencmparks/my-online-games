@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bomb Arena | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#3b0764;color:#fae8ff}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:linear-gradient(145deg,#3b0764,#1e1b4b)}
+main{width:min(100%,42rem);padding:1.5rem;border:.2rem solid #e879f9;border-radius:1.25rem;background:rgb(30 27 75 / 92%);text-align:center}a{color:#f0abfc}h1{margin:.6rem 0;color:#fef08a}
+canvas{display:block;width:100%;height:auto;margin:1rem 0;border:.2rem solid #c026d3;border-radius:.6rem;background:#14532d}button{padding:.65rem 1rem;border:0;border-radius:.5rem;background:#fef08a;color:#3b0764;cursor:pointer;font:inherit;font-weight:bold}#status{min-height:1.5rem;color:#fef08a;font-weight:bold}.p1{color:#93c5fd}.p2{color:#fca5a5}
+</style></head>
+<body><main><a href="../">← All games</a><h1>💣 Bomb Arena</h1><p>Inspired by the classic Bomberman. Drop bombs, blow up the bricks and trap your rival in the blast. First to 3 rounds wins.</p>
+<p><span class="p1">P1 (blue): W A S D move, Space bomb</span><br><span class="p2">P2 (red): arrow keys move, Enter bomb (or the robot)</span></p>
+<p><label>Opponent <select id="opp"><option value="two">2 players</option><option value="bot">Face the robot</option></select></label></p>
+<p><span class="p1">P1: <strong id="s1">0</strong></span> · <span class="p2">P2: <strong id="s2">0</strong></span></p>
+<canvas id="game" width="600" height="440" aria-label="Bomb Arena game"></canvas><button id="start" type="button">New match</button><p id="status" aria-live="polite"></p></main>
+<script>
+const canvas=document.querySelector("#game"),oppEl=document.querySelector("#opp"),ctx=canvas.getContext("2d"),statusEl=document.querySelector("#status"),GW=15,GH=11,T=40,FUSE=2.2,RANGE=3,MAXB=2;
+const CTRL=[{u:"KeyW",d:"KeyS",l:"KeyA",r:"KeyD",b:"Space"},{u:"ArrowUp",d:"ArrowDown",l:"ArrowLeft",r:"ArrowRight",b:"Enter"}];
+const keys={};let map,players,bombs,flames,score=[0,0],state="play",nextAt=0;
+function show(){document.querySelector("#s1").textContent=score[0];document.querySelector("#s2").textContent=score[1]}
+function round(){map=Array.from({length:GH},(_,y)=>Array.from({length:GW},(_,x)=>{const nearCorner=(x<3||x>GW-4)&&(y<3||y>GH-4);return !nearCorner&&Math.random()<.62?2:0}));
+players=[{x:0,y:0,cd:0,alive:true,c:"#3b82f6"},{x:GW-1,y:GH-1,cd:0,alive:true,c:"#ef4444"}];bombs=[];flames=[];state="play";statusEl.textContent="Fight!"}
+function newMatch(){score=[0,0];show();round()}
+function bombAt(x,y){return bombs.find(b=>b.x===x&&b.y===y)}
+const DIRS4=[[1,0],[-1,0],[0,1],[0,-1]];
+function blast(x,y){const cells=[[x,y]];DIRS4.forEach(([dx,dy])=>{for(let n=1;n<=RANGE;n+=1){const cx=x+dx*n,cy=y+dy*n;if(cx<0||cy<0||cx>=GW||cy>=GH)break;cells.push([cx,cy]);if(map[cy][cx]===2)break}});return cells}
+function dangerSet(extra){const s=new Set();bombs.forEach(b=>blast(b.x,b.y).forEach(([x,y])=>s.add(x+","+y)));flames.forEach(f=>s.add(f.x+","+f.y));if(extra)blast(extra[0],extra[1]).forEach(([x,y])=>s.add(x+","+y));return s}
+function bfs(sx,sy,goal,avoid,extra){const seen=new Set([sx+","+sy]),q=[{x:sx,y:sy,d:0,first:null}];
+while(q.length){const n=q.shift();if(n.d>0&&goal(n.x,n.y))return{step:n.first,dist:n.d};
+for(const[dx,dy]of DIRS4){const x=n.x+dx,y=n.y+dy,k=x+","+y;if(seen.has(k)||x<0||y<0||x>=GW||y>=GH||map[y][x]||bombAt(x,y)||(extra&&extra[0]===x&&extra[1]===y)||(avoid&&avoid.has(k)))continue;seen.add(k);q.push({x,y,d:n.d+1,first:n.first||[dx,dy]})}}return null}
+function aiAct(p){const danger=dangerSet(),here=p.x+","+p.y,foe=players[0],near=DIRS4.some(([dx,dy])=>map[p.y+dy]?.[p.x+dx]===2);
+if(danger.has(here)){const r=bfs(p.x,p.y,(x,y)=>!danger.has(x+","+y),null);return r?{dx:r.step[0],dy:r.step[1]}:{}}
+const lined=foe.alive&&(foe.x===p.x||foe.y===p.y)&&Math.abs(foe.x-p.x)+Math.abs(foe.y-p.y)<=RANGE&&blast(p.x,p.y).some(([x,y])=>x===foe.x&&y===foe.y);
+if((near||lined)&&!bombAt(p.x,p.y)&&!bombs.some(b=>b.o===1)){const sim=dangerSet([p.x,p.y]),esc=bfs(p.x,p.y,(x,y)=>!sim.has(x+","+y),null,[p.x,p.y]);if(esc&&esc.dist<=5)return{bomb:true}}
+if(Math.random()<.12)return{};
+const isGoal=(x,y)=>DIRS4.some(([dx,dy])=>map[y+dy]?.[x+dx]===2);
+let r=bfs(p.x,p.y,isGoal,danger);if(!r&&foe.alive)r=bfs(p.x,p.y,(x,y)=>Math.abs(x-foe.x)+Math.abs(y-foe.y)<=1,danger);
+return r?{dx:r.step[0],dy:r.step[1]}:{}}
+function canWalk(i,x,y){if(x<0||y<0||x>=GW||y>=GH||map[y][x])return false;return !bombAt(x,y)}
+function explode(b){if(b.gone)return;b.gone=true;const cells=[[b.x,b.y]];
+[[1,0],[-1,0],[0,1],[0,-1]].forEach(([dx,dy])=>{for(let n=1;n<=RANGE;n+=1){const x=b.x+dx*n,y=b.y+dy*n;if(x<0||y<0||x>=GW||y>=GH||map[y][x]===1)break;cells.push([x,y]);if(map[y][x]===2){map[y][x]=0;break}}});
+cells.forEach(([x,y])=>{flames.push({x,y,t:.45});const c=bombAt(x,y);if(c&&!c.gone)explode(c)});bombs=bombs.filter(o=>!o.gone)}
+function update(dt){if(state==="over")return;if(state==="wait"){if(performance.now()>nextAt)round();return}
+players.forEach((p,i)=>{if(!p.alive)return;const c=CTRL[i],bot=i===1&&oppEl.value==="bot";p.cd-=dt;
+const act=bot?(p.cd<=0?aiAct(p):{}):{dx:(keys[c.r]?1:0)-(keys[c.l]?1:0),dy:0,bomb:keys[c.b]};if(!bot&&!act.dx)act.dy=(keys[c.d]?1:0)-(keys[c.u]?1:0);
+if(p.cd<=0){const dx=act.dx||0,dy=act.dy||0;if((dx||dy)&&canWalk(i,p.x+dx,p.y+dy)){p.x+=dx;p.y+=dy;p.cd=bot?.2:.14}}
+if(act.bomb&&!bombAt(p.x,p.y)&&bombs.filter(b=>b.o===i).length<(bot?1:MAXB))bombs.push({x:p.x,y:p.y,t:FUSE,o:i})});
+bombs.slice().forEach(b=>{b.t-=dt;if(b.t<=0)explode(b)});flames.forEach(f=>f.t-=dt);flames=flames.filter(f=>f.t>0);
+players.forEach(p=>{if(p.alive&&flames.some(f=>f.x===p.x&&f.y===p.y))p.alive=false});
+if(players.filter(p=>p.alive).length<2){const w=players.findIndex(p=>p.alive);if(w>=0){score[w]+=1;statusEl.textContent=`Player ${w+1} wins the round!`}else statusEl.textContent="Both blown up! No point.";show();
+const champ=score.findIndex(s=>s>=3);if(champ>=0){state="over";statusEl.textContent=`Player ${champ+1} wins the match! Click New match to play again.`}else{state="wait";nextAt=performance.now()+1800}}}
+function draw(){for(let y=0;y<GH;y+=1)for(let x=0;x<GW;x+=1){ctx.fillStyle=map[y][x]===1?"#475569":map[y][x]===2?"#b45309":(x+y)%2?"#166534":"#14532d";ctx.fillRect(x*T,y*T,T,T);if(map[y][x]===2){ctx.strokeStyle="#78350f";ctx.strokeRect(x*T+3,y*T+3,T-6,T-6)}}
+flames.forEach(f=>{ctx.fillStyle="#fb923c";ctx.fillRect(f.x*T+3,f.y*T+3,T-6,T-6);ctx.fillStyle="#fef08a";ctx.fillRect(f.x*T+11,f.y*T+11,T-22,T-22)});
+bombs.forEach(b=>{ctx.fillStyle="#0f172a";ctx.beginPath();ctx.arc(b.x*T+T/2,b.y*T+T/2,T/2-6+(Math.sin(b.t*14)>0?2:0),0,7);ctx.fill()});
+players.forEach(p=>{if(!p.alive)return;ctx.fillStyle=p.c;ctx.beginPath();ctx.arc(p.x*T+T/2,p.y*T+T/2,T/2-6,0,7);ctx.fill();ctx.fillStyle="#fff";ctx.fillRect(p.x*T+T/2-7,p.y*T+T/2-5,5,5);ctx.fillRect(p.x*T+T/2+2,p.y*T+T/2-5,5,5)})}
+let last=0;function loop(now){update(Math.min(.05,(now-last)/1000||0));last=now;draw();requestAnimationFrame(loop)}
+document.addEventListener("keydown",e=>{if(["Space","Enter","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code))e.preventDefault();keys[e.code]=true});
+document.addEventListener("keyup",e=>{keys[e.code]=false});window.addEventListener("blur",()=>Object.keys(keys).forEach(k=>keys[k]=false));
+oppEl.addEventListener("change",()=>{oppEl.blur();newMatch()});
+document.querySelector("#start").addEventListener("click",e=>{newMatch();e.target.blur()});
+newMatch();requestAnimationFrame(loop);
+</script></body></html>

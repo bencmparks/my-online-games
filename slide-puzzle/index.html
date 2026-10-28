@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Slide Puzzle | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#831843,#0b1020)}
+main{width:min(100%,30rem);padding:1.5rem;border:.2rem solid #f472b6;border-radius:1.25rem;background:rgb(8 12 30 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.6rem 0;color:#f472b6;letter-spacing:.05em;font-size:1.6rem}
+button{border:0;border-radius:.5rem;background:#f472b6;color:#1e293b;cursor:pointer;font:inherit;font-weight:bold;padding:.6rem 1rem;margin:.15rem;touch-action:manipulation}button.on{outline:.2rem solid #fff}
+.bar{display:flex;justify-content:space-around;margin:.6rem 0;font-weight:bold}
+#grid{display:grid;gap:.4rem;padding:.5rem;background:#334155;border-radius:.6rem;margin:.6rem 0;touch-action:none}
+#grid div{aspect-ratio:1;display:grid;place-items:center;border-radius:.4rem;background:#f472b6;color:#1e293b;font-weight:bold;font-size:clamp(1.2rem,8vw,2.2rem);cursor:pointer;user-select:none}#grid div.e{background:transparent;cursor:default}
+#st{min-height:1.5rem;font-weight:bold;color:#86efac}
+</style></head>
+<body><main><a href="../">← All games</a><h1>🧩 Slide Puzzle</h1>
+<p>Put the numbers in order, with the blank last. <strong>Click / tap</strong> a tile next to the gap, or use the <strong>arrow keys</strong> to slide a tile into the gap. <strong>R</strong> reshuffles.</p>
+<div id="sz"></div>
+<div class="bar"><span>Moves <b id="m">0</b></span><span>Time <b id="t">0</b>s</span><span>Best <b id="b">–</b></span></div>
+<div id="grid"></div><div id="st"></div><button id="r" type="button">Shuffle</button>
+</main>
+<script>
+const $=q=>document.querySelector(q);
+let n=3,a,moves,t0,timer,solved,best={};
+try{best=JSON.parse(localStorage.getItem("slidePuzzleBest"))||{}}catch(e){}
+function slideAt(i){const e=a.indexOf(0),r=i/n|0,c=i%n,er=e/n|0,ec=e%n;if(Math.abs(r-er)+Math.abs(c-ec)!==1)return false;[a[i],a[e]]=[a[e],a[i]];return true}
+function shuffle(){
+ a=[...Array(n*n).keys()].map(i=>(i+1)%(n*n));let last=-1;
+ for(let k=0;k<n*n*30;k++){const e=a.indexOf(0),r=e/n|0,c=e%n,o=[];
+  if(r>0)o.push(e-n);if(r<n-1)o.push(e+n);if(c>0)o.push(e-1);if(c<n-1)o.push(e+1);
+  const p=o.filter(x=>x!==last),i=p[Math.random()*p.length|0];last=e;slideAt(i)}
+ if(isSolved())return shuffle()
+}
+function isSolved(){return a.every((v,i)=>v===(i+1)%(n*n))}
+function reset(){shuffle();moves=0;solved=false;clearInterval(timer);t0=0;$("#st").textContent="";draw()}
+function tick(){$("#t").textContent=Math.floor((Date.now()-t0)/1000)}
+function tryMove(i){
+ if(solved||!slideAt(i))return;
+ if(!t0){t0=Date.now();timer=setInterval(tick,250)}
+ moves++;
+ if(isSolved()){solved=true;clearInterval(timer);tick();const nw=!best[n]||moves<best[n];if(nw){best[n]=moves;try{localStorage.setItem("slidePuzzleBest",JSON.stringify(best))}catch(e){}}$("#st").textContent="🎉 Solved in "+moves+" moves!"+(nw?" New best!":"")}
+ draw()
+}
+function draw(){
+ const g=$("#grid");g.style.gridTemplateColumns=`repeat(${n},1fr)`;
+ g.innerHTML=a.map((v,i)=>`<div data-i="${i}" class="${v?"":"e"}">${v||""}</div>`).join("");
+ $("#m").textContent=moves;$("#t").textContent=t0?Math.floor((Date.now()-t0)/1000):0;$("#b").textContent=best[n]||"–";
+ document.querySelectorAll("#sz button").forEach(b=>b.classList.toggle("on",+b.dataset.n===n))
+}
+$("#sz").innerHTML=[3,4,5].map(k=>`<button type="button" data-n="${k}">${k}×${k}</button>`).join("");
+$("#sz").onclick=e=>{if(e.target.dataset.n){n=+e.target.dataset.n;reset()}};
+$("#grid").onclick=e=>{const d=e.target.closest("[data-i]");if(d)tryMove(+d.dataset.i)};
+$("#r").onclick=reset;
+addEventListener("keydown",e=>{
+ if(e.key==="r"||e.key==="R"){reset();return}
+ const e0=a.indexOf(0),m={ArrowUp:n,ArrowDown:-n,ArrowLeft:1,ArrowRight:-1}[e.key];
+ if(!m)return;e.preventDefault();
+ const c=e0%n;if((m===1&&c===n-1)||(m===-1&&c===0))return;
+ const i=e0+m;if(i>=0&&i<n*n)tryMove(i)
+});
+reset();
+</script></body></html>

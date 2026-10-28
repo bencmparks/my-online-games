@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Fruit Slice | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#9f1239,#0b1020)}
+main{width:min(100%,44rem);padding:1.5rem;border:.2rem solid #fb7185;border-radius:1.25rem;background:rgb(8 12 30 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.6rem 0;color:#fb7185;letter-spacing:.05em;font-size:1.6rem}
+canvas{display:block;width:100%;height:auto;margin:1rem 0;border:.2rem solid #475569;border-radius:.4rem;background:#3f2a1d;touch-action:none;cursor:crosshair}
+</style></head>
+<body><main><a href="../">← All games</a><h1>🍉 Fruit Slice</h1>
+<p>Swipe through flying fruit to slice it! Slice several at once for a combo bonus. Don't touch the bombs, and don't let fruit fall: you only have 3 lives.</p>
+<p><strong>Drag the mouse / swipe</strong> to slice · <strong>E / Space</strong> start · title screen: <strong>↑/↓</strong> difficulty</p>
+<canvas id="g" width="640" height="480" aria-label="Fruit Slice game"></canvas>
+</main>
+<script>
+const C=document.querySelector("#g"),x=C.getContext("2d"),W=640,H=480,DIFFS=["Easy","Medium","Hard"],BOMB=[.07,.12,.18],RATE=[75,58,44];
+const FR=[["🍉","#ef4444"],["🍊","#fb923c"],["🍎","#dc2626"],["🍋","#fde047"],["🍇","#a855f7"],["🍍","#facc15"],["🍓","#f43f5e"]];
+let mode="title",items=[],halves=[],parts=[],trail=[],score=0,lives=3,hi=0,t=0,spawn=0,msg=null,diff=1,last=null;
+try{hi=+localStorage.getItem("fruitSliceHi")||0;diff=Math.min(2,+localStorage.getItem("fruitSliceDiff")||1)}catch(e){}
+function saveDiff(){try{localStorage.setItem("fruitSliceDiff",diff)}catch(e){}}
+function start(){items=[];halves=[];parts=[];trail=[];score=0;lives=3;spawn=40;mode="play";msg=null}
+function launch(){
+ const bomb=Math.random()<BOMB[diff]*(1+Math.min(1,score/300)*.3),f=FR[Math.floor(Math.random()*FR.length)],sx=80+Math.random()*(W-160);
+ items.push({x:sx,y:H+30,vx:(W/2-sx)/110+(Math.random()-.5)*2,vy:-(12.5+Math.random()*2.5),r:30,bomb,e:bomb?"💣":f[0],c:bomb?"#222":f[1],rot:0,vr:(Math.random()-.5)*.2})
+}
+function finish(){if(score>hi){hi=score;try{localStorage.setItem("fruitSliceHi",hi)}catch(e){}}}
+function slice(a,b){
+ let n=0;
+ for(const it of items){
+  if(it.cut)continue;
+  const dx=b.x-a.x,dy=b.y-a.y,l2=dx*dx+dy*dy||1;let u=((it.x-a.x)*dx+(it.y-a.y)*dy)/l2;u=Math.max(0,Math.min(1,u));
+  if(Math.hypot(a.x+dx*u-it.x,a.y+dy*u-it.y)<it.r){
+   it.cut=true;
+   if(it.bomb){mode="over";finish();for(let i=0;i<30;i+=1)parts.push({x:it.x,y:it.y,vx:(Math.random()-.5)*14,vy:(Math.random()-.5)*14,l:30,c:"#fb923c"});break}
+   n+=1;score+=1;
+   halves.push({x:it.x,y:it.y,vx:it.vx-2,vy:it.vy,e:it.e,rot:it.rot,vr:-.1,s:-1},{x:it.x,y:it.y,vx:it.vx+2,vy:it.vy,e:it.e,rot:it.rot,vr:.1,s:1});
+   for(let i=0;i<12;i+=1)parts.push({x:it.x,y:it.y,vx:(Math.random()-.5)*8,vy:(Math.random()-.5)*8,l:24,c:it.c})
+  }
+ }
+ if(n>=2&&mode==="play"){score+=n*2;msg={s:`COMBO x${n}! +${n*2}`,x:b.x,y:b.y,l:50}}
+ items=items.filter(i=>!i.cut)
+}
+function update(){
+ t+=1;if(msg){msg.y-=.6;msg.l-=1;if(msg.l<=0)msg=null}
+ parts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.3;p.l-=1});parts=parts.filter(p=>p.l>0);
+ halves.forEach(h=>{h.x+=h.vx;h.y+=h.vy;h.vy+=.4;h.rot+=h.vr});halves=halves.filter(h=>h.y<H+60);
+ if(trail.length&&(!last||t%2===0))trail.shift();
+ if(mode!=="play")return;
+ spawn-=1;
+ if(spawn<=0){const n=1+(Math.random()<.35?1:0)+(score>60&&Math.random()<.3?1:0);for(let i=0;i<n;i+=1)launch();spawn=RATE[diff]-Math.min(20,score/10)}
+ for(const it of items){it.x+=it.vx;it.y+=it.vy;it.vy+=.3;it.rot+=it.vr}
+ for(const it of items){if(it.y>H+40&&it.vy>0&&!it.bomb){lives-=1;msg={s:"Missed!",x:Math.max(60,Math.min(W-60,it.x)),y:H-40,l:40};if(lives<=0){mode="over";finish()}}}
+ items=items.filter(it=>!(it.y>H+40&&it.vy>0))
+}
+function pos(e){const b=C.getBoundingClientRect();return{x:(e.clientX-b.left)/b.width*W,y:(e.clientY-b.top)/b.height*H}}
+C.addEventListener("pointerdown",e=>{e.preventDefault();C.setPointerCapture(e.pointerId);const p=pos(e);if(mode!=="play"){if(mode==="title"&&p.y>340){diff=(diff+1)%3;saveDiff();return}start();return}last=p;trail.push(p)});
+C.addEventListener("pointermove",e=>{if(!last)return;const p=pos(e);trail.push(p);if(trail.length>12)trail.shift();if(mode==="play")slice(last,p);last=p});
+["pointerup","pointercancel"].forEach(ev=>C.addEventListener(ev,()=>{last=null}));
+addEventListener("keydown",e=>{
+ if(e.code==="KeyE"||e.code==="Space"||e.code==="Enter"){e.preventDefault();if(mode!=="play")start()}
+ if(mode==="title"&&(e.code==="ArrowUp"||e.code==="ArrowDown")){e.preventDefault();diff=(diff+(e.code==="ArrowUp"?2:1))%3;saveDiff()}
+});
+function text(s,a,b,size=18,color="#fff",align="left"){x.font=`bold ${size}px Arial,sans-serif`;x.fillStyle=color;x.textAlign=align;x.lineWidth=4;x.strokeStyle="#000";x.strokeText(s,a,b);x.fillText(s,a,b)}
+function emoji(e,px,py,rot,size,clip){x.save();x.translate(px,py);x.rotate(rot);if(clip){x.beginPath();x.rect(clip>0?0:-size,-size,size,size*2);x.clip()}x.font=`${size}px Arial`;x.textAlign="center";x.textBaseline="middle";x.fillStyle="#fff";x.fillText(e,0,0);x.restore()}
+function draw(){
+ const g=x.createLinearGradient(0,0,0,H);g.addColorStop(0,"#57341f");g.addColorStop(1,"#2a1810");x.fillStyle=g;x.fillRect(0,0,W,H);
+ x.strokeStyle="rgb(255 255 255 / 5%)";x.lineWidth=2;for(let i=0;i<8;i+=1){x.beginPath();x.moveTo(0,i*70+20);x.lineTo(W,i*70+20);x.stroke()}
+ for(const it of items){if(it.bomb){x.fillStyle="rgb(255 80 0 / 25%)";x.beginPath();x.arc(it.x,it.y,it.r+6,0,7);x.fill()}emoji(it.e,it.x,it.y,it.rot,56)}
+ for(const h of halves)emoji(h.e,h.x,h.y,h.rot,56,h.s);
+ for(const p of parts){x.fillStyle=p.c;x.globalAlpha=p.l/30;x.beginPath();x.arc(p.x,p.y,4,0,7);x.fill()}x.globalAlpha=1;
+ if(trail.length>1){x.strokeStyle="#fff";x.lineCap="round";for(let i=1;i<trail.length;i+=1){x.lineWidth=i*.9;x.globalAlpha=i/trail.length;x.beginPath();x.moveTo(trail[i-1].x,trail[i-1].y);x.lineTo(trail[i].x,trail[i].y);x.stroke()}x.globalAlpha=1}
+ text(`${score}`,16,38,32);text(`BEST ${hi}`,16,64,16,"#fde047");
+ text("❤️".repeat(Math.max(0,lives)),W-16,36,24,"#fff","right");
+ if(msg)text(msg.s,msg.x,msg.y,26,"#fde047","center");
+ if(mode!=="play"){
+  x.fillStyle="rgb(2 6 23 / 55%)";x.fillRect(0,0,W,H);
+  if(mode==="title"){text("FRUIT SLICE",W/2,170,56,"#fb7185","center");text(`Difficulty: ${DIFFS[diff]}  (↑/↓ or tap here)`,W/2,372,20,"#fde047","center")}
+  else{text(lives<=0?"OUT OF LIVES":"BOOM!",W/2,170,52,"#f87171","center");text(`Score ${score}`,W/2,220,28,"#fff","center")}
+  if(Math.floor(t/30)%2)text("Press E or tap to play",W/2,290,24,"#fff","center")}
+}
+function frame(){update();draw();requestAnimationFrame(frame)}
+frame();
+</script></body></html>

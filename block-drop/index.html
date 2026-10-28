@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Block Drop | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#164e63,#0b1020)}
+main{width:min(100%,44rem);padding:1.5rem;border:.2rem solid #22d3ee;border-radius:1.25rem;background:rgb(8 12 30 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.6rem 0;color:#22d3ee;letter-spacing:.05em;font-size:1.6rem}
+canvas{display:block;width:100%;height:auto;margin:1rem 0;border:.2rem solid #475569;border-radius:.4rem;background:#0b1020;touch-action:none}
+.pad{display:flex;justify-content:center;align-items:center;gap:1.5rem;margin-top:.5rem;user-select:none;-webkit-user-select:none}.dpad{display:grid;grid-template-columns:repeat(3,3.2rem);grid-template-rows:repeat(3,3.2rem);gap:.2rem}
+button{border:0;border-radius:.5rem;background:#22d3ee;color:#1e293b;cursor:pointer;font:inherit;font-weight:bold;touch-action:none}.dpad button{font-size:1.3rem}.a{width:4.5rem;height:4.5rem;border-radius:50%;font-size:1rem}
+</style></head>
+<body><main><a href="../">← All games</a><h1>🧱 Block Drop</h1>
+<p>Stack falling blocks into full rows to clear them. The more rows you clear at once, the more points you score, and the faster the blocks fall. Don't let the stack reach the top!</p>
+<p><strong>←/→</strong> move · <strong>↑</strong> rotate · <strong>↓</strong> soft drop · <strong>E / Space</strong> hard drop and start</p>
+<canvas id="g" width="640" height="480" aria-label="Block Drop game"></canvas>
+<div class="pad"><div class="dpad"><span></span><button data-k="up" type="button">⟳</button><span></span><button data-k="left" type="button">◀</button><span></span><button data-k="right" type="button">▶</button><span></span><button data-k="down" type="button">▼</button><span></span></div><button class="a" data-k="act" type="button">DROP</button></div>
+</main>
+<script>
+const C=document.querySelector("#g"),x=C.getContext("2d"),W=640,H=480,CW=10,CH=20,S=22,BX=210,BY=20;
+const SHAPES=[[[1,1,1,1]],[[1,1],[1,1]],[[0,1,0],[1,1,1]],[[0,1,1],[1,1,0]],[[1,1,0],[0,1,1]],[[1,0,0],[1,1,1]],[[0,0,1],[1,1,1]]];
+const COLS=["#22d3ee","#facc15","#c084fc","#4ade80","#f87171","#60a5fa","#fb923c"];
+let mode="title",g=[],cur=null,nxt=0,score=0,lines=0,level=1,hi=0,drop=0,t=0,held={},rep=0,bag=[];
+try{hi=+localStorage.getItem("blockDropHi")||0}catch(e){}
+const rot=m=>m[0].map((_,i)=>m.map(r=>r[i]).reverse());
+function next(){if(!bag.length)bag=[0,1,2,3,4,5,6].sort(()=>Math.random()-.5);return bag.pop()}
+function fits(m,px,py){for(let r=0;r<m.length;r+=1)for(let c=0;c<m[r].length;c+=1)if(m[r][c]){const a=px+c,b=py+r;if(a<0||a>=CW||b>=CH||(b>=0&&g[b][a]>=0))return false}return true}
+function spawn(){const id=nxt;nxt=next();const m=SHAPES[id].map(r=>r.slice());cur={id,m,x:Math.floor((CW-m[0].length)/2),y:0};if(!fits(m,cur.x,cur.y)){mode="over";if(score>hi){hi=score;try{localStorage.setItem("blockDropHi",hi)}catch(e){}}}}
+function start(){g=Array.from({length:CH},()=>Array(CW).fill(-1));score=0;lines=0;level=1;drop=0;bag=[];nxt=next();mode="play";spawn()}
+function lock(){
+ cur.m.forEach((r,i)=>r.forEach((v,j)=>{if(v&&cur.y+i>=0)g[cur.y+i][cur.x+j]=cur.id}));
+ let n=0;for(let r=CH-1;r>=0;r-=1)if(g[r].every(v=>v>=0)){g.splice(r,1);g.unshift(Array(CW).fill(-1));n+=1;r+=1}
+ if(n){score+=[0,100,300,500,800][n]*level;lines+=n;level=1+Math.floor(lines/10)}
+ spawn()
+}
+function move(dx){if(fits(cur.m,cur.x+dx,cur.y))cur.x+=dx}
+function turn(){const m=rot(cur.m);for(const k of[0,-1,1,-2,2])if(fits(m,cur.x+k,cur.y)){cur.m=m;cur.x+=k;return}}
+function hard(){while(fits(cur.m,cur.x,cur.y+1)){cur.y+=1;score+=2}lock()}
+function press(k){
+ if(mode!=="play"){if(k==="act")start();return}
+ if(k==="left")move(-1);else if(k==="right")move(1);else if(k==="up")turn();else if(k==="act")hard()
+}
+function update(){
+ t+=1;if(mode!=="play")return;
+ if(held.down||held.left||held.right){rep+=1;if(rep>10&&rep%3===0){if(held.left)move(-1);if(held.right)move(1);if(held.down){if(fits(cur.m,cur.x,cur.y+1)){cur.y+=1;score+=1}}}}else rep=0;
+ drop+=1;const sp=Math.max(4,44-level*4);
+ if(drop>=sp){drop=0;if(fits(cur.m,cur.x,cur.y+1))cur.y+=1;else lock()}
+}
+const KEYS={ArrowUp:"up",KeyW:"up",ArrowDown:"down",KeyS:"down",ArrowLeft:"left",KeyA:"left",ArrowRight:"right",KeyD:"right",KeyE:"act",Space:"act",Enter:"act"};
+addEventListener("keydown",e=>{const k=KEYS[e.code];if(!k)return;e.preventDefault();held[k]=true;if(!e.repeat){press(k);if(k==="down"&&mode==="play"&&fits(cur.m,cur.x,cur.y+1)){cur.y+=1;score+=1}}});
+addEventListener("keyup",e=>{const k=KEYS[e.code];if(k)held[k]=false});
+addEventListener("blur",()=>{held={}});
+document.querySelectorAll("[data-k]").forEach(b=>{const k=b.dataset.k;b.addEventListener("pointerdown",e=>{e.preventDefault();held[k]=true;press(k);if(k==="down"&&mode==="play"&&fits(cur.m,cur.x,cur.y+1)){cur.y+=1;score+=1}});["pointerup","pointerleave","pointercancel"].forEach(ev=>b.addEventListener(ev,()=>{held[k]=false}))});
+function text(s,a,b,size=18,color="#fff",align="left"){x.font=`bold ${size}px Arial,sans-serif`;x.fillStyle=color;x.textAlign=align;x.lineWidth=4;x.strokeStyle="#000";x.strokeText(s,a,b);x.fillText(s,a,b)}
+function cell(px,py,id,a=1){x.globalAlpha=a;x.fillStyle=COLS[id];x.fillRect(px,py,S-1,S-1);x.fillStyle="rgb(255 255 255 / 35%)";x.fillRect(px,py,S-1,4);x.fillStyle="rgb(0 0 0 / 25%)";x.fillRect(px,py+S-5,S-1,4);x.globalAlpha=1}
+function draw(){
+ x.fillStyle="#0b1020";x.fillRect(0,0,W,H);
+ x.fillStyle="#111827";x.fillRect(BX,BY,CW*S,CH*S);x.strokeStyle="#334155";x.lineWidth=1;
+ for(let i=1;i<CW;i+=1){x.beginPath();x.moveTo(BX+i*S,BY);x.lineTo(BX+i*S,BY+CH*S);x.stroke()}
+ for(let i=1;i<CH;i+=1){x.beginPath();x.moveTo(BX,BY+i*S);x.lineTo(BX+CW*S,BY+i*S);x.stroke()}
+ if(g.length)g.forEach((row,r)=>row.forEach((v,c)=>{if(v>=0)cell(BX+c*S,BY+r*S,v)}));
+ if(cur&&mode==="play"){
+  let gy=cur.y;while(fits(cur.m,cur.x,gy+1))gy+=1;
+  cur.m.forEach((r,i)=>r.forEach((v,j)=>{if(v){cell(BX+(cur.x+j)*S,BY+(gy+i)*S,cur.id,.25);cell(BX+(cur.x+j)*S,BY+(cur.y+i)*S,cur.id)}}))}
+ x.strokeStyle="#22d3ee";x.lineWidth=3;x.strokeRect(BX,BY,CW*S,CH*S);
+ text("SCORE",40,60,20,"#7dd3fc");text(String(score),40,90,28);text("LINES",40,140,20,"#7dd3fc");text(String(lines),40,170,28);text("LEVEL",40,220,20,"#7dd3fc");text(String(level),40,250,28);text("BEST",40,300,20,"#7dd3fc");text(String(hi),40,330,28,"#fde047");
+ text("NEXT",470,60,20,"#7dd3fc");
+ if(mode!=="title"){SHAPES[nxt].forEach((r,i)=>r.forEach((v,j)=>{if(v)cell(470+j*S,80+i*S,nxt)}))}
+ if(mode==="title"||mode==="over"){
+  x.fillStyle="rgb(2 6 23 / 80%)";x.fillRect(BX,BY,CW*S,CH*S);
+  if(mode==="title")text("BLOCK DROP",W/2,200,40,"#22d3ee","center");
+  else{text("GAME OVER",W/2,190,38,"#f87171","center");text(`Score ${score}`,W/2,235,24,"#fff","center")}
+  if(Math.floor(t/30)%2)text("Press E or DROP",W/2,290,22,"#fff","center")}
+}
+function frame(){update();draw();requestAnimationFrame(frame)}
+frame();
+</script></body></html>

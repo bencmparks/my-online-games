@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Mole Smash | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#14532d;color:#f0fdf4}*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:1rem;background:linear-gradient(145deg,#14532d,#365314)}
+main{width:min(100%,34rem);text-align:center;padding:1.5rem;border:1px solid #86efac;border-radius:1rem;background:#166534}a{color:#bbf7d0}h1{margin:.4rem 0;color:#fef08a}
+.stats{display:flex;justify-content:space-around;font-weight:bold;margin:.5rem 0}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem;margin:1rem 0}
+.hole{position:relative;aspect-ratio:1;border:0;border-radius:50%;background:radial-gradient(circle at 50% 60%,#1c1008 0 45%,#78350f 46%);cursor:pointer;overflow:hidden;padding:0}
+.mole{position:absolute;left:18%;right:18%;bottom:-70%;height:70%;border-radius:50% 50% 20% 20%;background:#92400e;transition:bottom .12s;font-size:clamp(1.5rem,7vw,2.6rem);display:grid;place-items:center}
+.hole.up .mole{bottom:12%}.hole.bomb .mole{background:#374151}.hole.hit .mole{background:#fde047}
+.hole:focus-visible{outline:3px solid #fef08a}button.start{min-height:3rem;padding:0 1.5rem;border:0;border-radius:.6rem;background:#fef08a;color:#365314;font:inherit;font-weight:bold;cursor:pointer}
+#status{min-height:1.5rem;color:#fef08a;font-weight:bold}
+</style></head>
+<body><main><a href="../">← All games</a><h1>🔨 Mole Smash</h1><p>Smash the moles before they hide. Don't touch the bombs!</p>
+<div class="stats"><span>Score: <span id="score">0</span></span><span>Best: <span id="best">0</span></span><span>Time: <span id="time">30</span></span></div>
+<div class="grid" id="grid"></div><button class="start" id="start" type="button">Start game</button><p id="status" aria-live="polite">Press Start to begin.</p></main>
+<script>
+const grid=document.querySelector("#grid"),scoreEl=document.querySelector("#score"),bestEl=document.querySelector("#best"),timeEl=document.querySelector("#time"),statusEl=document.querySelector("#status"),startButton=document.querySelector("#start");
+const holes=[];let score=0,time=30,live=false,best=Number(localStorage.getItem("moleSmashBest"))||0,popTimer,clock;bestEl.textContent=best;
+for(let i=0;i<9;i++){const hole=document.createElement("button");hole.type="button";hole.className="hole";hole.setAttribute("aria-label","Hole "+(i+1));hole.innerHTML='<span class="mole"></span>';hole.addEventListener("click",()=>smash(i));grid.append(hole);holes.push({el:hole,mole:hole.querySelector(".mole"),state:null,timer:0})}
+function hide(i){const h=holes[i];clearTimeout(h.timer);h.state=null;h.el.classList.remove("up","bomb","hit");}
+function pop(){if(!live)return;const free=holes.map((_,i)=>i).filter(i=>!holes[i].state);if(free.length){const i=free[Math.floor(Math.random()*free.length)],h=holes[i],bomb=Math.random()<.18;h.state=bomb?"bomb":"mole";h.mole.textContent=bomb?"💣":"🐹";h.el.classList.add("up");h.el.classList.toggle("bomb",bomb);h.timer=setTimeout(()=>hide(i),Math.max(450,1000-score*8))}
+popTimer=setTimeout(pop,Math.max(280,700-score*8))}
+function smash(i){if(!live)return;const h=holes[i];if(!h.state)return;if(h.state==="bomb"){score=Math.max(0,score-3);statusEl.textContent="Boom! -3 points."}else{score++;statusEl.textContent="Smash!";h.el.classList.add("hit")}scoreEl.textContent=score;clearTimeout(h.timer);h.state=null;setTimeout(()=>hide(i),90)}
+function end(){live=false;clearTimeout(popTimer);clearInterval(clock);holes.forEach((_,i)=>hide(i));if(score>best){best=score;localStorage.setItem("moleSmashBest",best);bestEl.textContent=best;statusEl.textContent=`New best: ${score}!`}else statusEl.textContent=`Time! You smashed ${score}.`;startButton.disabled=false}
+startButton.addEventListener("click",()=>{score=0;time=30;scoreEl.textContent=0;timeEl.textContent=30;live=true;startButton.disabled=true;statusEl.textContent="Go!";pop();clock=setInterval(()=>{time--;timeEl.textContent=time;if(time<=0)end()},1000)});
+</script></body></html>

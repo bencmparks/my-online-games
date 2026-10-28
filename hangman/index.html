@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Hangman | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#134e4a,#0b1020)}
+main{width:min(100%,36rem);padding:1.5rem;border:.2rem solid #2dd4bf;border-radius:1.25rem;background:rgb(8 12 30 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.6rem 0;color:#2dd4bf;letter-spacing:.05em;font-size:1.6rem}
+canvas{display:block;width:16rem;max-width:100%;height:auto;margin:.5rem auto;border:.2rem solid #475569;border-radius:.4rem;background:#0f172a}
+button{border:0;border-radius:.5rem;background:#2dd4bf;color:#1e293b;cursor:pointer;font:inherit;font-weight:bold;padding:.6rem 1rem;margin:.15rem}button:disabled{opacity:.35;cursor:default}button.on{outline:.2rem solid #fff}
+#word{font-size:2rem;letter-spacing:.3rem;font-family:monospace;margin:.5rem 0;min-height:2.6rem}#kb{display:flex;flex-wrap:wrap;justify-content:center;gap:.25rem;margin:.6rem 0}#kb button{width:2.4rem;padding:.5rem 0;margin:0}
+#st{min-height:1.5rem;font-weight:bold}
+</style></head>
+<body><main><a href="../">← All games</a><h1>🔤 Hangman</h1>
+<p>Guess the word before the drawing is complete — 6 wrong guesses and you lose. Pick a category, then click letters or type on your <strong>keyboard</strong>. <strong>Enter</strong> starts a new word.</p>
+<div id="cats"></div>
+<canvas id="c" width="240" height="260" aria-label="Gallows"></canvas>
+<div id="word"></div><div id="st"></div><div>Wrong: <b id="w">0</b>/6 · Win streak: <b id="k">0</b> · Best streak: <b id="bk">0</b></div>
+<div id="kb"></div><button id="nw" type="button">New word</button>
+</main>
+<script>
+const $=q=>document.querySelector(q),cx=$("#c").getContext("2d");
+const W={Animals:"elephant giraffe penguin dolphin kangaroo octopus crocodile hamster squirrel butterfly flamingo gorilla leopard buffalo cheetah panther raccoon sparrow lobster jellyfish peacock hedgehog walrus tortoise chameleon ostrich pelican badger donkey falcon iguana lizard monkey otter rabbit salmon turkey vulture weasel zebra".split(" "),
+Food:"pizza hamburger spaghetti sandwich pancake burrito broccoli avocado pretzel popcorn lasagna cupcake omelette sausage pineapple blueberry strawberry watermelon cinnamon chocolate noodles dumpling croissant waffle yogurt cabbage mushroom cucumber potato tomato peanut coconut mango lemon cheese butter pepper garlic honey carrot cherry biscuit".split(" "),
+Space:"planet galaxy asteroid comet rocket astronaut satellite telescope nebula meteor eclipse gravity orbit universe saturn jupiter neptune mercury venus mars moon sun star cosmos shuttle capsule lunar solar crater blackhole quasar pulsar cluster zenith equinox horizon launch module probe rover stellar".split(" ")};
+let cat="Animals",word,guessed,wrong,streak=0,best=0,done;
+try{streak=+localStorage.getItem("hangmanStreak")||0;best=+localStorage.getItem("hangmanBest")||0}catch(e){}
+const parts=[()=>{cx.beginPath();cx.arc(150,70,18,0,7);cx.stroke()},()=>line(150,88,150,150),()=>line(150,100,125,130),()=>line(150,100,175,130),()=>line(150,150,128,195),()=>line(150,150,172,195)];
+function line(a,b,c,d){cx.beginPath();cx.moveTo(a,b);cx.lineTo(c,d);cx.stroke()}
+function gallows(){cx.clearRect(0,0,240,260);cx.strokeStyle="#e5e7eb";cx.lineWidth=4;cx.lineCap="round";line(30,230,170,230);line(70,230,70,30);line(70,30,150,30);line(150,30,150,52);cx.strokeStyle="#2dd4bf";for(let i=0;i<wrong;i++)parts[i]()}
+function save(){try{localStorage.setItem("hangmanStreak",streak);localStorage.setItem("hangmanBest",best)}catch(e){}}
+function newWord(){const l=W[cat];word=l[Math.random()*l.length|0];guessed=new Set;wrong=0;done=false;$("#st").textContent="";draw()}
+function draw(){
+ gallows();$("#word").textContent=[...word].map(c=>guessed.has(c)||done&&wrong>=6?c:"_").join(" ");
+ $("#w").textContent=wrong;$("#k").textContent=streak;$("#bk").textContent=best;
+ document.querySelectorAll("#kb button").forEach(b=>b.disabled=done||guessed.has(b.textContent));
+ document.querySelectorAll("#cats button").forEach(b=>b.classList.toggle("on",b.textContent===cat))
+}
+function guess(c){
+ if(done||guessed.has(c))return;guessed.add(c);
+ if(!word.includes(c))wrong++;
+ if(wrong>=6){done=true;streak=0;$("#st").textContent="💀 You lost! The word was "+word;save()}
+ else if([...word].every(l=>guessed.has(l))){done=true;streak++;best=Math.max(best,streak);$("#st").textContent="🎉 You win!";save()}
+ draw()
+}
+$("#cats").innerHTML=Object.keys(W).map(k=>`<button type="button">${k}</button>`).join("");
+$("#cats").onclick=e=>{if(e.target.tagName==="BUTTON"){cat=e.target.textContent;streak=0;save();newWord()}};
+$("#kb").innerHTML="abcdefghijklmnopqrstuvwxyz".split("").map(c=>`<button type="button">${c}</button>`).join("");
+$("#kb").onclick=e=>{if(e.target.tagName==="BUTTON")guess(e.target.textContent)};
+$("#nw").onclick=()=>{if(!done&&wrong>0){streak=0;save()}newWord()};
+addEventListener("keydown",e=>{if(e.ctrlKey||e.metaKey||e.altKey)return;if(/^[a-z]$/i.test(e.key))guess(e.key.toLowerCase());else if(e.key==="Enter"&&done)newWord()});
+newWord();
+</script></body></html>

@@ -28,7 +28,10 @@
     #hotbar { position: absolute; left: 50%; bottom: .8rem; transform: translateX(-50%); display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; width: min(92%, 34rem); padding: 3px; border-radius: .4rem; background: rgb(15 23 42 / 70%); z-index: 3; }
     #inventory .slot { aspect-ratio: auto; min-height: 4.6rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 4px 2px 12px; } #inventory .slot i { width: 1.6rem; } #inventory .slot .nm { position: static; max-width: 100%; white-space: normal; overflow-wrap: anywhere; text-align: center; font-size: .62rem; line-height: 1.05; color: #f1f5f9; }
     #inventory { position: fixed; inset: 0; z-index: 50; overflow-y: auto; padding: .5rem 1rem; background: rgb(8 6 4 / 82%); text-align: center; }
-    .bagBody { position: relative; max-width: 54rem; margin: 3rem auto 1.5rem; padding: 1.2rem 1.2rem .8rem; border: 5px solid #3f2410; border-radius: 3rem 3rem 1.2rem 1.2rem; background: linear-gradient(#8a5a2b, #6b4119); box-shadow: inset 0 0 0 4px #b98544, 0 1rem 3rem #000; }
+    .bagBody { position: relative; max-width: 64rem; margin: 3rem auto 1.5rem; padding: 1.2rem 1.2rem .8rem; border: 5px solid #3f2410; border-radius: 3rem 3rem 1.2rem 1.2rem; background: linear-gradient(#8a5a2b, #6b4119); box-shadow: inset 0 0 0 4px #b98544, 0 1rem 3rem #000; }
+    .bagLayout { display: flex; gap: 1rem; align-items: flex-start; }
+    .bagSide { flex: 0 0 18rem; max-height: 60vh; overflow-y: auto; display: flex; flex-direction: column; gap: .3rem; padding: .6rem; border-radius: .6rem; background: rgba(0, 0, 0, .25); }
+    .bagMain { flex: 1; min-width: 0; }
     .bagBody::before { position: absolute; left: 14%; right: 14%; top: -1.6rem; height: 1.6rem; border: 5px solid #3f2410; border-bottom: 0; border-radius: 1.6rem 1.6rem 0 0; background: #5a3414; content: ""; }
     #inventory .slot { background: #3a2412; border-color: #a9733a; } #inventory .slot[aria-pressed="true"] { border-color: #fff; background: #5b3a1c; } #inventory h3, #inventory h4 { margin: 0 0 .3rem; color: #fde7c4; } #inventory p { color: #fde7c4; } #inventory[hidden] { display: none; } #inventory h3 { margin: 0 0 .3rem; } #inventory p { margin: .2rem 0 .6rem; color: #cbd5e1; font-size: .85rem; }
     .slotGrid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; margin-bottom: .6rem; }
@@ -36,6 +39,7 @@
     .slot i { width: 52%; aspect-ratio: 1; background: var(--c); border: 1px solid rgb(0 0 0 / 50%); border-radius: .2rem; }
     .slot .nm { position: absolute; left: 2px; bottom: 1px; max-width: 70%; overflow: hidden; white-space: nowrap; font-size: .5rem; color: #cbd5e1; }
     .slot .ct { position: absolute; right: 3px; bottom: 1px; font-size: .75rem; text-shadow: 0 0 2px #000; }
+    .slot .am { position: absolute; left: 50%; top: -1.1rem; transform: translateX(-50%); padding: 0 .3rem; border-radius: .25rem; background: rgb(15 23 42 / 90%); color: #fde047; font-size: .7rem; font-weight: bold; white-space: nowrap; pointer-events: none; z-index: 4; }
     .slot .kn { position: absolute; left: 3px; top: 1px; font-size: .6rem; color: #94a3b8; }
     .slot.held { outline: 3px solid #38bdf8; } .slot[aria-pressed="true"] { border-color: #fff; background: #3b4a66; }
     #hunger { margin: .75rem 0 0; color: #fde68a; font-weight: bold; }
@@ -45,11 +49,12 @@
   <main>
     <a href="../">← All games</a>
     <h1>Funcraft</h1>
-    <p class="instructions">Click the world to look around. Mine ore and coal with left click, craft a furnace at a workbench, then press E beside the furnace to smelt ore into ingots using coal fuel. Away from stations, E eats food, or tames the animal you're looking at (costs 1 meat; wolves, bears and boars only sometimes accept). Tamed pets follow you and can't be collected. Craft a chest from 8 planks, place it, and press E while looking at it to store your items (airplanes, bricks, anything); empty a chest before breaking it. Flowers grow on grassy plains. Craft a door from 4 planks, place it (it is two blocks tall) and press E to open or close it. Craft chairs (2 planks + 1 wood; press E to sit), beds (3 planks + 2 hide; press E at night to sleep until morning) and ladders (3 planks + 1 wood makes 3; hold W to climb, S to climb down). Look for cherry blossom forests, frosty winter forests and orange autumn forests (in newly explored land). Volcanoes with glowing lava craters rise in new land: lava burns you in survival or sends you home, so keep away. Big mine tunnels (9 wide and 8 tall, with wooden supports and torches) run under hills and mountains in new land; look for openings in hillsides. Mines are huge and have ladder shafts up to the surface every 150 blocks and at both ends. New worlds go 40 blocks deeper, with rich diamond, moonstone and gold ore and lava lakes at the very bottom. Your hotbar sits at the bottom of the screen: press 1-9 (0 is the last slot) or scroll the mouse wheel to pick a slot, and press Tab or I to open the full inventory, where you click items to move them between slots. Pick a hat from the Hat menu (top hat, cowboy, party, crown, wizard, beanie, pirate or chef); press P to see yourself wearing it, and other players see it too. Press H or use Home to return to your starting hill, press Y to save a teleport spot where you stand and U to return to it any time, or T to teleport to another player in your lobby (press again for the next one). Craft torches (wood + coal) and left-click wood, leaves, grass or coal while holding one to set it on fire (or press L); fire goes out unless it touches one of those, spreads slowly, and water puts it out. Craft a boat from 5 planks (no workbench needed), face water and press B to sail; Space hops out. Rivers, lakes and ponds are now 4 blocks deep. Rivers and lakes now cross the land with a current that carries swimmers and boats (rivers flow steadily, lakes drift gently). You float half out of the water; hold C to sink and swim under it. Craft a bucket (3 iron ingots), left-click water to fill it, and right-click to pour it out; a water bucket is the only way to put out a fire by hand. Biomes are now much larger, and rivers and ponds freeze into ice in winter forests. Apple, pear, plum, kiwi and cherry trees grow fruit you can pick by breaking leaves. Mine grass for seeds (wheat, carrot, corn, lemon, watermelon), right-click grass or dirt to plant them, and harvest them when ripe (about 40 seconds). Press E to eat any food; each food gives a 10-second power-up (cherry speed, apple super jump, pear fast mining, plum no hunger, kiwi fast swimming, lemon/meat double damage, carrot super sprint, corn wall climb (hold W against a wall), watermelon healing). Animals have 10 health: 10 hits by hand, 8 with a wooden sword (2 planks + 1 wood). Fruit trees only give fruit; plain, autumn and winter leaves give no food. Dig deep for diamonds and moonstone. Craft a helicopter (2 moonstone + 4 diamond) and press R to fly it: Space goes up, C goes down, WASD moves, R gets out. Craft a rocket (10 iron ingots + 4 gold ingots + 4 diamond + 4 moonstone + 6 coal) and press K to blast off to the moon, where gravity is low and you can mine moon rock and moon dust; press K again on the moon to fly home. Under water everything turns blue. In survival mode, zombies join the wolves, bears and boars.</p>
+    <p class="instructions">Click the world to look around. Mine ore and coal with left click, craft a furnace at a workbench, then press E beside the furnace to smelt ore into ingots using coal fuel. Away from stations, E eats food, or tames the animal you're looking at (costs 1 meat; wolves, bears and boars only sometimes accept). Tamed pets follow you and can't be collected. Craft a chest from 8 planks, place it, and press E while looking at it to store your items (airplanes, bricks, anything); empty a chest before breaking it. Flowers grow on grassy plains. Craft a door from 4 planks, place it (it is two blocks tall) and press E to open or close it. Craft chairs (2 planks + 1 wood; press E to sit), beds (3 planks + 2 hide; press E at night to sleep until morning) and ladders (3 planks + 1 wood makes 3; hold W to climb, S to climb down). Look for cherry blossom forests, frosty winter forests and orange autumn forests (in newly explored land). Volcanoes with glowing lava craters rise in new land: lava burns you in survival or sends you home, so keep away. Big mine tunnels (17 wide and 16 tall, with wooden supports and torches) run under hills and mountains in new land; look for openings in hillsides. Mines are huge and have ladder shafts up to the surface every 150 blocks and at both ends. New worlds go 40 blocks deeper, with rich diamond, moonstone and gold ore and lava lakes at the very bottom. Your hotbar sits at the bottom of the screen: press 1-9 (0 is the last slot) or scroll the mouse wheel to pick a slot, and press Tab or I to open the full inventory, where you click items to move them between slots. Pick a hat from the Hat menu (top hat, cowboy, party, crown, wizard, beanie, pirate or chef); press P to see yourself wearing it, and other players see it too. Press H or use Home to return to your starting hill, press Y to save a teleport spot where you stand and U to return to it any time, or T to teleport to another player in your lobby (press again for the next one). Craft torches (wood + coal) and left-click wood, leaves, grass or coal while holding one to set it on fire (or press L); fire goes out unless it touches one of those, spreads slowly, and water puts it out. Craft a boat from 5 planks (no workbench needed), face water and press B to sail; Space hops out. Rivers, lakes and ponds are now 4 blocks deep. Rivers and lakes now cross the land with a current that carries swimmers and boats (rivers flow steadily, lakes drift gently). You float half out of the water; hold C to sink and swim under it. Craft a bucket (3 iron ingots), left-click water to fill it, and right-click to pour it out; a water bucket is the only way to put out a fire by hand. Biomes are now much larger, and rivers and ponds freeze into ice in winter forests. Apple, pear, plum, kiwi and cherry trees grow fruit you can pick by breaking leaves. Mine grass for seeds (wheat, carrot, corn, lemon, watermelon), right-click grass or dirt to plant them, and harvest them when ripe (about 40 seconds). Press E to eat any food; each food gives a 10-second power-up (cherry speed, apple super jump, pear fast mining, plum no hunger, kiwi fast swimming, lemon/meat double damage, carrot super sprint, corn wall climb (hold W against a wall), watermelon healing). Animals have 10 health: 10 hits by hand, 8 with a wooden sword (2 planks + 1 wood). Fruit trees only give fruit; plain, autumn and winter leaves give no food. Dig deep for diamonds and moonstone. Craft a helicopter (2 moonstone + 4 diamond) and press R to fly it: Space goes up, C goes down, WASD moves, R gets out. Craft a rocket (5 iron ingots + 2 gold ingots + 2 diamond + 2 moonstone + 3 coal) and press K to blast off to the moon, where gravity is low and you can mine moon rock and moon dust, or press M to fly to red Mars (mine Mars rock, dust and diamonds); press K or M again there to fly home. Under water everything turns blue. Press Z or middle-click to open the action menu and point, wave, cheer, shrug, dance, bow, sit or lie down (move or jump to stop; other players see it too). In Skyblock, bridge north from your starting island to the small stone platform and walk into its purple portal to reach the Hub (in OneBlock, a similar platform to the north holds a Shop block you can press E on to buy and sell), a protected lobby plaza with a Quest Master (stand near him and press E to hand in items for coins), a Shop (E: sell ores, buy supplies) and portals to the Mines (a big ore slab with richer ore deeper down, including moonstone; its purple portal returns to the Hub) and back to your Skyblock island; your items come with you. Skyblock and OneBlock (pick them at the gateways) are void worlds: in Skyblock you start on a tiny island with a tree and a chest and bridge to other islands; in OneBlock you break a single block that regrows as a new block in phases (plains, forest, caves, desert and snow, mines, treasure, cherry grove, autumn woods, frozen peaks, moon, Mars and a diamond vault) with animals and loot chests along the way; each mode keeps its own world, and falling into the void sends you home. Bedwars (pick it at the gateways) is a survival void game: you start on a red island with your bed (guarded by planks), an iron and gold generator and a shop block (E to buy planks, stone, brick, iron and diamond swords and a water bucket with the iron, gold and diamonds you collect). Bridge to the rival islands (Blue, Green and Yellow), fight their robots (hit them; they chase you across your bridge and drop iron and gold, and respawn every 15 seconds while their bed lives) and break their guarded beds; destroy all three beds to win 150 coins. You cannot break your own bed, and falling into the void respawns you on your island. Walking through a portal now drops you in the middle of the island you arrive on. Chopped trees regrow after about half a minute. In survival mode, zombies join the wolves, bears and boars. Containment Breach (pick it at the gateways) starts in a safe lobby with the Armory block (E to buy and upgrade guns: pistol, SMG, shotgun, rifle) and two portals: green Easy (fewer, slower zombies, 150 coins) and red Hard (more, faster, harder-hitting zombies, 400 coins). The facility behind them is one winding dark hallway of rooms with no forks, so just keep following it: break the 3 glowing keycard blocks, avoid SCP-173 (it only moves when you are not looking at it; guns can't hurt it), shoot the infected zombies, then kill the giant zombie boss to unlock the exit door (press E or click it). Press H to return to the lobby. Select a gun in your hotbar and hold left click to fire.</p>
     <div id="game-wrap"><canvas id="game" width="960" height="540" aria-label="Funcraft first-person block world"></canvas><canvas id="tags" aria-hidden="true"></canvas><span id="crosshair" aria-hidden="true"></span><div id="splitHud" aria-hidden="true"><i class="divider"></i><b class="cross" style="left:25%"></b><b class="cross" style="left:75%"></b><span class="tag" style="left:.6rem">Player 1: WASD + mouse</span><span class="tag" id="p2Tag" style="left:calc(50% + .6rem)">Player 2</span></div><div id="hotbar" aria-label="Hotbar"></div><div id="underwater" aria-hidden="true" style="position:absolute;inset:.3rem;background:rgba(20,90,200,.55);border-radius:.5rem;pointer-events:none;display:none"></div><div id="heliCockpit" aria-hidden="true" style="position:absolute;inset:.3rem;pointer-events:none;display:none;overflow:hidden;border-radius:.5rem"><div style="position:absolute;left:0;right:0;top:0;height:13%;background:linear-gradient(#111827,#374151 70%,transparent)"></div><div class="rotorShadow" style="position:absolute;left:10%;right:10%;top:9%;height:6px;background:rgba(15,23,42,.55);border-radius:3px"></div><div style="position:absolute;left:0;top:0;bottom:0;width:7%;background:linear-gradient(90deg,#111827,#374151 60%,transparent)"></div><div style="position:absolute;right:0;top:0;bottom:0;width:7%;background:linear-gradient(270deg,#111827,#374151 60%,transparent)"></div><div style="position:absolute;left:49.5%;top:0;height:15%;width:1%;background:#1f2937"></div><div style="position:absolute;left:0;right:0;bottom:0;height:20%;background:linear-gradient(#dc2626 0 6%,#1f2937 6%);border-top:2px solid #7f1d1d"><span style="position:absolute;left:30%;top:22%;width:12%;aspect-ratio:1;border-radius:50%;background:radial-gradient(#0f172a 55%,#94a3b8 58%);box-shadow:0 0 0 2px #475569"></span><span style="position:absolute;left:46%;top:22%;width:8%;aspect-ratio:1;border-radius:50%;background:radial-gradient(#16a34a 40%,#0f172a 45%);box-shadow:0 0 0 2px #475569"></span><span style="position:absolute;left:58%;top:22%;width:12%;aspect-ratio:1;border-radius:50%;background:radial-gradient(#0f172a 55%,#94a3b8 58%);box-shadow:0 0 0 2px #475569"></span></div></div><style>@keyframes rotorSpin{0%{transform:scaleX(1);opacity:.7}50%{transform:scaleX(.2);opacity:.2}100%{transform:scaleX(1);opacity:.7}}#heliCockpit .rotorShadow{animation:rotorSpin .12s linear infinite}</style></div>
     <div id="inventory" aria-label="Inventory" hidden></div>
-    <div id="crafting" class="crafting" aria-label="Crafting bench"></div>
+    <div id="crafting" class="crafting" aria-label="Crafting bench" hidden></div>
     <section id="chestPanel" hidden><h3>Chest <button id="chestClose" type="button">Close</button></h3><p>Click an item to move one; Shift-click moves all of it.</p><p><strong>In the chest</strong></p><div id="chestItems" class="inventory"></div><p><strong>Your bag</strong></p><div id="chestBag" class="inventory"></div></section>
+    <section id="hubPanel" hidden><h3><span id="hubTitle">Quests</span> <button id="hubClose" type="button">Close</button></h3><p id="hubCoins"></p><div id="hubBody"></div></section>
     <div class="controls" aria-label="Touch controls">
       <button type="button" data-move="forward">Forward</button><button type="button" data-move="left">←</button><button type="button" data-action="jump">Jump</button><button type="button" data-move="right">→</button><button type="button" data-move="back">Back</button><button id="home" type="button">Home</button><button id="boat" type="button">Boat</button><button id="fullscreen" type="button">Full screen</button>      <button id="reset" type="button">New world</button><button id="split" type="button">2 Players: Off</button>
     </div>
@@ -74,7 +79,7 @@
     const craftingElement = document.querySelector("#crafting");
     const statusElement = document.querySelector("#status");
     const hungerValueElement = document.querySelector("#hunger-value");
-    const initialSize = 48, expansionSize = 16, version = 8, baseHeight = 96, newDeep = 40; let height = baseHeight, deep = 0;
+    const initialSize = 48, expansionSize = 16, version = 8, baseHeight = 96, newDeep = 40, SKY_Y = 40; let height = baseHeight, deep = 0, gameType = "";
     function setDepth(value) { deep = value; height = baseHeight + value; }
     const types = {
       grass: { label: "Grass", color: [101, 163, 13] }, dirt: { label: "Dirt", color: [146, 64, 14] },
@@ -119,8 +124,8 @@
     function mineTime(type) { const tier = bestTool(type); return (hardness[type] || 2) * (tier ? toolTiers[tier][0] : 1) * (hasBuff("mining") ? .4 : 1); }
     const mining = { down: false, key: "", t: 0, need: 1, target: null };
     function instantMine() { if (animalInSight()) return true; const t = raycast(); if (!t) return false; const type = blockAt(t.x, t.y, t.z); return type === "fire" || type === "water" || (selected === "torch" && inventory.torch && flammable[type]); }
-    function startMining() { if (instantMine()) { mine(); return; } mining.down = true; mining.key = ""; mining.t = 0; }
-    function stopMining() { mining.down = false; mining.target = null; mining.t = 0; }
+    function startMining() { if (gunStats(selected) && inventory[selected] > 0) { gunHeld = true; shoot(); return; } if (instantMine()) { mine(); return; } mining.down = true; mining.key = ""; mining.t = 0; }
+    function stopMining() { gunHeld = false; mining.down = false; mining.target = null; mining.t = 0; }
     function tickMining(delta) {
       if (!mining.down) return; if (document.pointerLockElement !== canvas) { stopMining(); return; }
       const target = raycast(); if (!target) { mining.target = null; mining.t = 0; mining.key = ""; return; }
@@ -146,6 +151,17 @@
       gl.uniform1f(lightOnLocation, 0); gl.bindBuffer(gl.ARRAY_BUFFER, smokeBuffer); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.DYNAMIC_DRAW);
       gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 24, 0); gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 24, 12); gl.disable(gl.CULL_FACE); gl.drawArrays(gl.TRIANGLES, 0, data.length / 6); gl.enable(gl.CULL_FACE);
     }
+    function drawHighlight() {
+      if (!inventoryElement.hidden || rocketLaunch) return; const hit = raycast(); if (!hit) return;
+      const { x, y, z } = hit, e = .008, g = .09 + .05 * Math.sin(performance.now() / 300), data = [], lines = [], gc = [g, g, g * .8], lc = [.9, .9, .6];
+      const corner = (i) => [x + (i & 1 ? 1 + e : -e), y + (i & 2 ? 1 + e : -e), z + (i & 4 ? 1 + e : -e)];
+      [[0, 1, 3, 2], [4, 5, 7, 6], [0, 1, 5, 4], [2, 3, 7, 6], [0, 2, 6, 4], [1, 3, 7, 5]].forEach((f) => [0, 1, 2, 0, 2, 3].forEach((k) => data.push(...corner(f[k]), ...gc)));
+      [[0, 1], [2, 3], [4, 5], [6, 7], [0, 2], [1, 3], [4, 6], [5, 7], [0, 4], [1, 5], [2, 6], [3, 7]].forEach(([a, b]) => lines.push(...corner(a), ...lc, ...corner(b), ...lc));
+      gl.uniform1f(lightOnLocation, 0); gl.bindBuffer(gl.ARRAY_BUFFER, smokeBuffer); gl.disable(gl.CULL_FACE); gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE); gl.depthMask(false);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.DYNAMIC_DRAW); gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 24, 0); gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 24, 12); gl.drawArrays(gl.TRIANGLES, 0, data.length / 6);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(lines), gl.DYNAMIC_DRAW); gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 24, 0); gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 24, 12); gl.drawArrays(gl.LINES, 0, lines.length / 6);
+      gl.depthMask(true); gl.disable(gl.BLEND); gl.enable(gl.CULL_FACE); gl.uniform1f(lightOnLocation, 1);
+    }
     const flammable = { wood: 1, cherryLeaves: 1.4, fallLeaves: 1.6, leaves: 1.4, grass: 1.5, coal: .5, plank: 1, appleLeaves: 1.4, pearLeaves: 1.4, plumLeaves: 1.4, kiwiLeaves: 1.4 };
     const burningPlanks = new Map(), fireKey = (x, y, z) => `${x + mapOriginX},${y},${z + mapOriginZ}`;
     function ignite(x, y, z) { if (world[y][z][x] === "plank") burningPlanks.set(fireKey(x, y, z), 30); world[y][z][x] = "fire"; mpBlock(x, y, z, "fire"); }
@@ -153,6 +169,20 @@
     function scanCrops() {
       cropAge.clear();
       for (let y = 0; y < world.length; y += 1) for (let z = 0; z < world[y].length; z += 1) for (let x = 0; x < world[y][z].length; x += 1) { const s = cropStage[world[y][z][x]]; if (s && !s.ripe) cropAge.set(fireKey(x, y, z), Math.random() * cropGrowSeconds * .5); }
+    }
+    let regrow = [];
+    function scheduleRegrow(target, type) { regrow.push({ x: target.x + mapOriginX, y: target.y, z: target.z + mapOriginZ, type, left: 20 + target.y % 8 * 2 + Math.random() * 6 }); saved.regrow = regrow; }
+    function updateRegrow(delta) {
+      if (!regrow.length || (mp.peer && !mp.host)) return; let changed = false;
+      regrow = regrow.filter((r) => {
+        r.left -= delta; if (r.left > 0) return true;
+        const x = r.x - mapOriginX, z = r.z - mapOriginZ, below = r.y > 0 ? world[r.y - 1]?.[z]?.[x] : true; if (world[r.y]?.[z]?.[x] === undefined) return true;
+        if (world[r.y][z][x] !== null) return false;
+        if (r.type === "wood" && !below) { r.left = 5; return true; }
+        if (playerOverlaps({ x, y: r.y, z })) { r.left = 3; return true; }
+        world[r.y][z][x] = r.type; mpBlock(x, r.y, z, r.type); changed = true; return false;
+      });
+      saved.regrow = regrow; if (changed) { rebuildMesh(); persist(); }
     }
     function updateCrops(delta) {
       cropTimer += delta; if (cropTimer < 1) return; const step = cropTimer; cropTimer = 0; if (mp.peer && !mp.host) return;
@@ -173,7 +203,7 @@
       { output: "glider", amount: 1, cost: { wood: 3, hide: 2 } },
       { output: "airplane", amount: 1, cost: { plank: 8, ironIngot: 2 } },
       { output: "helicopter", amount: 1, cost: { moonstone: 2, diamond: 4 } },
-      { output: "rocket", amount: 1, cost: { ironIngot: 10, goldIngot: 4, diamond: 4, moonstone: 4, coal: 6 } },
+      { output: "rocket", amount: 1, cost: { ironIngot: 5, goldIngot: 2, diamond: 2, moonstone: 2, coal: 3 } },
       { output: "workbench", amount: 1, cost: { plank: 4 } },
       { output: "chest", amount: 1, cost: { plank: 8 } },
       { output: "door", amount: 1, cost: { plank: 4 } },
@@ -188,8 +218,23 @@
     ];
     const guestKey = "funcraft-guest-save", saveDefaults = { world: [], inventory: {}, player: null, worldVersion: 0 };
     const saved = GameProfiles.isUnlocked() ? GameProfiles.getGame("funcraft", saveDefaults) : (() => { try { return { ...saveDefaults, ...JSON.parse(localStorage.getItem(guestKey) || "{}") }; } catch { return { ...saveDefaults }; } })();
-    const gameModes = { survival: [true, false, "Survival"], "survival-disaster": [true, true, "Survival + Disasters"], peaceful: [false, false, "Peaceful"], disaster: [false, true, "Disasters"] };
-    { const mode = gameModes[new URLSearchParams(location.search).get("mode")]; if (mode) { saved.survival = mode[0]; saved.disasters = mode[1]; saved.modeName = mode[2]; } document.querySelector("#modeLabel").textContent = saved.modeName ? "Mode: " + saved.modeName : ""; }
+    const gameModes = { survival: [true, false, "Survival"], "survival-disaster": [true, true, "Survival + Disasters"], peaceful: [false, false, "Peaceful"], disaster: [false, true, "Disasters"], skyblock: [false, false, "Skyblock"], oneblock: [false, false, "OneBlock"], hub: [false, false, "Hub"], mines: [false, false, "Mines"], bedwars: [true, false, "Bedwars"], containment: [true, false, "Containment Breach"] };
+    const skyFamily = (t) => t === "skyblock" || t === "hub" || t === "mines";
+    const gameTypeFields = ["world", "player", "mapWidth", "mapDepth", "mapOriginX", "mapOriginZ", "animals", "dayTime", "inventory", "lives", "worldVersion", "deep", "survival", "disasters", "modeName", "chests", "gameType", "oneCount", "slots", "regrow", "bw"];
+    // Each game type (normal, skyblock, oneblock) keeps its own world; switching stashes the current one.
+    function swapGameType(type) {
+      const slot = (t) => "[auto] " + (t || "normal"); let worlds = {};
+      try { worlds = JSON.parse(localStorage.getItem("funcraft-worlds") || "{}") || {}; } catch {}
+      if (saved.worldVersion && Array.isArray(saved.world) && saved.world.length) { const snap = {}; gameTypeFields.forEach((k) => { if (saved[k] !== undefined) snap[k] = saved[k]; }); worlds[slot(saved.gameType)] = JSON.parse(JSON.stringify(snap)); }
+      const carry = skyFamily(saved.gameType) && skyFamily(type) ? JSON.parse(JSON.stringify({ inventory: saved.inventory || {}, slots: saved.slots || [] })) : null;
+      gameTypeFields.forEach((k) => delete saved[k]); delete saved.worldName;
+      const next = worlds[slot(type)];
+      if (next) Object.assign(saved, JSON.parse(JSON.stringify(next))); else { saved.worldVersion = 0; saved.inventory = {}; saved.chests = {}; }
+      if (carry) { saved.inventory = carry.inventory; saved.slots = carry.slots; }
+      try { localStorage.setItem("funcraft-worlds", JSON.stringify(worlds)); } catch {}
+    }
+    { const key = new URLSearchParams(location.search).get("mode"), mode = gameModes[key]; if (mode) { const type = key === "skyblock" || key === "oneblock" || key === "hub" || key === "mines" || key === "bedwars" || key === "containment" ? key : ""; if ((saved.gameType || "") !== type) swapGameType(type); saved.gameType = type; saved.survival = mode[0]; saved.disasters = mode[1]; saved.modeName = mode[2]; } gameType = saved.gameType || ""; document.querySelector("#modeLabel").textContent = saved.modeName ? "Mode: " + saved.modeName : ""; }
+    let portalArrival = new URLSearchParams(location.search).has("portal");
     const player = { x: 5.5, y: 8, z: 5.5, yaw: 0, pitch: -.12, velocityY: 0, onGround: false, hunger: 100 };
     const keys = new Set();
     let split = false, viewing2 = false, otherView = null, p1Snapshot = null, selected2 = "dirt", p2LastMoon = false;
@@ -216,10 +261,132 @@
     function generateWorld() {
       const next = Array.from({ length: height }, () => Array.from({ length: initialSize }, () => Array(initialSize).fill(null)));
       for (let z = 0; z < initialSize; z += 1) for (let x = 0; x < initialSize; x += 1) for (let y = 0; y < height; y += 1) next[y][z][x] = terrainBlock(x, y, z);
-      [[12, 12], [33, 10], [18, 35], [37, 34]].forEach(([x, z]) => addPond(next, x, z));
+      [[12, 12], [33, 10], [18, 35], [37, 34]].forEach(([x, z]) => { if (!gameType) addPond(next, x, z); });
       return next;
     }
 
+    function startSkyWorld() {
+      saved.oneCount = 0; saved.chests = saved.chests || {};
+      player.x = gameType === "oneblock" ? 3.5 : 5.5; player.z = gameType === "bedwars" ? 41.5 : 5.5; player.y = surfaceAt(player.x, player.z) + 1; player.velocityY = 0; if (gameType === "bedwars") { saved.bw = {}; inventory.woodSword = 1; inventory.plank = (inventory.plank || 0) + 16; }
+      if (gameType === "containment") { cbStart(); return; }
+      if (gameType === "hub" || gameType === "mines" || gameType === "bedwars") return;
+      if (gameType === "oneblock") { player.yaw = Math.PI / 2; player.pitch = -.35; return; }
+      saved.chests[`3,${SKY_Y + 1},4`] = { waterBucket: 1, plank: 8, coal: 4, wheatSeeds: 3, carrotSeeds: 3 };
+      [["sheep", 4.5, 3.5], ["cow", 3.5, 6.5], ["chicken", 6.5, 4.5]].forEach(([kind, x, z]) => animals.push({ x, y: surfaceAt(x, z), z, kind, direction: Math.random() * Math.PI * 2 }));
+    }
+    const skyIslands = new Map();
+    function skyIsland(x, z) {
+      const gx = Math.floor(x / 36), gz = Math.floor(z / 36), key = `${gx},${gz}`; if (skyIslands.has(key)) return skyIslands.get(key);
+      let isl = null;
+      if (!gx && !gz) isl = { cx: 5, cz: 5, r: 4.3, y: SKY_Y, kind: 0, start: true, tx: 7, tz: 7 };
+      else if (!gx && gz === -1) isl = null;
+      else { const h = hash2(gx * 73 + 5, gz * 91 + 11); if (h % 100 < 65) { const cx = gx * 36 + 8 + (h >>> 8) % 20, cz = gz * 36 + 8 + (h >>> 12) % 20, kind = (h >>> 16) % 5; isl = { cx, cz, r: 3.2 + (h >>> 20) % 3, y: 30 + (h >>> 24) % 14, kind, start: false, tx: cx + 1, tz: cz + 1 }; } }
+      skyIslands.set(key, isl); return isl;
+    }
+    function sidePlatform(x, y, z) {
+      const ax = Math.abs(x - 5), az = Math.abs(z + 8); if (ax > 2 || az > 2 || y < SKY_Y - 1 || y > SKY_Y + 5) return undefined;
+      if (y === SKY_Y) return "stone";
+      if (y < SKY_Y) return ax <= 1 && az <= 1 ? "stone" : null;
+      if (gameType === "skyblock") return !az ? (y === SKY_Y + 5 || ax === 2 ? "brick" : skyHubPortal.type) : null;
+      return !ax && !az && y === SKY_Y + 1 ? "shopStand" : null;
+    }
+    function bedwarsBlock(x, y, z) {
+      if (y < SKY_Y - 2 || y > SKY_Y + 2) return null;
+      const mx = Math.abs(x - 5), mz = Math.abs(z - 5);
+      if (mx <= 4 && mz <= 4) { if (y === SKY_Y) return !mx && !mz ? "brick" : mx === 4 || mz === 4 ? "stone" : "grass"; if (y === SKY_Y - 1) return mx <= 3 && mz <= 3 ? "dirt" : null; return y === SKY_Y - 2 && mx <= 1 && mz <= 1 ? "stone" : null; }
+      const t = bwTeams.find((q) => Math.abs(x - q.x) <= 3 && Math.abs(z - q.z) <= 3); if (!t) return null;
+      const ax = Math.abs(x - t.x), az = Math.abs(z - t.z);
+      if (y === SKY_Y) return t.id === "you" && x === t.x - 2 && z === t.z ? "brick" : ax === 3 || az === 3 ? "stone" : "grass";
+      if (y === SKY_Y - 1) return ax <= 2 && az <= 2 ? "dirt" : null;
+      if (y === SKY_Y - 2) return ax <= 1 && az <= 1 ? "stone" : null;
+      const dx = x - t.x, dz = z - t.z + 2, guard = t.id === "you" ? "plank" : "stone";
+      if (y === SKY_Y + 1) { if (!dx && !dz) return "bed"; if (Math.abs(dx) + Math.abs(dz) === 1) return guard; return t.id === "you" && dx === 2 && z === t.z ? "shopStand" : null; }
+      return y === SKY_Y + 2 && !dx && !dz ? guard : null;
+    }
+    function skyBlock(x, y, z) {
+      if (gameType === "bedwars") return bedwarsBlock(x, y, z);
+      if (gameType === "containment") return cbBlock(x, y, z);
+      if (gameType === "skyblock" || gameType === "oneblock") { const sp = sidePlatform(x, y, z); if (sp !== undefined) return sp; }
+      if (gameType === "hub") {
+        const ax = Math.abs(x - 5), az = Math.abs(z - 5);
+        if (y > SKY_Y) {
+          const p = hubPortals.find((q) => q.z === z && Math.abs(x - q.x) <= 2);
+          if (p && y <= SKY_Y + 5) return y === SKY_Y + 5 || Math.abs(x - p.x) === 2 ? "brick" : p.type;
+          const s = hubStations.find((q) => q.x === x && q.z === z); return s && s.kind === "shop" && y === SKY_Y + 1 ? s.type : null;
+        }
+        if (y < SKY_Y - 2 || ax > 13 || az > 13) return null;
+        if (y === SKY_Y) return ax >= 12 || az >= 12 ? "stone" : ax <= 1 || az <= 1 ? "sand" : "grass";
+        return y === SKY_Y - 1 ? "dirt" : "stone";
+      }
+      if (gameType === "mines") {
+        const ax = Math.abs(x - 5), az = Math.abs(z - 5), depth = SKY_Y - y;
+        if (y > SKY_Y) return z === skyHubPortal.z && Math.abs(x - skyHubPortal.x) <= 2 && y <= SKY_Y + 5 ? (y === SKY_Y + 5 || Math.abs(x - skyHubPortal.x) === 2 ? "brick" : skyHubPortal.type) : null;
+        if (ax > 24 || az > 24 || depth > 20) return null;
+        if (depth === 0) return "stone";
+        const g = hash2(x * 7 + y, z * 3 + y * 5) % 100;
+        if (depth >= 11 && g > 95) return "moonstone";
+        if (depth >= 14 && g < 3) return "diamond";
+        if (depth >= 9 && g < 7) return "goldOre";
+        if (depth >= 4 && g < 13) return "ironOre";
+        return g < 24 ? "coal" : "stone";
+      }
+      if (gameType === "oneblock") {
+        const dx = Math.abs(x - 5), dz = Math.abs(z - 5);
+        if (y === SKY_Y && !dx && !dz) return "grass";
+        if (y === SKY_Y - 1 && dx <= 2 && dz <= 2) return "grass";
+        if (y === SKY_Y - 2 && dx <= 1 && dz <= 1) return "dirt";
+        return null;
+      }
+      const isl = skyIsland(x, z); if (!isl) return null;
+      const depth = isl.y - y, treeKind = isl.kind === 0 || isl.kind === 4, top = isl.y + 3;
+      if (depth < 0) {
+        if (treeKind && (isl.start || isl.r >= 4)) {
+          const dx = x - isl.tx, dz = z - isl.tz, ax = Math.abs(dx), az = Math.abs(dz);
+          if (!dx && !dz && y <= top) return "wood";
+          if (ax <= 2 && az <= 2 && (y === top - 1 || y === top) && !(ax === 2 && az === 2)) return isl.kind === 4 ? "appleLeaves" : "leaves";
+          if (ax <= 1 && az <= 1 && y === top + 1) return isl.kind === 4 ? "appleLeaves" : "leaves";
+        }
+        if (isl.start && depth === -1 && x === 3 && z === 4) return "chest";
+        if (depth === -1 && treeKind && !isl.start && Math.hypot(x - isl.cx, z - isl.cz) <= isl.r && hash2(x * 3 + 1, z * 7 + 2) % 100 < 12 && (x !== isl.tx || z !== isl.tz)) return "flower";
+        return null;
+      }
+      if (depth > 4 || Math.hypot(x - isl.cx, z - isl.cz) > isl.r - depth * .8) return null;
+      if (isl.kind === 1) { const g = hash2(x * 7 + y, z * 3 + y * 5) % 100; return g < 8 ? "coal" : g < 12 ? "ironOre" : g < 14 ? "goldOre" : g < 15 ? "diamond" : "stone"; }
+      if (isl.kind === 2) return "sand";
+      if (depth === 0) return isl.kind === 3 ? "snow" : "grass";
+      return "dirt";
+    }
+    const oneBlockPhases = [
+      [0, "Plains", ["grass", "grass", "dirt", "dirt", "wood", "leaves"]],
+      [30, "Forest", ["wood", "wood", "leaves", "appleLeaves", "pearLeaves", "dirt", "grass", "plank"]],
+      [70, "Caves", ["stone", "stone", "stone", "coal", "coal", "ironOre", "dirt", "sand"]],
+      [120, "Desert and snow", ["sand", "sand", "snow", "snow", "ice", "stone", "goldOre"]],
+      [170, "Mines", ["stone", "stone", "coal", "ironOre", "ironOre", "goldOre", "brick"]],
+      [230, "Treasure", ["stone", "goldOre", "goldOre", "diamond", "diamond", "moonstone", "ironOre"]],
+      [290, "Cherry grove", ["cherryLeaves", "cherryLeaves", "wood", "flower", "grass", "dirt", "plank"]],
+      [350, "Autumn woods", ["fallLeaves", "fallLeaves", "wood", "wood", "dirt", "grass", "appleLeaves"]],
+      [410, "Frozen peaks", ["snow", "snow", "ice", "ice", "snowLeaves", "stone", "coal", "ironOre"]],
+      [470, "Moon", ["moonRock", "moonRock", "moonDust", "moonDust", "moonstone", "diamond"]],
+      [530, "Mars", ["marsRock", "marsRock", "marsDust", "marsDust", "goldOre", "diamond"]],
+      [600, "Diamond vault", ["diamond", "diamond", "goldOre", "moonstone", "brick", "ironOre"]]
+    ];
+    const oneBlockPhaseAt = (n) => oneBlockPhases.filter((p) => n >= p[0]).pop();
+    function oneBlockNext(x, y, z) {
+      if (gameType !== "oneblock" || x !== 5 - mapOriginX || y !== SKY_Y || z !== 5 - mapOriginZ) return;
+      const n = saved.oneCount = (saved.oneCount || 0) + 1, phase = oneBlockPhaseAt(n);
+      let next = phase[2][Math.floor(Math.random() * phase[2].length)];
+      if (n % 25 === 0) {
+        next = "chest"; const loot = {}, pool = n < 70 ? ["wood", "dirt", "coal", "wheatSeeds", "carrotSeeds", "cornSeeds"] : ["ironIngot", "goldIngot", "coal", "stone", "diamond", "lemonSeeds", "watermelonSeeds"];
+        for (let i = 0; i < 4; i += 1) { const item = pool[Math.floor(Math.random() * pool.length)]; loot[item] = (loot[item] || 0) + 1 + Math.floor(Math.random() * 3); }
+        saved.chests = saved.chests || {}; saved.chests[chestKey(x, y, z)] = loot;
+      }
+      world[y][z][x] = next; mpBlock(x, y, z, next);
+      if (n % 10 === 0 && animals.filter((a) => !a.pet).length < 6) {
+        const kinds = Object.keys(animalKinds).filter((k) => !animalKinds[k].hostile && !animalKinds[k].fly), ax = 5 + Math.random() * 3 - 1.5, az = 5 + Math.random() * 4 - 2;
+        if (Math.hypot(ax - 5, az - 5) > .9) animals.push({ x: ax - mapOriginX, y: SKY_Y, z: az - mapOriginZ, kind: kinds[Math.floor(Math.random() * kinds.length)], direction: Math.random() * Math.PI * 2 });
+      }
+      if (phase[0] === n && n > 0) statusElement.textContent = `New phase: ${phase[1]}! ${n} blocks broken. Now you can dig: ${[...new Set(phase[2])].map((t) => types[t].label.toLowerCase()).join(", ")}.`;
+    }
     function addPond(next, centerX, centerZ) {
       for (let z = centerZ - 3; z <= centerZ + 3; z += 1) for (let x = centerX - 3; x <= centerX + 3; x += 1) {
         if (x < 1 || z < 1 || x >= initialSize - 1 || z >= initialSize - 1) continue;
@@ -230,10 +397,11 @@
     }
 
     function startWorld(reset) {
+      gameType = saved.gameType || ""; regrow = reset || !Array.isArray(saved.regrow) ? [] : saved.regrow; saved.regrow = regrow; if (gameType === "hub" || gameType === "mines" || gameType === "containment") saved.worldVersion = 0;
       onMoon = false; earth = null; rocketLaunch = null; rocketOverlay.style.display = "none"; farBuilt = null;
       thrown.length = 0; mp.adopted = false; lobbyEdits.clear(); mpPending.length = 0; flood.layers.length = 0; weather.flood = null; weather.tornado = null;
       setDepth(Number(saved.deep) || 0); const decoded = saved.worldVersion === version ? decodeWorld(saved.world) : null, valid = !!decoded;
-      if (reset || !valid) setDepth(newDeep);
+      if (reset || !valid) setDepth(gameType ? 0 : newDeep);
       world = !reset && valid ? decoded : generateWorld();
       mapWidth = valid ? saved.mapWidth : initialSize; mapDepth = valid ? saved.mapDepth : initialSize;
       mapOriginX = valid ? saved.mapOriginX : 0; mapOriginZ = valid ? saved.mapOriginZ : 0;
@@ -241,7 +409,7 @@
       slots = reset ? [] : slots; inventory = !reset && saved.inventory && Object.keys(saved.inventory).length ? saved.inventory : { dirt: 6, stone: 2, wood: 4, grass: 0, leaves: 0, water: 0, plank: 0, brick: 0, workbench: 0, furnace: 0, coal: 0, ironOre: 0, goldOre: 0, ironIngot: 0, goldIngot: 0, meat: 0, hide: 0 };
       const prior = !reset && valid ? saved.player : null;
       Object.assign(player, prior || { x: 5.5, y: 7 + deep, z: 5.5, yaw: 0, pitch: -.12, velocityY: 0, onGround: false });
-      player.velocityY = 0; player.hunger = Number.isFinite(player.hunger) ? player.hunger : 100; selected = "dirt"; workbenchNearby = nearWorkbench(); workbenchActive = false; boating = false; saved.worldVersion = version; if (!animals.length) spawnAnimals(); if (reset) saved.chests = {}; lives = !reset && valid && Number.isFinite(saved.lives) ? saved.lives : maxLives; if (reset) saved.survival = survivalElement.checked; survivalElement.checked = !!saved.survival; if (saved.survival && !animals.some((animal) => animalKinds[animal.kind]?.hostile && !animal.pet)) syncHostiles(); renderLives(); scanCrops(); rebuildMesh(); persist(); renderInventory(); renderCrafting(); renderHunger();
+      player.velocityY = 0; player.hunger = Number.isFinite(player.hunger) ? player.hunger : 100; selected = "dirt"; workbenchNearby = nearWorkbench(); workbenchActive = false; boating = false; saved.worldVersion = version; if (!animals.length && !gameType) spawnAnimals(); if (reset) saved.chests = {}; if (gameType && !prior) startSkyWorld(); else if (gameType && portalArrival) { portalArrival = false; teleportHome(); statusElement.textContent = "Welcome! You arrived in the middle of the island."; history.replaceState(null, "", location.pathname + location.search.replace("&portal=1", "")); } lives = !reset && valid && Number.isFinite(saved.lives) ? saved.lives : maxLives; if (reset) saved.survival = survivalElement.checked; survivalElement.checked = !!saved.survival; if (saved.survival && !animals.some((animal) => animalKinds[animal.kind]?.hostile && !animal.pet)) syncHostiles(); renderLives(); scanCrops(); rebuildMesh(); persist(); renderInventory(); renderCrafting(); renderHunger();
       lastFrame = performance.now(); cancelAnimationFrame(animationFrame); animationFrame = requestAnimationFrame(loop);
     }
 
@@ -250,7 +418,181 @@
     types.lavaBucket = { label: "Lava bucket", color: [249, 115, 22] };
     types.moonDust = { label: "Moon dust", color: [190, 192, 200] };
     types.moonRock = { label: "Moon rock", color: [120, 122, 132] };
-    let onMoon = false, earth = null;
+    types.marsDust = { label: "Mars dust", color: [196, 98, 56] };
+    types.marsRock = { label: "Mars rock", color: [140, 64, 40] };
+    // Old mode portals stay registered so saved worlds keep their block ids.
+    [["portalSurvival", "Survival", [220, 38, 38]], ["portalSurvDis", "Survival Disaster", [147, 51, 234]], ["portalPeaceful", "Peaceful", [34, 197, 94]], ["portalDisaster", "Disaster", [234, 179, 8]], ["portalSky", "Skyblock", [56, 189, 248]], ["portalOne", "OneBlock", [249, 115, 22]]].forEach(([type, label, color]) => { types[type] = { label: label + " portal", color, solid: false, hidden: true }; });
+    const skyHubPortal = { type: "portalHub", mode: "hub", label: "Hub", color: [168, 85, 247], x: 5, z: -8 };
+    types.portalHub = { label: "Hub portal", color: skyHubPortal.color, solid: false, hidden: true };
+    const hubPortals = [
+      { type: "portalMines", mode: "mines", label: "Mines", color: [148, 163, 184], x: 5, z: -6 },
+      { type: "portalSky", mode: "skyblock", label: "Island", color: [56, 189, 248], x: 5, z: 16 }
+    ];
+    types.portalMines = { label: "Mines portal", color: [148, 163, 184], solid: false, hidden: true };
+    const hubStations = [
+      { type: "questBoard", kind: "quests", label: "Quest Master", color: [250, 204, 21], x: 1, z: 5 },
+      { type: "shopStand", kind: "shop", label: "Shop", color: [74, 222, 128], x: 9, z: 5 }
+    ];
+    types.questBoard = { label: "Quest board", color: [180, 120, 40], hidden: true };
+    types.shopStand = { label: "Shop", color: [34, 197, 94], hidden: true };
+    types.ironSword = { label: "Iron sword", color: [203, 213, 225] }; types.diamondSword = { label: "Diamond sword", color: [80, 230, 235] };
+    const swordDamage = { woodSword: 1.25, ironSword: 2, diamondSword: 3 };
+    const bwTeams = [
+      { id: "you", label: "Red", color: [239, 68, 68], x: 5, z: 41 },
+      { id: "n", label: "Blue", color: [59, 130, 246], x: 5, z: -31 },
+      { id: "e", label: "Green", color: [34, 197, 94], x: 41, z: 5 },
+      { id: "w", label: "Yellow", color: [234, 179, 8], x: -31, z: 5 }
+    ];
+    const bwRobotTimer = {}, bwGen = { iron: 0, gold: 0, dia: 0, robot: 0 };
+    function bwBedBroken(target) {
+      const ax = target.x + mapOriginX, az = target.z + mapOriginZ + 2, team = bwTeams.find((t) => t.x === ax && t.z === az); if (!team) return;
+      saved.bw = saved.bw || {}; saved.bw[team.id] = true; const done = bwTeams.slice(1).filter((t) => saved.bw[t.id]).length;
+      if (done === 3) { hubData.coins += 150; saveHubData(); statusElement.textContent = "VICTORY! You destroyed every enemy bed! +150 coins."; } else statusElement.textContent = `${team.label} team's bed destroyed! (${done}/3) Their robots can't respawn now.`;
+    }
+    function updateBedwars(delta) {
+      if (gameType !== "bedwars" || (mp.peer && !mp.host)) return;
+      const inMap = (x, z) => x - mapOriginX > 2 && x - mapOriginX < mapWidth - 3 && z - mapOriginZ > 2 && z - mapOriginZ < mapDepth - 3;
+      const drop = (type, x, z) => { if (thrown.length < 60) dropItem(type, x + .5 - mapOriginX, SKY_Y + 2, z + .5 - mapOriginZ); };
+      bwGen.iron += delta; bwGen.gold += delta; bwGen.dia += delta; bwGen.robot += delta;
+      if (bwGen.iron >= 2.5) { bwGen.iron = 0; drop("ironIngot", 3, 41); }
+      if (bwGen.gold >= 9) { bwGen.gold = 0; drop("goldIngot", 3, 41); if (inMap(5, 5)) drop("goldIngot", 5, 5); }
+      if (bwGen.dia >= 20) { bwGen.dia = 0; if (inMap(5, 5)) drop("diamond", 5, 5); }
+      if (bwGen.robot >= 2) {
+        bwGen.robot = 0;
+        bwTeams.slice(1).forEach((t) => {
+          if ((saved.bw && saved.bw[t.id]) || !inMap(t.x, t.z) || animals.some((a) => a.team === t.id) || performance.now() < (bwRobotTimer[t.id] || 0)) return;
+          const lx = t.x + .5 - mapOriginX, lz = t.z + 1.5 - mapOriginZ; animals.push({ x: lx, y: surfaceAt(lx, lz), z: lz, kind: "robot", team: t.id, direction: 0 }); rebuildMesh();
+        });
+      }
+    }
+    // Containment Breach: a 15x15-tile map (3 blocks per tile). The top-left room is a sealed lobby (Armory + Easy/Hard portals); the rest is the facility with keycards, SCP-173, infected zombies and a giant zombie boss. e = Easy portal, h = Hard portal.
+    const cbMap = ["###############", "#P...##########", "#....##########", "#e..h##########", "###############", "#...Z...1.....#", "#############.#", "#########Z...K#", "#########..Z..#", "#########.#####", "#K...Z....#####", "#.#############", "#.....Z.....B.E", "#.K.....Z.....#", "###############"], CB_ORIGIN = 1, CB_TILE = 3, CB_N = cbMap.length, CB_ENTRY = [1, 5];
+    const cbState = { boss: false, won: false, diff: null, spd: 1 };
+    let gunHeld = false, gunCd = 0, cbMeshTimer = 0, reloadT = 0, reloadGun = null; const cbAmmo = {};
+    function ammoOf(id) { if (cbAmmo[id] === undefined) cbAmmo[id] = gunDefs[id].mag; return cbAmmo[id]; }
+    function startReload() { const g = gunDefs[selected]; if (!g || reloadT > 0 || ammoOf(selected) >= g.mag) return; reloadGun = selected; reloadT = g.reload; statusElement.textContent = `Reloading ${g.label}...`; cbHud(); }
+    types.labWall = { label: "Facility wall", color: [96, 108, 124] }; types.labFloor = { label: "Facility floor", color: [58, 66, 80] }; types.labFloor2 = { label: "Facility floor", color: [48, 55, 68] };
+    types.labLamp = { label: "Lamp", color: [253, 230, 138] }; types.portalEasy = { label: "Easy portal", color: [34, 197, 94], solid: false, hidden: true }; types.portalHard = { label: "Hard portal", color: [220, 38, 38], solid: false, hidden: true }; types.keycardBlock = { label: "Keycard", color: [250, 204, 21] }; types.exitDoor = { label: "Exit door", color: [190, 30, 40] }; types.keycard = { label: "Keycard", color: [250, 204, 21] };
+    const gunDefs = {
+      pistol: { label: "Pistol", dmg: 2, cd: .35, range: 30, pellets: 1, spread: 0, mag: 12, reload: 1.2, price: 0, color: [148, 163, 184] },
+      smg: { label: "SMG", dmg: 1.1, cd: .09, range: 24, pellets: 1, spread: .02, mag: 30, reload: 1.6, price: 150, color: [100, 116, 139] },
+      shotgun: { label: "Shotgun", dmg: 2.2, cd: .8, range: 12, pellets: 5, spread: .09, mag: 6, reload: 2, price: 250, color: [146, 64, 14] },
+      rifle: { label: "Rifle", dmg: 12, cd: .9, range: 60, pellets: 1, spread: 0, mag: 5, reload: 2.2, price: 450, color: [30, 41, 59] }
+    };
+    Object.entries(gunDefs).forEach(([id, g]) => { types[id] = { label: g.label, color: g.color }; });
+    const gunLevel = (id) => hubData.guns && hubData.guns[id] !== undefined ? hubData.guns[id] : 0;
+    function gunStats(id, lv = gunLevel(id)) { const g = gunDefs[id]; return g && { ...g, dmg: g.dmg * (1 + .25 * lv), cd: g.cd / (1 + .12 * lv) }; }
+    function cbHit(c, x, y, z) { const k = animalKinds[c.kind] || {}, w = k.big ? k.scale * .38 : .5, wz = k.big ? k.scale * .3 : .4, h = k.big ? k.scale : 1; return Math.abs(c.x - x) < w && Math.abs(c.z - z) < wz && y >= c.y && y <= c.y + h; }
+    const cbOpen = (c, r) => !!cbMap[r]?.[c] && cbMap[r][c] !== "#" && cbMap[r][c] !== "E";
+    function cbBlock(x, y, z) {
+      const u = x - CB_ORIGIN, v = z - CB_ORIGIN; if (y < SKY_Y || y > SKY_Y + 6 || u < 0 || v < 0 || u >= CB_N * 3 || v >= CB_N * 3) return null;
+      const c = Math.floor(u / 3), r = Math.floor(v / 3), ch = cbMap[r][c], lu = u % 3, lv = v % 3;
+      if (y === SKY_Y) return (c + r) % 2 ? "labFloor" : "labFloor2";
+      if (ch === "E") return "exitDoor";
+      if (ch === "#") return y === SKY_Y + 3 && (c + r) % 2 === 0 && ((lv === 2 && lu === 1 && cbOpen(c, r + 1)) || (lv === 0 && lu === 1 && cbOpen(c, r - 1)) || (lu === 2 && lv === 1 && cbOpen(c + 1, r)) || (lu === 0 && lv === 1 && cbOpen(c - 1, r))) ? "labLamp" : "labWall";
+      if (ch === "e" || ch === "h") return y === SKY_Y + 1 ? (ch === "e" ? "portalEasy" : "portalHard") : null;
+      if (y !== SKY_Y + 1 || lu !== 1 || lv !== 1) return null;
+      return ch === "K" ? "keycardBlock" : c === 3 && r === 1 ? "shopStand" : null;
+    }
+    const cbCenter = (c, r) => [CB_ORIGIN + c * CB_TILE + 1.5 - mapOriginX, CB_ORIGIN + r * CB_TILE + 1.5 - mapOriginZ];
+    const cbTile = (x, z) => [Math.floor((x + mapOriginX - CB_ORIGIN) / CB_TILE), Math.floor((z + mapOriginZ - CB_ORIGIN) / CB_TILE)];
+    function ammoText(id) { return reloadT > 0 && reloadGun === id ? "..." : `${ammoOf(id)}/${gunDefs[id].mag}`; }
+    function cbHud() {
+      document.querySelectorAll(".slot .am").forEach((am) => { am.textContent = ammoText(am.dataset.gun); });
+      const ammo = gunDefs[selected] ? ` · ${gunDefs[selected].label} ${reloadT > 0 ? "reloading..." : ammoOf(selected) + "/" + gunDefs[selected].mag}` : "";
+      const el = document.querySelector("#modeLabel"), giant = animals.find((a) => a.kind === "giant"), max = animalKinds.giant.hp;
+      if (el) el.textContent = `Mode: Containment Breach · ${cbState.diff ? cbState.diff + " · " : "Lobby · "}Keycards ${inventory.keycard || 0}/3 · Giant zombie: ${cbState.boss ? "dead" : giant ? Math.ceil(giant.hp === undefined ? max : giant.hp) + "/" + max : "alive"}${ammo}${cbState.won ? " · ESCAPED!" : ""}`;
+    }
+    function cbLobby(rebuild) {
+      cbState.boss = false; cbState.won = false; cbState.diff = null; cbState.spd = 1; reloadT = 0; Object.keys(cbAmmo).forEach((k) => delete cbAmmo[k]); animals = []; inventory.keycard = 0;
+      if (rebuild) {
+        cbMap.forEach((row, r) => [...row].forEach((ch, c) => { if (ch !== "K" && ch !== "E") return; for (let y = SKY_Y + 1; y <= SKY_Y + 6; y += 1) for (let dz = 0; dz < 3; dz += 1) for (let dx = 0; dx < 3; dx += 1) { const lx = CB_ORIGIN + c * 3 + dx - mapOriginX, lz = CB_ORIGIN + r * 3 + dz - mapOriginZ, b = cbBlock(lx + mapOriginX, y, lz + mapOriginZ); if (world[y]?.[lz]?.[lx] !== b) { world[y][lz][lx] = b; mpBlock(lx, y, lz, b); } } }));
+      }
+      const [x, z] = cbCenter(1, 1); player.x = x; player.z = z; player.y = SKY_Y + 1; player.velocityY = 0;
+      cbHud(); if (rebuild) { statusElement.textContent = "Back in the lobby. Upgrade at the Armory (E) and step into a portal: green is Easy, red is Hard."; rebuildMesh(); persistAndRender(); }
+    }
+    function cbRespawn() { cbLobby(true); }
+    function cbBegin(diff) {
+      cbState.diff = diff; cbState.spd = diff === "Hard" ? 1.3 : .7; animals = []; inventory.keycard = 0; cbState.boss = false; cbState.won = false; let n = 0;
+      cbMap.forEach((row, r) => [...row].forEach((ch, c) => {
+        const [x, z] = cbCenter(c, r), a = { x, y: SKY_Y + 1, z, direction: 0 };
+        if (ch === "1") animals.push({ ...a, kind: "scp173", sx: x, sz: z });
+        else if (ch === "Z") { n += 1; if (diff === "Hard") { animals.push({ ...a, kind: "infected" }); animals.push({ ...a, x: x + .7, z: z + .7, kind: "infected" }); } else if (n % 2) animals.push({ ...a, kind: "infected" }); }
+        else if (ch === "B") animals.push({ ...a, kind: "giant" });
+      }));
+      const [x, z] = cbCenter(...CB_ENTRY); player.x = x; player.z = z; player.y = SKY_Y + 1; player.velocityY = 0;
+      cbHud(); rebuildMesh(); statusElement.textContent = `${diff} mode! Find 3 keycards, kill the giant zombie and escape (reward: ${diff === "Hard" ? 400 : 150} coins). Press H to return to the lobby.`;
+    }
+    function cbStart() {
+      inventory.torch = 0;
+      const guns = hubData.guns || (hubData.guns = { pistol: 0 }); Object.keys(gunDefs).forEach((id) => { inventory[id] = guns[id] !== undefined ? 1 : 0; }); saveHubData(); selected = "pistol";
+      cbLobby(false); statusElement.textContent = "Welcome to Containment Breach! Upgrade at the Armory (E), then step into a portal: green is Easy, red is Hard. Hold left click to fire, R to reload.";
+    }
+    function cbExit() {
+      if (cbState.won) return;
+      if ((inventory.keycard || 0) < 3) { statusElement.textContent = `The exit needs 3 keycards (you have ${inventory.keycard || 0}).`; return; }
+      if (!cbState.boss) { statusElement.textContent = "The exit is sealed while the giant zombie lives. Kill it first!"; return; }
+      cbState.won = true; const [c, r] = [[...cbMap.join("")].indexOf("E") % CB_N, Math.floor([...cbMap.join("")].indexOf("E") / CB_N)];
+      for (let y = SKY_Y + 1; y <= SKY_Y + 6; y += 1) for (let dz = 0; dz < 3; dz += 1) for (let dx = 0; dx < 3; dx += 1) { const lx = CB_ORIGIN + c * 3 + dx - mapOriginX, lz = CB_ORIGIN + r * 3 + dz - mapOriginZ; if (blockAt(lx, y, lz) === "exitDoor") { world[y][lz][lx] = null; mpBlock(lx, y, lz, null); } }
+      const reward = cbState.diff === "Hard" ? 400 : 150; hubData.coins += reward; saveHubData(); cbHud(); statusElement.textContent = `YOU ESCAPED! +${reward} coins. Press H to return to the lobby and spend them at the Armory.`; rebuildMesh(); persistAndRender();
+    }
+    function cbShop(add, say) {
+      const guns = hubData.guns || (hubData.guns = { pistol: 0 }), info = (id, lv) => { const g = gunStats(id, lv); return `${(g.dmg * g.pellets).toFixed(1)} damage per shot, ${(1 / g.cd).toFixed(1)} shots/s`; };
+      say("Win Containment Breach to earn coins. Buy and upgrade guns here; hold left click to fire the gun in your hand.");
+      Object.entries(gunDefs).forEach(([id, g]) => {
+        const lv = guns[id];
+        if (lv === undefined) add(`Buy ${g.label} for ${g.price} coins (${info(id, 0)})`, () => { hubData.coins -= g.price; guns[id] = 0; inventory[id] = 1; saveHubData(); persistAndRender(); renderHub(); }, hubData.coins < g.price);
+        else if (lv >= 5) say(`${g.label}: MAX level (${info(id, lv)})`);
+        else { const cost = 60 * (lv + 1); add(`Upgrade ${g.label} Lv ${lv} → ${lv + 1} for ${cost} coins (${info(id, lv + 1)})`, () => { hubData.coins -= cost; guns[id] = lv + 1; saveHubData(); persistAndRender(); renderHub(); }, hubData.coins < cost); }
+      });
+    }
+    function shoot() {
+      const g = gunStats(selected); if (!g || gunCd > 0 || reloadT > 0 || !inventory[selected]) return; if (ammoOf(selected) <= 0) { startReload(); return; } gunCd = g.cd; cbAmmo[selected] -= 1; if (cbAmmo[selected] <= 0) startReload(); else cbHud();
+      const base = directionVector(), hits = new Map();
+      for (let p = 0; p < g.pellets; p += 1) {
+        const d = base.map((v) => v + (g.pellets > 1 ? (Math.random() - .5) * 2 * g.spread : 0));
+        for (let t = .3; t <= g.range; t += .25) {
+          const x = player.x + d[0] * t, y = player.y + 1.45 + d[1] * t, z = player.z + d[2] * t;
+          if (solid(blockAt(Math.floor(x), Math.floor(y), Math.floor(z)))) break;
+          const a = animals.find((c) => !c.pet && cbHit(c, x, y, z)); if (a) { hits.set(a, (hits.get(a) || 0) + g.dmg); break; }
+        }
+      }
+      hits.forEach((dmg, a) => hitAnimal(a, dmg * (hasBuff("strength") ? 2 : 1)));
+    }
+    function updateContainment(delta) {
+      gunCd = Math.max(0, gunCd - delta); if (reloadT > 0) { if (selected !== reloadGun) { reloadT = 0; cbHud(); } else { reloadT -= delta; if (reloadT <= 0) { reloadT = 0; cbAmmo[reloadGun] = gunDefs[reloadGun].mag; statusElement.textContent = "Reloaded."; cbHud(); } } } if (gunHeld) shoot();
+      if (gameType !== "containment" || (mp.peer && !mp.host)) return;
+      if (!cbState.diff) { const inside = blockAt(Math.floor(player.x), Math.floor(player.y + .6), Math.floor(player.z)); if (inside === "portalEasy" || inside === "portalHard") { cbBegin(inside === "portalHard" ? "Hard" : "Easy"); return; } }
+      dayTime = .8; player.hunger = 100;
+      const fy = SKY_Y + 1, [pc, pr] = cbTile(player.x, player.z), dm = cbMap.map((row) => Array(row.length).fill(99));
+      if (cbOpen(pc, pr)) { dm[pr][pc] = 0; const q = [[pc, pr]]; while (q.length) { const [c, r] = q.shift(); [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([a, b]) => { if (cbOpen(c + a, r + b) && dm[r + b][c + a] === 99) { dm[r + b][c + a] = dm[r][c] + 1; q.push([c + a, r + b]); } }); } }
+      const open = (x, z) => !solid(blockAt(Math.floor(x), fy, Math.floor(z))), fit = (x, z, r) => [[0, 0], [r, r], [r, -r], [-r, r], [-r, -r]].every(([a, b]) => open(x + a, z + b));
+      const look = directionVector(), lh = Math.hypot(look[0], look[2]) || 1;
+      const seen = (a) => { const dx = a.x - player.x, dz = a.z - player.z, d = Math.hypot(dx, dz) || .01; if ((look[0] * dx + look[2] * dz) / lh / d < .5 || d > 40) return false; for (let t = .5; t < d; t += .5) if (solid(blockAt(Math.floor(player.x + dx * t / d), fy + 1, Math.floor(player.z + dz * t / d)))) return false; return true; };
+      let moved = false;
+      animals.forEach((a) => {
+        const k = animalKinds[a.kind]; if (!k || !k.scp) return;
+        const dx = player.x - a.x, dz = player.z - a.z, d = Math.hypot(dx, dz) || .01, [c, r] = cbTile(a.x, a.z), steps = dm[r]?.[c] ?? 99; let speed = 0; a.y = fy;
+        if (a.kind === "scp173") { a.frozen = seen(a); speed = a.frozen || steps > 8 ? 0 : k.speed; }
+        else { if (steps <= (a.kind === "giant" ? 4 : 3) || a.hp !== undefined) a.alert = true; if (a.alert) speed = k.speed * cbState.spd; }
+        if (speed) {
+          let tx = player.x, tz = player.z;
+          if (steps > 0 && steps < 99) { const nb = [[1, 0], [-1, 0], [0, 1], [0, -1]].find(([p, q]) => dm[r + q]?.[c + p] === steps - 1); if (nb) [tx, tz] = cbCenter(c + nb[0], r + nb[1]); }
+          const ex = tx - a.x, ez = tz - a.z, ed = Math.hypot(ex, ez) || .01, s = Math.min(speed * delta, ed), rad = a.kind === "giant" ? .9 : .35;
+          if (fit(a.x + ex / ed * s, a.z, rad)) a.x += ex / ed * s; if (fit(a.x, a.z + ez / ed * s, rad)) a.z += ez / ed * s; moved = true;
+        }
+        if (d < (a.kind === "giant" ? 2.2 : 1.2) && Math.abs(player.y - fy) < 2 && hitCooldown === 0 && !(a.kind === "scp173" && a.frozen)) { hurt(a.kind === "scp173" ? "SCP-173" : a.kind === "giant" ? "giant zombie" : "infected zombie", a.kind === "infected" ? (cbState.diff === "Hard" ? 2 : 1) : 2); if (a.kind === "scp173") { a.x = a.sx; a.z = a.sz; } }
+      });
+      cbMeshTimer += delta; if (moved && cbMeshTimer > .1) { cbMeshTimer = 0; rebuildMesh(); }
+    }
+    const activePortals = () => gameType === "hub" ? hubPortals : gameType === "skyblock" || gameType === "mines" ? [skyHubPortal] : [];
+    let onMoon = false, earth = null, planet = "moon";
+    function marsBlock(x, y, z) {
+      const ground = moonGround(x, z) + Math.round(Math.sin(x * .05 + z * .04) * 2);
+      if (y > ground) return null;
+      if (y > ground - 3) return "marsDust";
+      return hash2(x * 5 + y, z * 7 + y * 3) % 100 < 3 && y >= 1 ? "diamond" : "marsRock";
+    }
     function moonGround(x, z) {
       let h = 10 + deep + Math.round(Math.sin(x * .09) * 1.5 + Math.sin(z * .07 + 1) * 1.5);
       const cx = Math.floor(x / 28), cz = Math.floor(z / 28);
@@ -320,17 +662,17 @@
     function mineBlock(x, y, z) {
       const gx = Math.floor(x / 2560), gz = Math.floor(z / 2560), s = mineSite(gx, gz); if (!s) return undefined;
       const y0 = 6, ox = gx * 2560, oz = gz * 2560, dx = x - s.tx, dz = z - s.tz, mod = (n, m) => ((n % m) + m) % m;
-      const room = Math.abs(dx) <= 8 && Math.abs(dz) <= 8, inA = Math.abs(dz) <= 4 && x >= ox + 10 && x <= ox + 2550, inB = Math.abs(dx) <= 4 && z >= oz + 10 && z <= oz + 2550;
+      const room = Math.abs(dx) <= 16 && Math.abs(dz) <= 16, inA = Math.abs(dz) <= 8 && x >= ox + 10 && x <= ox + 2550, inB = Math.abs(dx) <= 8 && z >= oz + 10 && z <= oz + 2550;
       const shaft = (along, side, inside) => y > y0 && inside && Math.abs(side) <= 1 && (mod(along - 12, 150) <= 2 || (along >= 2546 && along <= 2548));
       const sA = shaft(x - ox, dz, x >= ox + 10 && x <= ox + 2550), sB = shaft(z - oz, dx, z >= oz + 10 && z <= oz + 2550);
       if (sA || sB) {
         const mid = sA ? Math.abs(dz) === 0 && (mod(x - ox - 12, 150) === 1 || x - ox === 2547) : Math.abs(dx) === 0 && (mod(z - oz - 12, 150) === 1 || z - oz === 2547);
         return mid ? "ladder" : null;
       }
-      if (!(room || inA || inB) || y <= y0 || y > (room ? y0 + 10 : y0 + 8)) return undefined;
+      if (!(room || inA || inB) || y <= y0 || y > (room ? y0 + 20 : y0 + 16)) return undefined;
       if (!room) {
         const side = inA ? Math.abs(dz) : Math.abs(dx), along = inA ? dx : dz;
-        if (mod(along, 6) === 0) { if (y === y0 + 8) return "plank"; if (side === 4 && y <= y0 + 7) return mod(along, 12) === 0 && y === y0 + 3 ? "torch" : "wood"; }
+        if (mod(along, 12) === 0) { if (y === y0 + 16) return "plank"; if (side === 8 && y <= y0 + 15) return mod(along, 24) === 0 && y === y0 + 6 ? "torch" : "wood"; }
       }
       return null;
     }
@@ -392,8 +734,9 @@
       return "stone";
     }
     function terrainBlock(x, y, z) {
-      if (onMoon) return moonBlock(x, y, z);
+      if (onMoon) return planet === "mars" ? marsBlock(x, y, z) : moonBlock(x, y, z);
       if (lobbyEdits.size) { const edited = lobbyEdits.get(`${x},${y},${z}`); if (edited !== undefined) return edited; }
+      if (gameType) return skyBlock(x, y, z);
       if (deep) { if (y < deep) return deepBlock(x, y - deep, z); y -= deep; }
       const info = columnInfo(x, z), ground = info.ground;
       if (info.wet && y >= 1 && y <= 4) return y === 4 && info.wi > .5 ? "ice" : "water";
@@ -412,7 +755,7 @@
       }
       if (info.mt > .3 && y >= ground - 1 && streamAt(x, z)) return y === ground && (ground >= 58 || info.wi > .5) ? "ice" : "water";
       const mb = mineBlock(x, y, z); if (mb !== undefined) return mb;
-      if (y >= 1 && !info.wet && y <= (info.mt > .25 ? ground : ground - 2) && Math.abs(Math.sin(x * .17 + 2 * Math.sin(z * .11) + y * .06)) < .38 && Math.abs(Math.sin(z * .15 + 2 * Math.sin(x * .09) - y * .07)) < .38) return null;
+      if (y >= 1 && !info.wet && y <= (info.mt > .25 ? ground : ground - 2) && Math.abs(Math.sin(x * .085 + 2 * Math.sin(z * .055) + y * .03)) < .38 && Math.abs(Math.sin(z * .075 + 2 * Math.sin(x * .045) - y * .035)) < .38) return null;
       const desert = info.de > .5, quick = desert && info.de > .6 && y >= ground - 2 && Math.sin(x * .21 + 1) * Math.sin(z * .19 + 2) > .8, seed = Math.abs(Math.floor(x) * 31 + Math.floor(z) * 17 + y * 13) % 37, snowy = ground >= 58 || info.wi > .5;
       if (quick) return "quicksand";
       if (y === ground) return info.lava ? "lava" : info.volcano ? (ground >= 12 ? "stone" : "dirt") : info.wet ? "dirt" : desert ? "sand" : snowy ? "snow" : ground >= 18 ? "stone" : "grass";
@@ -447,14 +790,18 @@
       wolf: { body: [110, 110, 120], head: [70, 70, 80], scale: 1, ears: .15, tail: [90, 90, 100], hostile: true, speed: 2.6 },
       bear: { body: [80, 50, 30], head: [55, 35, 20], scale: 1.6, ears: .1, tail: [55, 35, 20], hostile: true, speed: 1.9 },
       boar: { body: [100, 70, 60], head: [60, 40, 35], scale: .9, ears: .1, tail: [60, 40, 35], hostile: true, speed: 3 },
-      zombie: { body: [60, 120, 70], head: [110, 170, 100], scale: 1.1, ears: .05, tail: [40, 80, 50], hostile: true, speed: 2.2 }
+      zombie: { body: [60, 120, 70], head: [110, 170, 100], scale: 1.1, ears: .05, tail: [40, 80, 50], hostile: true, speed: 2.2 },
+      robot: { body: [148, 163, 184], head: [203, 213, 225], scale: 1.2, ears: .05, tail: [71, 85, 105], hostile: true, bot: true, speed: 2.6 },
+      scp173: { body: [180, 150, 110], head: [150, 120, 85], scale: 1.3, scp: true, hostile: true, bot: true, speed: 6 },
+      infected: { body: [90, 110, 70], head: [140, 170, 110], scale: 1.1, ears: .05, scp: true, hostile: true, bot: true, speed: 2.8 },
+      giant: { body: [40, 90, 40], head: [90, 140, 70], scale: 3.2, ears: .05, tail: [30, 70, 30], scp: true, hostile: true, bot: true, big: true, hp: 200, speed: 2.4 }
     };
-    let lives = 5, maxLives = 5, hitCooldown = 0, petMeshTimer = 0, hostileMeshTimer = 0, hostileSpawnTimer = 0;
+    let lives = 5, portalGoing = false, maxLives = 5, hitCooldown = 0, petMeshTimer = 0, hostileMeshTimer = 0, hostileSpawnTimer = 0;
     const livesElement = document.querySelector("#lives"), survivalElement = { get checked() { return !!saved.survival; }, set checked(v) { saved.survival = !!v; }, addEventListener() {} };
-    const hostileKinds = () => Object.keys(animalKinds).filter((kind) => animalKinds[kind].hostile), underwaterElement = document.querySelector("#underwater"), heliCockpitElement = document.querySelector("#heliCockpit"), buffElement = document.querySelector("#buff");
+    const hostileKinds = () => Object.keys(animalKinds).filter((kind) => animalKinds[kind].hostile && !animalKinds[kind].bot), underwaterElement = document.querySelector("#underwater"), heliCockpitElement = document.querySelector("#heliCockpit"), buffElement = document.querySelector("#buff");
     function renderLives() { livesElement.textContent = saved.survival ? "❤️".repeat(Math.max(lives, 0)) : ""; }
     function addHostile() { const kinds = hostileKinds(), kind = kinds[Math.floor(Math.random() * kinds.length)], angle = Math.random() * Math.PI * 2, radius = 10 + Math.random() * 6, x = Math.max(2, Math.min(mapWidth - 3, player.x + Math.cos(angle) * radius)), z = Math.max(2, Math.min(mapDepth - 3, player.z + Math.sin(angle) * radius)); animals.push({ x, y: surfaceAt(x, z), z, kind, direction: 0 }); }
-    function syncHostiles() { animals = animals.filter((animal) => animal.pet || !animalKinds[animal.kind]?.hostile); if (saved.survival) for (let n = 0; n < 4; n += 1) addHostile(); rebuildMesh(); }
+    function syncHostiles() { if (gameType === "bedwars" || gameType === "containment") return; animals = animals.filter((animal) => animal.pet || !animalKinds[animal.kind]?.hostile); if (saved.survival) for (let n = 0; n < 4; n += 1) addHostile(); rebuildMesh(); }
     function hurt(kind, damage = 1) {
       lives -= damage; hitCooldown = 1.5;
       if (lives <= 0) { lives = maxLives; player.hunger = 100; teleportHome(); syncHostiles(); statusElement.textContent = `A ${kind} defeated you! You woke up at home with ${lives} fresh lives.`; }
@@ -474,7 +821,7 @@
     }
     function tameAnimal(animal) {
       if (animal.pet) { statusElement.textContent = `You pet your ${animal.kind}. ❤️`; return; }
-      inventory.meat -= 1; const kind = animalKinds[animal.kind];
+      if (animalKinds[animal.kind]?.scp) { statusElement.textContent = "You can't tame that!"; return; } inventory.meat -= 1; const kind = animalKinds[animal.kind];
       if (kind && kind.hostile && Math.random() < .5) { statusElement.textContent = `The ${animal.kind} snarled and ignored your food. Try again!`; persistAndRender(); return; }
       animal.pet = true; statusElement.textContent = `You tamed a ${animal.kind}! It will follow you. (${animals.filter((a) => a.pet).length} pets)`; rebuildMesh(); persistAndRender();
     }
@@ -482,16 +829,16 @@
       if (!saved.survival) return;
       hitCooldown = Math.max(0, hitCooldown - delta); hostileMeshTimer += delta; let moved = false;
       animals.forEach((animal) => {
-        const kind = animalKinds[animal.kind]; if (!kind || !kind.hostile || animal.pet) return;
+        const kind = animalKinds[animal.kind]; if (!kind || !kind.hostile || kind.scp || animal.pet) return;
         const dx = player.x - animal.x, dz = player.z - animal.z, distance = Math.hypot(dx, dz);
-        if (distance < 12 && distance > .1) { const step = Math.min(kind.speed * delta, distance); animal.x += dx / distance * step; animal.z += dz / distance * step; animal.y = surfaceAt(animal.x, animal.z); moved = true; }
+        if (distance < 12 && distance > .1) { const step = Math.min(kind.speed * delta, distance), nx = animal.x + dx / distance * step, nz = animal.z + dz / distance * step, ground = surfaceAt(nx, nz); if (!gameType || (ground > 1 && Math.abs(ground - animal.y) <= 2)) { animal.x = nx; animal.z = nz; animal.y = ground; moved = true; } }
         if (distance < 1.1 && Math.abs(player.y - animal.y) < 1.5 && hitCooldown === 0) hurt(animal.kind);
       });
       if (moved && hostileMeshTimer > .15) { hostileMeshTimer = 0; rebuildMesh(); }
-      hostileSpawnTimer += delta; if (hostileSpawnTimer > 25) { hostileSpawnTimer = 0; if (animals.filter((animal) => animalKinds[animal.kind]?.hostile && !animal.pet).length < 4) { addHostile(); rebuildMesh(); } }
+      hostileSpawnTimer += delta; if (gameType !== "bedwars" && gameType !== "containment" && hostileSpawnTimer > 25) { hostileSpawnTimer = 0; if (animals.filter((animal) => animalKinds[animal.kind]?.hostile && !animal.pet).length < 4) { addHostile(); rebuildMesh(); } }
     }
     function spawnAnimals() { while (animals.length < 8) { const x = Math.max(2, Math.min(mapWidth - 3, player.x + (Math.random() * 24 - 12))), z = Math.max(2, Math.min(mapDepth - 3, player.z + (Math.random() * 24 - 12))); const kinds = Object.keys(animalKinds).filter((name) => !animalKinds[name].hostile), kind = kinds[Math.floor(Math.random() * kinds.length)]; if (blockAt(Math.floor(x), 4 + deep, Math.floor(z)) === "water") continue; animals.push({ x, y: surfaceAt(x, z) + (animalKinds[kind].fly || 0), z, kind, direction: Math.random() * Math.PI * 2 }); } }
-    function updateAnimals(delta) { animalTimer += delta; if (animalTimer < 1.2) return; animalTimer = 0; animals.forEach((animal) => { if (animal.pet) return; animal.direction += Math.random() - .5; animal.x = Math.max(1, Math.min(mapWidth - 2, animal.x + Math.sin(animal.direction) * .45)); animal.z = Math.max(1, Math.min(mapDepth - 2, animal.z + Math.cos(animal.direction) * .45)); animal.y = surfaceAt(animal.x, animal.z) + (animalKinds[animal.kind]?.fly || 0); }); rebuildMesh(); }
+    function updateAnimals(delta) { animalTimer += delta; if (animalTimer < 1.2) return; animalTimer = 0; animals.forEach((animal) => { if (animal.pet || animalKinds[animal.kind]?.scp) return; animal.direction += Math.random() - .5; const nx = Math.max(1, Math.min(mapWidth - 2, animal.x + Math.sin(animal.direction) * .45)), nz = Math.max(1, Math.min(mapDepth - 2, animal.z + Math.cos(animal.direction) * .45)); if (gameType) { const ground = surfaceAt(nx, nz); if (ground <= 1 || Math.abs(ground - surfaceAt(animal.x, animal.z)) > 2) { animal.direction += Math.PI; return; } } animal.x = nx; animal.z = nz; animal.y = surfaceAt(animal.x, animal.z) + (animalKinds[animal.kind]?.fly || 0); }); rebuildMesh(); }
 
     function rebuildMesh() {
       const data = [], faces = [[[1,0,0],[1,0,0]], [[-1,0,0],[-1,0,0]], [[0,1,0],[0,1,0]], [[0,-1,0],[0,-1,0]], [[0,0,1],[0,0,1]], [[0,0,-1],[0,0,-1]]];
@@ -504,6 +851,8 @@
       for (let y = Math.max(0, Math.floor(player.y) - 30); y < height; y += 1) for (let z = minZ; z < maxZ; z += 1) for (let x = minX; x < maxX; x += 1) {
         const type = blockAt(x, y, z); if (!type) continue;
         if (type === "torch") lightList.push([x + .5, y + .8, z + .5, 8]);
+        if (type === "labLamp") lightList.push([x + .5, y + .5, z + .5, 10, .9]);
+        if (type === "keycardBlock" || type === "exitDoor") lightList.push([x + .5, y + 1, z + .5, 6, .8]);
         if (type === "fire") lightList.push([x + .5, y + .6, z + .5, 11, .4]);
         if (type === "lava" && (x + z) % 4 === 0) lightList.push([x + .5, y + 1, z + .5, 9, .3]);
         if (type === "flower") { const col = [[.95, .25, .4], [.98, .85, .2], [.7, .4, .95], [1, 1, 1]][((x + mapOriginX) * 7 + (z + mapOriginZ) * 13) & 3]; addAnimalCube(x + .46, y, z + .46, .08, .45, .08, [.2, .55, .15]); addAnimalCube(x + .32, y + .45, z + .32, .36, .2, .36, col); addAnimalCube(x + .43, y + .5, z + .43, .14, .12, .14, [1, .9, .2]); continue; }
@@ -577,7 +926,7 @@
       farBuilt = { x: player.x + mapOriginX, z: player.z + mapOriginZ, ox: mapOriginX, oz: mapOriginZ, w: mapWidth, d: mapDepth };
     }
     function updateFar() {
-      if (onMoon) { farVertices = 0; return; }
+      if (onMoon || gameType) { farVertices = 0; return; }
       const px = player.x + mapOriginX, pz = player.z + mapOriginZ;
       if (!farBuilt || Math.hypot(px - farBuilt.x, pz - farBuilt.z) > 16 || Math.abs(mapOriginX - farBuilt.ox) > 10 || Math.abs(mapOriginZ - farBuilt.oz) > 10 || Math.abs(mapWidth - farBuilt.w) > 10 || Math.abs(mapDepth - farBuilt.d) > 10) rebuildFar();
     }
@@ -594,17 +943,18 @@
       const glide = gliding && !boating && !inWater() && !player.onGround; if (gliding && !glide) { gliding = false; statusElement.textContent = "You landed."; }
       const length = Math.hypot(forward, strafe) || 1, speed = (boating ? 6 : inWater() ? (hasBuff("swim") ? 4 : 2) : 4) * (running ? (hasBuff("sprint") ? 3 : 2) : 1) * (hasBuff("speed") ? 1.5 : 1) * (inQuicksand() ? .3 : 1) * (blockAt(Math.floor(player.x), Math.floor(player.y - .1), Math.floor(player.z)) === "ice" ? 2 : 1) * (planeOn ? 0 : 1) * (heliOn ? 1.8 : 1);
       move((Math.sin(player.yaw) * forward - Math.cos(player.yaw) * strafe) / length * speed * delta, 0, (Math.cos(player.yaw) * forward + Math.sin(player.yaw) * strafe) / length * speed * delta);
+      if (emote && (forward || strafe || heliOn || planeOn || boating || gliding)) stopEmote();
       if (boating) { const top = waterTop(player.x, player.z); if (top === null) { boating = false; statusElement.textContent = "Your boat left the water."; } else { player.y = top - .2; player.velocityY = 0; player.onGround = true; } heliOn = false; }
       else if (planeOn) flyPlane(delta);
       else if (heliOn) flyHeli(delta);
       else { player.velocityY += (inWater() ? -3 : onMoon ? -4 : -18) * delta; if (onLadder()) { player.velocityY = forward > 0 ? 3.5 : forward < 0 || keys.has("sink") ? -3 : 0; } if (inWater() && !keys.has("sink") && player.velocityY <= 2) { const top = waterTop(player.x, player.z); if (top !== null) player.velocityY = Math.max(-3, Math.min(3, (top - .85 - player.y) * 5)); } if (hasBuff("climb") && forward > 0) { const ox = player.x, oz = player.z; player.x += Math.sin(player.yaw) * .15; player.z += Math.cos(player.yaw) * .15; const wall = collides(); player.x = ox; player.z = oz; if (wall) player.velocityY = 4; } if (inQuicksand()) player.velocityY = Math.max(player.velocityY, -1.1); if (glide) { const dive = Math.max(0, -player.pitch), flare = Math.max(0, player.pitch), boost = boosting && boostEnergy > 0 ? 1 : 0, fly = (8 + 6 * dive - 3 * flare) * (1 + 6 * boost); boostEnergy = boost ? Math.max(0, boostEnergy - delta) : Math.min(3, boostEnergy + delta * 1.5); player.velocityY = -1.5 - 4 * dive + .7 * flare + .5 * boost; move(Math.sin(player.yaw) * fly * delta, 0, Math.cos(player.yaw) * fly * delta); if (boosting && boostEnergy <= 0 && !boostEmptyShown) { boostEmptyShown = true; statusElement.textContent = "Boost used up. It recharges while you glide."; } if (boostEnergy > .5) boostEmptyShown = false; } else boostEnergy = Math.min(3, boostEnergy + delta * 1.5); player.onGround = false; move(0, player.velocityY * delta, 0); }
       if (boating || inWater()) { const [vx, vz] = currentAt(Math.floor(player.x) + mapOriginX, Math.floor(player.z) + mapOriginZ), pull = boating ? 1.6 : 1.2; if (vx || vz) { move(vx * pull * delta, 0, vz * pull * delta); if (!currentNoticed) { currentNoticed = true; statusElement.textContent = "The current pulls you along the water."; } } }
-      expandMap(); if (!onMoon) { updateAnimals(delta); updateHostiles(delta); updatePets(delta); } updateFire(delta); updateCrops(delta); updateSmoke(delta); mpUpdate(delta); updateThrown(delta); if (!onMoon) { updateWeather(delta); applyWeatherEffects(delta); }
+      expandMap(); if (activePortals().length && !portalGoing) { const inside = blockAt(Math.floor(player.x), Math.floor(player.y + .6), Math.floor(player.z)), portal = activePortals().find((q) => q.type === inside); if (portal) { portalGoing = true; persist(); statusElement.textContent = `Entering ${portal.label}...`; location.href = `index.html?mode=${portal.mode}&portal=1`; } } if (!onMoon) { updateAnimals(delta); updateHostiles(delta); updatePets(delta); } updateFire(delta); updateCrops(delta); updateRegrow(delta); updateBedwars(delta); updateContainment(delta); mpUpdate(delta); updateThrown(delta); if (!onMoon) { updateWeather(delta); applyWeatherEffects(delta); }
       if (buff) { buff.left -= delta; if (buff.left <= 0) { buff = null; statusElement.textContent = "Your power-up wore off."; } if (buffElement) buffElement.textContent = buff ? ` ${buff.label}: ${Math.ceil(buff.left)}s` : ""; }
       player.hunger = Math.max(0, player.hunger - (hasBuff("fullness") ? 0 : delta * .35)); renderHunger();
       if (nearWorkbench() !== workbenchNearby) { workbenchNearby = nearWorkbench(); if (!workbenchNearby) workbenchActive = false; renderCrafting(); }
       if (splitActive()) p2Update(delta);
-      if (player.y < -3) respawn();
+      if (player.y < (gameType ? 15 : -3)) respawn();
       if (!planeOn && (blockAt(Math.floor(player.x), Math.floor(player.y + .1), Math.floor(player.z)) === "lava" || blockAt(Math.floor(player.x), Math.floor(player.y - .1), Math.floor(player.z)) === "lava")) { if (saved.survival) { if (hitCooldown === 0) hurt("lava", 2); } }
     }
 
@@ -648,7 +998,7 @@
     function inQuicksand() { return blockAt(Math.floor(player.x), Math.floor(player.y + .3), Math.floor(player.z)) === "quicksand"; }
     function onLadder() { const x = Math.floor(player.x), z = Math.floor(player.z); return blockAt(x, Math.floor(player.y + .2), z) === "ladder" || blockAt(x, Math.floor(player.y + 1.2), z) === "ladder"; }
     function inWater() { return blockAt(Math.floor(player.x), Math.floor(player.y + .8), Math.floor(player.z)) === "water"; }
-    function jump() { if (heliOn) return; if (boating) { boating = false; player.velocityY = 7; player.onGround = false; statusElement.textContent = "You hopped out of the boat."; return; } if (inQuicksand()) { player.velocityY = 3.2; player.onGround = false; statusElement.textContent = "You are stuck in quicksand! Keep jumping to climb out."; return; } if (player.onGround || inWater()) { player.velocityY = inWater() ? ((waterTop(player.x, player.z) ?? -99) - player.y < 1.3 ? 6.3 : 3.5) : onMoon ? 5 : hasBuff("jump") ? 11 : 7; player.onGround = false; } }
+    function jump() { stopEmote(); if (heliOn) return; if (boating) { boating = false; player.velocityY = 7; player.onGround = false; statusElement.textContent = "You hopped out of the boat."; return; } if (inQuicksand()) { player.velocityY = 3.2; player.onGround = false; statusElement.textContent = "You are stuck in quicksand! Keep jumping to climb out."; return; } if (player.onGround || inWater()) { player.velocityY = inWater() ? ((waterTop(player.x, player.z) ?? -99) - player.y < 1.3 ? 6.3 : 3.5) : onMoon ? 5 : hasBuff("jump") ? 11 : 7; player.onGround = false; } }
     function waterTop(x, z) { for (let y = height - 1; y >= 0; y -= 1) { const type = blockAt(Math.floor(x), y, Math.floor(z)); if (type === "water") return y + 1; if (type && solid(type)) return null; } return null; }
     function toggleBoat() {
       if (boating) { boating = false; statusElement.textContent = "You got out of the boat."; return; }
@@ -679,7 +1029,7 @@
       player.y = Math.max(surfaceAt(player.x, player.z), peer.y) + 0.1;
       statusElement.textContent = "Teleported to " + (peer.name || "a player") + ". Press T again for the next player.";
     }
-    function teleportHome() { boating = false; player.x = 5.5 - mapOriginX; player.z = 5.5 - mapOriginZ; player.y = surfaceAt(player.x, player.z) + 1; player.velocityY = 0; statusElement.textContent = "You returned to the hill."; }
+    function teleportHome() { boating = false; if (gameType === "containment") { cbRespawn(); return; } player.x = (gameType === "oneblock" ? 3.5 : 5.5) - mapOriginX; player.z = (gameType === "bedwars" ? 41.5 : 5.5) - mapOriginZ; player.y = surfaceAt(player.x, player.z) + 1; player.velocityY = 0; statusElement.textContent = gameType === "bedwars" ? "You respawned on your island." : "You returned to the hill."; }
     function nearWorkbench() {
       for (let y = Math.floor(player.y) - 1; y <= Math.floor(player.y) + 2; y += 1) {
         for (let z = Math.floor(player.z) - 3; z <= Math.floor(player.z) + 3; z += 1) {
@@ -701,10 +1051,14 @@
         if (blockAt(x,y,z)) return { x, y, z, previous: last }; Object.assign(last, { x, y, z });
       } return null;
     }
-    function animalInSight() { const direction = directionVector(); for (let distance = .2; distance <= 6; distance += .1) { const x = player.x + direction[0] * distance, y = player.y + 1.45 + direction[1] * distance, z = player.z + direction[2] * distance; if (blockAt(Math.floor(x), Math.floor(y), Math.floor(z))) return null; const animal = animals.find((candidate) => Math.abs(candidate.x - x) < .5 && Math.abs(candidate.z - z) < .4 && y >= candidate.y && y <= candidate.y + 1); if (animal) return animal; } return null; }
+    function animalInSight() { const direction = directionVector(); for (let distance = .2; distance <= 6; distance += .1) { const x = player.x + direction[0] * distance, y = player.y + 1.45 + direction[1] * distance, z = player.z + direction[2] * distance; if (blockAt(Math.floor(x), Math.floor(y), Math.floor(z))) return null; const animal = animals.find((candidate) => cbHit(candidate, x, y, z)); if (animal) return animal; } return null; }
     function hitAnimal(animal, dmg) {
-      animal.hp = (animal.hp === undefined ? animalHealth : animal.hp) - dmg;
-      if (animal.hp > .001) { statusElement.textContent = `Hit! Animal health: ${Math.ceil(animal.hp)}/${animalHealth}`; persist(); return false; }
+      if (animal.kind === "scp173") { statusElement.textContent = "SCP-173 can't be hurt. Never look away from it!"; return false; }
+      const maxHp = animalKinds[animal.kind]?.hp || animalHealth; animal.hp = (animal.hp === undefined ? maxHp : animal.hp) - dmg; if (animal.kind === "giant") cbHud();
+      if (animal.hp > .001) { statusElement.textContent = `Hit! ${animal.kind === "robot" ? "Robot" : "Animal"} health: ${Math.ceil(animal.hp)}/${maxHp}`; persist(); return false; }
+      if (animal.kind === "giant") { animals.splice(animals.indexOf(animal), 1); cbState.boss = true; cbHud(); statusElement.textContent = "The giant zombie is dead! Take your keycards to the exit door."; rebuildMesh(); persistAndRender(); return true; }
+      if (animal.kind === "infected") { animals.splice(animals.indexOf(animal), 1); statusElement.textContent = "You put down an infected zombie."; rebuildMesh(); persistAndRender(); return true; }
+      if (animal.kind === "robot") { animals.splice(animals.indexOf(animal), 1); bwRobotTimer[animal.team] = performance.now() + 15000; dropItem("ironIngot", animal.x, animal.y + .5, animal.z); dropItem("ironIngot", animal.x, animal.y + .5, animal.z); dropItem("goldIngot", animal.x, animal.y + .5, animal.z); statusElement.textContent = "You destroyed a robot! It dropped iron and gold."; rebuildMesh(); persistAndRender(); return true; }
       animals.splice(animals.indexOf(animal), 1); inventory.meat = (inventory.meat || 0) + 1; inventory.hide = (inventory.hide || 0) + 1; statusElement.textContent = "You collected food and hide from an animal."; rebuildMesh(); persistAndRender(); return true;
     }
     function cropDrops(type, target) {
@@ -714,7 +1068,8 @@
       if (type === "grass" && Math.random() < .18) { const seeds = Object.keys(seedCrop); dropItem(seeds[Math.floor(Math.random() * seeds.length)], target.x + .5, target.y + 1, target.z + .5); }
       return false;
     }
-    function mine() { if (rocketLaunch) return; const animal = animalInSight(); if (animal && animal.pet) { statusElement.textContent = "That's your pet! Press E to pet it."; return; } if (animal) { hitAnimal(animal, (selected === "woodSword" && inventory.woodSword > 0 ? 1.25 : 1) * (hasBuff("strength") ? 2 : 1)); return; } const target = raycast(); if (!target) return; const type = blockAt(target.x,target.y,target.z);
+    function mine() { if (rocketLaunch) return; if (gameType === "hub") { statusElement.textContent = "The hub is protected. Walk into a portal to play!"; return; } const animal = animalInSight(); if (animal && animal.pet) { statusElement.textContent = "That's your pet! Press E to pet it."; return; } if (animal) { hitAnimal(animal, (swordDamage[selected] && inventory[selected] > 0 ? swordDamage[selected] : 1) * (hasBuff("strength") ? 2 : 1)); return; } const target = raycast(); if (!target) return; const type = blockAt(target.x,target.y,target.z);
+      if (gameType === "containment") { if (type === "keycardBlock") { world[target.y][target.z][target.x] = null; mpBlock(target.x, target.y, target.z, null); inventory.keycard = (inventory.keycard || 0) + 1; cbHud(); statusElement.textContent = `Keycard ${inventory.keycard}/3 collected!`; rebuildMesh(); persistAndRender(); return; } if (type === "exitDoor") { cbExit(); return; } if (type === "shopStand") { openHubPanel("gunshop"); return; } if (/^(lab|portal)/.test(type)) { statusElement.textContent = "Reinforced facility wall. It can't be broken."; return; } }
       if (type === "lava") { if (!inventory.bucket) { statusElement.textContent = "You need a bucket to collect lava. Craft one from 3 iron ingots."; return; } inventory.bucket -= 1; inventory.lavaBucket = (inventory.lavaBucket || 0) + 1; world[target.y][target.z][target.x] = null; mpBlock(target.x, target.y, target.z, null); statusElement.textContent = "Filled your bucket with lava. Right-click to pour it out."; rebuildMesh(); persistAndRender(); return; }
       if (type === "fire") { statusElement.textContent = "Fire is too hot! Select a water bucket and right-click the fire to put it out."; return; }
       if (type === "water") { if (!inventory.bucket) { statusElement.textContent = "You need a bucket to collect water. Craft one from 3 iron ingots."; return; } inventory.bucket -= 1; inventory.waterBucket = (inventory.waterBucket || 0) + 1; world[target.y][target.z][target.x] = null; mpBlock(target.x, target.y, target.z, null); statusElement.textContent = "Filled your bucket with water."; rebuildMesh(); persistAndRender(); return; }
@@ -722,14 +1077,16 @@
       if (type === "door" || type === "doorOpen") { const py = doorPartner(target.x, target.y, target.z); if (py !== null) { world[py][target.z][target.x] = null; mpBlock(target.x, py, target.z, null); } world[target.y][target.z][target.x] = null; mpBlock(target.x, target.y, target.z, null); dropItem("door", target.x + .5, target.y + .5, target.z + .5); statusElement.textContent = "Broke the door. Walk over it to pick it up."; rebuildMesh(); persistAndRender(); return; }
       if (type === "chest" && Object.values(saved.chests?.[chestKey(target.x, target.y, target.z)] || {}).some((n) => n > 0)) { statusElement.textContent = "Empty the chest first (press E to open it)."; return; }
       if (type === "chest") { if (saved.chests) delete saved.chests[chestKey(target.x, target.y, target.z)]; if (openChestKey === chestKey(target.x, target.y, target.z)) closeChest(); }
-      world[target.y][target.z][target.x] = null; mpBlock(target.x, target.y, target.z, null); if (!cropDrops(type, target)) dropItem(type, target.x + .5, target.y + .5, target.z + .5); statusElement.textContent = `Broke ${types[type].label.toLowerCase()}. Walk over it to pick it up.`; rebuildMesh(); persistAndRender(); }
+      if (gameType === "bedwars" && type === "bed" && target.x + mapOriginX === bwTeams[0].x && target.z + mapOriginZ === bwTeams[0].z - 2) { statusElement.textContent = "That's your own bed! Protect it from the robots."; return; }
+      world[target.y][target.z][target.x] = null; mpBlock(target.x, target.y, target.z, null); if (gameType === "bedwars" && type === "bed") bwBedBroken(target); if (type === "wood" || /eaves$/.test(type)) scheduleRegrow(target, type); if (!cropDrops(type, target)) dropItem(type, target.x + .5, target.y + .5, target.z + .5); oneBlockNext(target.x, target.y, target.z); statusElement.textContent = `Broke ${types[type].label.toLowerCase()}. Walk over it to pick it up.`; rebuildMesh(); persistAndRender(); }
     function build() {
-      if (rocketLaunch) return;
+      if (rocketLaunch || gameType === "hub") return;
       const target = raycast(), place = target?.previous; if (!target) return;
       if (selected === "waterBucket" && inventory.waterBucket && blockAt(target.x, target.y, target.z) === "fire") { const key = fireKey(target.x, target.y, target.z); const restored = burningPlanks.delete(key) ? "plank" : null; world[target.y][target.z][target.x] = restored; mpBlock(target.x, target.y, target.z, restored); inventory.waterBucket -= 1; inventory.bucket = (inventory.bucket || 0) + 1; statusElement.textContent = "Water put out the fire!"; rebuildMesh(); persistAndRender(); return; }
-      if (!place || !inventory[selected] || playerOverlaps(place)) return;
+      if (!place || !inventory[selected] || gunDefs[selected]) return;
+      if (playerOverlaps(place)) { const lift = place.y + 1 - player.y; if (lift > 0 && lift <= 1 && !blockAt(place.x, place.y + 1, place.z) && !blockAt(place.x, place.y + 2, place.z) && Math.floor(player.x) === place.x && Math.floor(player.z) === place.z) player.y = place.y + 1, player.velocityY = Math.max(player.velocityY, 0); else return; }
       if (selected === "boat") { statusElement.textContent = "Face water and press B to board your boat."; return; }
-      if (selected === "rocket") { statusElement.textContent = "Press K to launch your rocket to the moon."; return; }
+      if (selected === "rocket") { statusElement.textContent = "Press K to launch your rocket to the moon, or M for Mars."; return; }
       if (selected === "bucket") { statusElement.textContent = "Left-click water with a bucket to fill it."; return; }
       if (selected === "door") { if (blockAt(place.x, place.y + 1, place.z) || place.y + 1 >= height || playerOverlaps({ x: place.x, y: place.y + 1, z: place.z })) { statusElement.textContent = "A door needs two free blocks of height."; return; } [place.y, place.y + 1].forEach((cy) => { world[cy][place.z][place.x] = "door"; mpBlock(place.x, cy, place.z, "door"); }); inventory.door -= 1; statusElement.textContent = "Placed door. Press E while looking at it to open or close it."; rebuildMesh(); persistAndRender(); return; }
       if (seedCrop[selected]) {
@@ -737,7 +1094,7 @@
         if ((under !== "grass" && under !== "dirt") || place.y !== target.y + 1) { statusElement.textContent = "Plant seeds on the top of grass or dirt."; return; }
         world[place.y][place.z][place.x] = seedCrop[selected] + "Sprout"; mpBlock(place.x, place.y, place.z, seedCrop[selected] + "Sprout"); cropAge.set(fireKey(place.x, place.y, place.z), 0); inventory[selected] -= 1; statusElement.textContent = "Planted! It ripens in about 40 seconds."; rebuildMesh(); persistAndRender(); return;
       }
-      if (foods[selected] || selected === "woodSword") { statusElement.textContent = selected === "woodSword" ? "The wooden sword is for fighting animals." : "Press E to eat."; return; }
+      if (foods[selected] || swordDamage[selected]) { statusElement.textContent = swordDamage[selected] ? "Swords are for fighting animals and robots." : "Press E to eat."; return; }
       const block = selected === "waterBucket" ? "water" : selected === "lavaBucket" ? "lava" : selected;
       world[place.y][place.z][place.x] = block; mpBlock(place.x, place.y, place.z, block); inventory[selected] -= 1; if (selected === "waterBucket" || selected === "lavaBucket") inventory.bucket = (inventory.bucket || 0) + 1;
       statusElement.textContent = `Placed ${types[block].label.toLowerCase()}.`; rebuildMesh(); persistAndRender();
@@ -786,11 +1143,12 @@
     function slotButton(i, sel) {
       const type = slots[i], button = document.createElement("button"); button.type = "button"; button.className = "slot"; button.setAttribute("aria-pressed", String(i === sel)); if (i === heldSlot) button.classList.add("held");
       if (i < hotbarSize) { const key = document.createElement("span"); key.className = "kn"; key.textContent = String((i + 1) % 10); button.append(key); }
-      if (type) { const icon = document.createElement("i"), name = document.createElement("span"), count = document.createElement("b"); icon.style.setProperty("--c", `rgb(${types[type].color.join(",")})`); name.className = "nm"; name.textContent = types[type].label; count.className = "ct"; count.textContent = String(inventory[type]); button.title = types[type].label; button.append(icon, name, count); }
+      if (type) { const icon = document.createElement("i"), name = document.createElement("span"), count = document.createElement("b"); icon.style.setProperty("--c", `rgb(${types[type].color.join(",")})`); name.className = "nm"; name.textContent = types[type].label; count.className = "ct"; count.textContent = String(inventory[type]);       button.title = types[type].label; button.append(icon, name, count); if (gameType === "containment" && gunDefs[type]) { const am = document.createElement("span"); am.className = "am"; am.dataset.gun = type; am.textContent = ammoText(type); button.append(am); } }
       button.addEventListener("click", (event) => slotClick(i, event)); return button;
     }
     function slotClick(i, event) {
       if (inventoryElement.hidden) { if (slots[i]) { selected = slots[i]; statusElement.textContent = `${types[selected].label} selected.`; } renderInventory(); return; }
+      if (bagMode === "chest" && openChestKey !== null) { const type = slots[i]; if (!type || !(inventory[type] > 0)) return; const contents = chestContents(openChestKey), n = event.shiftKey ? inventory[type] : 1; inventory[type] -= n; contents[type] = (contents[type] || 0) + n; persistAndRender(); return; }
       if (heldSlot < 0) {
         if (!slots[i]) return;
         if (event.shiftKey) { const to = i < hotbarSize ? slots.findIndex((s, k) => k >= hotbarSize && !s) : slots.findIndex((s, k) => k < hotbarSize && !s); if (to >= 0) { slots[to] = slots[i]; slots[i] = null; } }
@@ -804,10 +1162,23 @@
       const title = document.createElement("h3"), help = document.createElement("p"), bag = document.createElement("div"), bar = document.createElement("div");
       title.textContent = "Inventory"; help.textContent = "Click an item to pick it up, then click another slot to place or swap it. Shift-click moves it between the bag and the hotbar. Number keys 1-9 and 0 or the mouse wheel pick hotbar slots. Press Tab or I to close.";
       bag.className = "slotGrid"; bar.className = "slotGrid"; bag.append(...slots.map((_, i) => i).filter((i) => i >= hotbarSize).map((i) => slotButton(i, sel))); bar.append(...Array.from({ length: hotbarSize }, (_, i) => slotButton(i, sel)));
-      const close = document.createElement("button"), bagLabel = document.createElement("h4"), barLabel = document.createElement("h4"), body = document.createElement("div"); close.type = "button"; close.textContent = "Close bag (Tab)"; close.addEventListener("click", () => toggleInventory(false)); bagLabel.textContent = "Backpack"; barLabel.textContent = "Hotbar"; body.className = "bagBody"; body.append(title, help, bagLabel, bag, barLabel, bar, close);
+      const side = document.createElement("div"), sideTitle = document.createElement("h4"), sideNote = document.createElement("p"); side.className = "bagSide"; side.append(sideTitle);
+      if (bagMode === "hub" && hubMode) { title.textContent = hubMode === "quests" ? "Quest Master" : hubMode === "gunshop" ? "Armory" : "Shop"; help.textContent = "Trade on the left; your bag is on the right. Press Tab, I or Esc to close."; renderHub(side); }
+      else if (bagMode === "chest" && openChestKey !== null) {
+        const contents = chestContents(openChestKey), entries = Object.keys(types).filter((t) => !types[t].hidden && (contents[t] || 0) > 0);
+        title.textContent = "Chest"; help.textContent = "Click a chest item on the left to take one, or an item in your bag on the right to store one. Shift-click moves the whole stack. Press Tab, I or Esc to close."; sideTitle.textContent = "In the chest";
+        if (!entries.length) { sideNote.textContent = "(empty)"; side.append(sideNote); }
+        entries.forEach((type) => { const b = document.createElement("button"); b.type = "button"; b.textContent = `${types[type].label}: ${contents[type]}`; b.addEventListener("click", (event) => { const n = event.shiftKey ? contents[type] : 1; contents[type] -= n; inventory[type] = (inventory[type] || 0) + n; persistAndRender(); }); side.append(b); });
+      } else {
+        const bench = bagMode === "bench"; sideTitle.textContent = bench ? "Workbench crafting" : "Hand crafting"; if (bench) title.textContent = "Workbench";
+        recipes.filter((r) => !!r.requiresWorkbench === bench).forEach((recipe) => { const b = document.createElement("button"), ingredients = Object.entries(recipe.cost).map(([type, amount]) => `${amount} ${types[type].label.toLowerCase()}`).join(" + "); b.type = "button"; b.disabled = !canCraft(recipe); b.textContent = `Craft ${recipe.amount} ${types[recipe.output].label.toLowerCase()}: ${ingredients}`; b.addEventListener("click", () => craft(recipe)); side.append(b); });
+      }
+      const close = document.createElement("button"), bagLabel = document.createElement("h4"), barLabel = document.createElement("h4"), body = document.createElement("div"), layout = document.createElement("div"), main = document.createElement("div"); close.type = "button"; close.textContent = "Close bag (Tab)"; close.addEventListener("click", () => toggleInventory(false)); bagLabel.textContent = "Backpack"; barLabel.textContent = "Hotbar"; body.className = "bagBody"; layout.className = "bagLayout"; main.className = "bagMain"; main.append(bagLabel, bag, barLabel, bar); layout.append(side, main); body.append(title, help, layout, close);
       inventoryElement.replaceChildren(body);
     }
-    function toggleInventory(force) { const open = force ?? inventoryElement.hidden; inventoryElement.hidden = !open; heldSlot = -1; if (open && document.exitPointerLock) document.exitPointerLock(); renderInventory(); if (open) inventoryElement.scrollIntoView({ block: "nearest" }); }
+    let bagMode = "bag";
+    function openBag(mode) { bagMode = mode; inventoryElement.hidden = false; heldSlot = -1; if (document.exitPointerLock) document.exitPointerLock(); renderInventory(); }
+    function toggleInventory(force) { const open = force ?? inventoryElement.hidden; if (!open || force === undefined) { bagMode = "bag"; openChestKey = null; hubMode = null; } inventoryElement.hidden = !open; heldSlot = -1; if (open && document.exitPointerLock) document.exitPointerLock(); renderInventory(); if (open) inventoryElement.scrollIntoView({ block: "nearest" }); }
     function renderCrafting() { craftingElement.replaceChildren(); recipes.forEach((recipe) => { const button = document.createElement("button"), ingredients = Object.entries(recipe.cost).map(([type, amount]) => `${amount} ${types[type].label.toLowerCase()}`).join(" + "); button.type = "button"; button.disabled = !canCraft(recipe) || (recipe.requiresWorkbench && (!workbenchNearby || !workbenchActive)); button.textContent = `${recipe.requiresWorkbench ? "Workbench: " : ""}Craft ${recipe.amount} ${types[recipe.output].label.toLowerCase()}: ${ingredients}`; button.addEventListener("click", () => craft(recipe)); craftingElement.append(button); }); }
     function canCraft(recipe) { return Object.entries(recipe.cost).every(([type, amount]) => (inventory[type] || 0) >= amount); }
     function craft(recipe) { if (recipe.requiresWorkbench && (!nearWorkbench() || !workbenchActive)) { statusElement.textContent = "Press E beside a workbench to use that recipe."; return; } if (!canCraft(recipe)) return; Object.entries(recipe.cost).forEach(([type, amount]) => inventory[type] -= amount); inventory[recipe.output] = (inventory[recipe.output] || 0) + recipe.amount; selected = recipe.output; statusElement.textContent = `Crafted ${recipe.amount} ${types[recipe.output].label.toLowerCase()} blocks.`; persistAndRender(); }
@@ -822,17 +1193,48 @@
       const fill = (el, source, from, to) => { el.replaceChildren(); Object.keys(types).filter((type) => !types[type].hidden && (source[type] || 0) > 0).forEach((type) => { const b = document.createElement("button"); b.type = "button"; b.textContent = `${types[type].label}: ${source[type]}`; b.addEventListener("click", (event) => { const n = event.shiftKey ? source[type] : 1; source[type] -= n; to[type] = (to[type] || 0) + n; if (type === selected && !inventory[type]) selected = type; renderChest(); persistAndRender(); }); el.append(b); }); if (!el.children.length) el.textContent = "(empty)"; };
       fill(chestItemsEl, contents, contents, inventory); fill(chestBagEl, inventory, inventory, contents);
     }
-    function openChest(target) { openChestKey = chestKey(target.x, target.y, target.z); chestPanel.hidden = false; if (document.exitPointerLock) document.exitPointerLock(); renderChest(); statusElement.textContent = "Chest opened. Click items to move them in or out."; }
-    function closeChest() { openChestKey = null; chestPanel.hidden = true; }
+    function openChest(target) { openChestKey = chestKey(target.x, target.y, target.z); openBag("chest"); statusElement.textContent = "Chest opened. Click chest items on the left or bag items on the right."; }
+    function closeChest() { if (openChestKey === null) return; openChestKey = null; bagMode = "bag"; inventoryElement.hidden = true; heldSlot = -1; }
     document.querySelector("#chestClose").addEventListener("click", closeChest);
     document.addEventListener("keydown", (event) => { if (event.key === "Escape") closeChest(); });
+    const hubPanel = document.querySelector("#hubPanel"), hubBody = document.querySelector("#hubBody"), hubCoinsEl = document.querySelector("#hubCoins"), hubTitleEl = document.querySelector("#hubTitle");
+    let hubMode = null;
+    const hubData = (() => { try { return { coins: 0, quest: 0, ...JSON.parse(localStorage.getItem("funcraft-hubdata") || "{}") }; } catch { return { coins: 0, quest: 0 }; } })();
+    const saveHubData = () => { try { localStorage.setItem("funcraft-hubdata", JSON.stringify(hubData)); } catch {} };
+    const questList = [[{ wood: 10 }, 15], [{ stone: 20 }, 25], [{ coal: 10 }, 30], [{ ironOre: 8 }, 50], [{ goldOre: 5 }, 80], [{ diamond: 3 }, 200]];
+    const sellPrices = { wood: 1, stone: 1, coal: 2, ironOre: 4, goldOre: 8, moonstone: 15, diamond: 30 };
+    const shopItems = [["dirt", 16, 10], ["plank", 8, 15], ["wheatSeeds", 4, 12], ["carrotSeeds", 4, 12], ["bucket", 1, 25], ["waterBucket", 1, 40]];
+    const bedShopItems = [["plank", 8, "ironIngot", 4], ["stone", 6, "ironIngot", 12], ["brick", 4, "goldIngot", 6], ["ironSword", 1, "goldIngot", 7], ["diamondSword", 1, "diamond", 5], ["waterBucket", 1, "ironIngot", 10]];
+    function renderHub(target) {
+      if (!hubMode) return; if (!target && bagMode === "hub") { renderInventory(); return; } const out = target || hubBody; hubCoinsEl.textContent = hubMode === "bedshop" ? `Iron: ${inventory.ironIngot || 0}  Gold: ${inventory.goldIngot || 0}  Diamonds: ${inventory.diamond || 0}` : `Coins: ${hubData.coins}`; hubTitleEl.textContent = hubMode === "quests" ? "Quests" : hubMode === "bedshop" ? "Bedwars shop" : hubMode === "gunshop" ? "Armory" : "Shop"; out.replaceChildren(); if (target) { const h = document.createElement("h4"), c = document.createElement("p"); h.textContent = hubTitleEl.textContent; c.textContent = hubCoinsEl.textContent; out.append(h, c); }
+      const add = (text, onClick, disabled) => { const b = document.createElement("button"); b.type = "button"; b.textContent = text; b.disabled = !!disabled; b.addEventListener("click", onClick); out.append(b); };
+      const say = (text) => { const p = document.createElement("p"); p.textContent = text; out.append(p); };
+      if (hubMode === "quests") {
+        const mult = 1 + Math.floor(hubData.quest / questList.length), [base, baseReward] = questList[hubData.quest % questList.length], need = Object.entries(base).map(([t, n]) => [t, n * mult]), reward = baseReward * mult;
+        say(`Quest ${hubData.quest + 1}: ${need.map(([t, n]) => `bring ${n} ${types[t].label.toLowerCase()} (you have ${inventory[t] || 0})`).join(", ")}. Reward: ${reward} coins.`);
+        add(`Turn in for ${reward} coins`, () => { need.forEach(([t, n]) => { inventory[t] -= n; }); hubData.coins += reward; hubData.quest += 1; saveHubData(); statusElement.textContent = `Quest complete! +${reward} coins.`; persistAndRender(); renderHub(); }, need.some(([t, n]) => (inventory[t] || 0) < n));
+      } else if (hubMode === "gunshop") { cbShop(add, say);
+      } else if (hubMode === "bedshop") {
+        say("Spend the iron, gold and diamonds from the generators and robots:");
+        bedShopItems.forEach(([t, amount, payType, cost]) => add(`Buy ${amount} ${types[t].label.toLowerCase()} for ${cost} ${types[payType].label.toLowerCase()}`, () => { inventory[payType] -= cost; inventory[t] = (inventory[t] || 0) + amount; persistAndRender(); renderHub(); }, (inventory[payType] || 0) < cost));
+      } else {
+        say("Sell your ores and wood:");
+        Object.entries(sellPrices).filter(([t]) => (inventory[t] || 0) > 0).forEach(([t, price]) => add(`Sell all ${types[t].label.toLowerCase()} (${inventory[t]}) for ${inventory[t] * price} coins`, () => { hubData.coins += inventory[t] * price; inventory[t] = 0; saveHubData(); persistAndRender(); renderHub(); }));
+        say("Buy supplies:");
+        shopItems.forEach(([t, amount, cost]) => add(`Buy ${amount} ${types[t].label.toLowerCase()} for ${cost} coins`, () => { hubData.coins -= cost; inventory[t] = (inventory[t] || 0) + amount; saveHubData(); persistAndRender(); renderHub(); }, hubData.coins < cost));
+      }
+    }
+    function openHubPanel(mode) { hubMode = mode; openBag("hub"); statusElement.textContent = mode === "quests" ? "Quest board opened." : "Shop opened."; }
+    function closeHubPanel() { if (!hubMode) return; hubMode = null; if (bagMode === "hub") { bagMode = "bag"; inventoryElement.hidden = true; heldSlot = -1; } hubPanel.hidden = true; }
+    document.querySelector("#hubClose").addEventListener("click", closeHubPanel);
+    document.addEventListener("keydown", (event) => { if (event.key === "Escape") closeHubPanel(); });
     function doorPartner(x, y, z) { return ["door", "doorOpen"].includes(blockAt(x, y + 1, z)) ? y + 1 : ["door", "doorOpen"].includes(blockAt(x, y - 1, z)) ? y - 1 : null; }
     function toggleDoor(x, y, z) {
       const next = blockAt(x, y, z) === "door" ? "doorOpen" : "door", py = doorPartner(x, y, z), cells = [[y, next]]; if (py !== null) cells.push([py, next]);
       if (next === "door" && cells.some(([cy]) => playerOverlaps({ x, y: cy, z }))) { statusElement.textContent = "Something is in the doorway."; return; }
       cells.forEach(([cy, type]) => { world[cy][z][x] = type; mpBlock(x, cy, z, type); }); statusElement.textContent = next === "door" ? "Door closed." : "Door opened."; rebuildMesh(); persist();
     }
-    function useContextAction() { { const fx = raycast(), ft = fx && blockAt(fx.x, fx.y, fx.z); if (ft === "chair") { player.x = fx.x + .5; player.z = fx.z + .5; player.y = fx.y + .1; player.velocityY = 0; statusElement.textContent = "You sat on the chair."; return; } if (ft === "bed") { if (mp.peer && !mp.host) { statusElement.textContent = "Only the host can sleep to skip the night."; return; } if (dayTime >= .5) { dayTime = .02; saved.dayTime = dayTime; if (saved.survival) { lives = maxLives; renderLives(); } statusElement.textContent = "You slept until morning."; persist(); } else statusElement.textContent = "You can only sleep at night."; return; } } { const dt = raycast(); if (dt && ["door", "doorOpen"].includes(blockAt(dt.x, dt.y, dt.z))) { toggleDoor(dt.x, dt.y, dt.z); return; } } { const ct = raycast(); if (ct && blockAt(ct.x, ct.y, ct.z) === "chest") { openChest(ct); return; } } if (nearFurnace()) { smeltOre(); return; } if (nearWorkbench()) { workbenchActive = true; renderCrafting(); statusElement.textContent = "Workbench ready. Choose an advanced recipe."; return; } if (!nearWorkbench()) { const target = animalInSight(); if (target && ((inventory.meat && !(foods[selected] && selected !== "meat" && inventory[selected])) || target.pet)) { tameAnimal(target); return; } } const pick = foods[selected] && inventory[selected] > 0 ? selected : Object.keys(foods).find((f) => inventory[f] > 0); if (!pick) { statusElement.textContent = "You do not have food to eat. Plant seeds, pick fruit, or hit an animal for meat."; return; } inventory[pick] -= 1; player.hunger = Math.min(100, player.hunger + foods[pick]); statusElement.textContent = `You ate ${types[pick].label.toLowerCase()} and restored hunger.`; const pu = powerUps[pick]; if (pu) { buff = { kind: pu[0], label: pu[1], left: 10 }; if (pu[0] === "heal" && saved.survival) { lives = Math.min(maxLives, lives + 1); renderLives(); } statusElement.textContent += ` ${pu[1]} for 10 seconds!`; } persistAndRender(); renderHunger(); }
+    function useContextAction() { if (gameType === "hub" && Math.hypot(player.x - (hubStations[0].x + .5 - mapOriginX), player.z - (hubStations[0].z + .5 - mapOriginZ)) < 3.5) { openHubPanel("quests"); return; } { const fx = raycast(), ft = fx && blockAt(fx.x, fx.y, fx.z); if (gameType === "containment" && ft === "exitDoor") { cbExit(); return; } if (ft === "questBoard" || ft === "shopStand") { openHubPanel(gameType === "containment" ? "gunshop" : gameType === "bedwars" ? "bedshop" : ft === "questBoard" ? "quests" : "shop"); return; } if (ft === "chair") { player.x = fx.x + .5; player.z = fx.z + .5; player.y = fx.y + .1; player.velocityY = 0; statusElement.textContent = "You sat on the chair."; return; } if (ft === "bed") { if (mp.peer && !mp.host) { statusElement.textContent = "Only the host can sleep to skip the night."; return; } if (dayTime >= .5) { dayTime = .02; saved.dayTime = dayTime; if (saved.survival) { lives = maxLives; renderLives(); } statusElement.textContent = "You slept until morning."; persist(); } else statusElement.textContent = "You can only sleep at night."; return; } } { const dt = raycast(); if (dt && ["door", "doorOpen"].includes(blockAt(dt.x, dt.y, dt.z))) { toggleDoor(dt.x, dt.y, dt.z); return; } } { const ct = raycast(); if (ct && blockAt(ct.x, ct.y, ct.z) === "chest") { openChest(ct); return; } } if (nearFurnace()) { smeltOre(); return; } if (nearWorkbench()) { workbenchActive = true; renderCrafting(); openBag("bench"); statusElement.textContent = "Workbench ready. Choose an advanced recipe."; return; } if (!nearWorkbench()) { const target = animalInSight(); if (target && ((inventory.meat && !(foods[selected] && selected !== "meat" && inventory[selected])) || target.pet)) { tameAnimal(target); return; } } const pick = foods[selected] && inventory[selected] > 0 ? selected : Object.keys(foods).find((f) => inventory[f] > 0); if (!foods[selected] && inventory[selected] > 0 && raycast()) { build(); return; } if (!pick) { statusElement.textContent = "You do not have food to eat. Plant seeds, pick fruit, or hit an animal for meat."; return; } inventory[pick] -= 1; player.hunger = Math.min(100, player.hunger + foods[pick]); statusElement.textContent = `You ate ${types[pick].label.toLowerCase()} and restored hunger.`; const pu = powerUps[pick]; if (pu) { buff = { kind: pu[0], label: pu[1], left: 10 }; if (pu[0] === "heal" && saved.survival) { lives = Math.min(maxLives, lives + 1); renderLives(); } statusElement.textContent += ` ${pu[1]} for 10 seconds!`; } persistAndRender(); renderHunger(); }
     function smeltOre() { const ore = inventory.goldOre ? "goldOre" : inventory.ironOre ? "ironOre" : null; if (!ore) { statusElement.textContent = "You do not have ore to smelt."; return; } if (!inventory.coal) { statusElement.textContent = "You need coal to fuel the furnace."; return; } const ingot = ore === "goldOre" ? "goldIngot" : "ironIngot"; inventory[ore] -= 1; inventory.coal -= 1; inventory[ingot] = (inventory[ingot] || 0) + 1; statusElement.textContent = `Smelted ${types[ore].label} into an ingot using coal.`; persistAndRender(); }
 
     function directionVector() { return [Math.sin(player.yaw) * Math.cos(player.pitch), Math.sin(player.pitch), Math.cos(player.yaw) * Math.cos(player.pitch)]; }
@@ -847,7 +1249,7 @@
       gl.uniformMatrix4fv(matrixLocation, false, matrix); gl.enableVertexAttribArray(positionLocation); gl.enableVertexAttribArray(colorLocation); drawSky(sky, eye); gl.uniform1f(brightnessLocation, sky.brightness); uploadLights(eye); gl.uniform1f(lightOnLocation, 1);
       gl.bindBuffer(gl.ARRAY_BUFFER, buffer); gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 24, 0); gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 24, 12); gl.drawArrays(gl.TRIANGLES, 0, vertices);
       if (!viewing2) updateFar(); if (farVertices) { gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(2, 2); gl.uniformMatrix4fv(matrixLocation, false, multiply(matrix, new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, -mapOriginX,0,-mapOriginZ,1]))); gl.bindBuffer(gl.ARRAY_BUFFER, farBuffer); gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 24, 0); gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 24, 12); gl.drawArrays(gl.TRIANGLES, 0, farVertices); gl.disable(gl.POLYGON_OFFSET_FILL); gl.uniformMatrix4fv(matrixLocation, false, matrix); gl.bindBuffer(gl.ARRAY_BUFFER, buffer); gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 24, 0); gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 24, 12); }
-      drawSmoke(); drawRocket(); drawRemotePlayers(); drawThrown(); drawCracks(); drawWeather(); if (!splitActive()) drawNameTags(matrix); else if (!viewing2) { tagCtx.clearRect(0, 0, tagCanvas.width, tagCanvas.height); }
+      drawSmoke(); drawRocket(); drawRemotePlayers(); drawThrown(); drawCracks(); drawHighlight(); drawWeather(); if (!splitActive()) drawNameTags(matrix); else if (!viewing2) { tagCtx.clearRect(0, 0, tagCanvas.width, tagCanvas.height); }
     }
     function uploadLights(eye) {
       const now = performance.now() / 1000, lights = [];
@@ -859,7 +1261,7 @@
     }
     const smoothStep = (low, high, value) => { const t = Math.max(0, Math.min(1, (value - low) / (high - low))); return t * t * (3 - 2 * t); };
     function skyState() {
-      if (onMoon) return { angle: 0, sunHeight: 1, light: 1, glow: 0, color: [0, 0, .01], brightness: .9 * userBright };
+      if (onMoon) return { angle: 0, sunHeight: 1, light: 1, glow: 0, color: planet === "mars" ? [.62 * userBright, .36 * userBright, .26 * userBright].map((v) => Math.min(1, v)) : [0, 0, .01], brightness: .9 * userBright };
       const angle = dayTime * Math.PI * 2, sunHeight = Math.sin(angle), light = smoothStep(-.12, .3, sunHeight), glow = Math.max(0, 1 - Math.abs(sunHeight) / .35) * .75;
       const day = [125, 212, 250], night = [8, 12, 38], tint = [255, 140, 70];
       const color = day.map((value, index) => { let channel = night[index] + (value - night[index]) * light; channel += (tint[index] - channel) * glow; return Math.max(0, Math.min(1, channel * userBright / 255)); });
@@ -872,9 +1274,12 @@
     function drawSky(sky, eye) {
       if (onMoon) {
         const data = [], place = (d, dist) => d.map((v, axis) => eye[axis] + v * dist);
-        starField.forEach(([x, y, z]) => { if (y > -.05) skyCube(data, ...place([x, y, z], 70), .5, [1, 1, .95]); });
-        skyCube(data, ...place([.5, .6, .62], 60), 9, [1, .95, .5]);
-        skyCube(data, ...place([-.55, .45, -.7], 55), 12, [.2, .45, .95]); skyCube(data, ...place([-.55, .45, -.7], 54), 8, [.25, .7, .3]);
+        if (planet === "mars") { skyCube(data, ...place([.5, .6, .62], 60), 6, [1, .95, .8]); skyCube(data, ...place([-.6, .5, .4], 58), 2, [.8, .75, .7]); }
+        else {
+          starField.forEach(([x, y, z]) => { if (y > -.05) skyCube(data, ...place([x, y, z], 70), .5, [1, 1, .95]); });
+          skyCube(data, ...place([.5, .6, .62], 60), 9, [1, .95, .5]);
+          skyCube(data, ...place([-.55, .45, -.7], 55), 12, [.2, .45, .95]); skyCube(data, ...place([-.55, .45, -.7], 54), 8, [.25, .7, .3]);
+        }
         gl.uniform1f(brightnessLocation, 1); gl.uniform1f(lightOnLocation, 0); gl.disable(gl.DEPTH_TEST); gl.disable(gl.CULL_FACE);
         gl.bindBuffer(gl.ARRAY_BUFFER, skyBuffer); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.DYNAMIC_DRAW);
         gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 24, 0); gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 24, 12); gl.drawArrays(gl.TRIANGLES, 0, data.length / 6);
@@ -1056,10 +1461,10 @@
         world[y][lz][lx] = value; mpMeshDirty = true;
       });
     }
-    function mpSnapshot() { return { t: "world", deep, world: encodeWorld(), w: mapWidth, d: mapDepth, ox: mapOriginX, oz: mapOriginZ, animals, px: player.x + mapOriginX, py: player.y, pz: player.z + mapOriginZ, edits: [...lobbyEdits] }; }
+    function mpSnapshot() { return { t: "world", deep, gt: gameType, world: encodeWorld(), w: mapWidth, d: mapDepth, ox: mapOriginX, oz: mapOriginZ, animals, px: player.x + mapOriginX, py: player.y, pz: player.z + mapOriginZ, edits: [...lobbyEdits] }; }
     function mpAdopt(data) {
       const priorDeep = deep; setDepth(Number(data.deep) || 0); const next = decodeWorld(data.world, data.d, data.w); if (!next) setDepth(priorDeep); if (!next || ![data.w, data.d, data.ox, data.oz, data.px, data.py, data.pz].every(Number.isFinite)) return;
-      world = next; mapWidth = data.w; mapDepth = data.d; mapOriginX = data.ox; mapOriginZ = data.oz; animals = Array.isArray(data.animals) ? data.animals : [];
+      world = next; gameType = data.gt === "skyblock" || data.gt === "oneblock" || data.gt === "hub" || data.gt === "mines" || data.gt === "bedwars" || data.gt === "containment" ? data.gt : ""; mapWidth = data.w; mapDepth = data.d; mapOriginX = data.ox; mapOriginZ = data.oz; animals = Array.isArray(data.animals) ? data.animals : [];
       lobbyEdits.clear(); (Array.isArray(data.edits) ? data.edits : []).forEach(([key, value]) => lobbyEdits.set(key, value)); burningPlanks.clear(); thrown.length = 0;
       player.x = Math.max(1, data.px - mapOriginX + 1); player.z = Math.max(1, data.pz - mapOriginZ); player.y = data.py + .5; player.velocityY = 0; mp.adopted = true; gliding = false;
       rebuildMesh(); workbenchNearby = nearWorkbench(); renderCrafting(); mpStatusElement.textContent = `Connected to room ${mp.code}. You are in the host's world; your own world is safe.`;
@@ -1069,7 +1474,7 @@
     const mpName = () => (mpNameElement.value.trim() || "Player").slice(0, 16);
     function remotePlayers() { const now = performance.now(); mp.players.forEach((peer, id) => { if (now - peer.seen > 6000) mp.players.delete(id); }); return [...mp.players.values()]; }
     function mpSend(data, except) { mp.conns.forEach((conn) => { if (conn !== except && conn.open) conn.send(data); }); }
-    function mpState() { return { t: "s", id: mp.peer.id, name: mpName(), x: player.x + mapOriginX, y: player.y, z: player.z + mapOriginZ, yaw: player.yaw, pitch: player.pitch, h: selected === "torch" && inventory.torch ? 1 : 0, d: dayTime, g: planeOn ? 2 : heliOn ? 3 : gliding ? 1 : 0, hat: myHat(), ht: heliOn ? [Math.round(heliTilt.p * 100) / 100, Math.round(heliTilt.r * 100) / 100] : planeOn ? [Math.round(planeTilt.p * 100) / 100, Math.round(planeTilt.r * 100) / 100] : 0, ...(mp.host ? { w: weatherPayload() } : {}) }; }
+    function mpState() { return { t: "s", id: mp.peer.id, name: mpName(), x: player.x + mapOriginX, y: player.y, z: player.z + mapOriginZ, yaw: player.yaw, pitch: player.pitch, h: selected === "torch" && inventory.torch ? 1 : 0, d: dayTime, g: planeOn ? 2 : heliOn ? 3 : gliding ? 1 : 0, hat: myHat(), em: emote, ht: heliOn ? [Math.round(heliTilt.p * 100) / 100, Math.round(heliTilt.r * 100) / 100] : planeOn ? [Math.round(planeTilt.p * 100) / 100, Math.round(planeTilt.r * 100) / 100] : 0, ...(mp.host ? { w: weatherPayload() } : {}) }; }
     function mpReceive(conn, data) {
       if (!data || typeof data !== "object") return;
       if (!mp.host && data.t === "s" && data.id === `funcraft-${mp.code}` && Number.isFinite(data.d)) dayTime = ((data.d % 1) + 1) % 1;
@@ -1080,7 +1485,7 @@
       if (data.t === "tp" && typeof data.id === "string") { const k = thrown.findIndex((o) => o.id === data.id); if (k >= 0) thrown.splice(k, 1); if (mp.host) mpSend(data, conn); return; }
       if (data.t === "b" && Array.isArray(data.c)) { mpApplyBlocks(data.c); if (mp.host) mpSend(data, conn); return; }
       if (data.t === "s" && typeof data.id === "string" && [data.x, data.y, data.z, data.yaw, data.pitch].every(Number.isFinite)) {
-        mp.players.set(data.id, { id: data.id, name: String(data.name || "Player").slice(0, 16), x: data.x, y: data.y, z: data.z, yaw: data.yaw, pitch: data.pitch, h: data.h ? 1 : 0, g: data.g === 2 || data.g === 3 ? data.g : data.g ? 1 : 0, hat: hatNames[data.hat] !== undefined ? data.hat : "", tp: Number(data.ht?.[0]) || 0, tr: Number(data.ht?.[1]) || 0, seen: performance.now() });
+        mp.players.set(data.id, { id: data.id, name: String(data.name || "Player").slice(0, 16), x: data.x, y: data.y, z: data.z, yaw: data.yaw, pitch: data.pitch, h: data.h ? 1 : 0, g: data.g === 2 || data.g === 3 ? data.g : data.g ? 1 : 0, hat: hatNames[data.hat] !== undefined ? data.hat : "", em: emoteNames[data.em] ? data.em : "", tp: Number(data.ht?.[0]) || 0, tr: Number(data.ht?.[1]) || 0, seen: performance.now() });
         if (mp.host) mpSend(data, conn);
       } else if (data.t === "bye" && typeof data.id === "string") { mp.players.delete(data.id); if (mp.host) mpSend(data, conn); }
     }
@@ -1111,7 +1516,7 @@
       if (mpPending.length) mpSend({ t: "b", c: mpPending.splice(0) });
       mpSend(mpState());
     }
-    const worldsKey = "funcraft-worlds", worldFields = ["world", "player", "mapWidth", "mapDepth", "mapOriginX", "mapOriginZ", "animals", "dayTime", "inventory", "lives", "worldVersion", "deep", "survival", "disasters", "modeName", "chests"];
+    const worldsKey = "funcraft-worlds", worldFields = ["world", "player", "mapWidth", "mapDepth", "mapOriginX", "mapOriginZ", "animals", "dayTime", "inventory", "lives", "worldVersion", "deep", "survival", "disasters", "modeName", "chests", "gameType", "oneCount"];
     const worldNameElement = document.querySelector("#worldName"), worldListElement = document.querySelector("#worldList"), worldMsgElement = document.querySelector("#worldMsg");
     const readWorlds = () => { try { const w = JSON.parse(localStorage.getItem(worldsKey) || "{}"); return w && typeof w === "object" ? w : {}; } catch { return {}; } };
     function renderWorldList() { const names = Object.keys(readWorlds()).sort(); worldListElement.replaceChildren(...names.map((n) => { const o = document.createElement("option"); o.value = o.textContent = n; if (n === saved.worldName) o.selected = true; return o; })); if (!names.length) { const o = document.createElement("option"); o.textContent = "(no saved worlds)"; o.value = ""; worldListElement.append(o); } if (saved.worldName) worldMsgElement.textContent = `Playing: ${saved.worldName}`; }
@@ -1152,17 +1557,66 @@
     const hatSelect = document.querySelector("#hatSelect"); Object.entries(hatNames).forEach(([id, label]) => { const option = document.createElement("option"); option.value = id; option.textContent = label; hatSelect.append(option); });
     hatSelect.value = hatNames[saved.hat] !== undefined ? saved.hat : ""; hatSelect.addEventListener("change", () => { saved.hat = hatSelect.value; persist(); hatSelect.blur(); statusElement.textContent = saved.hat ? `You put on a ${hatNames[saved.hat].toLowerCase()}. Press P to see it.` : "You took your hat off."; });
     const myHat = () => (hatNames[saved.hat] !== undefined ? saved.hat : "");
+    const emoteNames = { point: "Point", wave: "Wave", cheer: "Cheer", shrug: "Shrug", dance: "Dance", bow: "Bow", sit: "Sit", lie: "Lie down" };
+    let emote = "", emoteCamRestore = false;
+    const emoteChain = (...fns) => (x, y, z) => { let p = [x, y, z]; for (const f of fns) if (f) p = f(...p); return p; };
+    const rotX = (a, py0, pz0 = 0) => (x, y, z) => { const dy = y - py0, dz = z - pz0, c = Math.cos(a), s = Math.sin(a); return [x, py0 + dy * c - dz * s, pz0 + dy * s + dz * c]; };
+    const rotZ = (a, px0, py0) => (x, y, z) => { const dx = x - px0, dy = y - py0, c = Math.cos(a), s = Math.sin(a); return [px0 + dx * c - dy * s, py0 + dx * s + dy * c, z]; };
+    const rotY = (a) => (x, y, z) => { const c = Math.cos(a), s = Math.sin(a); return [x * c + z * s, y, -x * s + z * c]; };
+    const lift = (dy) => (x, y, z) => [x, y + dy, z];
+    const armR = (a) => rotZ(a, .34, 1.35), armL = (a) => rotZ(-a, -.34, 1.35);
+    function emoteFx(id, t) {
+      switch (id) {
+        case "point": return { aR: rotX(-Math.PI / 2, 1.35) };
+        case "wave": return { aR: armR(2.6 + Math.sin(t * 10) * .4) };
+        case "cheer": return { aR: armR(2.7 + Math.sin(t * 14) * .25), aL: armL(2.7 - Math.sin(t * 14) * .25), glob: lift(Math.abs(Math.sin(t * 7)) * .3) };
+        case "shrug": { const k = .8 + Math.sin(t * 4) * .06; return { aR: emoteChain(rotX(-.6, 1.35), armR(k)), aL: emoteChain(rotX(-.6, 1.35), armL(k)), upper: lift(.06) }; }
+        case "dance": return { aR: armR(2.2 + Math.sin(t * 10) * .6), aL: armL(2.2 + Math.cos(t * 10) * .6), glob: emoteChain(rotY(Math.sin(t * 5) * .5), lift(Math.abs(Math.sin(t * 10)) * .15)) };
+        case "bow": return { upper: rotX(.9, .7) };
+        case "sit": return { legs: rotX(-Math.PI / 2, .7), glob: lift(-.4) };
+        case "lie": return { glob: emoteChain(rotX(-Math.PI / 2, 0), lift(.3)) };
+      }
+      return {};
+    }
+    function startEmote(id) {
+      if (!emoteNames[id]) return;
+      if (heliOn || planeOn || boating || gliding || rocketLaunch) { statusElement.textContent = "You can't do that right now."; return; }
+      emote = id; keys.clear();
+      if (camMode === 0) { camMode = 2; emoteCamRestore = true; }
+      statusElement.textContent = `${emoteNames[id]}! Move or jump to stop.`;
+    }
+    function stopEmote() { if (!emote) return; emote = ""; if (emoteCamRestore) { camMode = 0; emoteCamRestore = false; } }
+    const emoteMenu = document.createElement("div");
+    emoteMenu.style.cssText = "position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:none;z-index:7;background:rgba(15,23,42,.9);border:2px solid #fef08a;border-radius:.6rem;padding:.8rem;text-align:center;color:#fff;font:bold 1rem Arial";
+    emoteMenu.innerHTML = `<div style="margin-bottom:.5rem">Choose an action</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.4rem"></div><div style="margin-top:.5rem;font-size:.75rem;font-weight:normal">Press Z or Esc to close</div>`;
+    Object.entries(emoteNames).forEach(([id, label]) => { const b = document.createElement("button"); b.type = "button"; b.textContent = label; b.style.cssText = "padding:.5rem .7rem;cursor:pointer;font:inherit"; b.addEventListener("click", () => { closeEmoteMenu(); startEmote(id); }); emoteMenu.children[1].append(b); });
+    document.querySelector("#game-wrap").append(emoteMenu);
+    function closeEmoteMenu() { emoteMenu.style.display = "none"; if (document.pointerLockElement !== canvas) { try { canvas.requestPointerLock(); } catch {} } }
+    function toggleEmoteMenu() {
+      if (emoteMenu.style.display !== "none") { closeEmoteMenu(); return; }
+      keys.clear(); emoteMenu.style.display = "block"; document.exitPointerLock();
+    }
+    document.addEventListener("keydown", (event) => { if (event.target.type === "text" || event.repeat) return; if (event.key === "z" || event.key === "Z") { toggleEmoteMenu(); event.preventDefault(); } else if (event.key === "Escape" && emoteMenu.style.display !== "none") emoteMenu.style.display = "none"; });
+    const walkStates = new Map();
+    function walkSwing(peer) {
+      const now = performance.now() / 1000; let s = walkStates.get(peer.name);
+      if (!s) { s = { x: peer.x, z: peer.z, t: now, v: 0, phase: 0 }; walkStates.set(peer.name, s); }
+      const dt = now - s.t;
+      if (dt >= .008) { const d = Math.hypot(peer.x - s.x, peer.z - s.z); s.v = d > 6 ? 0 : s.v * .6 + (d / dt) * .4; s.phase += s.v * dt * 3; s.x = peer.x; s.z = peer.z; s.t = now; }
+      return Math.sin(s.phase) * Math.min(1, s.v / 2) * (.45 + Math.min(s.v, 9) * .05);
+    }
     function drawRemotePlayers() {
-      const peers = remotePlayers(); if (splitActive() && otherView) peers.push({ ...otherView, h: 0, hat: "" }); if (camMode) peers.push({ x: player.x + mapOriginX, y: player.y, z: player.z + mapOriginZ, yaw: player.yaw, name: mpName(), h: selected === "torch" && inventory.torch ? 1 : 0, hat: myHat(), g: planeOn ? 2 : heliOn ? 3 : gliding, tp: heliOn ? heliTilt.p : planeOn ? planeTilt.p : 0, tr: heliOn ? heliTilt.r : planeOn ? planeTilt.r : 0 });
+      const peers = remotePlayers(); if (gameType === "hub") { const q = hubStations[0]; peers.push({ x: q.x + .5 + mapOriginX, y: SKY_Y + 1, z: q.z + .5 + mapOriginZ, yaw: Math.PI / 2, name: "Quest Master", em: "wave", h: 0, hat: "wizard" }); } if (splitActive() && otherView) peers.push({ ...otherView, h: 0, hat: "" }); if (camMode) peers.push({ x: player.x + mapOriginX, y: player.y, z: player.z + mapOriginZ, yaw: player.yaw, name: mpName(), em: emote, h: selected === "torch" && inventory.torch ? 1 : 0, hat: myHat(), em: emote, g: planeOn ? 2 : heliOn ? 3 : gliding, tp: heliOn ? heliTilt.p : planeOn ? planeTilt.p : 0, tr: heliOn ? heliTilt.r : planeOn ? planeTilt.r : 0 });
       if (!peers.length) return;
       const data = [], unit = [[0,0,0],[1,0,0],[1,1,0],[0,1,0],[0,0,1],[1,0,1],[1,1,1],[0,1,1]], quads = [[0,1,2,3],[4,5,6,7],[0,1,5,4],[3,2,6,7],[0,3,7,4],[1,2,6,5]];
       peers.forEach((peer) => {
         const cos = Math.cos(peer.yaw), sin = Math.sin(peer.yaw), base = [peer.x - mapOriginX, peer.y, peer.z - mapOriginZ], body = nameColor(peer.name), dark = body.map((value) => value * .5), skin = [.95, .78, .6];
-        const box = (lx, ly, lz, w, h, d, color) => quads.forEach((quad) => [0,1,2,0,2,3].forEach((corner) => { const u = unit[quad[corner]]; let px = lx + (u[0] - .5) * w, py = ly + u[1] * h, pz = lz + (u[2] - .5) * d; if (peer.tp || peer.tr) { const cp = Math.cos(peer.tp || 0), sp = Math.sin(peer.tp || 0), cr = Math.cos(peer.tr || 0), sr = Math.sin(peer.tr || 0), yy = py - 1, ny = yy * cp - pz * sp; pz = pz * cp + yy * sp; const nx = px * cr - ny * sr; py = ny * cr + px * sr + 1; px = nx; } data.push(base[0] + px * cos + pz * sin, base[1] + py, base[2] - px * sin + pz * cos, ...color); }));
-        box(-.12, 0, 0, .22, .7, .26, dark); box(.12, 0, 0, .22, .7, .26, dark);
-        box(0, .7, 0, .5, .7, .28, body); box(0, .78, -.25, .42, .55, .2, [.55, .32, .14]); box(0, .82, -.37, .3, .22, .06, [.42, .24, .1]); box(0, 1.28, -.25, .3, .08, .16, [.36, .2, .08]); box(-.14, .72, .16, .06, .6, .03, [.36, .2, .08]); box(.14, .72, .16, .06, .6, .03, [.36, .2, .08]); box(-.34, .75, 0, .16, .6, .2, skin); box(.34, .75, 0, .16, .6, .2, skin);
-        box(0, 1.4, 0, .4, .4, .4, skin); box(-.09, 1.55, .21, .07, .07, .02, [.05, .05, .05]); box(.09, 1.55, .21, .07, .07, .02, [.05, .05, .05]);
-        if (peer.h) box(.34, 1.2, .2, .08, .35, .08, [.95, .75, .2]); hatDrawers[peer.hat]?.(box);
+        let cur = null; const fx = peer.em ? emoteFx(peer.em, performance.now() / 1000) : {};
+        const box = (lx, ly, lz, w, h, d, color) => quads.forEach((quad) => [0,1,2,0,2,3].forEach((corner) => { const u = unit[quad[corner]]; let px = lx + (u[0] - .5) * w, py = ly + u[1] * h, pz = lz + (u[2] - .5) * d; if (peer.tp || peer.tr) { const cp = Math.cos(peer.tp || 0), sp = Math.sin(peer.tp || 0), cr = Math.cos(peer.tr || 0), sr = Math.sin(peer.tr || 0), yy = py - 1, ny = yy * cp - pz * sp; pz = pz * cp + yy * sp; const nx = px * cr - ny * sr; py = ny * cr + px * sr + 1; px = nx; } if (cur) [px, py, pz] = cur(px, py, pz); data.push(base[0] + px * cos + pz * sin, base[1] + py, base[2] - px * sin + pz * cos, ...color); }));
+        const sw = peer.em || peer.g ? 0 : walkSwing(peer); cur = emoteChain(fx.legs || (sw ? rotX(sw, .7) : null), fx.glob); box(-.12, 0, 0, .22, .7, .26, dark); cur = emoteChain(fx.legs || (sw ? rotX(-sw, .7) : null), fx.glob); box(.12, 0, 0, .22, .7, .26, dark);
+        cur = emoteChain(fx.upper, fx.glob); box(0, .7, 0, .5, .7, .28, body); box(0, .78, -.25, .42, .55, .2, [.55, .32, .14]); box(0, .82, -.37, .3, .22, .06, [.42, .24, .1]); box(0, 1.28, -.25, .3, .08, .16, [.36, .2, .08]); box(-.14, .72, .16, .06, .6, .03, [.36, .2, .08]); box(.14, .72, .16, .06, .6, .03, [.36, .2, .08]);         cur = emoteChain(fx.aL || (sw ? rotX(-sw * .8, 1.35) : null), fx.upper, fx.glob); box(-.34, .75, 0, .16, .6, .2, skin); cur = emoteChain(fx.aR || (sw ? rotX(sw * .8, 1.35) : null), fx.upper, fx.glob); box(.34, .75, 0, .16, .6, .2, skin);
+                cur = emoteChain(fx.upper, fx.glob); box(0, 1.4, 0, .4, .4, .4, skin); box(-.09, 1.55, .21, .07, .07, .02, [.05, .05, .05]); box(.09, 1.55, .21, .07, .07, .02, [.05, .05, .05]);
+        if (peer.h) box(.34, 1.2, .2, .08, .35, .08, [.95, .75, .2]);         hatDrawers[peer.hat]?.(box); cur = null;
         if (peer.g === 3) {
           const red = [.8, .15, .15], glass = [.65, .85, .95], grey = [.25, .27, .3], spin = performance.now() / 55;
           box(0, -.15, 0, 1.3, .2, 1.7, red); box(0, .05, -.75, 1.3, 1.1, .2, red); box(-.65, .05, 0, .1, 1.1, 1.5, glass); box(.65, .05, 0, .1, 1.1, 1.5, glass); box(0, .05, .95, 1.1, .9, .15, glass); box(0, 1.85, 0, 1.3, .1, 1.7, red);
@@ -1191,6 +1645,23 @@
         if (cw <= .1) return;
         const sx = (cx / cw * .5 + .5) * tagCanvas.width, sy = (1 - (cy / cw * .5 + .5)) * tagCanvas.height, width = tagCtx.measureText(peer.name).width + 16;
         tagCtx.fillStyle = "rgb(15 23 42 / 70%)"; tagCtx.fillRect(sx - width / 2, sy - 14, width, 28); tagCtx.fillStyle = "#fef08a"; tagCtx.fillText(peer.name, sx, sy + 1);
+      });
+      animals.forEach((a) => {
+        const max = animalKinds[a.kind]?.hp || animalHealth; if (a.hp === undefined || a.hp >= max) return;
+        const x = a.x, y = a.y + (animalKinds[a.kind]?.scale || 1) * 1.8 + .4, z = a.z;
+        const cx = matrix[0] * x + matrix[4] * y + matrix[8] * z + matrix[12], cy = matrix[1] * x + matrix[5] * y + matrix[9] * z + matrix[13], cw = matrix[3] * x + matrix[7] * y + matrix[11] * z + matrix[15];
+        if (cw <= .1 || cw > 40) return;
+        const sx = (cx / cw * .5 + .5) * tagCanvas.width, sy = (1 - (cy / cw * .5 + .5)) * tagCanvas.height, w = 90, frac = Math.max(0, a.hp) / max;
+        tagCtx.fillStyle = "#dc2626"; tagCtx.fillRect(sx - w / 2, sy - 6, w, 12); tagCtx.fillStyle = "#22c55e"; tagCtx.fillRect(sx - w / 2, sy - 6, w * frac, 12); tagCtx.strokeStyle = "#0f172a"; tagCtx.lineWidth = 2; tagCtx.strokeRect(sx - w / 2, sy - 6, w, 12);
+        tagCtx.font = "bold 14px Arial"; tagCtx.fillStyle = "#fca5a5"; tagCtx.fillText(`-${Math.round((max - a.hp) * 10) / 10}`, sx, sy - 16); tagCtx.font = "bold 20px Arial";
+      });
+      const tagged = gameType === "containment" ? [{ kind: "shop", label: "Armory", color: [74, 222, 128], x: CB_ORIGIN + 10, z: CB_ORIGIN + 4 }, { kind: "shop", label: "Easy", color: [34, 197, 94], x: CB_ORIGIN + 4, z: CB_ORIGIN + 10 }, { kind: "shop", label: "Hard", color: [248, 113, 113], x: CB_ORIGIN + 13, z: CB_ORIGIN + 10 }] : gameType === "hub" ? hubStations : gameType === "oneblock" ? [{ kind: "shop", label: "Shop", color: [74, 222, 128], x: 5, z: -8 }] : gameType === "bedwars" ? [{ kind: "shop", label: "Shop", color: [74, 222, 128], x: 7, z: 41 }, ...bwTeams.filter((t) => !(saved.bw && saved.bw[t.id])).map((t) => ({ kind: "shop", label: t.id === "you" ? "Your bed" : t.label + " bed", color: t.color, x: t.x, z: t.z - 2 }))] : [];
+      [...activePortals(), ...tagged].forEach((p) => {
+        const x = p.x + .5 - mapOriginX, y = SKY_Y + (p.kind === "quests" ? 3.3 : p.kind ? 2.4 : 6.4), z = p.z + .5 - mapOriginZ;
+        const cx = matrix[0] * x + matrix[4] * y + matrix[8] * z + matrix[12], cy = matrix[1] * x + matrix[5] * y + matrix[9] * z + matrix[13], cw = matrix[3] * x + matrix[7] * y + matrix[11] * z + matrix[15];
+        if (cw <= .1 || cw > 40) return;
+        const sx = (cx / cw * .5 + .5) * tagCanvas.width, sy = (1 - (cy / cw * .5 + .5)) * tagCanvas.height, width = tagCtx.measureText(p.label).width + 16;
+        tagCtx.fillStyle = "rgb(15 23 42 / 70%)"; tagCtx.fillRect(sx - width / 2, sy - 14, width, 28); tagCtx.fillStyle = `rgb(${p.color.join(" ")})`; tagCtx.fillText(p.label, sx, sy + 1);
       });
     }
 
@@ -1223,18 +1694,19 @@
     const rocketOverlay = document.createElement("div");
     rocketOverlay.style.cssText = "position:absolute;inset:.3rem;display:none;align-items:center;justify-content:center;flex-direction:column;color:#fff;font:bold 4rem Arial;text-align:center;pointer-events:none;border-radius:.5rem;overflow:hidden;z-index:5";
     document.querySelector("#game-wrap").append(rocketOverlay);
-    function toggleRocket() {
+    function toggleRocket(dest = "moon") {
       if (rocketLaunch) return;
-      if (!inventory.rocket) { statusElement.textContent = "Craft a rocket first (10 iron ingots + 4 gold ingots + 4 diamond + 4 moonstone + 6 coal)."; return; }
+      if (!inventory.rocket) { statusElement.textContent = "Craft a rocket first (5 iron ingots + 2 gold ingots + 2 diamond + 2 moonstone + 3 coal)."; return; }
       if (mp.peer) { statusElement.textContent = "Rockets can't launch while you are in a multiplayer lobby."; return; }
       heliOn = false; planeOn = false; boating = false; gliding = false; keys.clear();
-      rocketLaunch = { t: 0, toMoon: !onMoon, switched: false };
+      rocketLaunch = { t: 0, toMoon: !onMoon, dest: onMoon ? "earth" : dest, switched: false };
     }
-    function switchWorld(toMoon) {
+    function switchWorld(toMoon, dest = "moon") {
       if (toMoon) {
+        planet = dest;
         persist(); earth = { world, mapWidth, mapDepth, mapOriginX, mapOriginZ, animals, x: player.x, y: player.y, z: player.z };
         onMoon = true; mapOriginX = 0; mapOriginZ = 0; mapWidth = initialSize; mapDepth = initialSize; animals = [];
-        world = Array.from({ length: height }, (_, y) => Array.from({ length: initialSize }, (_, z) => Array.from({ length: initialSize }, (_, x) => moonBlock(x, y, z))));
+        world = Array.from({ length: height }, (_, y) => Array.from({ length: initialSize }, (_, z) => Array.from({ length: initialSize }, (_, x) =>         (planet === "mars" ? marsBlock : moonBlock)(x, y, z))));
         player.x = player.z = initialSize / 2; player.y = surfaceAt(player.x, player.z) + 1;
       } else {
         onMoon = false; ({ world, mapWidth, mapDepth, mapOriginX, mapOriginZ, animals } = earth); player.x = earth.x; player.y = earth.y; player.z = earth.z; earth = null; scanCrops();
@@ -1245,7 +1717,7 @@
       const r = rocketLaunch; r.t += delta;
       const switchAt = 7.5, total = 11.5;
       if (!r.pad) r.pad = { x: player.x, y: player.y, z: player.z };
-      if (r.t >= switchAt && !r.switched) { r.switched = true; switchWorld(r.toMoon); r.pad = { x: player.x, y: player.y, z: player.z }; statusElement.textContent = r.toMoon ? "You landed on the moon! Low gravity lets you jump high. Press K to fly home." : "Welcome back to Earth!"; }
+      if (r.t >= switchAt && !r.switched) { r.switched = true; switchWorld(r.toMoon, r.dest); r.pad = { x: player.x, y: player.y, z: player.z }; statusElement.textContent = r.toMoon ? (r.dest === "mars" ? "You landed on Mars! Low gravity lets you jump high. Press K to fly home." : "You landed on the moon! Low gravity lets you jump high. Press K to fly home.") : "Welcome back to Earth!"; }
       const landing = r.switched ? Math.min(1, (r.t - switchAt) / 3.5) : 0;
       r.rise = r.switched ? 45 * (1 - landing) * (1 - landing) : r.t < 3 ? 0 : 2.25 * (r.t - 3) * (r.t - 3);
       r.burning = r.switched ? landing < 1 : r.t >= 2;
@@ -1255,7 +1727,7 @@
       r.cam = { eye, dir: normalize([target[0] - eye[0], target[1] - eye[1], target[2] - eye[2]]) };
       const fade = r.switched ? Math.max(0, 1 - (r.t - switchAt) / 1) : Math.max(0, Math.min(1, r.t - 6.5));
       rocketOverlay.style.background = `rgba(0,0,0,${fade})`;
-      rocketOverlay.innerHTML = r.t < 3 ? `<div>${Math.ceil(3 - r.t)}</div><div style="font-size:1.1rem">${r.toMoon ? "Rocket launching to the moon..." : "Rocket heading home..."}</div>` : "";
+      rocketOverlay.innerHTML = r.t < 3 ? `<div>${Math.ceil(3 - r.t)}</div><div style="font-size:1.1rem">${r.toMoon ? (r.dest === "mars" ? "Rocket launching to Mars..." : "Rocket launching to the moon...") : "Rocket heading home..."}</div>` : "";
       rocketOverlay.style.display = "flex";
       if (r.t >= total) { rocketLaunch = null; rocketOverlay.style.display = "none"; persist(); }
     }
@@ -1408,13 +1880,13 @@
       if (item) { selected = item; renderInventory(); statusElement.textContent = `${types[selected].label} selected (${slot}).`; } else statusElement.textContent = `Hotbar slot ${slot} is empty. Press Tab to look in your bag and arrange your items.`;
       event.preventDefault();
     });
-    document.addEventListener("keydown", (event) => { if (event.target.type === "text") return; const action = { w:"forward",W:"forward",ArrowUp:"forward",s:"back",S:"back",ArrowDown:"back",a:"left",A:"left",ArrowLeft:"left",d:"right",D:"right",ArrowRight:"right",c:"sink",C:"sink" }[event.key]; if (action) { keys.add(action); event.preventDefault(); } if (event.key === " ") { keys.add("up"); jump(); event.preventDefault(); } if ((event.key === "r" || event.key === "R") && !event.repeat) { toggleHeli(); event.preventDefault(); } if (event.key === "e" || event.key === "E") { useContextAction(); event.preventDefault(); } if (event.key === "t" || event.key === "T") { teleportToPlayer(); event.preventDefault(); } if (event.key === "y" || event.key === "Y") { setWaypoint(); event.preventDefault(); } if (event.key === "u" || event.key === "U") { teleportWaypoint(); event.preventDefault(); } if (event.key === "h" || event.key === "H") { teleportHome(); event.preventDefault(); } if (event.key === "l" || event.key === "L") { lightFire(); event.preventDefault(); } if (event.key === "b" || event.key === "B") { toggleBoat(); event.preventDefault(); } if (event.key === "g" || event.key === "G") { toggleGlide(); event.preventDefault(); } if ((event.key === "k" || event.key === "K") && !event.repeat) { toggleRocket(); event.preventDefault(); } if (event.key === "o" || event.key === "O") { toggleAirplane(); event.preventDefault(); } if ((event.key === "f" || event.key === "F") && !event.repeat) { boosting = true; if (gliding) statusElement.textContent = "Boost!"; } if (event.key === "q" || event.key === "Q") { throwItem(); event.preventDefault(); } if (event.key === "p" || event.key === "P") { toggleCamera(); event.preventDefault(); } if (event.key === "v" || event.key === "V") { zooming = true; event.preventDefault(); } });
+    document.addEventListener("keydown", (event) => { if (event.target.type === "text") return; const action = { w:"forward",W:"forward",ArrowUp:"forward",s:"back",S:"back",ArrowDown:"back",a:"left",A:"left",ArrowLeft:"left",d:"right",D:"right",ArrowRight:"right",c:"sink",C:"sink" }[event.key]; if (action) { keys.add(action); event.preventDefault(); } if (event.key === " ") { keys.add("up"); jump(); event.preventDefault(); } if ((event.key === "r" || event.key === "R") && !event.repeat && gameType === "containment") { startReload(); event.preventDefault(); } else if ((event.key === "r" || event.key === "R") && !event.repeat) { toggleHeli(); event.preventDefault(); } if (event.key === "e" || event.key === "E") { useContextAction(); event.preventDefault(); } if (event.key === "t" || event.key === "T") { teleportToPlayer(); event.preventDefault(); } if (event.key === "y" || event.key === "Y") { setWaypoint(); event.preventDefault(); } if (event.key === "u" || event.key === "U") { teleportWaypoint(); event.preventDefault(); } if (event.key === "h" || event.key === "H") { teleportHome(); event.preventDefault(); } if (event.key === "l" || event.key === "L") { lightFire(); event.preventDefault(); } if (event.key === "b" || event.key === "B") { toggleBoat(); event.preventDefault(); } if (event.key === "g" || event.key === "G") { toggleGlide(); event.preventDefault(); } if ((event.key === "k" || event.key === "K") && !event.repeat) { toggleRocket("moon"); event.preventDefault(); } if ((event.key === "m" || event.key === "M") && !event.repeat) { toggleRocket("mars"); event.preventDefault(); } if (event.key === "o" || event.key === "O") { toggleAirplane(); event.preventDefault(); } if ((event.key === "f" || event.key === "F") && !event.repeat) { boosting = true; if (gliding) statusElement.textContent = "Boost!"; } if (event.key === "q" || event.key === "Q") { throwItem(); event.preventDefault(); } if (event.key === "p" || event.key === "P") { toggleCamera(); event.preventDefault(); } if (event.key === "v" || event.key === "V") { zooming = true; event.preventDefault(); } });
     document.addEventListener("keyup", (event) => { if (event.key === "v" || event.key === "V") zooming = false; if (event.key === "f" || event.key === "F") boosting = false; });
     window.addEventListener("blur", () => { zooming = false; });
     document.addEventListener("keyup", (event) => { const action = { w:"forward",W:"forward",ArrowUp:"forward",s:"back",S:"back",ArrowDown:"back",a:"left",A:"left",ArrowLeft:"left",d:"right",D:"right",ArrowRight:"right",c:"sink",C:"sink" }[event.key]; if (action) keys.delete(action); if (event.key === " ") keys.delete("up"); });
     canvas.addEventListener("click", () => { if (document.pointerLockElement !== canvas) canvas.requestPointerLock(); });
     canvas.addEventListener("contextmenu", (event) => event.preventDefault());
-    canvas.addEventListener("mousedown", (event) => { if (document.pointerLockElement === canvas) { if (event.button === 0) startMining(); if (event.button === 2) build(); } });
+    canvas.addEventListener("mousedown", (event) => { if (document.pointerLockElement === canvas) { if (event.button === 0) startMining(); if (event.button === 1) { event.preventDefault(); toggleEmoteMenu(); } if (event.button === 2) build(); } });
     document.addEventListener("mouseup", (event) => { if (event.button === 0) stopMining(); });
     window.addEventListener("blur", stopMining);
     document.addEventListener("mousemove", (event) => { if (document.pointerLockElement === canvas) { player.yaw -= event.movementX * .0025; player.pitch = Math.max(-1.45, Math.min(1.45, player.pitch - event.movementY * .0025)); } });

@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Hoops | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#7c2d12,#0b1020)}
+main{width:min(100%,44rem);padding:1.5rem;border:.2rem solid #f97316;border-radius:1.25rem;background:rgb(8 12 30 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.6rem 0;color:#f97316;letter-spacing:.05em;font-size:1.6rem}
+canvas{display:block;width:100%;height:auto;margin:1rem 0;border:.2rem solid #475569;border-radius:.4rem;background:#1e293b;touch-action:none}
+.pad{display:flex;justify-content:center;align-items:center;gap:1.5rem;margin-top:.5rem;user-select:none;-webkit-user-select:none}
+button{border:0;border-radius:.5rem;background:#f97316;color:#1e293b;cursor:pointer;font:inherit;font-weight:bold;touch-action:none;width:9rem;height:3.4rem;font-size:1.1rem}
+</style></head>
+<body><main><a href="../">← All games</a><h1>🏀 Hoops</h1>
+<p>Sink as many baskets as you can in 60 seconds. Swishes (no rim touch) are worth 3, other baskets 2, and back-to-back baskets build a score multiplier. After 5 baskets the hoop starts moving!</p>
+<p><strong>Drag back from the ball</strong> like a slingshot and let go, or <strong>aim with the mouse and click</strong> anywhere away from the ball to shoot toward the pointer. <strong>E</strong> starts a game.</p>
+<canvas id="g" width="640" height="480" aria-label="Hoops basketball game"></canvas>
+<div class="pad"><button data-k="act" type="button">START / AGAIN</button></div>
+</main>
+<script>
+const C=document.querySelector("#g"),x=C.getContext("2d"),W=640,H=480,GY=440,R=14,GR=.35,SX=110,SY=GY-R,RW=60,HX=480,HY0=230;
+let mode="title",ball,score=0,hi=0,baskets=0,streak=0,timeLeft=3600,hy=HY0,t=0,drag=null,mouse=null,msg="",msgT=0,newBest=false,mult=1;
+try{hi=+localStorage.getItem("hoopsHi")||0}catch(e){}
+function newBall(){ball={x:SX,y:SY,vx:0,vy:0,fly:false,scored:false,touched:false,rest:0}}
+function start(){mode="play";score=0;baskets=0;streak=0;timeLeft=3600;newBall();newBest=false;msg="";mult=1}
+function hoopY(){return baskets>=5?HY0+Math.sin(t*.025)*(55+Math.min(baskets-5,6)*6):HY0}
+function launch(vx,vy){const m=Math.hypot(vx,vy),c=Math.min(1,17/m);ball.vx=vx*c;ball.vy=vy*c;ball.fly=true;ball.rest=0}
+function shootAt(px,py){launch((px-ball.x)*.034,(py-ball.y)*.034)}
+function press(){if(mode!=="play")start()}
+function collide(cx,cy,cr){const dx=ball.x-cx,dy=ball.y-cy,d=Math.hypot(dx,dy);
+ if(d<R+cr&&d>0){const nx=dx/d,ny=dy/d,vn=ball.vx*nx+ball.vy*ny;ball.x=cx+nx*(R+cr);ball.y=cy+ny*(R+cr);if(vn<0){ball.vx-=1.6*vn*nx;ball.vy-=1.6*vn*ny;ball.vx*=.9;ball.vy*=.9}ball.touched=true}}
+function miss(){streak=0;mult=1;newBall()}
+function update(){
+ t+=1;if(msgT>0)msgT-=1;if(mode!=="play")return;
+ timeLeft-=1;hy=hoopY();
+ if(timeLeft<=0&&!ball.fly){endGame();return}
+ if(timeLeft<=-600){endGame();return}
+ if(!ball.fly)return;
+ const b=ball,py=b.y;b.vy+=GR;b.x+=b.vx;b.y+=b.vy;
+ const bx=HX+RW+3;
+ collide(HX,hy,4);collide(HX+RW,hy,4);
+ if(b.x+R>bx&&b.x-R<bx+8&&b.y>hy-85&&b.y<hy+8){if(b.vx>0){b.x=bx-R;b.vx*=-.55;b.touched=true}}
+ if(!b.scored&&py<hy&&b.y>=hy&&b.vy>0&&b.x>HX+4&&b.x<HX+RW-4){
+  b.scored=true;baskets+=1;streak+=1;mult=1+Math.min(4,Math.floor(streak/2));const base=b.touched?2:3,p=base*mult;score+=p;
+  msg=(b.touched?"":"SWISH! ")+`+${p}`+(mult>1?`  x${mult}`:"");msgT=70}
+ if(b.scored&&b.y>hy&&b.y<hy+45&&b.x>HX&&b.x<HX+RW){b.vx*=.9;b.vy*=.96}
+ if(b.y>=GY-R){b.y=GY-R;if(Math.abs(b.vy)>2.5){b.vy*=-.55;b.vx*=.8}else b.vy=0;b.vx*=.95;b.rest+=1;if(b.rest>25||b.scored&&b.rest>12){if(!b.scored)miss();else newBall()}}
+ if(b.x>W+40||b.x<-40||b.y>H+50){if(b.scored)newBall();else miss()}
+ if(timeLeft<=0&&!b.fly)endGame()
+}
+function endGame(){mode="over";if(score>hi){hi=score;newBest=true;try{localStorage.setItem("hoopsHi",hi)}catch(e){}}}
+addEventListener("keydown",e=>{if(e.code==="KeyE"||e.code==="Space"||e.code==="Enter"){e.preventDefault();if(!e.repeat)press()}});
+document.querySelector("[data-k]").addEventListener("click",press);
+function pos(e){const r=C.getBoundingClientRect();return[(e.clientX-r.left)*W/r.width,(e.clientY-r.top)*H/r.height]}
+C.addEventListener("pointerdown",e=>{e.preventDefault();const p=pos(e);mouse=p;
+ if(mode!=="play"){start();return}
+ if(ball.fly)return;
+ if(Math.hypot(p[0]-ball.x,p[1]-ball.y)<60){drag=p;try{C.setPointerCapture(e.pointerId)}catch(_){}}
+ else shootAt(p[0],p[1])});
+C.addEventListener("pointermove",e=>{mouse=pos(e);if(drag)drag=mouse});
+function endDrag(){if(drag&&mode==="play"&&!ball.fly){const dx=ball.x-drag[0],dy=ball.y-drag[1];if(Math.hypot(dx,dy)>15)launch(dx*.13,dy*.13)}drag=null}
+C.addEventListener("pointerup",endDrag);C.addEventListener("pointercancel",()=>{drag=null});
+function text(s,a,b,size=18,color="#fff",align="left"){x.font=`bold ${size}px Arial,sans-serif`;x.fillStyle=color;x.textAlign=align;x.lineWidth=4;x.strokeStyle="#000";x.strokeText(s,a,b);x.fillText(s,a,b)}
+function preview(vx,vy){const m=Math.hypot(vx,vy),c=Math.min(1,17/m);vx*=c;vy*=c;let px=ball.x,py=ball.y;x.fillStyle="rgb(255 255 255 / 70%)";
+ for(let i=0;i<30;i+=1){for(let j=0;j<3;j+=1){vy+=GR;px+=vx;py+=vy}x.beginPath();x.arc(px,py,3,0,7);x.fill()}}
+function draw(){
+ const g=x.createLinearGradient(0,0,0,GY);g.addColorStop(0,"#1e1b4b");g.addColorStop(1,"#4c1d95");x.fillStyle=g;x.fillRect(0,0,W,GY);
+ x.fillStyle="#312e81";for(let i=0;i<32;i+=1){x.beginPath();x.arc(10+i*20,360+(i%3)*8,8,0,7);x.fill()}
+ x.fillStyle="#b45309";x.fillRect(0,GY,W,H-GY);x.fillStyle="#d97706";x.fillRect(0,GY,W,5);
+ const bx=HX+RW+3;
+ x.fillStyle="#f8fafc";x.fillRect(bx,hy-80,8,88);
+ x.fillStyle="#475569";x.fillRect(bx+8,hy-8,14,5);
+ x.strokeStyle="rgb(255 255 255 / 80%)";x.lineWidth=1.5;x.beginPath();for(let i=0;i<=4;i+=1){x.moveTo(HX+i*RW/4,hy);x.lineTo(HX+RW*.15+i*RW*.7/4,hy+40)}
+ for(let j=1;j<4;j+=1){const f=j/4;x.moveTo(HX+RW*.15*f,hy+40*f);x.lineTo(HX+RW-RW*.15*f,hy+40*f)}x.stroke();
+ x.strokeStyle="#ef4444";x.lineWidth=5;x.beginPath();x.moveTo(HX,hy);x.lineTo(HX+RW,hy);x.stroke();
+ if(mode==="play"&&!ball.fly){
+  if(drag)preview((ball.x-drag[0])*.13,(ball.y-drag[1])*.13);
+  else if(mouse&&Math.hypot(mouse[0]-ball.x,mouse[1]-ball.y)>=60)preview((mouse[0]-ball.x)*.034,(mouse[1]-ball.y)*.034)}
+ x.fillStyle="rgb(0 0 0 / 30%)";x.beginPath();x.ellipse(ball.x||SX,GY+2,R,4,0,0,7);x.fill();
+ if(drag&&!ball.fly){x.strokeStyle="#fde047";x.lineWidth=2;x.beginPath();x.moveTo(ball.x,ball.y);x.lineTo(drag[0],drag[1]);x.stroke()}
+ if(ball){x.save();x.translate(ball.x,ball.y);x.rotate(ball.x*.05);x.fillStyle="#ea580c";x.strokeStyle="#431407";x.lineWidth=1.5;x.beginPath();x.arc(0,0,R,0,7);x.fill();x.stroke();
+  x.beginPath();x.moveTo(-R,0);x.lineTo(R,0);x.moveTo(0,-R);x.lineTo(0,R);x.stroke();x.restore()}
+ x.fillStyle="rgb(0 0 0 / 50%)";x.fillRect(0,0,W,40);
+ text(`Score ${score}`,12,27,22,"#fde047");text(`⏱ ${Math.max(0,Math.ceil(timeLeft/60))}`,W/2,27,24,timeLeft<600?"#f87171":"#fff","center");text(`Best ${hi}`,W-12,27,16,"#fdba74","right");
+ text(`Streak ${streak}  x${mult}`,12,66,16,"#fff");if(baskets>=5)text("MOVING HOOP",W-12,66,14,"#f87171","right");
+ if(msgT>0)text(msg,W/2,130,34,"#fde047","center");
+ if(mode!=="play"){
+  x.fillStyle="rgb(2 6 23 / 62%)";x.fillRect(0,0,W,H);
+  if(mode==="title")text("HOOPS",W/2,170,56,"#f97316","center");
+  else{text("TIME'S UP!",W/2,150,50,"#f87171","center");text(`Score ${score}  ·  ${baskets} baskets`,W/2,200,26,"#fff","center");if(newBest)text("NEW BEST!",W/2,238,24,"#fde047","center")}
+  text("Drag back from the ball, or click to shoot",W/2,290,18,"#cbd5e1","center");
+  if(Math.floor(t/30)%2)text("Press E or click to "+(mode==="title"?"start":"play again"),W/2,350,24,"#fff","center")}
+}
+newBall();
+function frame(){update();draw();requestAnimationFrame(frame)}
+frame();
+</script></body></html>

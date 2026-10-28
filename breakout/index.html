@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Brick Breaker | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial;background:#0f172a;color:#f8fafc}*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:1rem;background:radial-gradient(circle,#1e3a8a,#0f172a)}main{width:min(100%,44rem);text-align:center;padding:1.5rem;border:1px solid #38bdf8;border-radius:1rem;background:#111827}a{color:#7dd3fc}h1{color:#f472b6}canvas{display:block;width:100%;height:auto;margin:1rem auto;border:3px solid #38bdf8;border-radius:.6rem;touch-action:none;background:#020617}button{padding:.65rem 1rem;border:0;border-radius:.5rem;background:#f472b6;color:#1e1b4b;font-weight:bold;cursor:pointer}#status{min-height:1.4rem;color:#fbcfe8;font-weight:bold}</style></head>
+<body><main><a href="../">← All games</a><h1>🧱 Brick Breaker</h1><p>Move the paddle with the mouse, finger, or ←/→. Bounce the ball and clear every brick. Press Space or click to launch.</p><p>Score: <strong id="score">0</strong> · Lives: <strong id="lives">3</strong> · Level: <strong id="level">1</strong> · Best: <strong id="best">0</strong></p><canvas id="game" width="640" height="460" aria-label="Brick Breaker game"></canvas><button id="restart">New game</button><p id="status" aria-live="polite">Click to launch the ball.</p></main><script>
+const c=document.querySelector("#game"),x=c.getContext("2d"),$=s=>document.querySelector(s),scoreEl=$("#score"),livesEl=$("#lives"),levelEl=$("#level"),bestEl=$("#best"),status=$("#status");
+const W=640,H=460,COLS=10,BW=58,BH=20,colors=["#ef4444","#f97316","#facc15","#22c55e","#38bdf8","#a78bfa"];
+let paddle,ball,bricks,score,lives,level,best=+localStorage.brickBreakerBest||0,keys=new Set(),last,over;bestEl.textContent=best;
+function buildBricks(){bricks=[];const rows=Math.min(4+level,8);for(let r=0;r<rows;r++)for(let i=0;i<COLS;i++)bricks.push({x:10+i*(BW+2),y:40+r*(BH+4),color:colors[r%colors.length],hp:r<level-1?2:1})}
+function resetBall(){ball={x:paddle.x,y:H-40,vx:0,vy:0,r:8,stuck:true}}
+function launch(){if(ball.stuck&&!over){ball.stuck=false;const s=300+level*20,a=-Math.PI/2+(Math.random()-.5)*.8;ball.vx=Math.cos(a)*s;ball.vy=Math.sin(a)*s;status.textContent="Break them all!"}}
+function start(){paddle={x:W/2,w:100};score=0;lives=3;level=1;over=false;buildBricks();resetBall();status.textContent="Click to launch the ball.";hud();last=performance.now()}
+function hud(){scoreEl.textContent=score;livesEl.textContent=lives;levelEl.textContent=level}
+function end(msg){over=true;if(score>best){best=score;localStorage.brickBreakerBest=best;bestEl.textContent=best}status.textContent=msg}
+function update(d){
+ paddle.x=Math.max(paddle.w/2,Math.min(W-paddle.w/2,paddle.x+((keys.has("r")?1:0)-(keys.has("l")?1:0))*480*d));
+ if(ball.stuck){ball.x=paddle.x;return}
+ ball.x+=ball.vx*d;ball.y+=ball.vy*d;
+ if(ball.x<ball.r){ball.x=ball.r;ball.vx=Math.abs(ball.vx)}if(ball.x>W-ball.r){ball.x=W-ball.r;ball.vx=-Math.abs(ball.vx)}if(ball.y<ball.r){ball.y=ball.r;ball.vy=Math.abs(ball.vy)}
+ if(ball.vy>0&&ball.y+ball.r>=H-24&&ball.y+ball.r<=H-6&&Math.abs(ball.x-paddle.x)<=paddle.w/2+ball.r){const off=(ball.x-paddle.x)/(paddle.w/2),sp=Math.hypot(ball.vx,ball.vy)*1.01,a=-Math.PI/2+off*1.05;ball.vx=Math.cos(a)*sp;ball.vy=Math.sin(a)*sp;ball.y=H-24-ball.r}
+ for(const b of bricks){if(ball.x+ball.r>b.x&&ball.x-ball.r<b.x+BW&&ball.y+ball.r>b.y&&ball.y-ball.r<b.y+BH){const ox=Math.min(ball.x+ball.r-b.x,b.x+BW-(ball.x-ball.r)),oy=Math.min(ball.y+ball.r-b.y,b.y+BH-(ball.y-ball.r));if(ox<oy)ball.vx*=-1;else ball.vy*=-1;b.hp--;score+=b.hp>0?5:10;if(b.hp<=0)b.dead=true;break}}
+ bricks=bricks.filter(b=>!b.dead);hud();
+ if(!bricks.length){level++;buildBricks();resetBall();status.textContent=`Level ${level}! Click to launch.`;hud();return}
+ if(ball.y>H+20){lives--;hud();if(lives<=0)end(`Game over! Score: ${score}.`);else{resetBall();status.textContent="Ball lost. Click to launch."}}
+}
+function draw(){x.clearRect(0,0,W,H);bricks.forEach(b=>{x.fillStyle=b.hp>1?"#e2e8f0":b.color;x.fillRect(b.x,b.y,BW,BH);x.strokeStyle="rgba(0,0,0,.35)";x.strokeRect(b.x,b.y,BW,BH)});x.fillStyle="#f472b6";x.fillRect(paddle.x-paddle.w/2,H-24,paddle.w,12);x.fillStyle="#f8fafc";x.beginPath();x.arc(ball.x,ball.y,ball.r,0,7);x.fill()}
+function loop(t){const d=Math.min((t-last)/1000,.04);last=t;if(!over)update(d);draw();requestAnimationFrame(loop)}
+function pointer(e){const r=c.getBoundingClientRect();paddle.x=Math.max(paddle.w/2,Math.min(W-paddle.w/2,(e.clientX-r.left)/r.width*W))}
+c.addEventListener("pointermove",pointer);c.addEventListener("pointerdown",e=>{pointer(e);launch()});
+document.addEventListener("keydown",e=>{if(e.key==="ArrowLeft"||e.key==="a"||e.key==="A")keys.add("l");if(e.key==="ArrowRight"||e.key==="d"||e.key==="D")keys.add("r");if(e.key===" "){e.preventDefault();launch()}});
+document.addEventListener("keyup",e=>{if(e.key==="ArrowLeft"||e.key==="a"||e.key==="A")keys.delete("l");if(e.key==="ArrowRight"||e.key==="d"||e.key==="D")keys.delete("r")});
+$("#restart").addEventListener("click",start);start();requestAnimationFrame(loop);
+</script></body></html>

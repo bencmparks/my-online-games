@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Archery | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#14532d,#0b1020)}
+main{width:min(100%,44rem);padding:1.5rem;border:.2rem solid #4ade80;border-radius:1.25rem;background:rgb(8 12 30 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.6rem 0;color:#4ade80;letter-spacing:.05em;font-size:1.6rem}
+canvas{display:block;width:100%;height:auto;margin:1rem 0;border:.2rem solid #475569;border-radius:.4rem;background:#7dd3fc;touch-action:none}
+.pad{display:flex;justify-content:center;align-items:center;gap:1.5rem;margin-top:.5rem;user-select:none;-webkit-user-select:none}
+button{border:0;border-radius:.5rem;background:#4ade80;color:#1e293b;cursor:pointer;font:inherit;font-weight:bold;touch-action:none;width:7rem;height:4rem;font-size:1.1rem}
+</style></head>
+<body><main><a href="../">← All games</a><h1>🏹 Archery</h1>
+<p>Shoot 10 arrows at the moving targets. Check the wind before every shot! Bullseye 100, middle ring 50, outer ring 10.</p>
+<p><strong>Mouse / drag</strong> aim · <strong>↑ / ↓</strong> aim with keys · hold <strong>Space / E</strong> or hold the mouse button to charge power, release to shoot · on the title screen <strong>↑ / ↓</strong> picks Easy, Medium or Hard. Every point you score is saved as coins: on the title screen press <strong>1–4</strong> or click an upgrade to buy stronger shots, wind control, bigger targets and extra arrows.</p>
+<canvas id="g" width="640" height="480" aria-label="Archery game"></canvas>
+<div class="pad"><button data-k="up" type="button">AIM ▲</button><button data-k="act" type="button">HOLD: FIRE</button><button data-k="down" type="button">AIM ▼</button></div>
+</main>
+<script>
+const C=document.querySelector("#g"),x=C.getContext("2d"),W=640,H=480,GY=430,BX=60,BY=300,G=.18;
+const D=[{n:"Easy",s:1.4,w:.4,m:.6},{n:"Medium",s:1,w:1,m:1},{n:"Hard",s:.7,w:1.6,m:1.5}];
+let mode="title",di=1,ang=.35,pw=0,pdir=1,charging=false,arrow=null,left=10,score=0,hi=[0,0,0],wind=0,tg=[],stuck=[],msg="",msgT=0,t=0,wait=0,held={},newBest=false,bank=0,up=[0,0,0,0];
+const UP=[{n:"Power Bow",c:60,m:5},{n:"Steady Aim",c:60,m:5},{n:"Big Targets",c:80,m:5},{n:"Extra Arrows",c:120,m:4}],UX=330,UY=185,UH=40;
+function ucost(i){return UP[i].c*(up[i]+1)}
+function buy(i){if(mode!=="title"||up[i]>=UP[i].m||bank<ucost(i))return;bank-=ucost(i);up[i]+=1;save()}
+function ew(){return wind*(1-.15*up[1])}
+function tr(g){return g.r*D[di].s*(1+.1*up[2])}
+function vel(p){return(5+p*11)*(1+.06*up[0])}
+try{di=Math.min(2,Math.max(0,+localStorage.getItem("archeryDiff")||1));hi=[0,1,2].map(i=>+localStorage.getItem("archeryHi"+i)||0);bank=+localStorage.getItem("archeryBank")||0;up=JSON.parse(localStorage.getItem("archeryUp")||"[0,0,0,0]").slice(0,4).map((v,i)=>Math.min(UP[i].m,+v||0))}catch(e){}
+function save(){try{localStorage.setItem("archeryDiff",di);localStorage.setItem("archeryHi"+di,hi[di]);localStorage.setItem("archeryBank",bank);localStorage.setItem("archeryUp",JSON.stringify(up))}catch(e){}}
+function ty(g){return g.y0+g.a*Math.sin(t*.02*D[di].m*g.f+g.p)}
+function newWind(){wind=(Math.random()*2-1)*D[di].w*5}
+function start(){mode="play";left=10+up[3];score=0;arrow=null;stuck=[];charging=false;pw=0;wait=0;newBest=false;msg="";
+ tg=[{x:430,r:36,y0:230,a:90,f:1,p:0},{x:565,r:30,y0:250,a:110,f:1.4,p:2}];newWind()}
+function fire(){
+ const v=vel(pw);arrow={x:BX+Math.cos(ang)*40,y:BY-Math.sin(ang)*40,vx:v*Math.cos(ang),vy:-v*Math.sin(ang)};
+ arrow.px=arrow.x;arrow.py=arrow.y;left-=1;pw=0;charging=false}
+function startCharge(){if(mode==="play"&&!arrow&&!wait)charging=true}
+function release(){if(!charging)return;charging=false;if(mode==="play"&&!arrow&&!wait){pw=Math.max(pw,.05);fire()}pw=0}
+function press(k){
+ if(mode==="title"){if(k==="up"||k==="down"){di=(di+(k==="up"?2:1))%3;save()}else if(k==="act")start();else buy(+k);return}
+ if(mode==="over"){if(k==="act")mode="title";return}
+ if(k==="act")startCharge()
+}
+function setAim(px,py){ang=Math.max(-.15,Math.min(1.3,Math.atan2(BY-py,px-BX)))}
+function shotEnd(m){msg=m;msgT=60;wait=45;arrow=null;if(left>0)newWind()}
+function update(){
+ t+=1;if(mode!=="play")return;
+ if(!arrow&&!charging){if(held.up)ang=Math.min(1.3,ang+.02);if(held.down)ang=Math.max(-.15,ang-.02)}
+ if(charging){pw+=.016*pdir;if(pw>=1){pw=1;pdir=-1}if(pw<=0){pw=0;pdir=1}}
+ if(msgT>0)msgT-=1;
+ if(wait>0){wait-=1;if(!wait&&left===0){mode="over";bank+=score;if(score>hi[di]){hi[di]=score;newBest=true}save()}}
+ if(!arrow)return;
+ const a=arrow;a.px=a.x;a.py=a.y;a.vx+=ew()*.004;a.vy+=G;a.x+=a.vx;a.y+=a.vy;
+ for(const g of tg){
+  if(a.px<g.x&&a.x>=g.x){const f=(g.x-a.px)/(a.x-a.px),y=a.py+(a.y-a.py)*f,r=tr(g),off=y-ty(g),d=Math.abs(off)/r;
+   if(d<=1){const p=d<.2?100:d<.55?50:10;score+=p;stuck.push({g,off,ang:Math.atan2(a.vy,a.vx)});shotEnd(p===100?"BULLSEYE! +100":`+${p}`);return}}
+ }
+ if(a.y>GY||a.x>W+20||a.x<0)shotEnd("Miss!")
+}
+const KEYS={ArrowUp:"up",KeyW:"up",ArrowDown:"down",KeyS:"down",KeyE:"act",Digit1:"0",Digit2:"1",Digit3:"2",Digit4:"3",Space:"act",Enter:"act"};
+addEventListener("keydown",e=>{const k=KEYS[e.code];if(!k)return;e.preventDefault();if(e.repeat)return;held[k]=true;press(k)});
+addEventListener("keyup",e=>{const k=KEYS[e.code];if(!k)return;held[k]=false;if(k==="act")release()});
+addEventListener("blur",()=>{held={};release()});
+document.querySelectorAll("[data-k]").forEach(b=>{const k=b.dataset.k;b.addEventListener("pointerdown",e=>{e.preventDefault();held[k]=true;press(k)});["pointerup","pointerleave","pointercancel"].forEach(ev=>b.addEventListener(ev,()=>{if(held[k]&&k==="act")release();held[k]=false}))});
+function pos(e){const r=C.getBoundingClientRect();return[(e.clientX-r.left)*W/r.width,(e.clientY-r.top)*H/r.height]}
+C.addEventListener("pointermove",e=>{if(mode==="play"&&!arrow){const p=pos(e);setAim(p[0],p[1])}});
+C.addEventListener("pointerdown",e=>{e.preventDefault();const p=pos(e);if(mode==="title"&&p[0]>=UX&&p[0]<=UX+290&&p[1]>=UY&&p[1]<UY+UP.length*UH){buy(Math.floor((p[1]-UY)/UH));return}if(mode==="play"){setAim(p[0],p[1]);startCharge()}else press("act")});
+addEventListener("pointerup",()=>release());
+function text(s,a,b,size=18,color="#fff",align="left"){x.font=`bold ${size}px Arial,sans-serif`;x.fillStyle=color;x.textAlign=align;x.lineWidth=4;x.strokeStyle="#000";x.strokeText(s,a,b);x.fillText(s,a,b)}
+function shaft(px,py,an,len){x.save();x.translate(px,py);x.rotate(an);x.strokeStyle="#92400e";x.lineWidth=3;x.beginPath();x.moveTo(-len,0);x.lineTo(0,0);x.stroke();x.fillStyle="#d1d5db";x.beginPath();x.moveTo(0,-4);x.lineTo(9,0);x.lineTo(0,4);x.fill();x.fillStyle="#ef4444";x.fillRect(-len,-3,8,2);x.fillRect(-len,1,8,2);x.restore()}
+function draw(){
+ const g=x.createLinearGradient(0,0,0,GY);g.addColorStop(0,"#38bdf8");g.addColorStop(1,"#bae6fd");x.fillStyle=g;x.fillRect(0,0,W,GY);
+ x.fillStyle="#16a34a";x.beginPath();x.ellipse(200,GY,260,70,0,Math.PI,0);x.fill();x.fillStyle="#15803d";x.beginPath();x.ellipse(520,GY,240,50,0,Math.PI,0);x.fill();
+ x.fillStyle="#4d7c0f";x.fillRect(0,GY,W,H-GY);
+ for(const o of tg){const y=ty(o),r=tr(o);x.fillStyle="#78350f";x.fillRect(o.x-3,y,6,GY-y);
+  [[1,"#fff"],[.55,"#ef4444"],[.2,"#fde047"]].forEach(([f,c])=>{x.fillStyle=c;x.strokeStyle="#111";x.lineWidth=1;x.beginPath();x.ellipse(o.x,y,r*f*.45,r*f,0,0,7);x.fill();x.stroke()})}
+ for(const s of stuck)shaft(s.g.x+6,ty(s.g)+s.off,s.ang,50);
+ const ex=BX+Math.cos(ang)*40,ey=BY-Math.sin(ang)*40;
+ x.fillStyle="#7c2d12";x.fillRect(BX-8,BY,16,GY-BY);
+ x.save();x.translate(BX,BY);x.rotate(-ang);x.strokeStyle="#a16207";x.lineWidth=5;x.beginPath();x.arc(0,0,38,-1.2,1.2);x.stroke();
+ const pull=charging?pw*18:0;x.strokeStyle="#e5e7eb";x.lineWidth=1.5;x.beginPath();x.moveTo(38*Math.cos(-1.2),38*Math.sin(-1.2));x.lineTo(-pull,0);x.lineTo(38*Math.cos(1.2),38*Math.sin(1.2));x.stroke();x.restore();
+ if(mode==="play"&&!arrow)shaft(BX+Math.cos(ang)*(30-(charging?pw*18:0)),BY-Math.sin(ang)*(30-(charging?pw*18:0)),-ang,50);
+ if(arrow)shaft(arrow.x,arrow.y,Math.atan2(arrow.vy,arrow.vx),50);
+ if(mode==="play"&&!arrow&&!wait){x.fillStyle="rgb(255 255 255 / 70%)";const v=vel(charging?pw:.5);let px=ex,py=ey,vx=v*Math.cos(ang),vy=-v*Math.sin(ang);
+  for(let i=0;i<14;i+=1){x.beginPath();x.arc(px,py,2,0,7);x.fill();for(let j=0;j<4;j+=1){vx+=ew()*.004;vy+=G;px+=vx;py+=vy}}}
+ x.fillStyle="rgb(0 0 0 / 50%)";x.fillRect(0,0,W,40);
+ text(`Score ${score}`,12,27,22,"#fde047");text(`Arrows ${left}`,W/2,27,20,"#fff","center");text(`${D[di].n} best ${hi[di]}`,W-12,27,16,"#86efac","right");
+ const wl=Math.abs(ew()),wv=ew();text("WIND",30,66,14,"#fff","center");x.strokeStyle="#fff";x.lineWidth=4;x.beginPath();x.moveTo(70,60);x.lineTo(70+wv*14,60);x.stroke();
+ if(wl>.2){const d=Math.sign(wv);x.fillStyle="#fff";x.beginPath();x.moveTo(70+wv*14+d*10,60);x.lineTo(70+wv*14,53);x.lineTo(70+wv*14,67);x.fill()}
+ text(wl.toFixed(1),120,66,14,"#fff");
+ x.fillStyle="#0f172a";x.fillRect(12,H-34,160,16);x.fillStyle=pw>.8?"#ef4444":"#4ade80";x.fillRect(12,H-34,160*pw,16);x.strokeStyle="#fff";x.lineWidth=2;x.strokeRect(12,H-34,160,16);text("POWER",180,H-21,14);
+ if(msgT>0)text(msg,W/2,130,34,"#fde047","center");
+ if(mode==="title"||mode==="over"){
+  x.fillStyle="rgb(2 6 23 / 62%)";x.fillRect(0,0,W,H);
+  if(mode==="title")text("ARCHERY",W/2,150,56,"#4ade80","center");
+  else{text("ROUND OVER",W/2,130,46,"#f87171","center");text(`Score ${score}`,W/2,180,30,"#fff","center");if(newBest)text("NEW BEST!",W/2,215,24,"#fde047","center")}
+  if(mode==="title"){D.forEach((d,i)=>text((i===di?"▶ ":"")+d.n,165,225+i*36,i===di?30:22,i===di?"#fde047":"#cbd5e1","center"));text("↑ / ↓ difficulty",165,345,16,"#cbd5e1","center");
+   text(`UPGRADES  🪙 ${bank}`,UX+145,UY-10,18,"#fde047","center");
+   UP.forEach((u,i)=>{const mx=up[i]>=u.m,ok=!mx&&bank>=ucost(i),y=UY+i*UH;x.fillStyle=ok?"rgb(74 222 128 / 35%)":"rgb(255 255 255 / 12%)";x.fillRect(UX,y,290,UH-6);x.strokeStyle=ok?"#4ade80":"#64748b";x.lineWidth=2;x.strokeRect(UX,y,290,UH-6);
+    text(`${i+1}. ${u.n}  Lv ${up[i]}/${u.m}`,UX+8,y+22,15,"#fff");text(mx?"MAX":`${ucost(i)}`,UX+282,y+22,15,ok?"#86efac":"#fca5a5","right")})}
+  if(Math.floor(t/30)%2)text(mode==="title"?"Press E or click to start":"Press E or click for title",W/2,400,24,"#fff","center")}
+}
+function frame(){update();draw();requestAnimationFrame(frame)}
+frame();
+</script></body></html>

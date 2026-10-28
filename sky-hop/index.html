@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sky Hop | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#0e7490,#0b1020)}
+main{width:min(100%,34rem);padding:1.5rem;border:.2rem solid #22d3ee;border-radius:1.25rem;background:rgb(8 12 30 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.6rem 0;color:#22d3ee;letter-spacing:.05em;font-size:1.6rem}
+canvas{display:block;width:100%;max-width:24rem;height:auto;margin:1rem auto;border:.2rem solid #475569;border-radius:.4rem;background:#0ea5e9;touch-action:none}
+.pad{display:flex;justify-content:center;gap:1.5rem;user-select:none;-webkit-user-select:none}
+button{border:0;border-radius:.5rem;background:#22d3ee;color:#1e293b;cursor:pointer;font:inherit;font-weight:bold;touch-action:none;width:7rem;height:4rem;font-size:1.4rem}
+</style></head>
+<body><main><a href="../">← All games</a><h1>🐸 Sky Hop</h1>
+<p>Hop higher and higher! Land on clouds to bounce. Springs fling you way up, crumbly clouds break after one hop, and moving clouds slide. Fall off the bottom and it's over. The edges wrap around.</p>
+<p><strong>←/→</strong> or <strong>A/D</strong> steer · drag on the game or use the buttons · <strong>E / Space</strong> start</p>
+<canvas id="g" width="400" height="600" aria-label="Sky Hop game"></canvas>
+<div class="pad"><button data-k="left" type="button">◀</button><button data-k="right" type="button">▶</button></div>
+</main>
+<script>
+const C=document.querySelector("#g"),x=C.getContext("2d"),W=400,H=600;
+let mode="title",p={x:W/2,y:520,vx:0,vy:0},plats=[{x:W/2-40,y:560,w:80,k:"n",vx:0,spring:false}],cam=0,hi=0,t=0,held={},ptr=null,maxY=0;
+try{hi=+localStorage.getItem("skyHopHi")||0}catch(e){}
+function rnd(a,b){return a+Math.random()*(b-a)}
+function plat(y,low){
+ const r=Math.random(),h=Math.min(.5,maxY/6000);
+ const k=low?"n":r<.12+h*.4?"c":r<.28+h*.5?"m":"n";
+ return{x:rnd(10,W-80),y,w:70,k,vx:k==="m"?rnd(1,2)*(Math.random()<.5?-1:1):0,spring:k==="n"&&Math.random()<.12,dead:false}
+}
+function start(){
+ p={x:W/2,y:520,vx:0,vy:-12};maxY=0;cam=0;plats=[{x:W/2-40,y:560,w:80,k:"n",vx:0,spring:false,dead:false}];
+ for(let y=490;y>-700;y-=rnd(55,78))plats.push(plat(y,y>300));
+ mode="play"
+}
+function gap(){return Math.min(110,60+maxY/90)}
+function update(){
+ t+=1;if(mode!=="play")return;
+ const d=(held.right?1:0)-(held.left?1:0);
+ if(ptr!==null){p.vx=Math.max(-6,Math.min(6,(ptr-p.x)*.18))}else p.vx=d*5.2;
+ p.x+=p.vx;if(p.x<-12)p.x=W+12;if(p.x>W+12)p.x=-12;
+ const oy=p.y;p.vy+=.45;p.y+=p.vy;
+ for(const q of plats){
+  if(q.k==="m"){q.x+=q.vx;if(q.x<0||q.x+q.w>W)q.vx*=-1}
+  if(q.dead||p.vy<=0)continue;
+  if(oy+14<=q.y+2&&p.y+14>=q.y&&p.x>q.x-10&&p.x<q.x+q.w+10){
+   if(q.k==="c"){q.dead=true;p.vy=-11}
+   else if(q.spring&&Math.abs(p.x-(q.x+q.w/2))<16)p.vy=-21;
+   else p.vy=-12.5
+  }
+ }
+ if(p.y<cam+260)cam=p.y-260;
+ maxY=Math.max(maxY,520-p.y);
+ plats=plats.filter(q=>q.y<cam+H+40&&!q.dead);
+ let top=Math.min(...plats.map(q=>q.y));
+ while(top>cam-100){top-=rnd(gap()-14,gap()+8);plats.push(plat(top,false))}
+ if(p.y>cam+H+40){mode="over";const s=Math.floor(maxY/10);if(s>hi){hi=s;try{localStorage.setItem("skyHopHi",hi)}catch(e){}}}
+}
+const KEYS={ArrowLeft:"left",KeyA:"left",ArrowRight:"right",KeyD:"right"};
+addEventListener("keydown",e=>{if(e.code==="KeyE"||e.code==="Space"||e.code==="Enter"){e.preventDefault();if(mode!=="play")start();return}const k=KEYS[e.code];if(k){e.preventDefault();held[k]=true}});
+addEventListener("keyup",e=>{const k=KEYS[e.code];if(k)held[k]=false});
+addEventListener("blur",()=>{held={}});
+document.querySelectorAll("[data-k]").forEach(b=>{const k=b.dataset.k;b.addEventListener("pointerdown",e=>{e.preventDefault();held[k]=true;if(mode!=="play")start()});["pointerup","pointerleave","pointercancel"].forEach(ev=>b.addEventListener(ev,()=>{held[k]=false}))});
+function cx(e){const b=C.getBoundingClientRect();return(e.clientX-b.left)/b.width*W}
+C.addEventListener("pointerdown",e=>{e.preventDefault();if(mode!=="play"){start();return}ptr=cx(e);C.setPointerCapture(e.pointerId)});
+C.addEventListener("pointermove",e=>{if(ptr!==null)ptr=cx(e)});
+["pointerup","pointercancel"].forEach(ev=>C.addEventListener(ev,()=>{ptr=null}));
+function text(s,a,b,size=18,color="#fff",align="left"){x.font=`bold ${size}px Arial,sans-serif`;x.fillStyle=color;x.textAlign=align;x.lineWidth=4;x.strokeStyle="#000";x.strokeText(s,a,b);x.fillText(s,a,b)}
+function draw(){
+ const g=x.createLinearGradient(0,0,0,H);g.addColorStop(0,"#1e3a8a");g.addColorStop(1,"#7dd3fc");x.fillStyle=g;x.fillRect(0,0,W,H);
+ x.save();x.translate(0,-cam);
+ for(const q of plats){
+  x.fillStyle=q.k==="c"?"#d6a77a":q.k==="m"?"#fde68a":"#fff";
+  x.beginPath();x.roundRect(q.x,q.y,q.w,14,7);x.fill();
+  if(q.k==="c"){x.strokeStyle="#7c4a1d";x.lineWidth=2;x.beginPath();x.moveTo(q.x+22,q.y);x.lineTo(q.x+28,q.y+14);x.moveTo(q.x+46,q.y);x.lineTo(q.x+40,q.y+14);x.stroke()}
+  if(q.spring){x.fillStyle="#ef4444";x.fillRect(q.x+q.w/2-9,q.y-10,18,10);x.fillStyle="#fbbf24";x.fillRect(q.x+q.w/2-9,q.y-12,18,4)}
+ }
+ const up=p.vy<-1;x.fillStyle="#22c55e";x.beginPath();x.ellipse(p.x,p.y,15,up?17:13,0,0,7);x.fill();
+ x.fillStyle="#fff";x.beginPath();x.arc(p.x-6,p.y-8,5,0,7);x.arc(p.x+6,p.y-8,5,0,7);x.fill();x.fillStyle="#111";x.beginPath();x.arc(p.x-5,p.y-8,2,0,7);x.arc(p.x+7,p.y-8,2,0,7);x.fill();
+ x.fillStyle="#16a34a";x.fillRect(p.x-14,p.y+(up?10:7),9,5);x.fillRect(p.x+5,p.y+(up?10:7),9,5);
+ x.restore();
+ text(`${Math.floor(maxY/10)} m`,16,34,26,"#fff");text(`BEST ${hi} m`,W-16,34,16,"#fde047","right");
+ if(mode!=="play"){
+  x.fillStyle="rgb(2 6 23 / 55%)";x.fillRect(0,0,W,H);
+  if(mode==="title")text("SKY HOP",W/2,230,52,"#22d3ee","center");
+  else{text("SPLAT!",W/2,210,52,"#f87171","center");text(`You climbed ${Math.floor(maxY/10)} m`,W/2,260,24,"#fff","center")}
+  if(Math.floor(t/30)%2)text("Press E or tap to hop",W/2,330,22,"#fff","center")}
+}
+function frame(){update();draw();requestAnimationFrame(frame)}
+frame();
+</script></body></html>

@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Scar Wars | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#020617;color:#e2e8f0}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#1e293b,#020617)}
+main{width:min(100%,44rem);padding:1.5rem;border:.2rem solid #38bdf8;border-radius:1.25rem;background:rgb(2 6 23 / 92%);text-align:center}a{color:#7dd3fc}h1{margin:.6rem 0;color:#facc15;letter-spacing:.1em}
+canvas{display:block;width:100%;height:auto;margin:1rem 0;border:.2rem solid #475569;border-radius:.6rem;background:#0f172a;touch-action:none;cursor:crosshair}button{padding:.65rem 1rem;border:0;border-radius:.5rem;background:#38bdf8;color:#020617;cursor:pointer;font:inherit;font-weight:bold}#status{min-height:1.5rem;color:#fde047;font-weight:bold}canvas:fullscreen{width:100vw;height:100vh;margin:0;border:0;border-radius:0;object-fit:contain;background:#000}
+select{padding:.3rem;border-radius:.4rem;font:inherit}.opts{display:flex;flex-wrap:wrap;gap:.6rem;justify-content:center}
+</style></head>
+<body><main><a href="../">← All games</a><h1>⚔️ Scar Wars</h1><p>100 levels. Duel blaster droids and dark lords in a desert canyon, and fly X-wing missions every 5th level. Level 99: destroy the Death Star. Level 6🦙: face Scar. Level 100: defeat Darth Vader. You can only play levels you've unlocked.</p>
+<p><strong>Duel levels:</strong> W/S move · A/D strafe · ←/→ or mouse turn (click the game to capture the mouse) · Space or click swings the saber and reflects bolts · Shift or F is Force push.<br><strong>X-wing levels:</strong> mouse or WASD/arrows to fly · Space or click fires lasers · shoot enemy bolts out of the air. On touch, drag to move; X-wing lasers auto-fire.</p>
+<div class="opts"><label>Level <select id="lvl"></select></label><label>Saber <select id="saber"></select></label><label>Laser <select id="laser"></select></label><label>Beam <select id="wid"><option value="1">Thin</option><option value="1.7">Normal</option><option value="2.6">Thick</option></select></label></div>
+<p>Score: <strong id="score">0</strong> · Health: <strong id="hp">5</strong> · Force: <strong id="force">100</strong>% · Best level: <strong id="best">1</strong></p>
+<canvas id="game" width="640" height="400" aria-label="Scar Wars first-person game"></canvas><button id="start" type="button">Begin</button> <button id="full" type="button">Fullscreen</button><p id="story" style="font-style:italic;color:#cbd5e1;border-left:.2rem solid #facc15;padding-left:.6rem;text-align:left"></p><p id="status" aria-live="polite">Pick a level and press Begin.</p></main>
+<script>
+const canvas=document.querySelector("#game"),ctx=canvas.getContext("2d"),statusEl=document.querySelector("#status"),W=640,H=400,PL=.66,MAXLV=100;
+const MAP=["11111111111111","10000000000001","10010000001001","10000000000001","10000000000001","10000000000001","10000000000001","10000000000001","10010000001001","10000000000001","10000000000001","10000000000001","10000000000001","11111111111111"].map(r=>[...r].map(Number));
+const COLORS={Blue:"#38bdf8",Green:"#4ade80",Purple:"#a855f7",Red:"#ef4444",Yellow:"#facc15",White:"#f8fafc",Orange:"#fb923c",Pink:"#f472b6"};
+const lvlEl=document.querySelector("#lvl"),saberEl=document.querySelector("#saber"),laserEl=document.querySelector("#laser"),widEl=document.querySelector("#wid");
+const STORY_CH=[[9,"Chapter 1 – The Canyon: The Empire's blaster droids patrol the Tatooine canyons. You are the last Jedi Knight. Reclaim the desert, one duel at a time."],[29,"Chapter 2 – The Outer Rim: Word spreads of a lone saber-wielder. The Empire sends bigger droid patrols to hunt you down."],[49,"Chapter 3 – The Dark Lords: Sith lords now lead the droids. Each one guards a piece of the map to the Emperor's fortress."],[66,"Chapter 4 – The Fortress Road: You are close to the Death Star plans, but a strange portal has opened in the sky..."],[98,"Chapter 5 – The Last Stand: The rebels are counting on you. Clear the way to the Death Star."]];
+for(let i=1;i<=MAXLV;i+=1){const label=i===67?"6🦙":i===99?"99 – Death Star":i===100?"100 – Darth Vader":i%5===0&&i%10?`${i} – X-wing`:i%10===0?`${i} – Dark lord`:String(i);lvlEl.add(new Option(label,i))}
+const STORY_AT={1:"Prologue: The Empire has crushed the Jedi Order. You alone survived, hiding in a desert canyon. Today you pick up your saber again.",10:"A Sith dark lord blocks the canyon exit. He has hunted Jedi for years. Defeat him to leave Tatooine.",67:"A roar shakes the sky and a portal tears open. Scar, the scheming lion from the Pride Lands, has stolen a Force crystal and wants the galaxy as his kingdom. \"Long live the king!\" Stop him.",99:"The Death Star looms. Rebel pilots are trapped in the trench. Fly your X-wing and shoot the exhaust port!",100:"The Death Star is gone, but Darth Vader awaits in the ruins. This is the final duel for the galaxy."};
+const storyFor=n=>STORY_AT[n]||(n%5===0&&n%10?"Rebel command needs you in the cockpit. Fly your X-wing and shoot down the TIE fighters!":n%10===0?"A dark lord and his droid army stand in your way. Defeat him to move on.":(STORY_CH.find(([m])=>n<=m)||STORY_CH[4])[1]);
+const storyEl=document.querySelector("#story");
+const syncLocks=()=>{[...lvlEl.options].forEach(o=>{o.disabled=+o.value>bestLv})};
+Object.entries(COLORS).forEach(([n,c])=>{saberEl.add(new Option(n,c));laserEl.add(new Option(n,c))});
+let cfg={saber:COLORS.Blue,laser:COLORS.Green,wid:"1.7"};try{Object.assign(cfg,JSON.parse(localStorage.getItem("jediCfg")))}catch{}
+saberEl.value=cfg.saber;laserEl.value=cfg.laser;widEl.value=cfg.wid;
+[[saberEl,"saber"],[laserEl,"laser"],[widEl,"wid"]].forEach(([el,k])=>el.addEventListener("change",()=>{cfg[k]=el.value;try{localStorage.setItem("jediCfg",JSON.stringify(cfg))}catch{}el.blur()}));
+let bestLv=+localStorage.getItem("jediBestLevel")||1;document.querySelector("#best").textContent=bestLv;syncLocks();lvlEl.value=Math.min(bestLv,MAXLV);storyEl.textContent=storyFor(+lvlEl.value);lvlEl.addEventListener("change",()=>{if(+lvlEl.value>bestLv)lvlEl.value=bestLv;storyEl.textContent=storyFor(+lvlEl.value)});
+const keys={};let p={x:7,y:12,a:-Math.PI/2,hp:5,force:100,sc:0,sw:0,inv:0,fcd:0,hit:new Set(),px:0,py:0},enemies=[],bolts=[],sparks=[],score=0,L={n:1},toSpawn=0,spawnCd=0,bossSpawned=false,state="idle",t=0,boss=null,flash=0,pushFx=0,touch=null,mouseN=null,fl=null,lm=null;const zbuf=new Array(W).fill(99);
+const solid=(x,y)=>MAP[Math.floor(y)]?.[Math.floor(x)]!==0;
+const angDiff=(a,b)=>Math.abs(Math.atan2(Math.sin(a-b),Math.cos(a-b)));
+const ln=n=>n===67?"6🦙":n;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function info(n){if(n===67)return{n,boss:"scar",count:0,alive:0,sp:60};if(n===100)return{n,boss:"vader",count:0,alive:0,sp:60};
+if(n===99||(n%5===0&&n%10!==0))return{n,fly:true,need:n===99?22:8+Math.floor(n/4),ds:n===99};
+return{n,count:4+Math.floor(n/2.5),alive:Math.min(10,4+Math.floor(n/8)),sp:Math.max(18,55-n/2),boss:n%10===0?"lord":null,hp:2+Math.floor(n/20),spd:1.15+n/80,cd:Math.max(25,75-n*.5),bs:.08+n*.0004}}
+function show(){document.querySelector("#score").textContent=score;document.querySelector("#hp").textContent="❤".repeat(Math.max(0,p.hp));document.querySelector("#force").textContent=Math.floor(p.force)}
+function startLevel(){if(+lvlEl.value>bestLv)lvlEl.value=bestLv;const n=+lvlEl.value;storyEl.textContent=storyFor(n);L=info(n);p={x:7,y:12,a:-Math.PI/2,hp:5,force:100,sc:0,sw:0,inv:60,fcd:0,hit:new Set(),px:0,py:0};enemies=[];bolts=[];sparks=[];boss=null;bossSpawned=false;flash=0;state="play";if(!n||n===1)score=0;
+if(L.llama){lm={t:0,x:320,y:260,vx:2,vy:0,hits:0,cd:0,done:0};statusEl.textContent="Level 67: watch the screen…"}
+else if(L.fly){fl={ties:[],bolts:[],beams:[],kills:0,spawned:0,cd:30,fire:0,port:null,boom:null,debris:[],stars:Array.from({length:80},()=>({x:Math.random()*4-2,y:Math.random()*4-2,z:Math.random()}))};statusEl.textContent=`Level ${n}: ${L.ds?"Attack the Death Star! Destroy the TIE fighters, then shoot the exhaust port to blow it up.":"X-wing run!"} Shoot the TIE fighters (${L.need}).`}
+else{toSpawn=L.count;spawnCd=60;for(let i=0;i<Math.min(2,toSpawn);i+=1){enemies.push(newDroid());toSpawn-=1}statusEl.textContent=`Level ${ln(n)}: ${L.boss==="vader"?"Darth Vader awaits!":L.boss==="scar"?"Scar awaits!":L.boss?"A dark lord leads the droids.":"Blaster droids attack!"}`}
+show()}
+function end(win){state=win?"won":"over";document.exitPointerLock?.();if(win){const nx=Math.min(MAXLV,L.n+1);if(L.n>=bestLv&&L.n<MAXLV){bestLv=nx;localStorage.setItem("jediBestLevel",bestLv);document.querySelector("#best").textContent=bestLv;syncLocks()}
+if(L.n===MAXLV)statusEl.textContent="You defeated Darth Vader! The galaxy is free! 🎉";else{lvlEl.value=nx;storyEl.textContent=storyFor(nx);statusEl.textContent=`Level ${ln(L.n)} cleared! Press Begin for level ${ln(nx)}.`}}
+else statusEl.textContent=`You have fallen on level ${ln(L.n)}. Press Begin to retry.`}
+function hurt(){if(p.inv>0||state!=="play")return;p.hp-=1;p.inv=60;flash=14;show();if(p.hp<=0)end(false)}
+function kill(e){e.dead=true;score+=e.boss?200:10;show();if(e.boss)end(true)}
+function damage(e,n){e.hp-=n;e.stun=Math.max(e.stun||0,12);if(e.hp<=0)kill(e)}
+function nearest(x,y){let b=null,d=1e9;enemies.forEach(e=>{const k=Math.hypot(e.x-x,e.y-y);if(k<d){d=k;b=e}});return b}
+function fire(e,a,v){bolts.push({x:e.x,y:e.y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,o:"e"})}
+function tryMove(o,dx,dy,r=.25){if(!solid(o.x+dx+Math.sign(dx)*r,o.y))o.x+=dx;if(!solid(o.x,o.y+dy+Math.sign(dy)*r))o.y+=dy}
+function clearLine(x1,y1,x2,y2){const n=Math.ceil(Math.hypot(x2-x1,y2-y1)*8);for(let i=1;i<n;i+=1){if(solid(x1+(x2-x1)*i/n,y1+(y2-y1)*i/n))return false}return true}
+function spawnPos(){for(let i=0;i<80;i+=1){const x=1.5+Math.random()*11,y=1.5+Math.random()*11,d=Math.hypot(x-p.x,y-p.y);if(!solid(x,y)&&d>4&&d<9&&angDiff(Math.atan2(y-p.y,x-p.x),p.a)<.5&&clearLine(p.x,p.y,x,y))return{x,y}}
+for(let i=0;i<40;i+=1){const x=1.5+Math.random()*11,y=1.5+Math.random()*11;if(!solid(x,y)&&Math.hypot(x-p.x,y-p.y)>5)return{x,y}}return{x:7,y:2}}
+function newDroid(){return{...spawnPos(),hp:L.hp,max:L.hp,cd:L.cd*(.5+Math.random()*.7),ph:Math.random()*6,stun:0}}
+function newBoss(){const v=L.boss==="vader",sc=L.boss==="scar",hp=v?100:sc?60:Math.round(14+L.n*.7);boss={...spawnPos(),hp,max:hp,vader:v,scar:sc,boss:true,cd:100,dash:0,dcd:160,stun:0,vx:0,vy:0};enemies.push(boss);statusEl.textContent=v?"Darth Vader: \"Your journey ends here.\" Deflect his bolts!":sc?"Scar: \"Long live the king!\" Deflect his bolts!":"The dark lord appears! Deflect his bolts and strike back."}
+function updateGround(){
+if(keys.ArrowLeft)p.a-=.045;if(keys.ArrowRight)p.a+=.045;if(touch)p.a+=touch.dx*.0035;
+const fx=Math.cos(p.a),fy=Math.sin(p.a),rx=-fy,ry=fx;let mf=(keys.KeyW?1:0)-(keys.KeyS?1:0)+(touch&&touch.dy<-12?1:0),ms=(keys.KeyD?1:0)-(keys.KeyA?1:0);
+if(mf||ms){const l=Math.hypot(mf,ms);tryMove(p,(fx*mf+rx*ms)/l*.06,(fy*mf+ry*ms)/l*.06)}
+p.inv-=1;p.sc-=1;p.sw-=1;p.fcd-=1;p.force=Math.min(100,p.force+.18);
+const foe=nearest(p.x,p.y),close=foe&&Math.hypot(foe.x-p.x,foe.y-p.y)<2&&angDiff(Math.atan2(foe.y-p.y,foe.x-p.x),p.a)<.9;
+if((keys.Space||(touch&&close))&&p.sc<=0){p.sc=26;p.sw=14;p.hit=new Set()}
+if((keys.ShiftLeft||keys.ShiftRight||keys.KeyF)&&p.force>=40&&p.fcd<=0){p.force-=40;p.fcd=30;pushFx=18;enemies.forEach(e=>{const d=Math.hypot(e.x-p.x,e.y-p.y);if(d<6){const a=Math.atan2(e.y-p.y,e.x-p.x);tryMove(e,Math.cos(a)*2.5,Math.sin(a)*2.5,.5);e.stun=e.vader?20:45;damage(e,1)}});bolts=bolts.filter(b=>b.o!=="e"||Math.hypot(b.x-p.x,b.y-p.y)>6)}
+if(p.sw>0){enemies.forEach(e=>{if(e.dead||p.hit.has(e))return;if(Math.hypot(e.x-p.x,e.y-p.y)<1.9&&angDiff(Math.atan2(e.y-p.y,e.x-p.x),p.a)<.9){p.hit.add(e);const a=Math.atan2(e.y-p.y,e.x-p.x);tryMove(e,Math.cos(a)*.6,Math.sin(a)*.6,.5);damage(e,2)}});
+bolts.forEach(b=>{if(b.o==="e"&&Math.hypot(b.x-p.x,b.y-p.y)<1.9&&angDiff(Math.atan2(b.y-p.y,b.x-p.x),p.a)<1.1){const tg=nearest(b.x,b.y),a=tg?Math.atan2(tg.y-b.y,tg.x-b.x):p.a;b.vx=Math.cos(a)*.13;b.vy=Math.sin(a)*.13;b.o="p"}})}
+if(!bossSpawned){if(toSpawn>0){spawnCd-=1;if(spawnCd<=0&&enemies.length<L.alive){spawnCd=L.sp;toSpawn-=1;enemies.push(newDroid())}}
+else if(!enemies.length){if(L.boss){newBoss();bossSpawned=true}else{end(true);return}}}
+const spd=L.spd||1,bs=L.bs||.07;
+enemies.forEach(e=>{if(e.stun>0){e.stun-=1;return}const d=Math.hypot(p.x-e.x,p.y-e.y),a=Math.atan2(p.y-e.y,p.x-e.x);
+if(e.boss){e.cd-=1;e.dcd-=1;const v=e.vader;if(e.dash>0){e.dash-=1;tryMove(e,e.vx,e.vy,.5)}else{tryMove(e,Math.cos(a)*(v?.036:.028),Math.sin(a)*(v?.036:.028),.5);if(e.dcd<=0&&d<9){e.dcd=v?110:170;e.dash=16;e.vx=Math.cos(a)*(v?.15:.12);e.vy=Math.sin(a)*(v?.15:.12)}}
+if(e.cd<=0){e.cd=v?80:110;(v?[-.4,-.2,0,.2,.4]:[-.25,0,.25]).forEach(o=>fire(e,a+o,.07+(v?.015:0)))}if(d<.9)hurt();return}
+const m=d>2.8?1:d<1.6?-.5:0;tryMove(e,(Math.cos(a)*m*.034+Math.cos(a+Math.PI/2)*Math.sin(t/40+e.ph)*.018)*spd,(Math.sin(a)*m*.034+Math.sin(a+Math.PI/2)*Math.sin(t/40+e.ph)*.018)*spd,.4);
+e.cd-=1;if(e.cd<=0){e.cd=L.cd*(.8+Math.random()*.6);fire(e,a,bs)}});
+bolts.forEach(b=>{b.x+=b.vx;b.y+=b.vy;if(solid(b.x,b.y)){b.dead=true;return}if(b.o==="e"){if(Math.hypot(b.x-p.x,b.y-p.y)<.4){b.dead=true;hurt()}}else enemies.forEach(e=>{if(!b.dead&&!e.dead&&Math.hypot(b.x-e.x,b.y-e.y)<.5){b.dead=true;damage(e,2)}})});
+bolts=bolts.filter(b=>!b.dead);enemies=enemies.filter(e=>!e.dead)}
+function updateFly(){const f=fl;
+if(f.boom!==null){f.boom+=1;f.beams=[];f.stars.forEach(s=>{s.z-=.01;if(s.z<=0)s.z=1});if(f.boom>170)end(true);return}
+let mx=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0),my=(keys.KeyS||keys.ArrowDown?1:0)-(keys.KeyW||keys.ArrowUp?1:0);
+if(mx||my){p.px+=mx*.035;p.py+=my*.035}else if(mouseN){p.px+=((mouseN.x-.5)*2.2-p.px)*.12;p.py+=((mouseN.y-.5)*2.2-p.py)*.12}
+p.px=clamp(p.px,-1,1);p.py=clamp(p.py,-.8,.8);p.inv-=1;f.fire-=1;
+if((keys.Space||touch)&&f.fire<=0){f.fire=8;f.beams.push({t:7});let best=null,bd=9;f.ties.forEach(e=>{if(Math.hypot(e.x-p.px,e.y-p.py)<.24&&e.z<bd){bd=e.z;best=e}});
+f.bolts.forEach(b=>{if(Math.hypot(b.x-p.px,b.y-p.py)<.24&&b.z<bd){bd=b.z;best=b}});
+if(f.port&&Math.hypot(f.port.x-p.px,f.port.y-p.py)<.2&&f.port.z<bd)best=f.port;
+if(best){if(best===f.port){f.port.hp-=1;f.port.hit=6;score+=5;show();if(f.port.hp<=0){score+=300;show();f.boom=0;f.ties=[];f.bolts=[];f.port=null;f.debris=Array.from({length:40},()=>({a:Math.random()*6.28,s:1+Math.random()*4,r:2+Math.random()*5}));statusEl.textContent="Direct hit! The Death Star explodes!";return}}else if(best.cd!==undefined){best.dead=true;f.kills+=1;score+=10;show()}else best.dead=true}}
+const need=L.need;if(f.kills<need||f.port){f.cd-=1;if(f.cd<=0&&f.ties.length<6&&(f.kills+f.ties.length<need||f.port)){f.cd=Math.max(22,62-L.n*.4)*(f.port?1.6:1);f.ties.push({x:Math.random()*2-1,y:Math.random()*1.4-.7,z:1,vx:(Math.random()-.5)*.012,vy:(Math.random()-.5)*.008,cd:30+Math.random()*50})}}
+else if(L.ds&&!f.port){f.port={x:-.6,y:0,z:.4,vx:.016,hp:14,max:14,hit:0};statusEl.textContent="The exhaust port! Shoot it with your lasers to blow up the Death Star!"}
+else if(!f.ties.length&&!L.ds){end(true);return}
+if(f.port){f.port.x+=f.port.vx;if(Math.abs(f.port.x)>.8)f.port.vx*=-1;f.port.hit=Math.max(0,f.port.hit-1)}
+f.ties.forEach(e=>{e.z-=.005+L.n*.00003;e.x=clamp(e.x+e.vx,-1.3,1.3);e.y=clamp(e.y+e.vy,-.9,.9);e.cd-=1;
+if(e.cd<=0&&e.z>.25){e.cd=Math.max(35,85-L.n*.5);f.bolts.push({x:e.x,y:e.y,z:e.z,tx:p.px+(Math.random()-.5)*.2,ty:p.py+(Math.random()-.5)*.2})}
+if(e.z<=.03){e.dead=true;if(Math.hypot(e.x-p.px,e.y-p.py)<.3)hurt()}});
+f.bolts.forEach(b=>{const steps=Math.max(1,b.z/.015);b.x+=(b.tx-b.x)/steps;b.y+=(b.ty-b.y)/steps;b.z-=.015;if(b.z<=0){b.dead=true;if(Math.hypot(b.x-p.px,b.y-p.py)<.22)hurt()}});
+f.ties=f.ties.filter(e=>!e.dead);f.bolts=f.bolts.filter(b=>!b.dead);f.beams.forEach(b=>b.t-=1);f.beams=f.beams.filter(b=>b.t>0);
+f.stars.forEach(s=>{s.z-=.01;if(s.z<=0){s.z=1;s.x=Math.random()*4-2;s.y=Math.random()*4-2}})}
+function updateLlama(){const m=lm;m.t+=1;if(m.t===120)statusEl.textContent="A llama! Click, tap or press Space on it 7 times to catch it!";if(m.t<120)return;
+if(m.done){m.done+=1;if(m.done>120)end(true);return}
+m.cd-=1;const sp=2+m.hits*.7;m.x+=m.vx*sp;m.y+=m.vy;m.vy+=.35;if(m.y>300){m.y=300;m.vy=-(6+Math.random()*6)}if(m.x<80||m.x>W-80){m.vx*=-1;m.x=clamp(m.x,80,W-80)}
+if(keys.Space&&m.cd<=0){m.cd=14;const c=mouseN?{x:mouseN.x*W,y:mouseN.y*H}:{x:W/2,y:H/2};if(Math.abs(c.x-m.x)<70&&Math.abs(c.y-(m.y-50))<90){m.hits+=1;score+=10;show();m.vx=Math.random()<.5?-1:1;if(m.hits>=7){m.done=1;score+=100;show();statusEl.textContent="You caught the llama!"}}}}
+function drawLlama(){const m=lm,g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,"#7dd3fc");g.addColorStop(.7,"#e0f2fe");g.addColorStop(.7,"#4ade80");g.addColorStop(1,"#16a34a");ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+if(m.t<120){const a=m.t<90?1:1-(m.t-90)/30;ctx.globalAlpha=a;ctx.fillStyle="#1e293b";ctx.font="bold 220px Arial";ctx.textAlign="center";ctx.fillText("6",W/2,H/2+75);ctx.globalAlpha=1;return}
+const x=m.x,y=m.y,d=m.vx>0?1:-1,jump=m.done?Math.sin(m.done/4)*14:0;ctx.save();ctx.translate(x,y-jump);ctx.scale(d,1);ctx.lineCap="round";
+ctx.fillStyle="rgb(0 0 0 / 15%)";ctx.beginPath();ctx.ellipse(0,jump+(300-y)+22,50,9,0,0,7);ctx.fill();
+ctx.strokeStyle="#fef3c7";ctx.lineWidth=9;[-30,-12,14,32].forEach((lx,i)=>{ctx.beginPath();ctx.moveTo(lx,-10);ctx.lineTo(lx+Math.sin(t/4+i)*5,22);ctx.stroke()});
+ctx.fillStyle="#fef3c7";ctx.beginPath();ctx.ellipse(0,-40,48,32,0,0,7);ctx.fill();ctx.fillRect(28,-110,20,80);
+ctx.beginPath();ctx.ellipse(46,-118,26,18,.3,0,7);ctx.fill();ctx.beginPath();ctx.moveTo(40,-130);ctx.lineTo(34,-158);ctx.lineTo(50,-134);ctx.moveTo(54,-132);ctx.lineTo(60,-158);ctx.lineTo(64,-130);ctx.fill();
+ctx.fillStyle="#f472b6";ctx.fillRect(-26,-70,40,26);ctx.fillStyle="#facc15";ctx.fillRect(-26,-58,40,6);
+ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(52,-124,7,0,7);ctx.fill();ctx.fillStyle="#0f172a";ctx.beginPath();ctx.arc(54,-124,3.5,0,7);ctx.fill();
+ctx.strokeStyle="#0f172a";ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(60,-112,7,.2,2.4);ctx.stroke();ctx.restore();
+ctx.fillStyle="#0f172a";ctx.font="bold 20px Arial";ctx.textAlign="left";ctx.fillText(`Pats ${m.hits}/7`,10,26)}
+function update(){t+=1;flash=Math.max(0,flash-1);pushFx=Math.max(0,pushFx-1);if(state!=="play")return;if(L.llama)updateLlama();else if(L.fly)updateFly();else updateGround();if(state==="play")show()}
+function drawWorld(){const sky=ctx.createLinearGradient(0,0,0,H/2);sky.addColorStop(0,"#f59e0b");sky.addColorStop(.6,"#fcd34d");sky.addColorStop(1,"#fef3c7");ctx.fillStyle=sky;ctx.fillRect(0,0,W,H/2);
+const sunX=((-p.a*180/Math.PI*3)%W+W)%W;ctx.fillStyle="#fff7ed";ctx.shadowColor="#fff";ctx.shadowBlur=40;ctx.beginPath();ctx.arc(sunX,H*.16,26,0,7);ctx.fill();ctx.shadowBlur=0;
+ctx.fillStyle="#d97706";ctx.beginPath();ctx.moveTo(0,H/2);for(let x=0;x<=W;x+=20)ctx.lineTo(x,H/2-14-Math.sin((x+sunX)/70)*10-Math.sin((x+sunX)/23)*4);ctx.lineTo(W,H/2);ctx.fill();
+const fl2=ctx.createLinearGradient(0,H/2,0,H);fl2.addColorStop(0,"#fde68a");fl2.addColorStop(1,"#d97706");ctx.fillStyle=fl2;ctx.fillRect(0,H/2,W,H/2);
+const dx=Math.cos(p.a),dy=Math.sin(p.a),px=-dy*PL,py=dx*PL;
+for(let x=0;x<W;x+=1){const cam=2*x/W-1,rx=dx+px*cam,ry=dy+py*cam;let mx=Math.floor(p.x),my=Math.floor(p.y);const ddx=Math.abs(1/rx),ddy=Math.abs(1/ry);let sx,sy,sdx,sdy,side=0;
+if(rx<0){sx=-1;sdx=(p.x-mx)*ddx}else{sx=1;sdx=(mx+1-p.x)*ddx}if(ry<0){sy=-1;sdy=(p.y-my)*ddy}else{sy=1;sdy=(my+1-p.y)*ddy}
+for(let i=0;i<40;i+=1){if(sdx<sdy){sdx+=ddx;mx+=sx;side=0}else{sdy+=ddy;my+=sy;side=1}if(MAP[my]?.[mx]!==0)break}
+const dist=Math.max(.05,side?sdy-ddy:sdx-ddx);zbuf[x]=dist;const lh=H/dist,shade=Math.max(.15,1-dist/13)*(side?.75:1),pillar=mx>0&&my>0&&mx<13&&my<13?1:0;
+ctx.fillStyle=pillar?`rgb(${150*shade+60} ${100*shade+40} ${60*shade+25})`:`rgb(${170*shade+40} ${120*shade+30} ${70*shade+20})`;ctx.fillRect(x,H/2-lh/2,1,lh)}}
+function drawSprites(){const dx=Math.cos(p.a),dy=Math.sin(p.a),px=-dy*PL,py=dx*PL,inv=1/(px*dy-dx*py),list=[];
+enemies.forEach(e=>list.push({k:e.boss?"boss":"droid",x:e.x,y:e.y,e}));bolts.forEach(b=>list.push({k:"bolt",x:b.x,y:b.y,b}));
+list.forEach(s=>{const sx=s.x-p.x,sy=s.y-p.y;s.tx=inv*(dy*sx-dx*sy);s.ty=inv*(-py*sx+px*sy)});
+list.filter(s=>s.ty>.15).sort((a,b)=>b.ty-a.ty).forEach(s=>{const scr=W/2*(1+s.tx/s.ty),size=H/s.ty,col=Math.floor(scr);if(col<0||col>=W||zbuf[col]<s.ty)return;
+const fog=Math.max(.3,1-s.ty/14);ctx.save();ctx.globalAlpha=fog;
+if(s.k==="bolt"){ctx.fillStyle=s.b.o==="e"?"#f87171":cfg.laser;ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=14;ctx.beginPath();ctx.arc(scr,H/2+size*.05,Math.max(2,size*.045*cfg.wid),0,7);ctx.fill()}
+else if(s.k==="droid"){const st=s.e.stun>0,c=H/2+size*.12,z=size*1.3;ctx.fillStyle=st?"#cbd5e1":"#94a3b8";ctx.fillRect(scr-z*.22,c-z*.15,z*.44,z*.42);ctx.beginPath();ctx.arc(scr,c-z*.24,z*.16,0,7);ctx.fill();ctx.fillStyle="#ef4444";ctx.shadowColor="#ef4444";ctx.shadowBlur=10;ctx.beginPath();ctx.arc(scr,c-z*.24,z*.06,0,7);ctx.fill();ctx.shadowBlur=0;ctx.fillStyle="#475569";ctx.fillRect(scr+z*.22,c-z*.05,z*.3,z*.07);ctx.fillRect(scr-z*.16,c+z*.27,z*.1,z*.2);ctx.fillRect(scr+z*.06,c+z*.27,z*.1,z*.2)}
+else{const sz=size*1.25,v=s.e.vader;ctx.fillStyle=s.e.stun>0?"#475569":v?"#020617":"#111827";ctx.beginPath();ctx.moveTo(scr,H/2-sz*.5);ctx.lineTo(scr+sz*(v?.36:.3),H/2+sz*.4);ctx.lineTo(scr-sz*(v?.36:.3),H/2+sz*.4);ctx.fill();ctx.fillStyle="#000";ctx.beginPath();ctx.arc(scr,H/2-sz*.34,sz*(v?.15:.12),0,7);ctx.fill();
+if(s.e.scar){ctx.fillStyle=s.e.stun>0?"#a8a29e":"#b45309";ctx.beginPath();ctx.moveTo(scr,H/2-sz*.5);ctx.lineTo(scr+sz*.3,H/2+sz*.4);ctx.lineTo(scr-sz*.3,H/2+sz*.4);ctx.fill();ctx.fillStyle="#18181b";ctx.beginPath();ctx.arc(scr,H/2-sz*.34,sz*.2,0,7);ctx.fill();ctx.fillStyle="#d97706";ctx.beginPath();ctx.arc(scr,H/2-sz*.32,sz*.12,0,7);ctx.fill();ctx.fillStyle="#4ade80";ctx.fillRect(scr-sz*.07,H/2-sz*.36,sz*.04,sz*.03);ctx.fillRect(scr+sz*.03,H/2-sz*.36,sz*.04,sz*.03);ctx.strokeStyle="#450a0a";ctx.lineWidth=Math.max(1,sz*.012);ctx.beginPath();ctx.moveTo(scr-sz*.06,H/2-sz*.42);ctx.lineTo(scr-sz*.06,H/2-sz*.28);ctx.stroke()}
+if(v){ctx.strokeStyle="#64748b";ctx.lineWidth=Math.max(1,sz*.012);ctx.stroke();ctx.fillStyle="#ef4444";ctx.fillRect(scr-sz*.06,H/2-sz*.02,sz*.04,sz*.04);ctx.fillStyle="#38bdf8";ctx.fillRect(scr+sz*.02,H/2-sz*.02,sz*.04,sz*.04)}
+ctx.strokeStyle="#ef4444";ctx.shadowColor="#ef4444";ctx.shadowBlur=14;ctx.lineWidth=Math.max(2,sz*.03);ctx.beginPath();ctx.moveTo(scr+sz*.25,H/2);ctx.lineTo(scr+sz*.35+Math.sin(t/8)*sz*.05,H/2-sz*.45);ctx.stroke();
+ctx.shadowBlur=0;ctx.fillStyle="#7f1d1d";ctx.fillRect(scr-sz*.25,H/2-sz*.62,sz*.5,Math.max(3,sz*.03));ctx.fillStyle="#ef4444";ctx.fillRect(scr-sz*.25,H/2-sz*.62,sz*.5*s.e.hp/s.e.max,Math.max(3,sz*.03))}
+ctx.restore()})}
+function drawSaber(){const sw=p.sw>0?1-p.sw/14:0,ang=p.sw>0?-.3-sw*1.6:-.9;ctx.save();ctx.translate(W*.78-(p.sw>0?sw*W*.35:0),H+20);ctx.rotate(ang+(p.sw>0?0:Math.sin(t/30)*.03));
+ctx.shadowColor=cfg.saber;ctx.shadowBlur=24;ctx.strokeStyle=cfg.saber;ctx.lineWidth=8*cfg.wid;ctx.lineCap="round";ctx.beginPath();ctx.moveTo(0,-60);ctx.lineTo(0,-330);ctx.stroke();ctx.shadowBlur=0;ctx.strokeStyle="#fff";ctx.lineWidth=3*cfg.wid;ctx.beginPath();ctx.moveTo(0,-60);ctx.lineTo(0,-325);ctx.stroke();
+ctx.fillStyle="#94a3b8";ctx.fillRect(-9,-62,18,70);ctx.fillStyle="#475569";ctx.fillRect(-10,-20,20,8);ctx.restore()}
+function drawMap(){const s=6,ox=W-14*s-8,oy=8;ctx.globalAlpha=.7;ctx.fillStyle="#020617";ctx.fillRect(ox,oy,14*s,14*s);MAP.forEach((r,y)=>r.forEach((v,x)=>{if(v){ctx.fillStyle="#475569";ctx.fillRect(ox+x*s,oy+y*s,s,s)}}));
+enemies.forEach(e=>{ctx.fillStyle=e.boss?"#f97316":"#ef4444";ctx.fillRect(ox+e.x*s-2,oy+e.y*s-2,4,4)});ctx.fillStyle="#38bdf8";ctx.beginPath();ctx.arc(ox+p.x*s,oy+p.y*s,3,0,7);ctx.fill();
+ctx.strokeStyle="#38bdf8";ctx.beginPath();ctx.moveTo(ox+p.x*s,oy+p.y*s);ctx.lineTo(ox+(p.x+Math.cos(p.a)*1.5)*s,oy+(p.y+Math.sin(p.a)*1.5)*s);ctx.stroke();ctx.globalAlpha=1}
+function drawArrows(){enemies.forEach(e=>{const a=Math.atan2(e.y-p.y,e.x-p.x),rel=Math.atan2(Math.sin(a-p.a),Math.cos(a-p.a));if(Math.abs(rel)<.55)return;const right=rel>0;ctx.fillStyle=e.boss?"#f97316":"#ef4444";ctx.beginPath();if(right){ctx.moveTo(W-8,H/2);ctx.lineTo(W-34,H/2-18);ctx.lineTo(W-34,H/2+18)}else{ctx.moveTo(8,H/2);ctx.lineTo(34,H/2-18);ctx.lineTo(34,H/2+18)}ctx.fill()})}
+const proj=o=>{const s=1/(o.z*2.2+.25);return{sx:W/2+(o.x-p.px)*s*W*.28,sy:H/2+(o.y-p.py)*s*H*.28,s}};
+function drawFly(){const f=fl,g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,"#000");g.addColorStop(1,"#0b1230");ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+ctx.fillStyle="#fff";f.stars.forEach(s=>{const q=proj({x:s.x,y:s.y,z:s.z}),q2=proj({x:s.x,y:s.y,z:s.z+.04});ctx.strokeStyle=`rgb(255 255 255 / ${1-s.z})`;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(q.sx,q.sy);ctx.lineTo(q2.sx,q2.sy);ctx.stroke()});
+if(L.ds){const r=110+(f.kills/L.need)*130,cx=W/2-p.px*40,cy=H*.42-p.py*30,b=f.boom;
+if(b===null||b<60){ctx.fillStyle="#64748b";ctx.beginPath();ctx.arc(cx,cy,r,0,7);ctx.fill();ctx.fillStyle="#475569";ctx.fillRect(cx-r,cy-3,r*2,6);ctx.beginPath();ctx.arc(cx-r*.35,cy-r*.35,r*.22,0,7);ctx.fill();ctx.fillStyle="#334155";ctx.beginPath();ctx.arc(cx-r*.35,cy-r*.35,r*.1,0,7);ctx.fill()}
+if(b!==null){const k=b/170;ctx.save();ctx.globalCompositeOperation="lighter";[[.9,"#fff"],[.7,"#fde047"],[.5,"#fb923c"],[.3,"#ef4444"]].forEach(([m,c])=>{ctx.fillStyle=c;ctx.globalAlpha=Math.max(0,1-k*.9);ctx.beginPath();ctx.arc(cx,cy,(r*2.2*m)*Math.min(1,b/50),0,7);ctx.fill()});
+ctx.globalAlpha=Math.max(0,1-k);ctx.fillStyle="#cbd5e1";f.debris.forEach(d=>{ctx.fillRect(cx+Math.cos(d.a)*d.s*b*2.4,cy+Math.sin(d.a)*d.s*b*2.4,d.r,d.r)});
+ctx.globalAlpha=1;ctx.strokeStyle=`rgb(255 255 255 / ${Math.max(0,1-b/70)})`;ctx.lineWidth=6;ctx.beginPath();ctx.arc(cx,cy,b*7,0,7);ctx.stroke();ctx.restore();if(b<12){ctx.fillStyle=`rgb(255 255 255 / ${1-b/12})`;ctx.fillRect(0,0,W,H)}}}
+const items=[...f.ties.map(e=>({k:"tie",o:e})),...f.bolts.map(b=>({k:"bolt",o:b}))];if(f.port)items.push({k:"port",o:f.port});
+items.sort((a,b)=>b.o.z-a.o.z).forEach(({k,o})=>{const q=proj(o),r=70*q.s;ctx.save();
+if(k==="tie"){ctx.fillStyle="#334155";ctx.fillRect(q.sx-r*.55,q.sy-r*.5,r*.14,r);ctx.fillRect(q.sx+r*.41,q.sy-r*.5,r*.14,r);ctx.fillRect(q.sx-r*.4,q.sy-r*.04,r*.8,r*.08);ctx.fillStyle="#94a3b8";ctx.beginPath();ctx.arc(q.sx,q.sy,r*.2,0,7);ctx.fill();ctx.fillStyle="#0f172a";ctx.beginPath();ctx.arc(q.sx,q.sy,r*.09,0,7);ctx.fill()}
+else if(k==="bolt"){ctx.fillStyle="#f87171";ctx.shadowColor="#ef4444";ctx.shadowBlur=14;ctx.beginPath();ctx.arc(q.sx,q.sy,Math.max(3,12*q.s*cfg.wid/1.7),0,7);ctx.fill()}
+else{ctx.fillStyle=o.hit?"#fef08a":"#0f172a";ctx.strokeStyle="#ef4444";ctx.lineWidth=3;ctx.beginPath();ctx.arc(q.sx,q.sy,r*.35,0,7);ctx.fill();ctx.stroke();ctx.fillStyle="#7f1d1d";ctx.fillRect(q.sx-30,q.sy+r*.45,60,5);ctx.fillStyle="#ef4444";ctx.fillRect(q.sx-30,q.sy+r*.45,60*o.hp/o.max,5)}ctx.restore()});
+f.beams.forEach(b=>{ctx.strokeStyle=cfg.laser;ctx.shadowColor=cfg.laser;ctx.shadowBlur=14;ctx.lineWidth=(b.t/7)*5*cfg.wid;[[0,H],[W,H],[W*.2,H*.9],[W*.8,H*.9]].forEach(([x,y])=>{ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(W/2,H/2);ctx.stroke()});ctx.shadowBlur=0});
+ctx.strokeStyle="#475569";ctx.lineWidth=10;[[0,H*.55,W*.3,H],[W,H*.55,W*.7,H]].forEach(([a,b,c,d])=>{ctx.beginPath();ctx.moveTo(a,b);ctx.lineTo(c,d);ctx.stroke()});ctx.fillStyle="#1e293b";ctx.fillRect(0,H-40,W,40);
+ctx.strokeStyle="#4ade80";ctx.lineWidth=2;ctx.beginPath();ctx.arc(W/2,H/2,18,0,7);ctx.moveTo(W/2-28,H/2);ctx.lineTo(W/2-10,H/2);ctx.moveTo(W/2+10,H/2);ctx.lineTo(W/2+28,H/2);ctx.stroke();
+ctx.fillStyle="#94a3b8";ctx.font="12px Arial";ctx.textAlign="left";ctx.fillText(`Level ${L.n} · ${f.port?"Port: "+f.port.hp+"/"+f.port.max:"Kills "+f.kills+"/"+L.need}`,8,16)}
+function draw(){if(state==="idle"){p.a+=.004;drawWorld();ctx.fillStyle="rgb(2 6 23 / 45%)";ctx.fillRect(0,H/2-50,W,80);ctx.fillStyle="#facc15";ctx.font="bold 34px Arial";ctx.textAlign="center";ctx.fillText("SCAR WARS",W/2,H/2-6);ctx.font="16px Arial";ctx.fillStyle="#fff";ctx.fillText("Pick a level and press Begin",W/2,H/2+20);return}
+if(L.llama)drawLlama();else if(L.fly)drawFly();else{drawWorld();drawSprites();drawArrows();
+if(pushFx){ctx.strokeStyle=`rgb(125 211 252 / ${pushFx/18})`;ctx.lineWidth=6;ctx.beginPath();ctx.arc(W/2,H/2,H*.7*(1-pushFx/18),0,7);ctx.stroke()}
+drawSaber();drawMap();ctx.fillStyle="#e2e8f0";ctx.fillRect(W/2-1,H/2-8,2,16);ctx.fillRect(W/2-8,H/2-1,16,2);ctx.fillStyle="#94a3b8";ctx.font="12px Arial";ctx.textAlign="left";ctx.fillText(`Level ${ln(L.n)} · ${boss?"Boss fight":"Droids left "+(toSpawn+enemies.length)}`,8,16)}
+if(flash){ctx.fillStyle=`rgb(239 68 68 / ${flash/28})`;ctx.fillRect(0,0,W,H)}
+if(state==="won"||state==="over"){ctx.fillStyle="rgb(2 6 23 / 55%)";ctx.fillRect(0,H/2-34,W,68);ctx.fillStyle=state==="won"?"#4ade80":"#f87171";ctx.font="bold 30px Arial";ctx.textAlign="center";ctx.fillText(state==="won"?(L.n===MAXLV?"THE GALAXY IS FREE!":"LEVEL CLEARED"):"YOU HAVE FALLEN",W/2,H/2+10)}}
+function loop(){update();draw();requestAnimationFrame(loop)}
+let last=null;
+const norm=e=>{const r=canvas.getBoundingClientRect();return{x:clamp((e.clientX-r.left)/r.width,0,1),y:clamp((e.clientY-r.top)/r.height,0,1)}};
+canvas.addEventListener("mousedown",()=>{if(state==="play"&&!L.fly&&!L.llama&&document.pointerLockElement!==canvas)canvas.requestPointerLock?.();keys.Space=true});
+window.addEventListener("mouseup",()=>{keys.Space=false});
+canvas.addEventListener("mousemove",e=>{mouseN=norm(e)});
+document.addEventListener("mousemove",e=>{if(document.pointerLockElement===canvas&&state==="play"&&!L.fly&&!L.llama)p.a+=e.movementX*.003});
+canvas.addEventListener("pointerdown",e=>{if(e.pointerType!=="mouse"){last={x:e.clientX,y:e.clientY};touch={dx:0,dy:0};mouseN=norm(e);canvas.setPointerCapture(e.pointerId)}});
+canvas.addEventListener("pointermove",e=>{if(touch&&e.pointerType!=="mouse"){touch={dx:e.clientX-last.x,dy:e.clientY-last.y};mouseN=norm(e)}});
+["pointerup","pointercancel"].forEach(n=>canvas.addEventListener(n,e=>{if(e.pointerType!=="mouse")touch=null}));
+document.addEventListener("keydown",e=>{if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code)&&!/SELECT|INPUT/.test(document.activeElement.tagName))e.preventDefault();keys[e.code]=true});
+document.addEventListener("keyup",e=>{keys[e.code]=false});window.addEventListener("blur",()=>Object.keys(keys).forEach(k=>keys[k]=false));
+document.querySelector("#start").addEventListener("click",e=>{startLevel();e.target.blur()});
+document.querySelector("#full").addEventListener("click",e=>{if(document.fullscreenElement)document.exitFullscreen();else canvas.requestFullscreen?.();e.target.blur()});
+lvlEl.addEventListener("change",()=>lvlEl.blur());
+loop();
+</script></body></html>
