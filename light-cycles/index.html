@@ -4,31 +4,44 @@
 main{width:min(100%,42rem);padding:1.5rem;border:.2rem solid #22d3ee;border-radius:1.25rem;background:rgb(2 6 23 / 92%);text-align:center}a{color:#67e8f9}h1{margin:.6rem 0;color:#22d3ee}
 canvas{display:block;width:100%;height:auto;margin:1rem 0;border:.2rem solid #0891b2;border-radius:.6rem;background:#020617}button{padding:.65rem 1rem;border:0;border-radius:.5rem;background:#22d3ee;color:#020617;cursor:pointer;font:inherit;font-weight:bold}#status{min-height:1.5rem;color:#fef08a;font-weight:bold}.p1{color:#22d3ee}.p2{color:#fb923c}
 </style></head>
-<body><main><a href="../">← All games</a><h1>🏍️ Light Cycles</h1><p>Inspired by the arcade classic Tron. Leave a glowing trail and make your rival crash into it. First to 3 rounds wins.</p>
+<body><main><a href="../">← All games</a><h1>🏍️ Light Cycles</h1><p>Inspired by the arcade classic Tron. Leave a glowing trail and make your rival crash into it. First to 3 rounds wins. You can also play on 2 devices below.</p>
 <p><span class="p1">P1 (cyan): W A S D</span> · <span class="p2">P2 (orange): arrow keys</span></p>
 <p><span class="p1">P1: <strong id="s1">0</strong></span> · <span class="p2">P2: <strong id="s2">0</strong></span></p>
-<canvas id="game" width="600" height="400" aria-label="Light Cycles game"></canvas><button id="start" type="button">Start round</button><p id="status" aria-live="polite">Press Space or Start to begin.</p></main>
+<canvas id="game" width="600" height="400" aria-label="Light Cycles game"></canvas><button id="start" type="button">Start round</button><p id="status" aria-live="polite">Press Space or Start to begin.</p><div id="online"></div></main>
+<script src="../online.js"></script>
 <script>
 const canvas=document.querySelector("#game"),ctx=canvas.getContext("2d"),statusEl=document.querySelector("#status"),CS=10,CW=60,CH=40;
-let grid,pl,score=[0,0],state="ready",timer;
+let grid,pl,score=[0,0],state="ready",timer,role=null,net=null;
+function snap(){if(role==="host"&&net)net.send({t:"s",g:grid.flat().join(""),p:pl.map(p=>[p.x,p.y]),sc:score,st:state,m:statusEl.textContent})}
+function applySnap(m){grid=Array.from({length:CH},(_,y)=>Array.from({length:CW},(_,x)=>+m.g[y*CW+x]));pl=m.p.map((q,i)=>({x:q[0],y:q[1],c:i?"#fb923c":"#22d3ee"}));score=m.sc;state=m.st;statusEl.textContent=m.m;show();draw()}
 const DIRS={w:[0,-1],s:[0,1],a:[-1,0],d:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0]};
 function show(){document.querySelector("#s1").textContent=score[0];document.querySelector("#s2").textContent=score[1]}
 function begin(){if(state==="play")return;if(score.some(s=>s>=3))score=[0,0];show();
 grid=Array.from({length:CH},()=>Array(CW).fill(0));
 pl=[{x:8,y:20,d:[1,0],n:[1,0],c:"#22d3ee"},{x:51,y:20,d:[-1,0],n:[-1,0],c:"#fb923c"}];pl.forEach((p,i)=>grid[p.y][p.x]=i+1);
-state="play";statusEl.textContent="Go!";clearInterval(timer);timer=setInterval(tick,70);draw()}
+state="play";statusEl.textContent="Go!";clearInterval(timer);timer=setInterval(tick,70);draw();snap()}
 function tick(){const next=pl.map(p=>({x:p.x+p.n[0],y:p.y+p.n[1]}));pl.forEach(p=>p.d=p.n);
 const dead=next.map((q,i)=>q.x<0||q.y<0||q.x>=CW||q.y>=CH||grid[q.y][q.x]!==0||(next[1-i].x===q.x&&next[1-i].y===q.y));
 next.forEach((q,i)=>{if(!dead[i]){pl[i].x=q.x;pl[i].y=q.y;grid[q.y][q.x]=i+1}});
 draw();if(dead[0]||dead[1]){clearInterval(timer);state="over";
 if(dead[0]&&dead[1])statusEl.textContent="Both crashed! No point.";else{const w=dead[0]?1:0;score[w]+=1;statusEl.textContent=`Player ${w+1} wins the round!`}
-show();const champ=score.findIndex(s=>s>=3);if(champ>=0)statusEl.textContent=`Player ${champ+1} wins the match! Press Space for a new match.`;else statusEl.textContent+=" Press Space for the next round."}}
+show();const champ=score.findIndex(s=>s>=3);if(champ>=0)statusEl.textContent=`Player ${champ+1} wins the match! Press Space for a new match.`;else statusEl.textContent+=" Press Space for the next round."}snap()}
 function draw(){ctx.fillStyle="#020617";ctx.fillRect(0,0,600,400);ctx.strokeStyle="#0f172a";ctx.lineWidth=1;for(let x=0;x<=600;x+=CS){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,400);ctx.stroke()}for(let y=0;y<=400;y+=CS){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(600,y);ctx.stroke()}
 for(let y=0;y<CH;y+=1)for(let x=0;x<CW;x+=1)if(grid[y][x]){ctx.fillStyle=grid[y][x]===1?"#0e7490":"#c2410c";ctx.fillRect(x*CS,y*CS,CS,CS)}
 pl.forEach(p=>{ctx.fillStyle=p.c;ctx.shadowColor=p.c;ctx.shadowBlur=12;ctx.fillRect(p.x*CS,p.y*CS,CS,CS);ctx.shadowBlur=0})}
 document.addEventListener("keydown",e=>{const k=e.key.length===1?e.key.toLowerCase():e.key;
-if(e.code==="Space"){e.preventDefault();begin();return}
-const d=DIRS[k];if(!d||state!=="play")return;e.preventDefault();const i=k.startsWith("Arrow")?1:0,p=pl[i];if(d[0]!==-p.d[0]||d[1]!==-p.d[1])p.n=d});
-document.querySelector("#start").addEventListener("click",begin);
+if(e.code==="Space"){e.preventDefault();if(role==="guest")net.send({t:"start"});else begin();return}
+const d=DIRS[k];if(!d)return;
+if(role==="guest"){e.preventDefault();net.send({t:"d",d});return}
+if(state!=="play")return;e.preventDefault();const i=role==="host"?0:k.startsWith("Arrow")?1:0,p=pl[i];if(d[0]!==-p.d[0]||d[1]!==-p.d[1])p.n=d});
+const startBtn=document.querySelector("#start");
+startBtn.addEventListener("click",()=>role==="guest"?net.send({t:"start"}):begin());
+net=Online.panel(document.querySelector("#online"),"light-cycles",{
+onStart(r){role=r;clearInterval(timer);score=[0,0];state="ready";grid=Array.from({length:CH},()=>Array(CW).fill(0));pl=[];show();draw();
+statusEl.textContent=r==="host"?"Online: you are Player 1 (cyan). Press Space or Start.":"Online: you are Player 2 (orange). Waiting for the host to start.";
+startBtn.textContent=r==="host"?"Start round":"Ask host to start";snap()},
+onMessage(m){if(role==="host"){if(m.t==="start")begin();else if(m.t==="d"&&state==="play"&&Array.isArray(m.d)){const p=pl[1],d=m.d;if(d[0]!==-p.d[0]||d[1]!==-p.d[1])p.n=d}}
+else if(role==="guest"&&m.t==="s")applySnap(m)},
+onEnd(){role=null;clearInterval(timer);state="ready";score=[0,0];show();grid=Array.from({length:CH},()=>Array(CW).fill(0));pl=[];draw();startBtn.textContent="Start round";statusEl.textContent="Online game ended. Press Space or Start to play locally."}});
 grid=Array.from({length:CH},()=>Array(CW).fill(0));pl=[];draw();
 </script></body></html>

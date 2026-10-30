@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Horse Jump | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#075985,#0b1020 70%)}
+main{width:min(100%,52rem);padding:1.25rem;border:.2rem solid #7dd3fc;border-radius:1.25rem;background:rgb(8 12 30 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.5rem 0;color:#bae6fd;font-size:1.6rem}
+canvas{display:block;width:100%;height:auto;margin:.8rem auto;border:.2rem solid #475569;border-radius:.4rem;touch-action:none;cursor:pointer}
+</style></head>
+<body><main><a href="../">← All games</a><h1>🐴 Horse Jump</h1>
+<p>Gallop across the show ground! Press <strong>Space</strong> / <strong>↑</strong> or <strong>click / tap</strong> to jump over the fences. Hold a little longer for a higher jump. It gets faster!</p>
+<canvas id="c" width="800" height="320" aria-label="Horse Jump"></canvas>
+</main>
+<script>
+const C=document.querySelector("#c"),x=C.getContext("2d"),G=260;
+let st="idle",hy=0,vy=0,hold=false,obs=[],sp=5,dist=0,nx=0,last=0,best=+localStorage.getItem("horseJumpBest")||0,t=0;
+function reset(){st="play";hy=0;vy=0;obs=[];sp=5;dist=0;nx=500;hold=false}
+function jump(){if(st!=="play"){if(st==="idle"||st==="over")reset();return}if(hy===0){vy=-11;hold=true}}
+function step(dt){
+ t+=dt;if(st!=="play")return;const k=dt*60;
+ sp=5+dist/700;dist+=sp*k*.1;
+ if(hy<0||vy<0){vy+=(hold&&vy<0?.4:.9)*k;hy+=vy*k;if(hy>=0){hy=0;vy=0}}
+ nx-=sp*k;if(nx<=0){const h=30+Math.random()*30;obs.push({x:820,h,w:14+Math.random()*10});nx=300+Math.random()*250+sp*20}
+ obs.forEach(o=>o.x-=sp*k);obs=obs.filter(o=>o.x>-40);
+ for(const o of obs)if(o.x<150&&o.x+o.w>100&&-hy<o.h-4){st="over";if(Math.floor(dist)>best){best=Math.floor(dist);localStorage.setItem("horseJumpBest",best)}}}
+function draw(){
+ x.fillStyle="#7dd3fc";x.fillRect(0,0,800,320);x.fillStyle="#fff";[[100,50],[400,80],[650,40]].forEach(([a,b])=>{x.beginPath();x.arc((a-dist*3)%900+(a-dist*3<0?900:0),b,24,0,6.3);x.fill()});
+ x.fillStyle="#16a34a";x.fillRect(0,G,800,60);x.fillStyle="#15803d";for(let i=0;i<20;i++)x.fillRect(((i*60-dist*8)%1200+1200)%1200-60,G+30,30,4);
+ obs.forEach(o=>{x.fillStyle="#fff";x.fillRect(o.x,G-o.h,o.w,o.h);x.fillStyle="#dc2626";for(let y=G-o.h;y<G;y+=12)x.fillRect(o.x,y,o.w,5)});
+ x.font="56px serif";x.save();x.translate(160,G+hy+6);x.scale(-1,1);x.rotate(hy<0?-.2:0);x.fillText("🐎",0,0);x.restore();
+ x.fillStyle="#0f172a";x.font="bold 18px Arial";x.textAlign="left";x.fillText("Distance: "+Math.floor(dist)+" m   Best: "+best+" m",12,26);
+ x.textAlign="center";x.font="bold 30px Arial";x.fillStyle="#0f172a";
+ if(st==="idle")x.fillText("Press Space or click to start",400,150);
+ if(st==="over"){x.fillText("Crashed at "+Math.floor(dist)+" m!",400,130);x.font="bold 20px Arial";x.fillText("Press Space or click to retry",400,165)}}
+function loop(ts){const dt=Math.min(.05,(ts-last)/1000);last=ts;step(dt);draw();requestAnimationFrame(loop)}
+addEventListener("keydown",e=>{if((e.code==="Space"||e.code==="ArrowUp")&&!e.repeat){e.preventDefault();jump()}});
+addEventListener("keyup",e=>{if(e.code==="Space"||e.code==="ArrowUp")hold=false});
+C.addEventListener("pointerdown",e=>{e.preventDefault();jump()});addEventListener("pointerup",()=>hold=false);
+requestAnimationFrame(loop);
+</script></body></html>

@@ -231,7 +231,7 @@
       <label><input type="radio" name="mode" value="robot" checked> Face the robot</label>
       <label><input type="radio" name="mode" value="local"> Two players</label>
     </div>
-    <p class="player-guide">🔴 Red goes first · 🟡 Yellow or 🤖 Robot goes next</p>
+    <p class="player-guide">🔴 Red goes first · 🟡 Yellow or 🤖 Robot goes next · Two players can also play on 2 devices below.</p>
     <p class="robot-record" aria-label="Robot mode record">
       <span>🧑 Wins: <span id="player-wins">0</span></span>
       <span>🤖 Wins: <span id="robot-wins">0</span></span>
@@ -250,10 +250,12 @@
       <p id="reaction-display" aria-live="polite"></p>
     </section>
     <button id="restart" type="button">New game</button>
+    <div id="online"></div>
     <div id="celebration" aria-hidden="true"></div>
   </main>
 
   <script src="../shared/profile.js"></script>
+  <script src="../online.js"></script>
   <script>
     const rows = 6;
     const columns = 7;
@@ -324,8 +326,12 @@
       return boardElement.children[row * columns + column];
     }
 
-    function placePiece(column, isRobotMove = false) {
+    function placePiece(column, isRobotMove = false, isRemote = false) {
       if (gameOver || (isRobotMode() && currentPlayer === "yellow" && !isRobotMove)) {
+        return;
+      }
+
+      if (online.active() && !isRemote && currentPlayer !== myColor()) {
         return;
       }
 
@@ -333,6 +339,10 @@
       if (row === -1) {
         statusElement.textContent = `Column ${column + 1} is full. Choose another column.`;
         return;
+      }
+
+      if (online.active() && !isRemote) {
+        online.send({ t: "move", col: column });
       }
 
       board[row][column] = currentPlayer;
@@ -481,7 +491,50 @@
       return preferredColumns.find((column) => openColumns.includes(column));
     }
 
-    restartButton.addEventListener("click", createBoard);
+    function myColor() {
+      return online.role() === "host" ? "red" : "yellow";
+    }
+
+    function setOnlineLock(locked) {
+      for (const modeInput of modeInputs) {
+        modeInput.disabled = locked;
+      }
+    }
+
+    const online = Online.panel(document.querySelector("#online"), "connect-4", {
+      onStart(role) {
+        document.querySelector('input[name="mode"][value="local"]').checked = true;
+        setOnlineLock(true);
+        restartButton.disabled = role !== "host";
+        createBoard();
+        statusElement.textContent = role === "host" ? "🔴 Your turn (Red)" : "🔴 Red's turn — you are 🟡 Yellow";
+      },
+      onMessage(msg) {
+        if (!msg || !online.active()) {
+          return;
+        }
+        if (msg.t === "move" && Number.isInteger(msg.col) && msg.col >= 0 && msg.col < columns && currentPlayer !== myColor()) {
+          placePiece(msg.col, false, true);
+        } else if (msg.t === "new") {
+          createBoard();
+        }
+      },
+      onEnd() {
+        setOnlineLock(false);
+        restartButton.disabled = false;
+        createBoard();
+      }
+    });
+
+    restartButton.addEventListener("click", () => {
+      if (online.active()) {
+        if (online.role() !== "host") {
+          return;
+        }
+        online.send({ t: "new" });
+      }
+      createBoard();
+    });
     for (const modeInput of modeInputs) {
       modeInput.addEventListener("change", createBoard);
     }

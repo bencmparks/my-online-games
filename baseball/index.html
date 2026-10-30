@@ -6,9 +6,9 @@ canvas{display:block;width:100%;max-width:50rem;height:auto;margin:.8rem auto;bo
 .row{display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap}.row button{padding:.6rem 1.4rem;border:0;border-radius:.6rem;background:#f97316;color:#fff;font-weight:700;font-size:1rem;cursor:pointer}
 </style></head>
 <body><main><a href="../">← All games</a><h1>⚾ Baseball</h1>
-<p>Step up to bat! <strong>Move the mouse</strong> (or <strong>arrow keys</strong>) to line the bat circle up with the ball, then <strong>click</strong> or press <strong>Space</strong> to swing just as it reaches the plate. Good timing and aim mean bigger hits. Each inning you bat, then play defence: move your fielder (mouse or arrows) onto the red target to catch the CPU's hits. 3 innings — outscore the CPU!</p>
+<p>Step up to bat! <strong>Move the mouse</strong> (or <strong>arrow keys</strong>) to line the bat circle up with the ball, then <strong>click</strong> or press <strong>Space</strong> to swing just as it reaches the plate. Good timing and aim mean bigger hits. With a runner on, press <strong>S</strong> (or the Steal Base button) as the pitch is thrown to try to steal — but get caught and it's an out. Each inning you bat, then play defence: move your fielder (mouse or arrows) onto the red target to catch the CPU's hits. 3 innings — outscore the CPU!</p>
 <canvas id="c" width="800" height="500" aria-label="Baseball game"></canvas>
-<div class="row"><button id="swing">🏏 Swing!</button><button id="mode">Mode: Easy</button><button id="eye">🦅 Eagle Eye: Off</button></div>
+<div class="row"><button id="swing">🏏 Swing!</button><button id="steal">🏃 Steal Base</button><button id="mode">Mode: Easy</button><button id="eye">🦅 Eagle Eye: Off</button></div>
 </main>
 <script>
 const C=document.querySelector("#c"),x=C.getContext("2d"),W=800,H=500,KEY="baseballBest",INN=3;
@@ -63,6 +63,14 @@ function walk(){
 function strike(s){strikes+=1;say(s,1);if(strikes>=3){say("Strike three — you're out!",1.4);addOut()}}
 function ball(){balls+=1;say("Ball",.9);if(balls>=4)walk()}
 function resolveTake(){const s=pitch.strike;pitch=null;mode="ready";wait=.7;if(s)strike("Called strike");else ball()}
+function steal(){
+ if(mode!=="pitch"||half!=="bat"||pitch.stole||swingT>0||pitch.p>.8)return;
+ const i=!bases[2]&&bases[1]?1:!bases[1]&&bases[0]?0:bases[2]?2:-1;
+ if(i<0){say("No runner can steal",1);return}
+ pitch.stole=true;
+ const ok=Math.random()<(i===2?.25:diff==="easy"?.7:.55);
+ if(ok){bases[i]=0;if(i===2){runs+=1;say("Stole home! +1 run",1.4)}else{bases[i+1]=1;say(`Stolen base! Safe at ${i?"third":"second"}`,1.4)}}
+ else{bases[i]=0;pitch=null;mode="ready";wait=.8;say("Caught stealing!",1.4);addOut()}}
 function swing(){
  if(mode==="over"||mode==="title"){if(mode==="over"||mode==="title"){reset()}return}
  if(mode!=="pitch"||swingT>0)return;
@@ -184,6 +192,7 @@ function pos(e){const r=C.getBoundingClientRect();return{x:(e.clientX-r.left)/r.
 C.addEventListener("pointermove",e=>{const p=pos(e);bat.x=p.x;bat.y=p.y;fl.tx=p.x;fl.ty=p.y});
 C.addEventListener("pointerdown",e=>{e.preventDefault();const p=pos(e);bat.x=p.x;bat.y=p.y;fl.tx=p.x;fl.ty=p.y;swing()});
 document.querySelector("#swing").onclick=swing;
+const stealB=document.querySelector("#steal");stealB.onclick=()=>{steal();stealB.blur()};
 const eyeB=document.querySelector("#eye");
 function toggleEye(){eagle=!eagle;eyeB.textContent="🦅 Eagle Eye: "+(eagle?"On":"Off");eyeB.blur()}
 eyeB.onclick=toggleEye;
@@ -191,7 +200,7 @@ const modeB=document.querySelector("#mode");
 function setDiff(d){diff=d;P=D[d];loadBest();modeB.textContent="Mode: "+(d==="easy"?"Easy":"Hard");try{localStorage.setItem("baseballDiff",d)}catch(e){}}
 function toggleDiff(){modeB.blur();if(mode==="title"||mode==="over")setDiff(diff==="easy"?"hard":"easy");else say("Change mode between games",1.4)}
 modeB.onclick=toggleDiff;setDiff(diff);
-addEventListener("keydown",e=>{if(e.code.startsWith("Arrow")){e.preventDefault();keys[e.code]=true}if(e.code==="KeyV")toggleEye();if(e.code==="KeyM")toggleDiff();if(e.code==="Space"||e.code==="Enter"){e.preventDefault();swing()}});
+addEventListener("keydown",e=>{if(e.code.startsWith("Arrow")){e.preventDefault();keys[e.code]=true}if(e.code==="KeyV")toggleEye();if(e.code==="KeyS")steal();if(e.code==="KeyM")toggleDiff();if(e.code==="Space"||e.code==="Enter"){e.preventDefault();swing()}});
 addEventListener("keyup",e=>{keys[e.code]=false});
 requestAnimationFrame(loop);
 </script></body></html>

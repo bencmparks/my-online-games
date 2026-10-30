@@ -13,7 +13,9 @@ main{width:min(100%,36rem);padding:1.2rem;border:.2rem solid #d6a85c;border-radi
 </style></head>
 <body><main><a href="../">← All games</a><h1>♞ Chess</h1>
 <div class="opts"><label>Mode <select id="mode"><option value="classic">Classic chess</option><option value="wizard">Wizard chess (spell duels)</option><option value="hack">Chess hack (shuffled pieces)</option></select></label><label>Opponent <select id="opp"><option value="cpu">Computer (you are white)</option><option value="two">2 players</option></select></label><button class="new" id="new" type="button">New game</button></div>
-<p id="desc"></p><div id="board" aria-label="Chess board"></div><p id="status" aria-live="polite"></p><small>Pawns promote to queens automatically.</small><div id="duel" hidden></div></main>
+<div id="online"></div>
+<p id="desc"></p><div id="board" aria-label="Chess board"></div><p id="status" aria-live="polite"></p><small>Pawns promote to queens automatically. Two players can also play on 2 devices: one hosts and shares the code (host is White).</small><div id="duel" hidden></div></main>
+<script src="../online.js"></script>
 <script>
 const boardEl=document.querySelector("#board"),duelEl=document.querySelector("#duel"),statusEl=document.querySelector("#status"),modeEl=document.querySelector("#mode"),oppEl=document.querySelector("#opp"),descEl=document.querySelector("#desc");
 const GLYPH={K:"♚",Q:"♛",R:"♜",B:"♝",N:"♞",P:"♟"},VAL={P:100,N:320,B:330,R:500,Q:900,K:0};
@@ -59,15 +61,26 @@ for(const m of ms){const v=-search(apply(st,m),2,-Infinity,Infinity)+Math.random
 attempt(bests[Math.floor(Math.random()*bests.length)])}
 // Wizard chess: a capture starts a spell duel. Fire beats ice, ice beats lightning, lightning beats fire. Stronger pieces have more hearts.
 const SP=[["fire","🔥"],["ice","❄️"],["bolt","⚡"]],BEATS={fire:"ice",ice:"bolt",bolt:"fire"},HP={P:1,N:2,B:2,R:3,Q:4,K:5},sleep=ms=>new Promise(r=>setTimeout(r,ms));
-const humans=()=>oppEl.value==="cpu"?["w"]:["w","b"],icon=k=>SP.find(s=>s[0]===k)[1];
+const mySide=()=>online.role()==="host"?"w":"b",humans=()=>online.active()?[mySide()]:oppEl.value==="cpu"?["w"]:["w","b"],icon=k=>SP.find(s=>s[0]===k)[1];
 function attempt(m){const att=st.b[m.fr][m.fc],tgt=st.b[m.tr][m.tc]||(m.ep?st.b[m.fr][m.tc]:null);
 if(modeEl.value==="wizard"&&tgt&&att[1]!=="K")duel(m,att,tgt);else play(m)}
 function pick(side,head){return new Promise(res=>{if(!humans().includes(side)){res(SP[Math.floor(Math.random()*3)][0]);return}
 duelEl.innerHTML=head+`<p><strong>${side==="w"?"White":"Black"}</strong>, cast a spell:</p>`;const row=document.createElement("div");
 SP.forEach(([k,i])=>{const b=document.createElement("button");b.type="button";b.className="spell";b.textContent=i;b.setAttribute("aria-label",k);b.addEventListener("click",()=>res(k));row.append(b)});duelEl.append(row)})}
+// Online duels: the guest sends its spell to the host, who sends back both spells so the round is decided once.
+let inbox={},waiters={};
+const waitMsg=t=>inbox[t]&&inbox[t].length?Promise.resolve(inbox[t].shift()):new Promise(r=>{waiters[t]=r});
+const validSpell=k=>SP.some(s=>s[0]===k);
+async function spells(as,ds,head){
+if(!online.active())return[await pick(as,head),await pick(ds,head)];
+const me=mySide(),mine=await pick(me,head);duelEl.insertAdjacentHTML("beforeend","<p>Waiting for your opponent...</p>");
+let a,d;
+if(online.role()==="host"){const other=(await waitMsg("spell")).k;a=as===me?mine:other;d=ds===me?mine:other;online.send({t:"round",a,d})}
+else{online.send({t:"spell",k:mine});const r=await waitMsg("round");a=r.a;d=r.d}
+return[a,d]}
 async function duel(m,att,def){busy=true;const id=gameId,hp={a:HP[att[1]],d:HP[def[1]]},as=att[0],ds=def[0];duelEl.hidden=false;
 const head=()=>`<h2>⚔️ Wizard duel!</h2><p><span class="${as}">${GLYPH[att[1]]}</span> attacker ${"❤️".repeat(hp.a)}<br><span class="${ds}">${GLYPH[def[1]]}</span> defender ${"❤️".repeat(hp.d)}</p>`;
-while(hp.a>0&&hp.d>0){const a=await pick(as,head()),d=await pick(ds,head());let msg;
+while(hp.a>0&&hp.d>0){const[a,d]=await spells(as,ds,head());if(id!==gameId)return;let msg;
 if(a===d)msg="The spells fizzle. Tie!";else if(BEATS[a]===d){hp.d-=1;msg="The attacker lands a hit!"}else{hp.a-=1;msg="The defender strikes back!"}
 duelEl.innerHTML=head()+`<p class="big">${icon(a)} vs ${icon(d)}</p><p>${msg}</p>`;await sleep(1100);if(id!==gameId)return}
 duelEl.hidden=true;
@@ -77,11 +90,11 @@ commit({b,turn:opp(st.turn),cas,ep:null},m,`The ${as==="w"?"white":"black"} atta
 function play(m){commit(apply(st,m),m,"")}
 function commit(ns,m,note){st=ns;last=m;sel=null;dests=[];const ms=legal(st),chk=inCheck(st.b,st.turn),name=st.turn==="w"?"White":"Black";
 if(!ms.length){over=true;statusEl.textContent=note+(chk?`Checkmate! ${opp(st.turn)==="w"?"White":"Black"} wins.`:"Stalemate: it's a draw.")}
-else statusEl.textContent=`${note}${name} to move${chk?" — check!":""}`;busy=false;render();
+else statusEl.textContent=`${note}${name} to move${chk?" — check!":""}${online.active()?` (you are ${mySide()==="w"?"White":"Black"})`:""}`;busy=false;render();
 if(!over&&oppEl.value==="cpu"&&st.turn==="b"){busy=true;setTimeout(aiMove,350)}}
 function click(r,c){if(over||busy)return;const p=st.b[r][c];
-const m=dests.find(d=>d.tr===r&&d.tc===c);if(m){attempt(m);return}
-if(p&&p[0]===st.turn&&(oppEl.value==="two"||st.turn==="w")){sel=[r,c];dests=legal(st).filter(x=>x.fr===r&&x.fc===c)}else{sel=null;dests=[]}render()}
+const m=dests.find(d=>d.tr===r&&d.tc===c);if(m){if(online.active())online.send({t:"move",m});attempt(m);return}
+if(p&&p[0]===st.turn&&(online.active()?st.turn===mySide():oppEl.value==="two"||st.turn==="w")){sel=[r,c];dests=legal(st).filter(x=>x.fr===r&&x.fc===c)}else{sel=null;dests=[]}render()}
 function render(){boardEl.replaceChildren();const chk=inCheck(st.b,st.turn);
 for(let r=0;r<8;r+=1)for(let c=0;c<8;c+=1){const p=st.b[r][c],sq=document.createElement("button");sq.type="button";sq.className="sq "+((r+c)%2?"dark":"light");
 if(last&&((last.fr===r&&last.fc===c)||(last.tr===r&&last.tc===c)))sq.classList.add("last");
@@ -90,8 +103,19 @@ if(chk&&p===st.turn+"K")sq.classList.add("check");
 const d=dests.find(x=>x.tr===r&&x.tc===c);if(d){sq.classList.add("move");if(p||d.ep)sq.classList.add("cap")}
 if(p){sq.textContent=GLYPH[p[1]];sq.classList.add(p[0]);sq.setAttribute("aria-label",(p[0]==="w"?"White ":"Black ")+p[1])}
 sq.addEventListener("click",()=>click(r,c));boardEl.append(sq)}}
-function newGame(){gameId+=1;st=startPos(modeEl.value);sel=null;dests=[];last=null;over=false;busy=false;
+function newGame(init){gameId+=1;inbox={};waiters={};if(init){modeEl.value=init.mode;st=init.st}else st=startPos(modeEl.value);
+if(!init&&online.active()&&online.role()==="host")online.send({t:"new",mode:modeEl.value,st});sel=null;dests=[];last=null;over=false;busy=false;
 descEl.textContent=modeEl.value==="hack"?"Chess hack: both sides' 16 pieces are shuffled randomly across their first two rows (bishops always start on opposite colors; no castling).":modeEl.value==="wizard"?"Wizard chess: every capture is a spell duel! Pick fire 🔥 (beats ice), ice ❄️ (beats lightning) or lightning ⚡ (beats fire). Stronger pieces have more hearts; the loser of the duel is destroyed. Kings never duel.":"Classic chess rules, including castling and en passant.";
-statusEl.textContent="White to move";duelEl.hidden=true;render()}
-[modeEl,oppEl].forEach(e=>e.addEventListener("change",()=>{e.blur();newGame()}));document.querySelector("#new").addEventListener("click",newGame);newGame();
+statusEl.textContent="White to move"+(online.active()?` (you are ${mySide()==="w"?"White":"Black"})`:"");duelEl.hidden=true;render()}
+const newBtn=document.querySelector("#new");
+function lockOnline(on){oppEl.disabled=on;modeEl.disabled=on&&online.role()!=="host";newBtn.disabled=on&&online.role()!=="host"}
+const online=Online.panel(document.querySelector("#online"),"chess",{
+onStart(){oppEl.value="two";lockOnline(true);newGame()},
+onMessage(msg){if(!msg||!online.active())return;
+if(msg.t==="move"){const m=msg.m;if(over||busy||!m||st.turn===mySide())return;const l=legal(st).find(x=>x.fr===m.fr&&x.fc===m.fc&&x.tr===m.tr&&x.tc===m.tc);if(l)attempt(l)}
+else if(msg.t==="new"&&online.role()==="guest"&&msg.st&&["classic","wizard","hack"].includes(msg.mode))newGame(msg)
+else if(msg.t==="spell"||msg.t==="round"){const ok=msg.t==="spell"?validSpell(msg.k):validSpell(msg.a)&&validSpell(msg.d);if(!ok)return;
+if(waiters[msg.t]){const w=waiters[msg.t];delete waiters[msg.t];w(msg)}else(inbox[msg.t]=inbox[msg.t]||[]).push(msg)}},
+onEnd(){lockOnline(false);newGame()}});
+[modeEl,oppEl].forEach(e=>e.addEventListener("change",()=>{e.blur();newGame()}));newBtn.addEventListener("click",()=>newGame());newGame();
 </script></body></html>

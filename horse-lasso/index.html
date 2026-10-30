@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Horse Lasso | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#9a3412,#0b1020 70%)}
+main{width:min(100%,52rem);padding:1.25rem;border:.2rem solid #fdba74;border-radius:1.25rem;background:rgb(8 12 30 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.5rem 0;color:#fed7aa;font-size:1.6rem}
+canvas{display:block;width:100%;height:auto;margin:.8rem auto;border:.2rem solid #475569;border-radius:.4rem;touch-action:none;cursor:crosshair}
+</style></head>
+<body><main><a href="../">← All games</a><h1>🤠 Horse Lasso</h1>
+<p>Wild horses are running across the prairie! <strong>Click or tap</strong> a horse to lasso it before the 30 seconds run out. Fast golden horses are worth more, and a missed throw costs a point of time.</p>
+<canvas id="c" width="800" height="400" aria-label="Horse Lasso"></canvas>
+</main>
+<script>
+const C=document.querySelector("#c"),x=C.getContext("2d");
+let st="idle",hs=[],score=0,time=30,fx=[],last=0,spawn=0,best=+localStorage.getItem("horseLassoBest")||0;
+function reset(){st="play";hs=[];score=0;time=30;fx=[];spawn=0}
+function add(){const dir=Math.random()<.5?1:-1,gold=Math.random()<.2,y=110+Math.random()*250,sp=(gold?260:110+Math.random()*100)*dir;hs.push({x:dir>0?-50:850,y,sp,gold,s:gold?1.2:1})}
+function step(dt){
+ for(const f of fx)f.t-=dt;fx=fx.filter(f=>f.t>0);
+ if(st!=="play")return;
+ time-=dt;if(time<=0){time=0;st="over";if(score>best){best=score;localStorage.setItem("horseLassoBest",best)}return}
+ spawn-=dt;if(spawn<=0){add();spawn=.5+Math.random()*.6}
+ hs.forEach(h=>h.x+=h.sp*dt);hs=hs.filter(h=>h.x>-100&&h.x<900)}
+function draw(){
+ x.fillStyle="#fde68a";x.fillRect(0,0,800,400);x.fillStyle="#fb923c";x.fillRect(0,90,800,6);x.fillStyle="#d97706";x.fillRect(0,96,800,304);
+ x.fillStyle="#b45309";for(let i=0;i<30;i++)x.fillRect((i*97)%800,120+(i*53)%260,20,4);
+ hs.slice().sort((a,b)=>a.y-b.y).forEach(h=>{x.font=`${54*h.s}px serif`;x.save();x.translate(h.x,h.y);if(h.sp>0)x.scale(-1,1);if(h.gold)x.filter="sepia(1) saturate(4) hue-rotate(-10deg)";x.fillText("🐎",-27,0);x.restore()});
+ for(const f of fx){x.strokeStyle="#92400e";x.lineWidth=4;x.globalAlpha=f.t/.4;x.beginPath();x.arc(f.x,f.y,50-f.t*60,0,6.3);x.stroke();x.globalAlpha=1;x.fillStyle=f.c;x.font="bold 22px Arial";x.textAlign="center";x.fillText(f.s,f.x,f.y-40-(.4-f.t)*40)}
+ x.textAlign="left";x.fillStyle="#451a03";x.font="bold 20px Arial";x.fillText(`Score: ${score}   Time: ${Math.ceil(time)}   Best: ${best}`,12,30);
+ x.textAlign="center";x.font="bold 30px Arial";
+ if(st==="idle")x.fillText("Click to start",400,60);
+ if(st==="over"){x.fillStyle="rgba(69,26,3,.8)";x.fillRect(200,130,400,140);x.fillStyle="#fff";x.fillText(`Time's up! Score ${score}`,400,190);x.font="bold 18px Arial";x.fillText("Click to play again",400,230)}}
+function pos(e){const r=C.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*800,y:(e.clientY-r.top)/r.height*400}}
+C.addEventListener("pointerdown",e=>{
+ e.preventDefault();if(st!=="play"){reset();return}
+ const p=pos(e);let hit=null;
+ for(const h of hs.slice().sort((a,b)=>b.y-a.y))if(Math.abs(p.x-h.x)<36*h.s&&p.y>h.y-50*h.s&&p.y<h.y+10){hit=h;break}
+ if(hit){const v=hit.gold?5:1;score+=v;hs=hs.filter(h=>h!==hit);fx.push({x:hit.x,y:hit.y-20,t:.4,s:"+"+v,c:"#166534"})}
+ else{time=Math.max(0,time-1);fx.push({x:p.x,y:p.y,t:.4,s:"-1s",c:"#b91c1c"})}});
+function loop(ts){const dt=Math.min(.05,(ts-last)/1000);last=ts;step(dt);draw();requestAnimationFrame(loop)}
+requestAnimationFrame(loop);
+</script></body></html>

@@ -4,11 +4,11 @@
 main{width:min(100%,42rem);padding:1.5rem;border:.2rem solid #e879f9;border-radius:1.25rem;background:rgb(30 27 75 / 92%);text-align:center}a{color:#f0abfc}h1{margin:.6rem 0;color:#fef08a}
 canvas{display:block;width:100%;height:auto;margin:1rem 0;border:.2rem solid #c026d3;border-radius:.6rem;background:#14532d}button{padding:.65rem 1rem;border:0;border-radius:.5rem;background:#fef08a;color:#3b0764;cursor:pointer;font:inherit;font-weight:bold}#status{min-height:1.5rem;color:#fef08a;font-weight:bold}.p1{color:#93c5fd}.p2{color:#fca5a5}
 </style></head>
-<body><main><a href="../">← All games</a><h1>💣 Bomb Arena</h1><p>Inspired by the classic Bomberman. Drop bombs, blow up the bricks and trap your rival in the blast. First to 3 rounds wins.</p>
+<body><main><a href="../">← All games</a><h1>💣 Bomb Arena</h1><p>Inspired by the classic Bomberman. Drop bombs, blow up the bricks and trap your rival in the blast. First to 3 rounds wins. You can also play on 2 devices: one hosts, the other joins and uses the Player 1 keys.</p>
 <p><span class="p1">P1 (blue): W A S D move, Space bomb</span><br><span class="p2">P2 (red): arrow keys move, Enter bomb (or the robot)</span></p>
 <p><label>Opponent <select id="opp"><option value="two">2 players</option><option value="bot">Face the robot</option></select></label></p>
 <p><span class="p1">P1: <strong id="s1">0</strong></span> · <span class="p2">P2: <strong id="s2">0</strong></span></p>
-<canvas id="game" width="600" height="440" aria-label="Bomb Arena game"></canvas><button id="start" type="button">New match</button><p id="status" aria-live="polite"></p></main>
+<canvas id="game" width="600" height="440" aria-label="Bomb Arena game"></canvas><button id="start" type="button">New match</button><p id="status" aria-live="polite"></p><div id="online"></div></main><script src="../online.js"></script>
 <script>
 const canvas=document.querySelector("#game"),oppEl=document.querySelector("#opp"),ctx=canvas.getContext("2d"),statusEl=document.querySelector("#status"),GW=15,GH=11,T=40,FUSE=2.2,RANGE=3,MAXB=2;
 const CTRL=[{u:"KeyW",d:"KeyS",l:"KeyA",r:"KeyD",b:"Space"},{u:"ArrowUp",d:"ArrowDown",l:"ArrowLeft",r:"ArrowRight",b:"Enter"}];
@@ -36,7 +36,8 @@ function canWalk(i,x,y){if(x<0||y<0||x>=GW||y>=GH||map[y][x])return false;return
 function explode(b){if(b.gone)return;b.gone=true;const cells=[[b.x,b.y]];
 [[1,0],[-1,0],[0,1],[0,-1]].forEach(([dx,dy])=>{for(let n=1;n<=RANGE;n+=1){const x=b.x+dx*n,y=b.y+dy*n;if(x<0||y<0||x>=GW||y>=GH||map[y][x]===1)break;cells.push([x,y]);if(map[y][x]===2){map[y][x]=0;break}}});
 cells.forEach(([x,y])=>{flames.push({x,y,t:.45});const c=bombAt(x,y);if(c&&!c.gone)explode(c)});bombs=bombs.filter(o=>!o.gone)}
-function update(dt){if(state==="over")return;if(state==="wait"){if(performance.now()>nextAt)round();return}
+function update(dt){if(net.role==="guest")return;if(net.role==="host"){const c=CTRL[1];MASK.forEach((k,n)=>keys[c[k]]=!!(net.rin>>n&1))}
+if(state==="over")return;if(state==="wait"){if(performance.now()>nextAt)round();return}
 players.forEach((p,i)=>{if(!p.alive)return;const c=CTRL[i],bot=i===1&&oppEl.value==="bot";p.cd-=dt;
 const act=bot?(p.cd<=0?aiAct(p):{}):{dx:(keys[c.r]?1:0)-(keys[c.l]?1:0),dy:0,bomb:keys[c.b]};if(!bot&&!act.dx)act.dy=(keys[c.d]?1:0)-(keys[c.u]?1:0);
 if(p.cd<=0){const dx=act.dx||0,dy=act.dy||0;if((dx||dy)&&canWalk(i,p.x+dx,p.y+dy)){p.x+=dx;p.y+=dy;p.cd=bot?.2:.14}}
@@ -49,7 +50,14 @@ function draw(){for(let y=0;y<GH;y+=1)for(let x=0;x<GW;x+=1){ctx.fillStyle=map[y
 flames.forEach(f=>{ctx.fillStyle="#fb923c";ctx.fillRect(f.x*T+3,f.y*T+3,T-6,T-6);ctx.fillStyle="#fef08a";ctx.fillRect(f.x*T+11,f.y*T+11,T-22,T-22)});
 bombs.forEach(b=>{ctx.fillStyle="#0f172a";ctx.beginPath();ctx.arc(b.x*T+T/2,b.y*T+T/2,T/2-6+(Math.sin(b.t*14)>0?2:0),0,7);ctx.fill()});
 players.forEach(p=>{if(!p.alive)return;ctx.fillStyle=p.c;ctx.beginPath();ctx.arc(p.x*T+T/2,p.y*T+T/2,T/2-6,0,7);ctx.fill();ctx.fillStyle="#fff";ctx.fillRect(p.x*T+T/2-7,p.y*T+T/2-5,5,5);ctx.fillRect(p.x*T+T/2+2,p.y*T+T/2-5,5,5)})}
-let last=0;function loop(now){update(Math.min(.05,(now-last)/1000||0));last=now;draw();requestAnimationFrame(loop)}
+const net={role:null,rin:0,n:0},MASK=["u","d","l","r","b"],r2=v=>Math.round(v*100)/100,online=Online.panel(document.querySelector("#online"),"bomb-arena",{
+onStart(role){net.role=role;net.rin=0;oppEl.value="two";oppEl.disabled=true;if(role==="guest"){score=[0,0];show();round();statusEl.textContent="Connected. You are Player 2 (blue keys).";document.querySelector("#start").disabled=true}else newMatch()},
+onMessage(m){if(!m)return;if(m.t==="in"&&net.role==="host")net.rin=m.k|0;else if(m.t==="s"&&net.role==="guest")applySnap(m)},
+onEnd(){net.role=null;net.rin=0;oppEl.disabled=false;document.querySelector("#start").disabled=false;newMatch()}});
+function snap(){return{t:"s",g:map.map(r=>r.join("")).join(""),p:players.map(p=>[p.x,p.y,p.alive?1:0]),b:bombs.map(b=>[b.x,b.y,r2(b.t)]),f:flames.map(f=>[f.x,f.y,r2(f.t)]),c:score,z:state,s:statusEl.textContent}}
+function applySnap(m){map=Array.from({length:GH},(_,y)=>Array.from({length:GW},(_,x)=>+m.g[y*GW+x]));m.p.forEach(([x,y,a],i)=>Object.assign(players[i],{x,y,alive:!!a}));bombs=m.b.map(([x,y,t])=>({x,y,t}));flames=m.f.map(([x,y,t])=>({x,y,t}));score=m.c;state=m.z;statusEl.textContent=m.s;show()}
+setInterval(()=>{if(net.role==="guest"){const c=CTRL[0];online.send({t:"in",k:MASK.reduce((a,k,n)=>a|(keys[c[k]]?1<<n:0),0)})}},50);
+let last=0;function loop(now){update(Math.min(.05,(now-last)/1000||0));last=now;if(net.role==="host"){net.n+=1;if(net.n%2===0)online.send(snap())}draw();requestAnimationFrame(loop)}
 document.addEventListener("keydown",e=>{if(["Space","Enter","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code))e.preventDefault();keys[e.code]=true});
 document.addEventListener("keyup",e=>{keys[e.code]=false});window.addEventListener("blur",()=>Object.keys(keys).forEach(k=>keys[k]=false));
 oppEl.addEventListener("change",()=>{oppEl.blur();newMatch()});

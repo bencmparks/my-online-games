@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Horse Derby | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#78350f,#0b1020 70%)}
+main{width:min(100%,52rem);padding:1.25rem;border:.2rem solid #fcd34d;border-radius:1.25rem;background:rgb(8 12 30 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.5rem 0;color:#fde68a;font-size:1.6rem}
+canvas{display:block;width:100%;height:auto;margin:.8rem auto;border:.2rem solid #475569;border-radius:.4rem;touch-action:none}
+.row{display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap}.row button{padding:.7rem 1.4rem;border:0;border-radius:.6rem;background:#b45309;color:#fff;font-weight:700;font-size:1rem;cursor:pointer}
+</style></head>
+<body><main><a href="../">← All games</a><h1>🏇 Horse Derby</h1>
+<p>Race 3 CPU horses to the finish! <strong>Alternate</strong> the <strong>← / →</strong> keys (or <strong>A / D</strong>, or the buttons) to gallop — pressing the same side twice slows you down. Wait for the countdown!</p>
+<canvas id="c" width="800" height="360" aria-label="Horse Derby"></canvas>
+<div class="row"><button id="L">⬅ Left</button><button id="R">Right ➡</button><button id="go">Start Race</button></div>
+<p>Wins: <span id="w">0</span> · Best time: <span id="b">–</span></p>
+</main>
+<script>
+const C=document.querySelector("#c"),x=C.getContext("2d"),$=s=>document.querySelector(s),FIN=700;
+let h,st="idle",cd=0,t0=0,last=0,wins=+localStorage.getItem("derbyWins")||0,best=+localStorage.getItem("derbyBest")||0,res="",rank=0;
+const names=["You","Blaze","Storm","Comet"],cols=["#facc15","#ef4444","#38bdf8","#a78bfa"];
+function upd(){$("#w").textContent=wins;$("#b").textContent=best?best.toFixed(2)+"s":"–"}
+function start(){h=names.map((n,i)=>({n,x:20,v:0,side:0,fin:0,sp:i?.82+Math.random()*.3:0,ph:Math.random()*9}));st="count";cd=3.2;res="";rank=0;t0=0;$("#go").blur()}
+function press(s){
+ if(st!=="race")return;const p=h[0];if(p.fin)return;
+ if(p.side===s){p.v=Math.max(0,p.v-.6)}else{p.v=Math.min(9,p.v+1.1);p.side=s}}
+function step(dt){
+ if(st==="count"){cd-=dt;if(cd<=0){st="race";t0=performance.now()}return}
+ if(st!=="race")return;
+ const t=(performance.now()-t0)/1000;
+ h.forEach((o,i)=>{if(o.fin)return;
+  if(i){o.v=Math.max(0,o.sp*5.5+Math.sin(t*1.7+o.ph)*1.3+(o.x/FIN)*.8)}else o.v=Math.max(0,o.v-dt*2.2);
+  o.x+=o.v*dt*30;
+  if(o.x>=FIN){o.x=FIN;o.fin=++rank;o.t=t;if(i===0){if(o.fin===1){wins++;localStorage.setItem("derbyWins",wins);res="🏆 You won!"}else res="You finished "+["","1st","2nd","3rd","4th"][o.fin];if(o.fin===1&&(!best||t<best)){best=t;localStorage.setItem("derbyBest",best)}upd()}}});
+ if(h[0].fin&&st==="race"){st="done"}}
+function draw(){
+ x.fillStyle="#166534";x.fillRect(0,0,800,360);
+ for(let i=0;i<4;i++){x.fillStyle=i%2?"#15803d":"#16a34a";x.fillRect(0,40+i*75,800,75)}
+ x.fillStyle="#fff";x.fillRect(FIN+60,40,6,300);x.font="14px Arial";x.fillText("FINISH",FIN+30,30);
+ h.forEach((o,i)=>{const y=80+i*75;x.font="40px serif";x.save();x.translate(o.x+50,y+10);x.scale(-1,1);x.fillText("🐎",0,0);x.restore();
+  x.fillStyle=cols[i];x.font="bold 13px Arial";x.fillText(o.n+(o.fin?" #"+o.fin:""),o.x+10,y-28)});
+ x.textAlign="center";x.fillStyle="#fff";x.strokeStyle="#000";x.lineWidth=5;
+ if(st==="idle"){x.font="bold 30px Arial";x.strokeText("Press Start Race",400,190);x.fillText("Press Start Race",400,190)}
+ if(st==="count"){const n=Math.ceil(cd-.2);const s=n>0?String(n):"GO!";x.font="bold 70px Arial";x.strokeText(s,400,200);x.fillText(s,400,200)}
+ if(st==="done"){x.font="bold 40px Arial";x.strokeText(res,400,190);x.fillText(res,400,190)}
+ x.textAlign="left"}
+h=names.map(n=>({n,x:20,v:0,fin:0}));upd();
+function loop(ts){const dt=Math.min(.05,(ts-last)/1000);last=ts;step(dt);draw();requestAnimationFrame(loop)}
+addEventListener("keydown",e=>{if(e.repeat)return;if(e.code==="ArrowLeft"||e.code==="KeyA"){e.preventDefault();press(1)}if(e.code==="ArrowRight"||e.code==="KeyD"){e.preventDefault();press(2)}if(e.code==="Space"||e.code==="Enter"){if(st==="idle"||st==="done"){e.preventDefault();start()}}});
+$("#L").onpointerdown=()=>press(1);$("#R").onpointerdown=()=>press(2);$("#go").onclick=start;
+requestAnimationFrame(loop);
+</script></body></html>

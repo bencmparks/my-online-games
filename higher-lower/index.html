@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Higher or Lower | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#14532d,#0b1020 70%)}
+main{width:min(100%,30rem);padding:1.25rem;border:.2rem solid #86efac;border-radius:1.25rem;background:rgb(8 12 30 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.5rem 0;color:#bbf7d0;font-size:1.6rem}
+.stats{display:flex;justify-content:space-around;font-weight:700}
+.cards{display:flex;justify-content:center;gap:1.5rem;margin:1rem 0}
+.card{width:6rem;height:8.5rem;display:grid;place-items:center;border-radius:.7rem;background:#fff;color:#111;font-size:2.6rem;font-weight:800}
+.card.red{color:#dc2626}.card.back{background:repeating-linear-gradient(45deg,#1d4ed8,#1d4ed8 8px,#1e40af 8px,#1e40af 16px);color:#fff}
+.row{display:flex;gap:.8rem;justify-content:center}.row button{padding:.7rem 1.5rem;border:0;border-radius:.6rem;background:#16a34a;color:#fff;font-weight:700;font-size:1.1rem;cursor:pointer}.row button:disabled{opacity:.4;cursor:default}
+#msg{min-height:2rem;margin:.6rem 0;font-weight:800;color:#fde047}
+</style></head>
+<body><main><a href="../">← All games</a><h1>🃏 Higher or Lower</h1>
+<p>Will the next card be <strong>higher</strong> or <strong>lower</strong>? Use the buttons or the <strong>↑ / ↓</strong> keys. Build the longest streak you can. A tie loses.</p>
+<div class="stats"><span>Streak: <span id="st">0</span></span><span>Best: <span id="bs">0</span></span></div>
+<div class="cards"><div class="card" id="cur"></div><div class="card back" id="nxt">?</div></div>
+<div id="msg"></div>
+<div class="row"><button id="hi">⬆ Higher</button><button id="lo">⬇ Lower</button></div>
+</main>
+<script>
+const $=s=>document.querySelector(s),R=["2","3","4","5","6","7","8","9","10","J","Q","K","A"],S=["♠","♥","♦","♣"];
+let deck,cur,st=0,best=+localStorage.getItem("higherLowerBest")||0,over=false,busy=false;
+function shuffle(){deck=[];for(let r=0;r<13;r++)for(let s=0;s<4;s++)deck.push({r,s});for(let i=deck.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]]}}
+function show(el,c){el.className="card"+(c.s%3===1?" red":"");el.textContent=R[c.r]+S[c.s];if(c.s===2)el.classList.add("red")}
+function draw(){if(!deck.length)shuffle();return deck.pop()}
+function start(){shuffle();cur=draw();st=0;over=false;busy=false;show($("#cur"),cur);$("#nxt").className="card back";$("#nxt").textContent="?";$("#msg").textContent="Higher or lower?";upd()}
+function upd(){$("#st").textContent=st;$("#bs").textContent=best}
+function guess(up){
+ if(busy)return;if(over){start();return}
+ busy=true;const n=draw();show($("#nxt"),n);
+ const ok=n.r!==cur.r&&(up?n.r>cur.r:n.r<cur.r);
+ if(ok){st++;if(st>best){best=st;localStorage.setItem("higherLowerBest",best)}$("#msg").textContent="Correct!";upd();setTimeout(()=>{cur=n;show($("#cur"),cur);$("#nxt").className="card back";$("#nxt").textContent="?";busy=false},700)}
+ else{over=true;$("#msg").textContent=n.r===cur.r?"Tie — you lose! Press a button to play again":"Wrong! Press a button to play again";busy=false}}
+$("#hi").onclick=()=>{guess(true);$("#hi").blur()};$("#lo").onclick=()=>{guess(false);$("#lo").blur()};
+addEventListener("keydown",e=>{if(e.key==="ArrowUp"){e.preventDefault();guess(true)}if(e.key==="ArrowDown"){e.preventDefault();guess(false)}});
+start();
+</script></body></html>

@@ -4,12 +4,12 @@
 main{width:min(100%,42rem);padding:1.5rem;border:.2rem solid #a3e635;border-radius:1.25rem;background:rgb(26 46 5 / 92%);text-align:center}a{color:#bef264}h1{margin:.6rem 0;color:#fef08a}
 canvas{display:block;width:100%;height:auto;margin:1rem 0;border:.2rem solid #84cc16;border-radius:.6rem;background:#4d7c0f}button{padding:.65rem 1rem;border:0;border-radius:.5rem;background:#fef08a;color:#1a2e05;cursor:pointer;font:inherit;font-weight:bold}#status{min-height:1.5rem;color:#fef08a;font-weight:bold}.p1{color:#93c5fd}.p2{color:#fca5a5}
 </style></head>
-<body><main><a href="../">← All games</a><h1>🪖 Tank Duel</h1><p>Inspired by the Atari classic Combat. Drive around the walls and shoot your rival; bullets bounce! Each tank has 5 lives: a bullet costs 1, a bomb 2 and a fireball 3. Last tank standing wins. Use <strong>Edit board</strong> to draw your own walls.</p>
+<body><main><a href="../">← All games</a><h1>🪖 Tank Duel</h1><p>Inspired by the Atari classic Combat. Drive around the walls and shoot your rival; bullets bounce! Each tank has 5 lives: a bullet costs 1, a bomb 2 and a fireball 3. Last tank standing wins. Use <strong>Edit board</strong> to draw your own walls. You can also play on 2 devices: one hosts, the other joins and uses the Player 1 keys.</p>
 <p><span class="p1">P1 (blue): A/D turn, W/S drive, Space fire, E bomb, R fireball, Q laser</span><br><span class="p2">P2 (red): ←/→ turn, ↑/↓ drive, Enter fire, / bomb, . fireball, , laser (or the robot)</span></p>
 <p>You get 3 fireballs a match. Bombs explode after 2 seconds (3 out at a time). The laser is an instant beam that smashes every wall in its path and does 2 damage to a tank it hits (1.5 second recharge).</p>
 <p><label>Opponent <select id="opp"><option value="two">2 players</option><option value="bot">Face the robot</option></select></label></p>
 <p><span class="p1">P1: <strong id="s1"></strong></span> · <span class="p2">P2: <strong id="s2"></strong></span></p>
-<canvas id="game" width="600" height="400" aria-label="Tank Duel game"></canvas><button id="start" type="button">New match</button> <button id="edit" type="button">Edit board</button> <button id="clear" type="button">Clear board</button> <button id="def" type="button">Default board</button><p id="status" aria-live="polite">Fight!</p></main>
+<canvas id="game" width="600" height="400" aria-label="Tank Duel game"></canvas><button id="start" type="button">New match</button> <button id="edit" type="button">Edit board</button> <button id="clear" type="button">Clear board</button> <button id="def" type="button">Default board</button><p id="status" aria-live="polite">Fight!</p><div id="online"></div></main><script src="../online.js"></script>
 <script>
 const canvas=document.querySelector("#game"),oppEl=document.querySelector("#opp"),ctx=canvas.getContext("2d"),statusEl=document.querySelector("#status"),W=600,H=400,R=14;
 const walls=[];let cells,editing=false,paint=null;const CW=20,CX=30,CY=20,HP=5,BALLS=3;
@@ -42,7 +42,9 @@ if(clear&&Math.abs(diff)<.2&&dist<420&&Math.random()<.5)keys[c.s]=true;
 if(clear&&Math.abs(diff)<.08&&t.balls>0&&Math.random()<.05)keys[c.fb]=true;
 if(Math.abs(diff)<.9&&(dist>170||!clear))keys[c.f]=true;else if(clear&&dist<110)keys[c.b]=true}
 const aiState={lx:0,ly:0,moved:0,stuck:0,unstick:0,dir:1};
-function step(){if(over||editing)return;
+function step(){if(net.role==="guest")return;
+if(net.role==="host"){const c=CTRL[1];MASK.forEach((k,n)=>keys[c[k]]=!!(net.rin>>n&1))}
+if(over||editing)return;
 if(oppEl.value==="bot")aiKeys();
 tanks.forEach((t,i)=>{const c=CTRL[i];t.cd=Math.max(0,t.cd-1);t.inv=Math.max(0,t.inv-1);t.bcd=Math.max(0,t.bcd-1);t.fcd=Math.max(0,t.fcd-1);t.wcd=Math.max(0,t.wcd-1);if(keys[c.l])t.a-=.06;if(keys[c.r])t.a+=.06;
 const mv=(keys[c.f]?2.2:0)-(keys[c.b]?1.6:0);if(mv){const nx=t.x+Math.cos(t.a)*mv,ny=t.y+Math.sin(t.a)*mv;if(!blocked(nx,t.y,R))t.x=nx;if(!blocked(t.x,ny,R))t.y=ny}
@@ -65,7 +67,15 @@ booms.forEach(b=>{ctx.fillStyle="rgb(251 146 60 / 55%)";ctx.beginPath();ctx.arc(
 tanks.forEach(t=>{if(t.hp<=0||(t.inv>0&&Math.floor(t.inv/4)%2))return;ctx.save();ctx.translate(t.x,t.y);ctx.rotate(t.a);ctx.fillStyle=t.c;ctx.fillRect(-R,-R+2,R*2,R*2-4);ctx.fillStyle="#0f172a";ctx.fillRect(0,-3,R+8,6);ctx.restore()});
 ctx.fillStyle="#fef08a";bullets.forEach(b=>{ctx.beginPath();ctx.arc(b.x,b.y,3,0,7);ctx.fill()});
 balls.forEach(f=>{ctx.fillStyle="#f97316";ctx.beginPath();ctx.arc(f.x,f.y,7,0,7);ctx.fill();ctx.fillStyle="#fef08a";ctx.beginPath();ctx.arc(f.x,f.y,3,0,7);ctx.fill()})}
-function loop(){step();draw();requestAnimationFrame(loop)}
+const net={role:null,rin:0,n:0,cells:""},MASK=["l","r","f","b","s","bm","fb","wr"],r1=v=>Math.round(v*10)/10,online=Online.panel(document.querySelector("#online"),"tank-duel",{
+onStart(role){net.role=role;net.rin=0;net.cells="";if(editing)document.querySelector("#edit").click();oppEl.value="two";oppEl.disabled=true;if(role==="guest"){place();over=false;show();statusEl.textContent="Connected. You are Player 2 (blue keys).";["start","edit","clear","def"].forEach(i=>document.querySelector("#"+i).disabled=true)}else newMatch()},
+onMessage(m){if(!m)return;if(m.t==="in"&&net.role==="host")net.rin=m.k|0;else if(m.t==="s"&&net.role==="guest")applySnap(m)},
+onEnd(){net.role=null;net.rin=0;oppEl.disabled=false;["start","edit","clear","def"].forEach(i=>document.querySelector("#"+i).disabled=false);loadCells();newMatch()}});
+function snap(){const c=cells.map(r=>r.map(v=>v?1:0).join("")).join("");const m={t:"s",k:tanks.map(t=>[r1(t.x),r1(t.y),Math.round(t.a*100)/100,t.hp,t.balls,t.inv]),b:bullets.map(b=>[r1(b.x),r1(b.y)]),m:bombs.map(b=>[b.x,b.y,b.t]),f:balls.map(f=>[r1(f.x),r1(f.y)]),w:wires.map(w=>[r1(w.x1),r1(w.y1),r1(w.x2),r1(w.y2),w.t]),o:booms.map(b=>[r1(b.x),r1(b.y),b.t]),v:over,s:statusEl.textContent};if(c!==net.cells){net.cells=c;m.c=c}return m}
+function applySnap(m){m.k.forEach((a,i)=>{const t=tanks[i];[t.x,t.y,t.a,t.hp,t.balls,t.inv]=a});bullets=m.b.map(([x,y])=>({x,y}));bombs=m.m.map(([x,y,t])=>({x,y,t}));balls=m.f.map(([x,y])=>({x,y}));wires=m.w.map(([x1,y1,x2,y2,t])=>({x1,y1,x2,y2,t}));booms=m.o.map(([x,y,t])=>({x,y,t}));over=m.v;statusEl.textContent=m.s;
+if(m.c){cells=Array.from({length:CY},(_,y)=>Array.from({length:CX},(_,x)=>m.c[y*CX+x]==="1"));rebuild()}show()}
+setInterval(()=>{if(net.role==="guest"){const c=CTRL[0];online.send({t:"in",k:MASK.reduce((a,k,n)=>a|(keys[c[k]]?1<<n:0),0)})}},50);
+function loop(){step();if(net.role==="host"){net.n+=1;if(net.n%2===0)online.send(snap())}draw();requestAnimationFrame(loop)}
 function paintAt(e){const r=canvas.getBoundingClientRect(),x=Math.floor((e.clientX-r.left)/r.width*CX),y=Math.floor((e.clientY-r.top)/r.height*CY);
 if(x<0||y<0||x>=CX||y>=CY||reserved(x,y)||cells[y][x]===paint)return;cells[y][x]=paint;rebuild()}
 canvas.addEventListener("pointerdown",e=>{if(!editing)return;const r=canvas.getBoundingClientRect(),x=Math.floor((e.clientX-r.left)/r.width*CX),y=Math.floor((e.clientY-r.top)/r.height*CY);if(cells[y]?.[x]===undefined)return;paint=!cells[y][x];canvas.setPointerCapture(e.pointerId);paintAt(e)});

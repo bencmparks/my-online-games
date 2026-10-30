@@ -134,7 +134,7 @@
     const advAdj = ["Burning", "Frozen", "Silent", "Roaring", "Crimson", "Golden", "Shattered", "Hidden", "Endless", "Savage", "Radiant", "Midnight", "Iron", "Stormy", "Phantom", "Rogue", "Ancient", "Furious", "Hollow", "Neon", "Scarlet", "Silver", "Thunder", "Wild", "Lost", "Rising", "Fallen", "Blazing", "Cosmic", "Grim"];
     const advNoun = ["Skies", "Strait", "Canyon", "Armada", "Squadron", "Horizon", "Reef", "Summit", "Gauntlet", "Fortress", "Cyclone", "Archipelago", "Outpost", "Corridor", "Vortex", "Frontier", "Convoy", "Harbor", "Ridge", "Tempest", "Blockade", "Expanse", "Rift", "Delta", "Pass", "Citadel", "Raid", "Chase", "Strike", "Run"];
     const advBoss = ["Tyrant", "Wraith", "Kraken", "Hornet", "Colossus", "Reaper", "Drake", "Warlord", "Leviathan", "Baron"];
-    for (let n = 50; n <= 8999; n += 1) {
+    for (let n = 50; n <= 9999; n += 1) {
       const k = n - 49, a = k - 1, cyc = Math.floor(a / 900), name = `${advAdj[a % 30]} ${advNoun[Math.floor(a / 30) % 30]}${cyc ? " " + (cyc + 1) : ""}`, lv = { name, planes: 20, ships: 3 + Math.floor((k % 40) / 8), diff: 30 + Math.min(40, Math.floor(k / 45)), bonus: 40000 + k * 60 };
       if (k % 5 === 0) lv.boss = { name: `${advAdj[(a * 7) % 30]} ${advBoss[k % 10]}`, hp: Math.round(1100 + Math.min(k, 3000) * 2.5), heli: k % 10 === 0 };
       LEVELS.push(lv);

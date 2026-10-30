@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Dice Duel | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#7f1d1d,#0b1020 70%)}
+main{width:min(100%,30rem);padding:1.25rem;border:.2rem solid #fca5a5;border-radius:1.25rem;background:rgb(8 12 30 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.5rem 0;color:#fecaca;font-size:1.6rem}
+.scores{display:flex;justify-content:space-around;font-size:1.1rem;font-weight:700}.scores b{display:block;font-size:2rem;color:#fde047}
+#die{font-size:6rem;margin:.4rem 0;min-height:7rem}
+.row{display:flex;gap:.8rem;justify-content:center}.row button{padding:.7rem 1.5rem;border:0;border-radius:.6rem;background:#dc2626;color:#fff;font-weight:700;font-size:1.1rem;cursor:pointer}.row button:disabled{opacity:.4;cursor:default}
+#hold{background:#16a34a}
+#msg{min-height:2.6rem;margin:.6rem 0;font-weight:800;color:#fde047}
+</style></head>
+<body><main><a href="../">← All games</a><h1>🎲 Dice Duel</h1>
+<p>Race the CPU to <strong>100</strong>. On your turn, <strong>roll</strong> as often as you like and add up your turn total — but roll a <strong>1</strong> and you lose it all. <strong>Hold</strong> to bank your points. Keys: <strong>R</strong> roll, <strong>H</strong> hold.</p>
+<div class="scores"><div>You<b id="ps">0</b></div><div>Turn<b id="tt">0</b></div><div>CPU<b id="cs">0</b></div></div>
+<div id="die">🎲</div><div id="msg">Your turn!</div>
+<div class="row"><button id="roll">Roll</button><button id="hold">Hold</button><button id="new">New game</button></div>
+<p>Wins: <span id="w">0</span></p>
+</main>
+<script>
+const $=s=>document.querySelector(s),F=["","⚀","⚁","⚂","⚃","⚄","⚅"];
+let ps,cs,tt,turn,over,wins=+localStorage.getItem("diceDuelWins")||0;
+function upd(){$("#ps").textContent=ps;$("#cs").textContent=cs;$("#tt").textContent=tt;$("#w").textContent=wins;$("#roll").disabled=$("#hold").disabled=turn!=="p"||over}
+function start(){ps=cs=tt=0;turn="p";over=false;$("#die").textContent="🎲";$("#msg").textContent="Your turn!";upd()}
+function endTurn(){tt=0;turn=turn==="p"?"c":"p";upd();if(turn==="c")setTimeout(cpu,800);else $("#msg").textContent+=" Your turn!"}
+function bank(){if(turn==="p")ps+=tt;else cs+=tt;tt=0;if(ps>=100||cs>=100){over=true;if(ps>=100){wins++;localStorage.setItem("diceDuelWins",wins)}$("#msg").textContent=ps>=100?"🏆 You win!":"💥 CPU wins!";upd();return true}return false}
+function roll(){
+ const d=1+Math.floor(Math.random()*6);$("#die").textContent=F[d];
+ if(d===1){$("#msg").textContent=turn==="p"?"Rolled a 1 — you lose your turn total!":"CPU rolled a 1!";endTurn();return false}
+ tt+=d;upd();return true}
+function hold(){if(bank())return;$("#msg").textContent=turn==="p"?"You banked it.":"CPU holds.";endTurn()}
+function cpu(){
+ if(over)return;
+ const goal=Math.min(20,100-cs);
+ if(tt>=goal||cs+tt>=100){hold();return}
+ $("#msg").textContent="CPU rolls...";if(roll())setTimeout(cpu,700)}
+$("#roll").onclick=()=>{if(turn==="p"&&!over)roll();$("#roll").blur()};
+$("#hold").onclick=()=>{if(turn==="p"&&!over&&tt>0)hold();$("#hold").blur()};
+$("#new").onclick=()=>{start();$("#new").blur()};
+addEventListener("keydown",e=>{if(turn!=="p"||over)return;const k=e.key.toLowerCase();if(k==="r")roll();if(k==="h"&&tt>0)hold()});
+start();
+</script></body></html>

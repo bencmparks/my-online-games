@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Rock Paper Scissors | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#9a3412,#0b1020 70%)}
+main{width:min(100%,32rem);padding:1.25rem;border:.2rem solid #fdba74;border-radius:1.25rem;background:rgb(8 12 30 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.5rem 0;color:#fed7aa;font-size:1.6rem}
+.score{display:flex;justify-content:space-around;font-weight:700;margin:.6rem 0}
+.arena{display:flex;justify-content:space-around;align-items:center;font-size:4.5rem;margin:.6rem 0;min-height:6rem}
+.arena small{display:block;font-size:.9rem;color:#94a3b8}
+.picks{display:flex;gap:.6rem;justify-content:center}.picks button{font-size:2.4rem;padding:.5rem 1rem;border:0;border-radius:.8rem;background:#f97316;cursor:pointer}.picks button:hover{background:#fb923c}
+#msg{min-height:2rem;font-size:1.3rem;font-weight:800;color:#fde047;margin:.5rem 0}
+#reset{padding:.4rem 1rem;border:0;border-radius:.5rem;background:#475569;color:#fff;cursor:pointer}
+</style></head>
+<body><main><a href="../">← All games</a><h1>✊ Rock Paper Scissors</h1>
+<p>Beat the CPU in a <strong>first to 3</strong> match. Rock beats scissors, scissors beat paper, paper beats rock. Keys: <strong>R</strong>, <strong>P</strong>, <strong>S</strong>.</p>
+<div class="score"><span>You: <span id="you">0</span></span><span>Ties: <span id="tie">0</span></span><span>CPU: <span id="cpu">0</span></span><span>Match wins: <span id="mw">0</span></span></div>
+<div class="arena"><div id="a">❔<small>You</small></div><div id="b">❔<small>CPU</small></div></div>
+<div id="msg">Pick your move!</div>
+<div class="picks"><button data-m="0" aria-label="Rock">✊</button><button data-m="1" aria-label="Paper">✋</button><button data-m="2" aria-label="Scissors">✌️</button></div>
+<p><button id="reset">New match</button></p>
+</main>
+<script>
+const E=["✊","✋","✌️"],$=s=>document.querySelector(s);
+let y=0,c=0,t=0,done=false,mw=+localStorage.getItem("rpsWins")||0;
+$("#mw").textContent=mw;
+function play(m){
+ if(done)return;const o=Math.floor(Math.random()*3);
+ $("#a").firstChild.textContent=E[m];$("#b").firstChild.textContent=E[o];
+ if(m===o){t++;$("#msg").textContent="Tie!"}
+ else if((m+1)%3===o){c++;$("#msg").textContent="CPU wins the round"}
+ else{y++;$("#msg").textContent="You win the round!"}
+ $("#you").textContent=y;$("#cpu").textContent=c;$("#tie").textContent=t;
+ if(y>=3||c>=3){done=true;if(y>=3){mw++;localStorage.setItem("rpsWins",mw);$("#mw").textContent=mw}$("#msg").textContent=y>=3?"🏆 You win the match!":"💥 CPU wins the match!"}}
+function reset(){y=c=t=0;done=false;$("#you").textContent=$("#cpu").textContent=$("#tie").textContent=0;$("#a").firstChild.textContent=$("#b").firstChild.textContent="❔";$("#msg").textContent="Pick your move!"}
+document.querySelectorAll(".picks button").forEach(b=>b.onclick=()=>{play(+b.dataset.m);b.blur()});
+$("#reset").onclick=()=>{reset();$("#reset").blur()};
+addEventListener("keydown",e=>{const m={r:0,p:1,s:2}[e.key.toLowerCase()];if(m!==undefined)play(m)});
+</script></body></html>
