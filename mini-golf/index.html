@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Mini Golf | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#16a34a,#0b1020)}
+main{width:min(100%,40rem);padding:1.5rem;border:.2rem solid #86efac;border-radius:1.25rem;background:rgb(8 12 30 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.6rem 0;color:#86efac;letter-spacing:.05em;font-size:1.6rem}
+canvas{display:block;width:100%;max-width:30rem;height:auto;margin:1rem auto;border:.2rem solid #475569;border-radius:.4rem;background:#4ade80;touch-action:none;cursor:crosshair}
+</style></head>
+<body><main><a href="../">← All games</a><h1>⛳ Mini Golf</h1>
+<p>Nine holes of crazy golf! <strong>Drag back</strong> from anywhere (mouse or finger) like a slingshot, then let go to hit the ball. Sand slows you, water costs a stroke, and the windmill and sliding blocks wait for no one. Beat par!</p>
+<canvas id="g" width="480" height="640" aria-label="Mini Golf game"></canvas>
+</main>
+<script>
+const C=document.querySelector("#g"),x=C.getContext("2d"),W=480,H=640;
+const L=20,R=460,T0=70,B=620,BR=7,CR=12;
+const HOLES=[
+{par:2,name:"Straight Shot",tee:[240,570],cup:[240,130]},
+{par:3,name:"Round the Wall",tee:[100,570],cup:[100,130],walls:[[20,340,300,16]]},
+{par:3,name:"Bumper Bonanza",tee:[240,570],cup:[240,130],bumpers:[[170,400,22],[310,400,22],[240,300,22],[150,230,18],[330,230,18]]},
+{par:3,name:"Sandy Beach",tee:[380,570],cup:[100,130],walls:[[230,440,16,180]],sand:[[20,290,440,100]],bumpers:[[240,200,20]]},
+{par:4,name:"Lake Zigzag",tee:[100,570],cup:[100,130],water:[[20,300,300,70],[160,180,300,60]]},
+{par:3,name:"Windmill",tee:[240,570],cup:[240,130],walls:[[20,330,150,16],[310,330,150,16]],mill:{x:240,y:338,len:62,speed:.035}},
+{par:5,name:"Zigzag Alley",tee:[80,570],cup:[400,120],walls:[[20,460,300,16],[160,320,300,16],[20,180,300,16]],sand:[[200,380,120,60]]},
+{par:4,name:"Sliding Gate",tee:[240,580],cup:[240,120],water:[[20,300,150,80],[310,300,150,80]],bumpers:[[240,230,16]],mover:{y:450,w:80,h:16,base:240,amp:120,speed:.03}},
+{par:5,name:"The Grand Finale",tee:[80,570],cup:[400,120],walls:[[20,480,320,16],[140,360,320,16]],water:[[160,250,100,70]],sand:[[20,150,120,100]],bumpers:[[240,150,18]],mill:{x:330,y:200,len:55,speed:.04}}
+];
+let state="title",hi=null,hole=0,T=0,strokes=0,scores=[],b={x:0,y:0,vx:0,vy:0,mv:false},last={x:0,y:0},drag=null,msg=null,sink=0,flash=0;
+try{const v=localStorage.getItem("miniGolfBest");if(v)hi=+v}catch(e){}
+function H_(){return HOLES[hole]}
+function moverRect(){const m=H_().mover;if(!m)return null;return[m.base+Math.sin(T*m.speed)*m.amp-m.w/2,m.y,m.w,m.h]}
+function millAngle(){return T*H_().mill.speed}
+function loadHole(i){hole=i;const h=HOLES[i];b={x:h.tee[0],y:h.tee[1],vx:0,vy:0,mv:false};last={x:b.x,y:b.y};strokes=0;T=0;msg=null;sink=0;drag=null}
+function inRect(px,py,r){return px>r[0]&&px<r[0]+r[2]&&py>r[1]&&py<r[1]+r[3]}
+function bounceCircle(cx,cy,r,e){
+ const dx=b.x-cx,dy=b.y-cy,d=Math.hypot(dx,dy);if(d>=r+BR||d===0)return;
+ const nx=dx/d,ny=dy/d;b.x=cx+nx*(r+BR);b.y=cy+ny*(r+BR);
+ const vn=b.vx*nx+b.vy*ny;if(vn<0){b.vx-=(1+e)*vn*nx;b.vy-=(1+e)*vn*ny}
+}
+function bounceRect(r){
+ const px=Math.max(r[0],Math.min(b.x,r[0]+r[2])),py=Math.max(r[1],Math.min(b.y,r[1]+r[3]));
+ const dx=b.x-px,dy=b.y-py,d=Math.hypot(dx,dy);
+ if(d>=BR)return;
+ let nx,ny;
+ if(d>0){nx=dx/d;ny=dy/d;b.x=px+nx*BR;b.y=py+ny*BR}
+ else{const l=b.x-r[0],rr=r[0]+r[2]-b.x,t=b.y-r[1],bb=r[1]+r[3]-b.y,m=Math.min(l,rr,t,bb);
+  if(m===l){nx=-1;ny=0;b.x=r[0]-BR}else if(m===rr){nx=1;ny=0;b.x=r[0]+r[2]+BR}else if(m===t){nx=0;ny=-1;b.y=r[1]-BR}else{nx=0;ny=1;b.y=r[1]+r[3]+BR}}
+ const vn=b.vx*nx+b.vy*ny;if(vn<0){b.vx-=1.8*vn*nx;b.vy-=1.8*vn*ny}
+}
+function bounceSeg(ax,ay,bx,by,r){
+ const sx=bx-ax,sy=by-ay,t=Math.max(0,Math.min(1,((b.x-ax)*sx+(b.y-ay)*sy)/(sx*sx+sy*sy)));
+ bounceCircle(ax+sx*t,ay+sy*t,r,.9);
+}
+function physicsStep(){
+ const h=H_();
+ for(let s=0;s<2;s+=1){
+  b.x+=b.vx/2;b.y+=b.vy/2;
+  if(b.x<L+BR){b.x=L+BR;b.vx=Math.abs(b.vx)*.9}
+  if(b.x>R-BR){b.x=R-BR;b.vx=-Math.abs(b.vx)*.9}
+  if(b.y<T0+BR){b.y=T0+BR;b.vy=Math.abs(b.vy)*.9}
+  if(b.y>B-BR){b.y=B-BR;b.vy=-Math.abs(b.vy)*.9}
+  if(h.walls)for(const w of h.walls)bounceRect(w);
+  const m=moverRect();if(m)bounceRect(m);
+  if(h.bumpers)for(const q of h.bumpers)bounceCircle(q[0],q[1],q[2],1.05);
+  if(h.mill){const a=millAngle(),c=Math.cos(a)*h.mill.len,d=Math.sin(a)*h.mill.len;bounceSeg(h.mill.x-c,h.mill.y-d,h.mill.x+c,h.mill.y+d,5);bounceCircle(h.mill.x,h.mill.y,8,.9)}
+ }
+ const sand=h.sand&&h.sand.some(r=>inRect(b.x,b.y,r));
+ const f=sand?.93:.985;b.vx*=f;b.vy*=f;
+ const sp=Math.hypot(b.vx,b.vy);
+ if(h.water&&h.water.some(r=>inRect(b.x,b.y,r))){strokes+=1;b.x=last.x;b.y=last.y;b.vx=b.vy=0;b.mv=false;msg={s:"SPLASH! +1 stroke",l:90,c:"#38bdf8"};flash=12;return"water"}
+ if(Math.hypot(b.x-h.cup[0],b.y-h.cup[1])<CR&&sp<7.5){b.x=h.cup[0];b.y=h.cup[1];b.vx=b.vy=0;b.mv=false;return"sunk"}
+ if(sp<(sand?.4:.12)){b.vx=b.vy=0;b.mv=false}
+}
+function shoot(angle,power){
+ if(b.mv)return;last={x:b.x,y:b.y};strokes+=1;const s=power*12;b.vx=Math.cos(angle)*s;b.vy=Math.sin(angle)*s;b.mv=true;state="roll";
+}
+function update(){
+ T+=1;if(flash>0)flash-=1;if(msg){msg.l-=1;if(msg.l<=0)msg=null}
+ if(state==="roll"){const r=physicsStep();if(r==="sunk"){finish()}else if(!b.mv){state="aim"}}
+ else if(state==="sink"){sink+=1;if(sink>30)state="done"}
+}
+function finish(){state="sink";sink=0;scores[hole]=strokes}
+function label(){
+ if(strokes===1)return"HOLE IN ONE! 🎉";
+ const d=strokes-H_().par;
+ return["Albatross!","Eagle!","Birdie!","Par","Bogey","Double bogey"][Math.max(0,Math.min(5,d+3))]||"Par";
+}
+function total(){return scores.reduce((a,v)=>a+v,0)}
+function totalPar(){return HOLES.reduce((a,h)=>a+h.par,0)}
+function next(){
+ if(hole>=HOLES.length-1){
+  const t=total();if(hi===null||t<hi){hi=t;try{localStorage.setItem("miniGolfBest",hi)}catch(e){}}
+  state="card";return}
+ loadHole(hole+1);state="aim";
+}
+function newGame(){scores=[];loadHole(0);state="aim"}
+function pos(e){const r=C.getBoundingClientRect();return[(e.clientX-r.left)/r.width*W,(e.clientY-r.top)/r.height*H]}
+C.addEventListener("pointerdown",e=>{
+ e.preventDefault();
+ if(state==="title"||state==="card"){newGame();return}
+ if(state==="done"){next();return}
+ if(state==="aim"){const p=pos(e);drag={sx:p[0],sy:p[1],cx:p[0],cy:p[1]};C.setPointerCapture(e.pointerId)}
+});
+C.addEventListener("pointermove",e=>{if(drag){const p=pos(e);drag.cx=p[0];drag.cy=p[1]}});
+function release(){
+ if(!drag)return;const dx=drag.sx-drag.cx,dy=drag.sy-drag.cy,l=Math.hypot(dx,dy);drag=null;
+ if(l>12&&state==="aim")shoot(Math.atan2(dy,dx),Math.min(l,120)/120);
+}
+C.addEventListener("pointerup",release);
+C.addEventListener("pointercancel",()=>{drag=null});
+addEventListener("keydown",e=>{if(e.code==="KeyE"||e.code==="Space"||e.code==="Enter"){e.preventDefault();if(state==="title"||state==="card")newGame();else if(state==="done")next()}});
+function text(s,a,c,size=18,color="#fff",align="left"){x.font=`bold ${size}px Arial,sans-serif`;x.fillStyle=color;x.textAlign=align;x.lineWidth=4;x.strokeStyle="#0f172a";x.strokeText(s,a,c);x.fillText(s,a,c)}
+function rr(r,fill,line){x.fillStyle=fill;x.fillRect(r[0],r[1],r[2],r[3]);if(line){x.strokeStyle=line;x.lineWidth=2;x.strokeRect(r[0]+1,r[1]+1,r[2]-2,r[3]-2)}}
+function wall(r){rr([r[0],r[1]+3,r[2],r[3]],"#7c2d12");rr(r,"#d97706","#fcd34d")}
+function sumPar(n){let s=0;for(let i=0;i<=n;i+=1)s+=HOLES[i].par;return s}
+function fmt(d){return d===0?"E":d>0?"+"+d:""+d}
+function draw(){
+ x.fillStyle="#0f172a";x.fillRect(0,0,W,H);
+ if(state==="title"){
+  x.fillStyle="#4ade80";x.fillRect(0,0,W,H);
+  text("⛳ MINI GOLF",W/2,230,44,"#fff","center");
+  text("9 holes · beat par!",W/2,280,22,"#fef08a","center");
+  text("Drag back and let go to putt",W/2,340,20,"#fff","center");
+  if(hi!==null)text("Best total: "+hi+" ("+fmt(hi-totalPar())+")",W/2,400,20,"#fff","center");
+  text("Tap to start",W/2,470,26,"#fde047","center");return}
+ if(state==="card"){drawCard();return}
+ const h=H_();
+ x.fillStyle="#16a34a";x.fillRect(0,0,W,H);
+ x.fillStyle="#4ade80";x.fillRect(L,T0,R-L,B-T0);
+ x.fillStyle="#22c55e";for(let i=0;i<8;i+=1)x.fillRect(L,T0+i*70,R-L,35);
+ if(h.sand)for(const s of h.sand){rr(s,"#fde68a","#f59e0b")}
+ if(h.water)for(const w of h.water){rr(w,"#38bdf8","#0ea5e9");x.fillStyle="#bae6fd";for(let i=0;i<w[2]/30;i+=1)x.fillRect(w[0]+8+i*30,w[1]+10+Math.sin(T*.05+i)*4+(i%2)*20,14,3)}
+ if(h.walls)for(const w of h.walls)wall(w);
+ const m=moverRect();if(m){rr(m,"#7e22ce","#e9d5ff")}
+ if(h.bumpers)for(const q of h.bumpers){x.fillStyle="#be185d";x.beginPath();x.arc(q[0],q[1],q[2],0,7);x.fill();x.fillStyle="#f472b6";x.beginPath();x.arc(q[0],q[1],q[2]-5,0,7);x.fill();x.fillStyle="#fff";x.beginPath();x.arc(q[0],q[1],4,0,7);x.fill()}
+ x.strokeStyle="#7c2d12";x.lineWidth=6;x.strokeRect(L-3,T0-3,R-L+6,B-T0+6);x.strokeStyle="#d97706";x.lineWidth=3;x.strokeRect(L-3,T0-3,R-L+6,B-T0+6);
+ x.fillStyle="#0f172a";x.beginPath();x.arc(h.cup[0],h.cup[1],CR,0,7);x.fill();
+ x.strokeStyle="#e5e7eb";x.lineWidth=3;x.beginPath();x.moveTo(h.cup[0],h.cup[1]);x.lineTo(h.cup[0],h.cup[1]-40);x.stroke();x.fillStyle="#ef4444";x.beginPath();x.moveTo(h.cup[0],h.cup[1]-40);x.lineTo(h.cup[0]+20,h.cup[1]-33);x.lineTo(h.cup[0],h.cup[1]-26);x.fill();
+ if(h.mill){const a=millAngle(),c=Math.cos(a)*h.mill.len,d=Math.sin(a)*h.mill.len;x.strokeStyle="#dc2626";x.lineWidth=10;x.lineCap="round";x.beginPath();x.moveTo(h.mill.x-c,h.mill.y-d);x.lineTo(h.mill.x+c,h.mill.y+d);x.stroke();x.lineCap="butt";x.fillStyle="#fef08a";x.beginPath();x.arc(h.mill.x,h.mill.y,8,0,7);x.fill()}
+ if(state!=="sink"&&state!=="done"){
+  x.fillStyle="rgba(0,0,0,.25)";x.beginPath();x.arc(b.x+2,b.y+3,BR,0,7);x.fill();
+  x.fillStyle="#fff";x.beginPath();x.arc(b.x,b.y,BR,0,7);x.fill();x.strokeStyle="#94a3b8";x.lineWidth=1;x.stroke()}
+ if(drag&&state==="aim"){
+  const dx=drag.sx-drag.cx,dy=drag.sy-drag.cy,l=Math.hypot(dx,dy),p=Math.min(l,120)/120;
+  if(l>12){const a=Math.atan2(dy,dx),len=30+p*110,col=`hsl(${120-p*120},90%,50%)`;
+   x.strokeStyle=col;x.lineWidth=5;x.setLineDash([10,8]);x.beginPath();x.moveTo(b.x,b.y);x.lineTo(b.x+Math.cos(a)*len,b.y+Math.sin(a)*len);x.stroke();x.setLineDash([]);
+   x.fillStyle=col;x.beginPath();x.arc(b.x+Math.cos(a)*len,b.y+Math.sin(a)*len,7,0,7);x.fill();
+   x.fillStyle="#1e293b";x.fillRect(150,B+8,180,10);x.fillStyle=col;x.fillRect(150,B+8,180*p,10)}
+ }
+ x.fillStyle="#0f172a";x.fillRect(0,0,W,56);
+ text("Hole "+(hole+1)+"/9",14,34,22,"#86efac");
+ text(h.name,W/2+20,34,16,"#fef08a","center");
+ text("Par "+h.par+" · Strokes "+strokes,W-14,34,16,"#fff","right");
+ if(flash>0){x.fillStyle=`rgba(56,189,248,${flash/40})`;x.fillRect(0,0,W,H)}
+ if(msg)text(msg.s,W/2,T0+30,24,msg.c,"center");
+ if(state==="aim"&&strokes===0&&!drag)text("Drag back, then release!",W/2,B-8,16,"#fff","center");
+ if(state==="done"){
+  x.fillStyle="rgba(15,23,42,.85)";x.fillRect(60,220,360,200);
+  text(label(),W/2,290,32,"#fde047","center");
+  text(strokes+" stroke"+(strokes>1?"s":"")+" · par "+h.par,W/2,335,22,"#fff","center");
+  text("Total "+total()+" ("+fmt(total()-sumPar(hole))+")",W/2,370,18,"#86efac","center");
+  text(hole>=8?"Tap for scorecard":"Tap for next hole",W/2,405,18,"#7dd3fc","center")}
+}
+function drawCard(){
+ x.fillStyle="#14532d";x.fillRect(0,0,W,H);
+ text("🏆 Scorecard",W/2,56,34,"#fde047","center");
+ text("Hole",50,100,16,"#86efac");text("Par",230,100,16,"#86efac","center");text("Strokes",330,100,16,"#86efac","center");text("+/-",420,100,16,"#86efac","center");
+ HOLES.forEach((h,i)=>{const y=134+i*40,d=scores[i]-h.par;
+  x.fillStyle=i%2?"rgba(255,255,255,.06)":"rgba(255,255,255,.14)";x.fillRect(30,y-24,420,36);
+  text((i+1)+". "+h.name,40,y,15);text(""+h.par,230,y,16,"#fff","center");text(""+scores[i],330,y,16,"#fff","center");text(fmt(d),420,y,16,d<0?"#4ade80":d>0?"#fca5a5":"#fff","center")});
+ const t=total(),p=totalPar();
+ text("Total: "+t+" vs par "+p+" ("+fmt(t-p)+")",W/2,540,24,"#fff","center");
+ text("Best total: "+hi+" ("+fmt(hi-p)+")"+(t===hi?"  NEW BEST!":""),W/2,576,18,"#fde047","center");
+ text("Tap to play again",W/2,614,18,"#7dd3fc","center");
+}
+function loop(){update();draw();requestAnimationFrame(loop)}
+loop();
+</script></body></html>

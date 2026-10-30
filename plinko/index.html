@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Plinko | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#6d28d9,#0b1020 70%)}
+main{width:min(100%,40rem);padding:1.25rem;border:.2rem solid #c4b5fd;border-radius:1.25rem;background:rgb(8 12 30 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.5rem 0;color:#ddd6fe;font-size:1.6rem}
+canvas{display:block;width:100%;max-width:34rem;height:auto;margin:.8rem auto;border:.2rem solid #475569;border-radius:.4rem;background:#12172e;touch-action:none;cursor:crosshair}
+.row{display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap;margin:.4rem 0}.row button{padding:.55rem 1.1rem;border:0;border-radius:.6rem;background:#8b5cf6;color:#fff;font-weight:700;font-size:1rem;cursor:pointer}.row button.on{background:#f59e0b;color:#111}.row button:disabled{opacity:.4;cursor:default}
+.lvl{margin:.3rem 0;color:#c4b5fd;font-weight:700}.bar{height:.6rem;max-width:34rem;margin:.2rem auto;background:#1e293b;border-radius:.4rem;overflow:hidden}.bar i{display:block;height:100%;width:0;background:#f59e0b}
+#ups{display:grid;grid-template-columns:repeat(auto-fit,minmax(9.5rem,1fr));gap:.5rem;margin:.6rem 0}#ups button{padding:.5rem;border:.1rem solid #6d28d9;border-radius:.6rem;background:#1e1b4b;color:#e5e7eb;font-size:.85rem;cursor:pointer}#ups button:disabled{opacity:.45;cursor:default}#ups b{display:block;color:#fde047}
+.lbl{align-self:center;color:#c4b5fd;font-weight:700}
+</style></head>
+<body><main><a href="../">← All games</a><h1>🔮 Plinko</h1>
+<p>Move the mouse (or finger) to nudge where the ball starts, then <strong>click</strong> or press <strong>Space</strong> to drop a ball. It bounces down through the pegs into a slot and pays your bet times the slot's multiplier. Higher risk means bigger edge prizes and a worse middle! Earn XP to level up for coin rewards, a payout bonus and bigger bets, and spend coins on upgrades.</p>
+<canvas id="c" width="600" height="720" aria-label="Plinko game"></canvas>
+<div class="row"><span class="lbl">Bet:</span><span id="bets"></span><span class="lbl">Risk:</span><span id="risks"></span></div>
+<div class="lvl"><span id="lvl"></span><div class="bar"><i id="xp"></i></div></div>
+<div class="row"><button id="drop">Drop ball</button><button id="auto">Auto: Off</button><button id="refill" hidden>Out of coins — get 100 more</button></div>
+<h2 style="margin:.6rem 0 0;font-size:1.1rem;color:#ddd6fe">Upgrades</h2><div class="row"><button id="allup">Upgrade all the way</button></div><div id="ups"></div>
+</main>
+<script>
+const C=document.querySelector("#c"),x=C.getContext("2d"),W=600,H=720,S=46,CX=300,SLOTS=12,SLOT_Y=610,KEY="plinko";
+const MULT={low:[6,3,1.8,1.3,.9,.5,.5,.9,1.3,1.8,3,6],mid:[25,8,2.5,1,.4,.2,.2,.4,1,2.5,8,25],high:[40,8,3,1,.2,.1,.1,.2,1,3,8,40]};
+const BETS=[5,10,25,50,100,250,500,100000],BET_LVL=[1,1,1,1,1,5,10,1];
+const betOk=v=>v===100000?best>=1000000:level>=BET_LVL[BETS.indexOf(v)];
+const UPS=[
+ {k:"pay",n:"Payout Boost",d:"+5% on every win",max:10,cost:l=>60*(l+1)**2},
+ {k:"aim",n:"Wider Aim",d:"+12px drop range",max:5,cost:l=>40+50*l},
+ {k:"multi",n:"Multi-Drop",d:"+1 ball per drop",max:50,cost:l=>Math.round(150*(l+1)**1.5)},
+ {k:"auto",n:"Auto Speed",d:"Faster auto drops",max:5,cost:l=>50+40*l},
+ {k:"xp",n:"Quick Learner",d:"+25% XP",max:5,cost:l=>80+60*l}];
+const xpNeed=l=>Math.round(25*l**1.4);
+const SUF=["","K","M","B","T","Qa","Qi","Sx","Sp","Oc","No","Dc"];
+function fmt(n){const a=Math.abs(n);if(a<1000)return String(Math.round(n*10)/10);let i=Math.min(SUF.length-1,Math.floor(Math.log10(a)/3));let v=n/1000**i;if(Math.abs(v)>=999.95&&i<SUF.length-1){i+=1;v=n/1000**i}return(Math.round(v*100)/100)+SUF[i]}
+let coins=100,best=100,bet=10,risk="mid",balls=[],pegs=[],floats=[],flash=[],mx=300,auto=false,autoT=0,lastWin=0,level=1,xp=0,up={pay:0,aim:0,multi:0,auto:0,xp:0};
+const aimR=()=>30+12*up.aim;
+try{const c=localStorage.getItem(KEY+"Coins");if(c!==null&&+c>=0)coins=+c;best=Math.max(coins,+localStorage.getItem(KEY+"Best")||0);const p=JSON.parse(localStorage.getItem(KEY+"Prog")||"null");if(p){level=p.level||1;xp=p.xp||0;Object.assign(up,p.up);up.multi=Math.min(up.multi,50)}}catch(e){}
+function save(){try{localStorage.setItem(KEY+"Coins",coins);localStorage.setItem(KEY+"Best",best);localStorage.setItem(KEY+"Prog",JSON.stringify({level,xp,up}))}catch(e){}}
+for(let r=0;r<11;r+=1){const y=90+r*44;if(r%2===0)for(let k=-5;k<=5;k+=1)pegs.push({x:CX+S*k,y});else for(let k=-7;k<=6;k+=1)pegs.push({x:CX+S*(k+.5),y})}
+const LEFT=CX-S*6,RIGHT=CX+S*6,WALL=S*6.5,PR=6,BR=14;
+const dividers=[];for(let k=0;k<=SLOTS;k+=1)dividers.push(LEFT+S*k);
+function color(m){return m>=20?"#ef4444":m>=5?"#f97316":m>=1.5?"#eab308":m>=1?"#84cc16":"#38bdf8"}
+function drop(){
+ if(coins<bet)return false;
+ const n=Math.min(1+up.multi,Math.floor(coins/bet)),sim=Math.min(n,300),w=n/sim;
+ coins=Math.round((coins-bet*n)*10)/10;
+ for(let i=0;i<sim;i+=1){const a=aimR();
+  balls.push({x:Math.max(CX-a,Math.min(CX+a,mx))+(i?(Math.random()-.5)*Math.min(a*2,16*i):0),y:28,vx:(Math.random()-.5)*30,vy:0,bet:bet*w,risk,hue:Math.floor(Math.random()*360)})}
+ save();return true}
+const payMul=()=>1+.05*up.pay+.02*(level-1);
+function addXp(a){xp+=a*(1+.25*up.xp);
+ while(xp>=xpNeed(level)){xp-=xpNeed(level);level+=1;const r=25*level;coins+=r;floats.push({x:CX,y:200,s:`LEVEL ${level}! +${fmt(r)}`,t:2,c:"#fde047"})}}
+function land(b){
+ const i=Math.max(0,Math.min(SLOTS-1,Math.floor((b.x-LEFT)/S))),m=MULT[b.risk][i],win=Math.round(b.bet*m*payMul()*10)/10;addXp(1+b.bet/10+(m>=5?3:0));
+ coins=Math.round((coins+win)*10)/10;if(coins>best)best=coins;lastWin=win;save();
+ flash.push({i,t:1});floats.push({x:LEFT+S*(i+.5),y:SLOT_Y-10,s:(win>=b.bet?"+":"")+fmt(win),t:1,c:win>=b.bet?"#86efac":"#fca5a5"})}
+function collideCircle(b,px,py,pr){
+ const dx=b.x-px,dy=b.y-py,d=Math.hypot(dx,dy),rr=BR+pr;
+ if(d>=rr||d===0)return;
+ const nx=dx/d,ny=dy/d;b.x=px+nx*rr;b.y=py+ny*rr;
+ const vn=b.vx*nx+b.vy*ny;
+ if(vn<0){b.vx-=1.5*vn*nx;b.vy-=1.5*vn*ny;b.vx=b.vx*.6+(Math.random()-.5)*110}}
+function step(dt){
+ for(const b of balls){
+  b.vy+=1500*dt;b.x+=b.vx*dt;b.y+=b.vy*dt;
+  if(b.vy>1400)b.vy=1400;
+  if(b.y<SLOT_Y+30){for(const p of pegs)if(Math.abs(p.y-b.y)<BR+PR+2)collideCircle(b,p.x,p.y,PR)}
+  const wl=b.y>SLOT_Y-30?LEFT:CX-WALL,wr=b.y>SLOT_Y-30?RIGHT:CX+WALL;
+  if(b.x<wl+BR){b.x=wl+BR;b.vx=Math.abs(b.vx)*.5}
+  if(b.x>wr-BR){b.x=wr-BR;b.vx=-Math.abs(b.vx)*.5}
+  if(b.y>SLOT_Y-BR){
+   for(const dx of dividers){
+    if(b.y>SLOT_Y+4){const ddx=b.x-dx;if(Math.abs(ddx)<BR+2){b.x=dx+(ddx<0?-1:1)*(BR+2);b.vx*=-.4}}
+    else collideCircle(b,dx,SLOT_Y+4,3)}}
+  if(Math.hypot(b.vx,b.vy)<40){b.st=(b.st||0)+dt;if(b.st>.15){b.vx+=(Math.random()<.5?-1:1)*(80+Math.random()*80);b.vy-=60;b.st=0}}else b.st=0
+  if(b.y>SLOT_Y+50){b.done=true;land(b)}}
+ balls=balls.filter(b=>!b.done)}
+function update(dt){
+ const n=6;for(let i=0;i<n;i+=1)step(dt/n);
+ for(const f of floats){f.t-=dt*.8;f.y-=dt*30}floats=floats.filter(f=>f.t>0);
+ for(const f of flash)f.t-=dt*2.5;flash=flash.filter(f=>f.t>0);
+ if(auto){autoT-=dt;if(autoT<=0){autoT=.4-.06*up.auto;if(balls.length<40&&!drop())setAuto(false)}}
+ document.querySelector("#refill").hidden=!(coins<BETS[0]&&balls.length===0);
+ document.querySelector("#drop").disabled=coins<bet;
+ document.querySelector("#lvl").textContent=`Level ${level} · payout x${payMul().toFixed(2)} · XP ${fmt(Math.floor(xp))}/${fmt(xpNeed(level))}`;document.querySelector("#xp").style.width=xp/xpNeed(level)*100+"%";
+ document.querySelectorAll("#ups button").forEach(b=>{const u=UPS.find(q=>q.k===b.dataset.k),l=up[u.k],full=l>=u.max;b.disabled=full||coins<u.cost(l);b.innerHTML=`${u.n} (${fmt(l)}/${fmt(u.max)})<br>${u.d}<b>${full?"MAX":fmt(u.cost(l))+" coins"}</b>`});
+ document.querySelectorAll("#bets button").forEach(b=>{b.hidden=!betOk(+b.dataset.v)});
+ if(!betOk(bet))setBet(10)}
+function text(s,a,b,size,col,al="center"){x.font=`bold ${size}px Arial`;x.textAlign=al;x.fillStyle=col;x.fillText(s,a,b)}
+function draw(){
+ x.fillStyle="#12172e";x.fillRect(0,0,W,H);
+ x.fillStyle="rgba(255,255,255,.04)";x.fillRect(CX-WALL,0,WALL*2,H);
+ x.strokeStyle="#475569";x.lineWidth=3;x.beginPath();x.moveTo(CX-WALL,0);x.lineTo(CX-WALL,SLOT_Y-30);x.lineTo(LEFT,SLOT_Y-30);x.lineTo(LEFT,H);x.moveTo(CX+WALL,0);x.lineTo(CX+WALL,SLOT_Y-30);x.lineTo(RIGHT,SLOT_Y-30);x.lineTo(RIGHT,H);x.stroke();
+ text(`🪙 ${fmt(coins)}`,16,34,24,"#fde047","left");text(`Best ${fmt(best)}`,W-16,34,16,"#c4b5fd","right");
+ if(lastWin)text(`Last win: ${fmt(lastWin)}`,W-16,56,13,"#94a3b8","right");
+ x.fillStyle="#e2e8f0";for(const p of pegs){x.beginPath();x.arc(p.x,p.y,PR,0,6.3);x.fill()}
+ const mult=MULT[risk];
+ for(let i=0;i<SLOTS;i+=1){const sx=LEFT+S*i,m=mult[i],fl=flash.find(f=>f.i===i);
+  x.fillStyle=color(m);x.globalAlpha=.25+(fl?fl.t*.6:0);x.fillRect(sx+2,SLOT_Y+4,S-4,H-SLOT_Y-60);x.globalAlpha=1;
+  text("x"+m,sx+S/2,SLOT_Y+44,m>=100?12:14,color(m))}
+ x.strokeStyle="#94a3b8";x.lineWidth=4;x.beginPath();for(const dx of dividers){x.moveTo(dx,SLOT_Y+4);x.lineTo(dx,SLOT_Y+60)}x.stroke();
+ const ar=aimR(),gx=Math.max(CX-ar,Math.min(CX+ar,mx));
+ x.globalAlpha=.5;x.fillStyle="#fff";x.beginPath();x.arc(gx,28,BR,0,6.3);x.fill();x.globalAlpha=1;
+ for(const b of balls){x.fillStyle=`hsl(${b.hue},85%,60%)`;x.strokeStyle="#fff";x.lineWidth=2;x.beginPath();x.arc(b.x,b.y,BR,0,6.3);x.fill();x.stroke()}
+ for(const f of floats){x.globalAlpha=Math.min(1,f.t*1.5);text(f.s,f.x,f.y,20,f.c);x.globalAlpha=1}}
+function setBet(v){bet=v;document.querySelectorAll("#bets button").forEach(b=>b.classList.toggle("on",+b.dataset.v===v))}
+function setRisk(r){risk=r;document.querySelectorAll("#risks button").forEach(b=>b.classList.toggle("on",b.dataset.v===r))}
+function setAuto(v){auto=v;document.querySelector("#auto").textContent="Auto: "+(v?"On":"Off");document.querySelector("#auto").classList.toggle("on",v)}
+document.querySelector("#allup").onclick=()=>{
+ for(let n=0;n<5000;n+=1){let u=null;for(const q of UPS)if(up[q.k]<q.max&&q.cost(up[q.k])<=coins&&(!u||q.cost(up[q.k])<u.cost(up[u.k])))u=q;
+  if(!u)break;const l=up[u.k],c=u.cost(l);if(c===1){const k=Math.min(coins,u.max-l);coins-=k;up[u.k]+=k}else{coins-=c;up[u.k]+=1}}
+ save()};
+for(const u of UPS){const b=document.createElement("button");b.dataset.k=u.k;b.onclick=()=>{const l=up[u.k];if(l<u.max&&coins>=u.cost(l)){coins-=u.cost(l);up[u.k]+=1;save()}};document.querySelector("#ups").append(b)}
+for(const v of BETS){const b=document.createElement("button");b.textContent=fmt(v);b.dataset.v=v;b.onclick=()=>setBet(v);document.querySelector("#bets").append(b)}
+for(const r of ["low","mid","high"]){const b=document.createElement("button");b.textContent=r[0].toUpperCase()+r.slice(1);b.dataset.v=r;b.onclick=()=>setRisk(r);document.querySelector("#risks").append(b)}
+setBet(10);setRisk("mid");
+function pos(e){const r=C.getBoundingClientRect();return(e.clientX-r.left)/r.width*W}
+C.addEventListener("pointermove",e=>{mx=pos(e)});
+C.addEventListener("pointerdown",e=>{e.preventDefault();mx=pos(e);drop()});
+document.querySelector("#drop").onclick=()=>drop();
+document.querySelector("#auto").onclick=()=>setAuto(!auto);
+document.querySelector("#refill").onclick=()=>{coins=100;save()};
+addEventListener("keydown",e=>{
+ if(e.code==="Space"){e.preventDefault();drop()}
+ if(e.code==="ArrowLeft"){e.preventDefault();mx-=18}if(e.code==="ArrowRight"){e.preventDefault();mx+=18}});
+let last=performance.now();
+function loop(ts){const dt=Math.min(.033,(ts-last)/1000);last=ts;update(dt);draw();requestAnimationFrame(loop)}
+requestAnimationFrame(loop);
+</script></body></html>
