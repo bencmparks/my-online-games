@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>I AM SO COOL | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}
+body{margin:0;min-height:100vh;overflow:hidden;background:radial-gradient(circle at 50% 30%,#1e3a8a,#0b1020 75%);user-select:none;touch-action:none}
+a{position:fixed;top:.6rem;left:.8rem;color:#7dd3fc;z-index:5}
+h1{position:fixed;top:2.2rem;width:100%;text-align:center;margin:0;font-size:clamp(2rem,9vw,5rem);color:#fde047;text-shadow:0 0 .4rem #f97316;z-index:2;pointer-events:none}
+#stage{position:fixed;inset:0;display:grid;place-items:center}
+#hint{position:fixed;bottom:1rem;width:100%;text-align:center;font-size:1.2rem;color:#cbd5e1;z-index:5;pointer-events:none}
+#emo{font-size:min(45vw,45vh,22rem);cursor:pointer;line-height:1;transition:transform .1s}#emo:hover{transform:scale(1.05)}
+canvas{position:fixed;inset:0;width:100%;height:100%;pointer-events:none}
+#seed,#water{position:fixed;font-size:3rem;cursor:grab;display:none;z-index:4}
+#plot{position:fixed;left:50%;top:65%;transform:translate(-50%,-50%);font-size:5rem;z-index:3;text-align:center;pointer-events:none}
+</style></head>
+<body><a href="../">← All games</a><h1>I AM SO COOL</h1>
+<div id="stage"><div id="emo">😎</div></div><canvas id="c"></canvas>
+<div id="plot"></div><div id="seed">🌱</div><div id="water">🚿</div><div id="hint">Click the emoji!</div>
+<script>
+const c=document.getElementById("c"),x=c.getContext("2d"),emo=document.getElementById("emo"),hint=document.getElementById("hint"),plot=document.getElementById("plot"),seed=document.getElementById("seed"),water=document.getElementById("water");
+let W,H,parts=[],phase="cool",grow=0,drag=null,timers=[];
+function rs(){W=c.width=innerWidth;H=c.height=innerHeight}rs();addEventListener("resize",rs);
+function setPhase(p){phase=p;
+ emo.style.display=p==="cool"?"block":"none";seed.style.display="none";water.style.display="none";plot.textContent="";
+ if(p==="cool")hint.textContent="Click the emoji!";
+ if(p==="confetti")hint.textContent="BOOM!";
+ if(p==="dirt"){plot.textContent="🟫🟫🟫";hint.textContent="Grab the seed and drag it onto the dirt!";seed.style.display="block";seed.style.left="15%";seed.style.top="40%"}
+ if(p==="planted"){plot.textContent="🟫🌱🟫";hint.textContent="Drag the watering can over the sprout!";water.style.display="block";water.style.left="25%";water.style.top="35%"}
+}
+emo.onclick=()=>{if(phase!=="cool")return;
+ const r=emo.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;
+ for(let i=0;i<350;i++){const a=Math.random()*6.283,s=2+Math.random()*14;
+  parts.push({x:cx,y:cy,vx:Math.cos(a)*s,vy:Math.sin(a)*s-4,col:`hsl(${Math.random()*360},90%,60%)`,sz:4+Math.random()*7,rot:Math.random()*6,t:0,dirt:false})}
+ setPhase("confetti");
+ setTimeout(()=>{if(phase==="confetti")parts.forEach(p=>{p.dirt=true;p.col="#78350f"})},2500);
+ setTimeout(()=>{if(phase==="confetti"){parts=parts.filter(p=>!p.dirt||p.drop);setPhase("dirt")}},4500)};
+function overPlot(e,padX,padTop){const r=plot.getBoundingClientRect();
+ return e.clientX>r.left-padX&&e.clientX<r.right+padX&&e.clientY>r.top-padTop&&e.clientY<r.bottom+40}
+function grab(el){el.onpointerdown=e=>{drag=el;el.setPointerCapture(e.pointerId);el.style.cursor="grabbing"}}
+grab(seed);grab(water);
+addEventListener("pointermove",e=>{if(!drag)return;drag.style.left=e.clientX-24+"px";drag.style.top=e.clientY-24+"px";
+ if(drag===water&&phase==="planted"&&overPlot(e,60,140)){
+  parts.push({x:e.clientX,y:e.clientY+20,vx:0,vy:3,col:"#38bdf8",sz:4,rot:0,t:0,drop:true});
+  grow++;plot.textContent="🟫"+["🌱","🌿","🌳"][Math.min(2,grow/40|0)]+"🟫";hint.textContent="Keep watering... "+Math.min(100,Math.floor(grow*100/120))+"%";
+  if(grow>=120){grow=0;drag=null;setPhase("cool");hint.textContent="I AM SO COOL again! Click it!"}}});
+addEventListener("pointerup",e=>{if(!drag)return;const d=drag;drag=null;d.style.cursor="grab";
+ if(d===seed&&phase==="dirt"&&overPlot(e,60,100))setPhase("planted")});
+function loop(){x.clearRect(0,0,W,H);
+ parts=parts.filter(p=>{p.t++;
+  if(p.drop){p.y+=p.vy;if(p.t>25)return false}
+  else{p.vy+=.3;p.vx*=.985;p.x+=p.vx;p.y+=p.vy;p.rot+=.2;
+   if(p.dirt&&p.y>H*.75){p.y=H*.75;p.vy=0;p.vx=0}
+   if(p.y>H+20)return false}
+  x.save();x.translate(p.x,p.y);x.rotate(p.rot);x.fillStyle=p.col;
+  if(p.drop)x.fillRect(0,0,3,10);else x.fillRect(-p.sz/2,-p.sz/4,p.sz,p.sz/2);x.restore();return true});
+ requestAnimationFrame(loop)}
+loop();
+</script></body></html>

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Hogwarts Adventure | My Online Games</title><style>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pigboils Adventchurs | My Online Games</title><style>
 :root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b0618;color:#ddd6f0}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#2a1650,#0b0618)}
 main{width:min(100%,44rem);padding:1.5rem;border:.2rem solid #d4a017;border-radius:1.25rem;background:rgb(10 5 25 / 94%);text-align:center}a{color:#9ec5ff}h1{margin:.6rem 0;color:#f0c040;letter-spacing:.05em;font-size:1.5rem}
 canvas{display:block;width:100%;height:auto;margin:1rem 0;border:.2rem solid #4b3a78;border-radius:.4rem;background:#1b1230;image-rendering:pixelated;touch-action:none}
@@ -7,18 +7,18 @@ canvas{display:block;width:100%;height:auto;margin:1rem 0;border:.2rem solid #4b
 .pad{display:flex;justify-content:center;align-items:center;gap:1rem;flex-wrap:wrap;user-select:none;-webkit-user-select:none}.dpad{display:grid;grid-template-columns:repeat(3,3.2rem);grid-template-rows:repeat(3,3.2rem);gap:.2rem}
 button{border:0;border-radius:.5rem;background:#d4a017;color:#1a1030;cursor:pointer;font:inherit;font-weight:bold;touch-action:none}.a{width:4.5rem;height:4.5rem;border-radius:50%;font-size:1.4rem}.s{width:3rem;height:3rem}
 </style></head>
-<body><main><a href="../">← All games</a><h1>🪄 Hogwarts Adventure</h1>
-<p>It is your first night at Hogwarts, and the candles have gone out while 26 spellbooks have vanished. Create your student, get sorted into a House, go to classes, make friends with over two hundred students, and follow the clues across 6 regions and 96 screens to uncover who is behind the mystery of the Hollow King. No monsters in the castle, just secrets, but beware the creatures of the Forbidden Forest.</p>
-<p><strong>Arrows/WASD</strong> move · <strong>Space</strong> talk, cast and continue · <strong>C</strong> clue notebook · <strong>Q</strong> or <strong>1-4</strong> switch spell · <strong>J</strong> mana potion · <strong>M</strong> world map · <strong>R</strong> reload last save · <strong>N</strong> new game (press twice). Take classes, play Quidditch from your House Common Room (after Flying Lessons), and talk to everyone, since witnesses hold the clues. Progress saves automatically.</p>
-<canvas id="g" width="640" height="480" aria-label="Hogwarts Adventure pixel-art adventure"></canvas>
+<body><main><a href="../">← All games</a><h1>🪄 Pigboils Adventchurs</h1>
+<p>It is your first night at Pigboils, and the candles have gone out while 26 spellbooks have vanished. Create your student, shop for supplies on a walkable Cool Person Airea, get sorted into a House, follow the daily timetable of classes (brew potions, charm your classmates, duel dark creatures) before curfew, visit the village of Pigsmead, make friends with over two hundred students who all have something different to say, and follow the clues across 6 regions and 96 screens to uncover who is behind the mystery of the Hollow King. Then stay for seven years at Pigboils: from Year 2 to graduation in Year 7, each year brings a new mystery, new classes and harder monsters, while students walk between the screens. No monsters in the castle (except in Defence class!), just secrets, but beware the creatures of the Forbidden Forest.</p>
+<p><strong>Arrows/WASD</strong> move · <strong>E</strong> talk, cast, buy and continue · <strong>Space</strong> jump (over bushes and pillars) · <strong>C</strong> clue notebook · <strong>T</strong> timetable · <strong>I</strong> inventory (potions: arrows choose, E drinks) · <strong>Q</strong> or <strong>1-9</strong> switch spell (charms you have cast in Charms class become spells 5-8) · <strong>F</strong> or <strong>5-8</strong> pick a charm in the Charms Classroom · <strong>J</strong> mana potion · <strong>M</strong> world map (pick a visited room and press E to teleport there) · <strong>Esc</strong> save and quit to the 10-slot menu · <strong>R</strong> reload last save · <strong>N</strong> new game (press twice). Classes only run in their timetable slot, and after 21:00 curfew you must be in the Common Room (sleep there after 20:00). The gate on the left of the Great Hall leads to Pigsmead once you have a House. Play Broomball from your House Common Room (after Flying Lessons) as a Chaser, Beater or Seeker, and talk to everyone, since witnesses hold the clues. Progress saves automatically.</p>
+<canvas id="g" width="640" height="480" aria-label="Pigboils Adventchurs pixel-art adventure"></canvas>
 <p id="status" aria-live="polite"></p>
-<div class="pad"><div class="dpad"><span></span><button data-k="up" type="button">▲</button><span></span><button data-k="left" type="button">◀</button><span></span><button data-k="right" type="button">▶</button><span></span><button data-k="down" type="button">▼</button><span></span></div><button class="a" data-k=" " type="button">✦</button>
-<div><button class="s" data-k="q" type="button" aria-label="Switch spell">Q</button> <button class="s" data-k="h" type="button" aria-label="Health potion">H</button> <button class="s" data-k="j" type="button" aria-label="Mana potion">J</button> <button class="s" data-k="m" type="button" aria-label="Map">M</button></div></div>
+<div class="pad"><div class="dpad"><span></span><button data-k="up" type="button">▲</button><span></span><button data-k="left" type="button">◀</button><span></span><button data-k="right" type="button">▶</button><span></span><button data-k="down" type="button">▼</button><span></span></div><button class="a" data-k="e" type="button">✦</button>
+<div><button class="s" data-k=" " type="button" aria-label="Jump">⤒</button> <button class="s" data-k="q" type="button" aria-label="Switch spell">Q</button> <button class="s" data-k="t" type="button" aria-label="Timetable">T</button>  <button class="s" data-k="h" type="button" aria-label="Health potion">H</button> <button class="s" data-k="j" type="button" aria-label="Mana potion">J</button> <button class="s" data-k="i" type="button" aria-label="Inventory">🎒</button> <button class="s" data-k="v" type="button" aria-label="Pick potion">V</button> <button class="s" data-k="g" type="button" aria-label="Drink potion">G</button> <button class="s" data-k="m" type="button" aria-label="Map">M</button></div></div>
 </main>
 <script>
 const C=document.querySelector("#g"),x=C.getContext("2d"),st=document.querySelector("#status");
 x.imageSmoothingEnabled=false;
-const TS=32,COLS=20,ROWS=15,PX=4,GW=8,GH=12,NB=GW*GH,BOOKS=26,KEY="hogwartsAdventureSave2";
+let slot=1,menu=null;const TS=32,COLS=20,ROWS=15,PX=4,GW=8,GH=12,NB=GW*GH,BOOKS=26,KEY="hogwartsAdventureSave2";
 const rng=seed=>{let s=seed>>>0;return()=>{s=(Math.imul(s,1664525)+1013904223)>>>0;return s/4294967296}};
 function mk(rows,pal){const c=document.createElement("canvas");c.width=c.height=TS;const g=c.getContext("2d");rows.forEach((r,j)=>[...r].forEach((ch,i)=>{if(ch!=="."&&pal[ch]){g.fillStyle=pal[ch];g.fillRect(i*PX,j*PX,PX,PX)}}));return c}
 const WISP=["..pppp..",".pppppp.","pwppwppp","pppppppp","pppppppp",".pp.pp.p","p..p..p.","........"];
@@ -47,15 +47,15 @@ const SP={
  torch:mk(["..y..y..","..yyyy..","..ooyo..","...oo...","...tt...","...tt...","...tt...","...tt..."],{y:"#fde047",o:"#f97316",t:"#6b4423"})
 };
 const ZN=[
- {n:"Hogwarts Castle",c:[0,3],r:[0,2],e:[0,0],pal:["#3a2a5e","#1a1030"],ob:"pillar",hub:"Great Hall",bossRoom:"Candlelit Gallery",npc:"Prefect Dara", pool:[],
+ {n:"Pigboils Castle",c:[0,3],r:[0,2],e:[0,0],pal:["#3a2a5e","#1a1030"],ob:"pillar",hub:"Great Hall",bossRoom:"Candlelit Gallery",npc:"Prefect Dara", pool:[],
    names:["Entrance Hall","Grand Staircase","Trophy Room","Hospital Wing","Owlery","Moving Stairs","Portrait Gallery","Divination Tower","Dungeon Corridor","Clock Tower","Trophy Corridor"],
    intro:[["Narrator","The castle's corridors are silent. Someone out there knows who put out the candles."]]},
- {n:"Hogwarts Grounds",c:[4,7],r:[0,2],e:[4,0],pal:["#3f7a3a","#1a3a18"],ob:"hedge",hub:"Herbology Greenhouse",bossRoom:"Greenhouse Tunnels",npc:"Professor Fern",pool:["wisp","bat","shooter"],
-  names:["Pumpkin Patch","Quidditch Pitch","Great Lake Shore","Wooden Bridge","Broom Shed","Stone Circle","Boathouse","Hedge Maze","Courtyard"],
+ {n:"Pigboils Grounds",c:[4,7],r:[0,2],e:[4,0],pal:["#3f7a3a","#1a3a18"],ob:"hedge",hub:"Herbology Greenhouse",bossRoom:"Greenhouse Tunnels",npc:"Professor Fern",pool:["wisp","bat","shooter"],
+  names:["Pumpkin Patch","Broomball Pitch","Great Lake Shore","Wooden Bridge","Broom Shed","Stone Circle","Boathouse","Hedge Maze","Courtyard"],
   intro:[["Narrator","The seal breaks and the school grounds lie ahead, quiet under a strange grey mist."],["Hope","Somebody opened the Library's secret passage for the thief. Ask around and check your notebook with C!"]]},
  {n:"Forbidden Forest",c:[4,7],r:[3,5],e:[4,3],pal:["#1f3a24","#0c1a10"],ob:"tree",hub:"Gamekeeper's Hut",bossRoom:"Hollow Oak Clearing",npc:"Keeper Hale",pool:["shade","charger","bat","shooter"],
   names:["Mossy Trail","Twisted Grove","Centaur Glade","Fungus Hollow","Old Oak","Moonlit Clearing","Bramble Path","Unicorn Pool"],
-  intro:[["Narrator","The Forbidden Forest is dark and still. Silver footprints lead deeper between the trees."],["Hope","The Forest creatures are riled up. Hit them with Space, and the Gamekeeper's Hut fountain heals you."],["Hope","The prefect said he worked for a teacher. Let's find out who."]]},
+  intro:[["Narrator","The Forbidden Forest is dark and still. Silver footprints lead deeper between the trees."],["Hope","The Forest creatures are riled up. Hit them with E, and the Gamekeeper's Hut fountain heals you."],["Hope","The prefect said he worked for a teacher. Let's find out who."]]},
  {n:"Hidden Chambers",c:[0,3],r:[3,5],e:[3,3],pal:["#3a1420","#180610"],ob:"obsid",hub:"Room of Requirement",bossRoom:"Throne of Shadows",npc:"Ghost Warden",pool:["shade","charger","shooter","bat","wisp"],
   names:["Secret Passage","Forgotten Corridor","Cracked Vault","Silent Dungeon","Ember Pit","Black Stair","Echo Chamber","Ruined Tower"],
   intro:[["Narrator","Behind a shifting door lies a maze of hidden vaults. Silver footprints lead on, and a cold draught blows up from far below."],["Hope","Quill must have hidden the stolen light somewhere down here. Let's find where!"]]},
@@ -81,18 +81,18 @@ const MYST=[
  {q:"Who is secretly helping Professor Quill beneath the lake?",sus:["Merchief Nerea","Professor Ashe","The Grey Lady"],ans:1,
   clues:["The merfolk have not left their village in weeks. Merchief Nerea never went near the Library.","The Grey Lady only haunts the north tower, and she never leaves it.","Professor Ashe's potion bottles keep disappearing, and a lavender-scented vial was found by Quill's door.","Ashe has been brewing in the Dungeon at night. Someone saw her carrying jars toward the lake."],
   win:[["Professor Ashe","I only wanted to help my old friend! Quill said the school had forgotten us both. She is at the top of the Moonlit Spire with the Hollow King."],["Hope","The Moonlit Spire. That's where this ends."]]},
- {q:"How can the Hollow King's shadow be undone?",sus:["With a fire charm, Incendio","With the simple light charm, Lumos","With a banishing charm, Depulso"],ans:1,
-  clues:["The shadow feeds on things the school has forgotten.","Quill's notebook says: 'Lumos was the first charm I ever taught. Nobody remembers it now.'","Fire and force only feed the shadow. It has swallowed every flame in the castle.","The shadow flinches from the simplest light."],
+ {q:"How can the Hollow King's shadow be undone?",sus:["With a fire charm, Flamebolt","With the simple light charm, Sparklight","With a banishing charm, Whoosh"],ans:1,
+  clues:["The shadow feeds on things the school has forgotten.","Quill's notebook says: 'Sparklight was the first charm I ever taught. Nobody remembers it now.'","Fire and force only feed the shadow. It has swallowed every flame in the castle.","The shadow flinches from the simplest light."],
   win:[]}];
 const CLASSES={
  10:{id:"potions",prof:"Professor Ashe",name:"Potions Classroom",q:"Which ingredient is the base of a Wit-Sharpening Potion?",opts:["Powdered ginger root","Dragon scales","Ground chalk"],ans:0,txt:"Potions needs patience and precision. Answer my question and you earn two mana potions.",done:()=>{P.mpot+=2}},
  11:{id:"history",prof:"Professor Binns",name:"History of Magic",q:"Which silver coins did the old wizarding bankers stamp with an owl?",opts:["Only Gringotts coins","No wizarding coins at all","Coins from the Owl Post Guild"],ans:2,txt:"(floating, droning) The Owl Post Guild once minted its own silver. Answer, and I will give you a hint scroll.",done:()=>{P.hints++}},
  16:{id:"astro",prof:"Professor Sinistra",name:"Astronomy Tower",q:"Which planet is named for the Roman god of war?",opts:["Venus","Mars","Jupiter"],ans:1,txt:"Look up at the stars, and answer well. You will gain extra mana.",done:()=>{P.maxmp+=10}},
- 18:{id:"fly",prof:"Madam Hooch",name:"Flying Lessons",q:"When you want to rise on a broom you should:",opts:["Lean back and say 'Up!'","Lean forward","Hold your breath"],ans:0,txt:"Welcome to Flying Lessons! Pass my quiz and you can play Quidditch from your Common Room.",done:()=>{P.coins+=10}}};
+ 18:{id:"fly",prof:"Madam Hooch",name:"Flying Lessons",q:"When you want to rise on a broom you should:",opts:["Lean back and say 'Up!'","Lean forward","Hold your breath"],ans:0,txt:"Welcome to Flying Lessons! Pass my quiz and you can play Broomball from your Common Room.",done:()=>{P.coins+=10}}};
 const FIRST=["Ada","Ben","Cora","Dev","Elly","Finn","Gus","Hana","Ivo","Jun","Kai","Lola","Milo","Nia","Otto","Pia","Quin","Ravi","Sana","Theo","Una","Vik","Wren","Yara","Zane","Bea","Cal","Dot","Eli","Fay"];
 const LAST=["Ashby","Blythe","Cross","Dunne","Ember","Frost","Grimes","Holt","Ivy","Jarvis","Knox","Lark","Nash","Orme","Pike","Quill","Rook","Sloane","Thorne"];
-const TALK=["I can't believe the candles went out on our first night!","Have you tried the Common Room fireplace? It's the coziest spot in the castle.","I heard someone found a silver coin with an owl on it.","My cat keeps escaping to the Owlery.","Ask around. Somebody always sees something in the corridors.","I'm hopeless at Potions but great at Quidditch.","The stairs moved again. I'm late for Charms!","Madam Hooch says anyone who passes Flying Lessons can try out for Quidditch.","The Hollow King is just a ghost story... I hope.","Don't tell anyone, but I've seen a hooded figure near the Greenhouse.","My House is winning the House Cup, obviously.","Did you hear Pip the Poltergeist giggling last night?","I love the books in the Library. Madam Pince is scary though.","Professor Quill teaches Charms and is always writing in a lavender notebook.","Butterbeer? Not today, thanks.","The Great Lake's giant squid waved at me this morning.","Tip: your notebook lists every clue. Press C!"];
-const SPELLS=[{n:"Lumos",cost:0,cd:14,col:"#fef08a"},{n:"Incendio",cost:4,cd:18,col:"#fb923c"},{n:"Glacius",cost:3,cd:14,col:"#67e8f9"},{n:"Depulso",cost:6,cd:26,col:"#d1fae5"}];
+const TALK=["I can't believe the candles went out on our first night!","Have you tried the Common Room fireplace? It's the coziest spot in the castle.","I heard someone found a silver coin with an owl on it.","My cat keeps escaping to the Owlery.","Ask around. Somebody always sees something in the corridors.","I'm hopeless at Potions but great at Broomball.","The stairs moved again. I'm late for Charms!","Madam Hooch says anyone who passes Flying Lessons can try out for Broomball.","The Hollow King is just a ghost story... I hope.","Don't tell anyone, but I've seen a hooded figure near the Greenhouse.","My House is winning the House Cup, obviously.","Did you hear Pip the Poltergeist giggling last night?","I love the books in the Library. Madam Pince is scary though.","Professor Quill teaches Charms and is always writing in a lavender notebook.","Butterbeer? Not today, thanks.","The Great Lake's giant squid waved at me this morning.","Tip: your notebook lists every clue. Press C!"];
+const SPELLS=[{n:"Sparklight",cost:0,cd:14,col:"#fef08a"},{n:"Flamebolt",cost:4,cd:18,col:"#fb923c"},{n:"Frostbite",cost:3,cd:14,col:"#67e8f9"},{n:"Whoosh",cost:6,cd:26,col:"#d1fae5"},{n:"Hoverbug",cost:4,cd:22,col:"#93c5fd"},{n:"Hairbow",cost:5,cd:24,col:"#f9a8d4"},{n:"Giggle Gust",cost:4,cd:18,col:"#fde047"},{n:"Glow Burst",cost:7,cd:30,col:"#fef9c3"},{n:"Yoink (Summoning Charm)",cost:5,cd:30,col:"#fdba74"}];
 const HOUSES=[{n:"Gryffindor",c:"#b91c1c",c2:"#facc15",perk:"Faster broom"},{n:"Slytherin",c:"#15803d",c2:"#cbd5e1",perk:"+10 max mana"},{n:"Hufflepuff",c:"#facc15",c2:"#111827",perk:"Friends give double coins"},{n:"Ravenclaw",c:"#1d4ed8",c2:"#b45309",perk:"Faster casting"}];
 const SKINS=["#f4c28a","#e0a370","#b9774a","#7a4a2b"],HAIRC=["#1f1b2e","#6b3a1e","#e8c468","#c2410c","#e5e7eb","#7c3aed"],HAIRN=["Black","Brown","Blonde","Ginger","Silver","Violet"],OUTC=["#1f1b2e","#7a1f2b","#1d4ed8","#15803d","#6d28d9","#b45309"],OUTCN=["Black","Crimson","Blue","Green","Purple","Amber"],HAIRS=["Short","Long","Spiky","Ponytail","Bald"],OUTS=["School robes","Cloak","Casual"],SKINN=["Fair","Tan","Brown","Dark"];
 const HEADS=[["...hh...","..hhhh..",".hhhhhh.","hhhhhhhh","..ffff..",".fkffkf."],["..hhhh..",".hhhhhh.","hhhhhhhh","hhffffhh","h.ffff.h","hfkffkfh"],["h..hh..h",".hhhhhh.",".hhhhhh.","hhhhhhhh","..ffff..",".fkffkf."],["...hh...","..hhhh..",".hhhhhh.",".hhhhhh.","..ffff.h",".fkffkfh"],["........","........","...ff...",".ffffff.","..ffff..",".fkffkf."]];
@@ -104,17 +104,29 @@ function setWiz2(){const o=P.ch;P.ch=cc;setWiz(P.house);P.ch=o}
 const ccVal=(c,i)=>[c.name+(tick%40<20?"_":" "),c.g?"Wizard":"Witch",SKINN[c.sk],HAIRS[c.hs],HAIRN[c.hc],OUTS[c.os],OUTCN[c.oc]][i];
 const ccLen=[0,2,4,5,6,3,6],ccKey=["","g","sk","hs","hc","os","oc"];
 const TT={wisp:{hp:2,sp:1,sz:32,c:1},shade:{hp:4,sp:1.5,sz:32,c:2},shooter:{hp:3,sp:.6,sz:32,c:2},bat:{hp:1,sp:1.9,sz:32,c:1},charger:{hp:4,sp:.8,sz:32,c:2}};
-const LESSONS={2:{s:1,prof:"Professor Quill",name:"Charms Classroom",txt:"Charms is all about wand-work and focus. Today: Incendio, the fire charm."},9:{s:2,prof:"Professor Vale",name:"Defence Classroom",txt:"Defence means thinking on your feet. Today: Glacius, the freezing charm that slows any foe."},17:{s:3,prof:"Professor Wren",name:"Transfiguration Classroom",txt:"Transfiguration is precise and powerful. Today: Depulso, the banishing charm that blasts enemies back."}},COMMON=8;
+const LESSONS={2:{s:1,prof:"Professor Quill",name:"Charms Classroom",txt:"Charms is all about wand-work and focus. Today: Flamebolt, the fire charm."},9:{s:2,prof:"Professor Vale",name:"Defence Classroom",txt:"Defence means thinking on your feet. Today: Frostbite, the freezing charm that slows any foe."},17:{s:3,prof:"Professor Wren",name:"Transfiguration Classroom",txt:"Transfiguration is precise and powerful. Today: Whoosh, the banishing charm that blasts enemies back."}},COMMON=8;
 const zoneOf=[],meta=[],maps=[],keys={};
-let npcs=[],quiz=null,acc=null,notes=false,qd=null,alley=null,cc=null,room,px,py,face,hp,mana,inv,cd,grace,bolts,ebolts,en,items,girl,gcd,dlg,end,spell,shop,sort,showMap,P,flash=0,tick=0,msg="",lastMsg="",msgT=0,pressed={},nConfirm=0;
-const newP=()=>({maxhp:5,maxmp:20,power:0,coins:0,hpot:0,mpot:0,hints:0,broom:0,cup:0,matches:0,met:new Set(),clues:[],classes:[],got:new Set(),boss:new Set(),qs:[0,0,0,0,0,0],qn:[0,0,0,0,0,0],dead:new Set(),bought:[0,0,0,0],learned:[],visited:new Set([0]),flags:{},freed:false,house:-1,room:0,px:10*TS,py:11*TS});
+let mapCur=0,npcs=[],quiz=null,acc=null,notes=false,qd=null,mn=null,brew=null,chSel=0,fw=0,fm=0,dance=0,pts=[],tcnt=0,cgr=10,ttOpen=false,jmp=0,wave=null,cc=null,room,px,py,face,hp,mana,inv,cd,grace,bolts,ebolts,en,items,girl,gcd,dlg,end,spell,shop,sort,showMap,P,flash=0,tick=0,msg="",lastMsg="",msgT=0,pressed={},nConfirm=0,yc=null;
+const newP=()=>({year:2,yc:0,maxhp:5,maxmp:20,power:0,coins:0,hpot:0,mpot:0,pots:[],hints:0,broom:0,cup:0,matches:0,met:new Set(),clues:[],classes:[],got:new Set(),boss:new Set(),qs:[0,0,0,0,0,0],qn:[0,0,0,0,0,0],dead:new Set(),bought:[0,0,0,0],learned:[],visited:new Set([0]),flags:{},freed:false,alley:null,ret:null,charms:[],brewn:0,day:1,minute:480,ot:"",warn:-1,pen:-1,house:-1,room:0,px:10*TS,py:11*TS});
 const tileAt=(r,i,j)=>(maps[r][j]&&maps[r][j][i])||0;
-function blocked(r,X,Y,s=24){
+function blocked(r,X,Y,s=24,J=false){
  for(const [dx,dy] of [[0,0],[s,0],[0,s],[s,s]]){
   const i=Math.floor((X+dx+4)/TS),j=Math.floor((Y+dy+4)/TS);
-  if(i<0||j<0||i>=COLS||j>=ROWS)continue;if(tileAt(r,i,j))return true}
+  if(i<0||j<0||i>=COLS||j>=ROWS)continue;const t=tileAt(r,i,j);if(t==1||t>3||(t&&!J))return true}
  return false}
 function freeSpot(g,r){for(let n=0;n<60;n++){const i=3+Math.floor(g()*14),j=3+Math.floor(g()*9);if(!tileAt(r,i,j))return[i*TS,j*TS]}return[3*TS,3*TS]}
+const FSK={2:[[4,6],[7,9],[13,9],[16,6]],9:[[3,10],[16,10],[3,4],[16,4],[10,11],[3,7],[16,7],[7,12],[13,12],[10,2]]},CLROOMS=[2,9,10,11,16,17,18];
+function furnish(r,m){
+ const sk=FSK[r]||[],ok=(i,j,w)=>i>0&&i<COLS-1&&j>0&&j<ROWS-1&&!m[j][i]&&j!=7&&j!=8&&i!=10&&!(w&&i>=9&&i<=11)&&!sk.some(([a,b])=>a==i&&b==j),put=(i,j,t,w)=>{if(ok(i,j,w))m[j][i]=t};
+ if(CLROOMS.includes(r)){for(const j of[5,9])for(const i of[3,4,6,7,13,14,16,17]){put(i,j,4);put(i,j+1,3)}
+  for(const i of[11,12,13])put(i,3,4);for(const i of[4,5,14,15])put(i,1,5)}
+ else if(r==1){for(let i=2;i<18;i++)put(i,1,5,1);for(const j of[4,10])for(const i of[3,4,5,6,13,14,15,16])put(i,j,5,1)}
+ else if(r==0)for(const i of[4,5,6,7,8,12,13,14,15,16]){put(i,10,6,1);put(i,9,3,1);put(i,11,3,1)}}
+function drawFur(t,X,Y){
+ if(t==3){x.fillStyle="#5b3a1e";x.fillRect(X+8,Y+6,16,6);x.fillStyle="#8b5a2b";x.fillRect(X+8,Y+14,16,8);x.fillStyle="#3b2410";x.fillRect(X+9,Y+22,3,6);x.fillRect(X+20,Y+22,3,6)}
+ else if(t==4){x.fillStyle="#7c4a12";x.fillRect(X,Y+10,TS,20);x.fillStyle="#b4782a";x.fillRect(X,Y+6,TS,10);x.fillStyle="#e8d8a8";x.fillRect(X+8,Y+8,8,5);x.fillStyle="#3b2410";x.fillRect(X+2,Y+28,4,4);x.fillRect(X+26,Y+28,4,4)}
+ else if(t==5){x.fillStyle="#4a2e14";x.fillRect(X,Y+2,TS,TS-2);x.fillStyle="#2a1a0a";x.fillRect(X,Y+15,TS,2);for(let k=0;k<4;k++){x.fillStyle=["#ef4444","#3b82f6","#facc15","#22c55e","#a855f7"][(k+X/TS)%5];x.fillRect(X+3+k*7,Y+4,5,11);x.fillStyle=["#f59e0b","#a855f7","#ef4444","#38bdf8"][(k+Y/TS)%4];x.fillRect(X+3+k*7,Y+19,5,10)}}
+ else{x.fillStyle="#6b3410";x.fillRect(X,Y+8,TS,22);x.fillStyle="#a8621c";x.fillRect(X,Y+4,TS,10);x.fillStyle="rgb(255 255 255 / 18%)";x.fillRect(X,Y+4,TS,3)}}
 function build(){
  for(let r=0;r<NB;r++){const c=r%GW,rw=Math.floor(r/GW);zoneOf[r]=ZN.findIndex(z=>c>=z.c[0]&&c<=z.c[1]&&rw>=z.r[0]&&rw<=z.r[1])}
  ZN.forEach((z,zi)=>{
@@ -126,7 +138,7 @@ function build(){
   list.forEach((r,k)=>{meta[r]={z:zi,hub:r==ent,boss:r==boss,name:r==ent?z.hub:r==boss?z.bossRoom:r==1?"Library":z.names[k%z.names.length],book:-1,runes:null}});
   if(zi==0){for(const k in LESSONS){meta[k].lesson={...LESSONS[k],active:false};meta[k].name=LESSONS[k].name;meta[k].safe=true;meta[k].needRunes=true}
    for(const k in CLASSES){meta[k].klass=CLASSES[k];meta[k].name=CLASSES[k].name;meta[k].safe=true}
-   meta[COMMON].common=true;meta[COMMON].safe=true;meta[COMMON].name="Common Room"}
+   meta[COMMON].common=true;meta[COMMON].safe=true;meta[COMMON].name="Common Room";meta[9].wave=true;meta[9].needRunes=false}
   const BN=[1,5,5,5,5,5],BB=[0,1,6,11,16,21];
   cand.slice(0,BN[zi]).forEach((r,k)=>{meta[r].book=BB[zi]+k;if((k==2||k==4)&&zi>0)meta[r].needRunes=true})});
  for(let r=0;r<NB;r++){
@@ -141,8 +153,9 @@ function build(){
    if(Math.abs(i-10)>2&&Math.abs(j-7)>2)m[j][i]=2}
   if(!meta[r].hub&&!meta[r].boss&&!meta[r].safe)for(let k=0;k<2;k++){const i=3+Math.floor(g()*(COLS-9)),j=3+Math.floor(g()*(ROWS-6)),h=g()<.5;
    for(let q=0;q<3;q++){const a=h?i+q:i,b=h?j:j+q;if(Math.abs(a-10)>2&&Math.abs(b-7)>2&&a<COLS-3&&b<ROWS-3)m[b][a]=2}}
-  maps.push(m);
+  furnish(r,m);maps.push(m);
   if(meta[r].needRunes){const gg=rng(r*7+3);meta[r].runes=[0,1,2].map(()=>{const[p,q]=freeSpot(gg,r);return{x:p,y:q,lit:false}})}}
+ buildV();
 }
 function say(lines){dlg.push(...lines.filter(l=>l[0]!="Hope"||P.freed))}
 function spawn(r,t,X,Y,minion){return null}
@@ -151,77 +164,340 @@ function stuSprite(s){const k=s.h+"|"+s.hs+"|"+s.hc+"|"+s.sk;if(!SPR[k]){const H
 function populate(){
  en=[];npcs=[];
  const wit={};
- ZN.forEach((z,zi)=>{const g=rng(zi*77+3),l=[];for(let r=0;r<NB;r++){const m=meta[r];if(m.z==zi&&!m.hub&&!m.boss&&!m.common&&r!=1)l.push(r)}
+ if(P.year<3)ZN.forEach((z,zi)=>{const g=rng(zi*77+3),l=[];for(let r=0;r<NB;r++){const m=meta[r];if(m.z==zi&&!m.hub&&!m.boss&&!m.common&&r!=1)l.push(r)}
   for(let i=l.length-1;i>0;i--){const j=Math.floor(g()*(i+1));[l[i],l[j]]=[l[j],l[i]]}
   l.slice(0,4).forEach((r,k)=>wit[r]=[zi,k])});
- const RES=[[10,4],[10,7],[16,7],[5,5],[14,5],[6,4],[9,4],[12,4],[15,4]];
  for(let r=0;r<NB;r++){
   const m=meta[r];if(m.boss)continue;const g=rng(r*31+7);
   const n=m.common?7:m.hub?4:m.lesson||m.klass?1:2+(g()<.45?1:0);
   for(let k=0;k<n;k++){let X=3*TS,Y=3*TS;
    for(let t=0;t<80;t++){const[p,q]=freeSpot(g,r);X=p;Y=q;if(RES.every(([a,b])=>Math.hypot(a*TS-p,b*TS-q)>TS*2.2))break}
-   const s={r,id:r+"_"+k,x:X,y:Y,name:FIRST[Math.floor(g()*FIRST.length)]+" "+LAST[Math.floor(g()*LAST.length)],h:Math.floor(g()*4),hs:Math.floor(g()*5),hc:Math.floor(g()*6),sk:Math.floor(g()*4),line:TALK[Math.floor(g()*TALK.length)],z:m.z};
+   const s={r,id:r+"_"+k,x:X,y:Y,name:FIRST[Math.floor(g()*FIRST.length)]+" "+LAST[Math.floor(g()*LAST.length)],h:Math.floor(g()*4),hs:Math.floor(g()*5),hc:Math.floor(g()*6),sk:Math.floor(g()*4),line:(g(),""),z:m.z};
    if(wit[r]&&k==0){s.cz=wit[r][0];s.ck=wit[r][1]}
    npcs.push(s)}}
- npcs.push({r:COMMON,id:COMMON+"_f1",x:17*TS,y:2*TS,name:"Cora Robinson",h:0,hs:1,hc:1,sk:0,line:"Ben is my best friend. We're going to solve this mystery together!",z:0},
-  {r:COMMON,id:COMMON+"_f2",x:12*TS,y:9*TS,name:"Ben Robinson",h:0,hs:2,hc:3,sk:0,line:"Cora and I are the Robinson detectives. Yes, the ginger one is me!",z:0});
+ npcs.push({r:COMMON,id:COMMON+"_f1",x:17*TS,y:2*TS,name:"Cora Robinson",h:0,hs:1,hc:3,sk:0,line:"Ben is my best friend. We're going to solve this mystery together!",z:0},
+  {r:COMMON,id:COMMON+"_f2",x:12*TS,y:9*TS,name:"Ben Robinson",h:0,hs:2,hc:3,sk:0,line:"Cora and I are the Robinson detectives. Yes, we are both gingers!",z:0});addVNpcs();assignLines();markWalkers();
    const pz=ZN[2].pool;
-   for(let r=0;r<NB;r++){const m=meta[r];if(m.z!=2||m.hub||m.boss||m.safe)continue;const g=rng(r*53+11),n=2+Math.floor(g()*2);
+   for(let r=0;r<NB;r++){const m=meta[r];if(m.z!=2||m.hub||m.boss||m.safe)continue;const g=rng(r*53+11),n=2+Math.floor(g()*2)+(P.year>=4?1:0)+(P.year>=6?1:0);
     for(let k=0;k<n;k++){const id="m"+r+"_"+k;if(P.dead.has(id))continue;const t=pz[Math.floor(g()*pz.length)],T=TT[t],[X,Y]=freeSpot(g,r);
-     en.push({id,r,t,x:X,y:Y,hp:T.hp,mhp:T.hp,sz:T.sz,z:2,cd:60+Math.floor(g()*60),hit:0,slow:0})}}
+     en.push({id,r,t,x:X,y:Y,hp:T.hp+yh(),mhp:T.hp+yh(),sz:T.sz,z:2,cd:60+Math.floor(g()*60),hit:0,slow:0})}}
   }
 const clueKey=(z,k)=>z+"_"+k;
 const metIn=z=>[...P.met].filter(id=>zoneOf[+id.split("_")[0]]==z).length;
 const zoneClues=z=>P.clues.filter(c=>c.startsWith(z+"_"));
-function save(){try{localStorage.setItem(KEY,JSON.stringify({...P,got:[...P.got],boss:[...P.boss],dead:[...P.dead],visited:[...P.visited],met:[...P.met]}))}catch(e){}}
-function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(!s)return null;return{...newP(),...s,qs:[...(s.qs||[]),0,0,0,0,0,0].slice(0,6),qn:[...(s.qn||[]),0,0,0,0,0,0].slice(0,6),got:new Set(s.got),boss:new Set(s.boss),dead:new Set(s.dead),visited:new Set(s.visited),met:new Set(s.met||[])}}catch(e){return null}}
+const sk=n=>n==1?KEY:KEY+"_"+n,rawSlot=n=>{try{return JSON.parse(localStorage.getItem(sk(n)))}catch(e){return null}};
+function save(){try{localStorage.setItem(sk(slot),JSON.stringify({...P,got:[...P.got],boss:[...P.boss],dead:[...P.dead],visited:[...P.visited],met:[...P.met]}))}catch(e){}}
+function load(){try{const s=rawSlot(slot);if(!s)return null;return{...newP(),...s,year:+s.year||2,pots:Array.isArray(s.pots)&&s.pots.every(Array.isArray)?s.pots:[],yc:+s.yc||0,qs:[...(s.qs||[]),0,0,0,0,0,0].slice(0,6),qn:[...(s.qn||[]),0,0,0,0,0,0].slice(0,6),got:new Set(s.got),boss:new Set(s.boss),dead:new Set(s.dead),visited:new Set(s.visited),met:new Set(s.met||[])}}catch(e){return null}}
 function start(p){
  P=p||newP();room=P.room;px=P.px;py=P.py;face=[0,-1];hp=P.maxhp;mana=P.maxmp;inv=0;cd=0;grace=60;bolts=[];ebolts=[];items=[];shop=null;showMap=false;
- girl={free:P.freed,x:10*TS,y:7*TS};if(P.freed){girl.x=px;girl.y=py}gcd=0;dlg=[];end=null;msg="";spell=0;
+ setupYear();yc=P.yc?{n:P.yc}:null;girl={free:P.freed,x:10*TS,y:7*TS};if(P.freed){girl.x=px;girl.y=py}gcd=0;dlg=[];end=null;msg="";spell=0;
  for(const m of meta)if(m.runes)for(const r of m.runes)r.lit=false;
+ for(const m of meta)if(m.lesson)m.lesson.active=false;
+ mn=brew=wave=null;lifts=[];ttOpen=false;tcnt=0;cgr=10;fw=fm=dance=jmp=chSel=0;pts=[];
+ if(room>=NB&&!(V[room]&&(room<NB+7?P.alley:P.ret))){room=0;px=10*TS;py=11*TS}
  populate();
  setWiz(P.house);
  if(P.ch)beginStory();else cc={row:0,name:"",g:1,sk:0,hs:0,hc:0,os:0,oc:0};
 }
-const ALLEY=[["Ollivanders","Holly wand (+1 magic power)",30,()=>P.power++],["Madam Malkin's","New robes (+10 max mana)",25,()=>P.maxmp+=10],["Flourish & Blotts","Detective's notebook (+1 hint scroll)",25,()=>P.hints++],["Apothecary","2 mana potions",15,()=>P.mpot+=2],["Quality Quidditch Supplies","Nimbus broom (+1 broom speed)",30,()=>P.broom++],["Eeylops Owls","Pet owl (+15 coins now)",20,()=>P.coins+=15]];
+const ALLEY=[["Ollivanders","Holly wand (+1 magic power)",30,()=>P.power++],["Madam Malkin's","New robes (+10 max mana)",25,()=>P.maxmp+=10],["Flourish & Blotts","Detective's notebook (+1 hint scroll)",25,()=>P.hints++],["Apothecary","2 mana potions",15,()=>P.mpot+=2],["Quality Broomball Supplies","Nimbus broom (+1 broom speed)",30,()=>P.broom++],["Eeylops Owls","Pet owl (+15 coins now)",20,()=>P.coins+=15]];
 function story2(){
  const nm=P.ch.name;
- say([["Narrator","You board the train, cross the Black Lake by boat, and step into the castle."],["Narrator","It is your first night at Hogwarts. The welcome feast has ended when, suddenly, every floating candle in the Great Hall flickers out."],["Narrator","Then a cold draught sweeps through the hall, and all 16 spellbooks of the school have vanished! Somebody did this on purpose. Time to investigate."]]);
+ say([["Narrator","You board the train, cross the Black Lake by boat, and step into the castle."],["Narrator","It is your first night at Pigboils. The welcome feast has ended when, suddenly, every floating candle in the Great Hall flickers out."],["Narrator","Then a cold draught sweeps through the hall, and all 16 spellbooks of the school have vanished! Somebody did this on purpose. Time to investigate."]]);
  if(P.house<0){say([["Sorting Hat",`Hmm... ${nm}... a brave heart, a curious mind, a loyal friend... so many gifts. Which House shall be yours?`]]);sort={cur:0}}
 }
 function beginStory(){
  const nm=P.ch.name;
- if(P.flags.intro){P.flags.alley=1;if(P.house<0)story2();return}
+ if(P.flags.intro){if(!P.alley){P.flags.alley=1;if(P.house<0)story2()}return}
  P.flags.intro=1;
- say([["✉ Letter","HOGWARTS SCHOOL OF WITCHCRAFT AND WIZARDRY. Headmistress: Minerva McGonagall."],["✉ Letter",`Dear ${nm}, we are pleased to inform you that you have been accepted at Hogwarts School of Witchcraft and Wizardry.`],["✉ Letter","Term begins on September 1. Please find enclosed a list of all necessary books and equipment."],["Narrator","You travel to Diagon Alley to buy your school things. You have 100 galleons."]]);
- alley={cur:0,money:100,got:[]};
+ say([["✉ Letter","HOGWARTS SCHOOL OF WITCHCRAFT AND WIZARDRY. Headmistress: Minerva McGonagall."],["✉ Letter",`Dear ${nm}, we are pleased to inform you that you have been accepted at Pigboils School of Witchcraft and Wizardry.`],["✉ Letter","Term begins on September 1. Please find enclosed a list of all necessary books and equipment."],["Narrator","You travel to Cool Person Airea to buy your school things. You have 100 galleons."]]);
+ P.alley={money:100,got:[]};enter(NB,2*TS,7*TS);
 }
-function stepAlley(pr){
- const n=ALLEY.length+1;
- if(pr.ArrowUp||pr.w||pr.up)alley.cur=(alley.cur+n-1)%n;if(pr.ArrowDown||pr.s||pr.down)alley.cur=(alley.cur+1)%n;
- if(pr[" "]||pr.Enter){
-  if(alley.cur==ALLEY.length){P.coins+=alley.money;alley=null;P.flags.alley=1;hp=P.maxhp;mana=P.maxmp;save();story2();return}
-  const it=ALLEY[alley.cur];
-  if(!alley.got.includes(alley.cur)&&alley.money>=it[2]){alley.money-=it[2];alley.got.push(alley.cur);it[3]()}}
-}
-function drawAlley(){
- x.fillStyle="#1e1b2e";x.fillRect(0,0,640,480);
- for(let j=0;j<15;j++)for(let i=0;i<20;i++){x.fillStyle=(i+j)%2?"#2a2640":"#241f38";x.fillRect(i*32,j*32,32,32)}
- const cols=["#78350f","#7a1f2b","#1d4ed8","#15803d","#15803d","#6d28d9"];
- x.textAlign="center";x.fillStyle="#f0c040";x.font="bold 22px Arial";x.fillText("Diagon Alley",320,34);x.fillStyle="#facc15";x.font="bold 15px Arial";x.fillText(`Galleons: ${alley.money}`,320,56);
- ALLEY.forEach((it,i)=>{const y=72+i*50,sel=alley.cur==i,got=alley.got.includes(i);
-  x.fillStyle=cols[i];x.fillRect(60,y,60,40);x.fillStyle="#fde68a";x.fillRect(66,y+6,48,10);x.fillStyle="#111";x.fillRect(84,y+22,12,18);
-  x.textAlign="left";x.fillStyle=sel?"#facc15":"#e5e7eb";x.font="bold 15px Arial";x.fillText((sel?"▶ ":"   ")+it[0],135,y+16);
-  x.font="13px Arial";x.fillStyle=got?"#4ade80":"#9ca3af";x.fillText(got?"Bought!":it[1],155,y+34);
-  x.textAlign="right";x.fillStyle="#facc15";x.fillText(got?"":it[2]+"g",570,y+22)});
- const y=72+ALLEY.length*50;x.textAlign="left";x.fillStyle=alley.cur==ALLEY.length?"#facc15":"#e5e7eb";x.font="bold 16px Arial";x.fillText((alley.cur==ALLEY.length?"▶ ":"   ")+"Done shopping - go to Hogwarts",135,y+22);
- x.textAlign="center";x.fillStyle="#9ca3af";x.font="12px Arial";x.fillText("Up/Down choose · Space buy · leftover galleons become coins",320,466)}
+function enter(r,X,Y){room=r;px=X;py=Y;jmp=0;bolts=[];ebolts=[];grace=45;P.room=r;P.px=X;P.py=Y;if(girl&&girl.free){girl.x=X;girl.y=Y}save()}
+const V={},ALR=["####################","##DD####DD####DD####","#.....L.....L......#","#................B.#","#..................#","#..................#","#..................X","#..................X","#..................X","#..................#","#.B................#","#..................#","#.....L.....L......#","##DD####DD####DD####","####################"],
+ HR=["####################","##DD####DD####DD####","#.....L.....L......#","#..................#","#..................#","#..................#","X..................#","X..................#","X..................#","#..................#","#..................#","#..................#","#.....L.....L......#","########DD##########","####################"],
+ SHR=["####################","#SSSSSSSSSSSSSSSSSS#","#..................#","#.......BBBBB......#","#..................#","#..................#","#..................#","#..................#","#..................#","#..................#","#..................#","#..................#","#.B..............B.#","#..................#","#########DD#########"],
+ ALC=["#78350f","#7a1f2b","#1d4ed8","#15803d","#15803d","#6d28d9"],HGN=["Honey Barrons","Five Vacuums","Hahaha Joke Shop Area","Post Office"],HGC=["#be185d","#92400e","#7c3aed","#b91c1c"],
+ AD=[[2,1,0],[2,13,1],[8,1,2],[14,1,3],[8,13,4],[14,13,5]],HD=[[2,1,0],[8,1,1],[14,1,2],[8,13,3]];
+function buildV(){
+ const mkR=(id,k,name,reg,rows,doors,o)=>{V[id]={k,rows,doors,...o};meta[id]={z:0,v:1,k,name,reg,safe:1,book:-1,runes:null};maps[id]=rows.map(r=>[...r].map(c=>c=="#"?1:".DX".includes(c)?0:2))},
+  ex=(to,X,Y)=>({x:9,y:14,w:2,h:1,to,tx:X*TS+8,ty:(Y==1?3:11)*TS});
+ mkR(NB,"alley","Cool Person Airea","Cool Person Airea",ALR,[...AD.map(([X,Y,i])=>({x:X,y:Y,w:2,h:1,to:NB+1+i,tx:304,ty:384,lab:ALLEY[i][0],c:ALC[i]})),{x:19,y:6,w:1,h:3,fn:plat}],{});
+ AD.forEach(([X,Y,i])=>mkR(NB+1+i,"shop",ALLEY[i][0],"Cool Person Airea",SHR,[ex(NB,X,Y)],{c:ALC[i],t:ALLEY[i][0]}));
+ mkR(NB+7,"hogs","Pigsmead","Pigsmead Village",HR,[...HD.map(([X,Y,i])=>({x:X,y:Y,w:2,h:1,to:NB+8+i,tx:304,ty:384,lab:HGN[i],c:HGC[i]})),{x:0,y:6,w:1,h:3,fn:leaveHogs}],{});
+ HD.forEach(([X,Y,i])=>mkR(NB+8+i,"shop",HGN[i],"Pigsmead Village",SHR,[ex(NB+7,X,Y)],{c:HGC[i],t:HGN[i],po:i==3}));
+ for(let j=6;j<9;j++)maps[0][j][0]=0}
+function doorStep(){const S=V[room],i=Math.floor((px+16)/TS),j=Math.floor((py+16)/TS);
+ for(const d of S.doors)if(i>=d.x&&i<d.x+d.w&&j>=d.y&&j<d.y+d.h){if(d.fn)d.fn();else enter(d.to,d.tx,d.ty);return true}
+ return false}
+function enterHogs(){P.ret={x:2*TS,y:clampN(py,6*TS,8*TS)};enter(NB+7,2*TS,7*TS);msg="Welcome to Pigsmead! Walk into the shops."}
+function leaveHogs(){const r=P.ret||{x:2*TS,y:7*TS};P.ret=null;enter(0,r.x,r.y);msg="Back at Pigboils Castle."}
+function leaveAlley(){P.coins+=P.alley.money;P.alley=null;P.flags.alley=1;hp=P.maxhp;mana=P.maxmp;enter(0,10*TS,11*TS);story2()}
+function plat(){mn={t:"Platform 9¾",cash:"g",cur:0,leave:"Not yet",it:[{n:"Board the Pigboils Express",p:0,c:1,f:leaveAlley,d:`${P.alley.money} galleons will turn into coins`}],no:()=>{px=16*TS}}}
+const AKP=["Mr Ollivander","Madam Malkin","Mr Blotts","Mr Pott","Clerk Flint","Owl Keeper Eeylop"],AKL=["Ah, a new wand-bearer! The wand chooses the wizard, you know.","Robes for a first-year? Stand still, I only have a few pins.","Books! Never judge a spell by its cover, only by its index.","Careful with that jar. It is, er, mostly harmless.","A broom you can trust: no more than three fairly serious crashes.","Hoo! Hoo! Pick an owl and it will pick you right back."];
+const HOG=[
+ {n:"Honey Barrons",kp:"Honey Hattie",ln:"Honey Barrons, the sweetest shop in Britain! Mind the sherbet, it bites back.",it:[
+  {n:"Chocolate Frog",p:3,d:"+10 mana (it hops!)",f:()=>{mana=Math.min(P.maxmp,mana+10)}},
+  {n:"Sugar Quill",p:5,d:"Refills all your mana",f:()=>{mana=P.maxmp}},
+  {n:"Pumpkin Pasty",p:5,d:"Restores all your hearts",f:()=>{hp=P.maxhp}},
+  {n:"Every Flavour Bean",p:2,d:"Who knows? Might be earwax...",f:()=>{const r=Math.random();if(r<.5){mana=Math.min(P.maxmp,mana+4);msg="Strawberry! +4 mana"}else if(r<.8)msg="Earwax! Yuck, but harmless.";else{P.coins+=4;msg="A golden bean! +4 coins"}}}]},
+ {n:"Five Vacuums",kp:"Madam Rosmerta",ln:"Welcome to the Five Vacuums, dearie! Butterbeer is on tap and the fire is warm.",it:[
+  {n:"Butterbeer",p:4,d:"Refills all your mana, with foam",f:()=>{mana=P.maxmp;fm=900;say([["Madam Rosmerta","Ha! You have a lovely foam moustache, dear."]])}},
+  {n:"Pumpkin Juice",p:2,d:"+6 mana",f:()=>{mana=Math.min(P.maxmp,mana+6)}},
+  {n:"Hot Chocolate",p:3,d:"+1 heart and +8 mana",f:()=>{hp=Math.min(P.maxhp,hp+1);mana=Math.min(P.maxmp,mana+8)}}]},
+ {n:"Hahaha Joke Shop Area",kp:"Hahaha the Jester",ln:"Hahaha! Everything here is completely harmless. Mostly. Possibly. Ahem.",it:[
+  {n:"Firework Popper",p:5,d:"Sparkling fireworks!",f:()=>{fw=360;msg="BANG! Fireworks light up the sky!"}},
+  {n:"Dancing Powder",p:6,d:"Makes villagers dance for a while",f:()=>{dance=900;msg="The villagers in the street will dance for a while!"}},
+  {n:"Nose-Biting Teacup",p:3,d:"It bites. Gently.",f:()=>{msg="The teacup bit your nose! Ow, that tickles."}}]},
+ {n:"Post Office",kp:"Postmaster Pidge",ln:"Hoo-hoo! Post Office! The owls are in a mood today, so keep your fingers away from the beaks.",it:[
+  {n:"Ask the owls for a hint",p:5,d:"They know who has seen something",f:()=>{const h=findHint();if(h)msg=h;else{P.coins+=5;msg="The owls have nothing new to tell you. Refunded!"}}},
+  {n:"Send a postcard home",p:1,d:"The owl might deliver it. Eventually.",f:()=>{msg=["Your owl flew off in the wrong direction!","The owl delivered your postcard to the wrong castle. Oops.","The owl ate your postcard. Hoo."][Math.floor(Math.random()*3)]}}]}];
+const aSell=(i,s)=>{const it=ALLEY[i];say([[s.name,`Welcome to ${it[0]}!`]]);mn={t:it[0],cash:"g",cur:0,it:[{n:it[1],p:it[2],f:it[3],k:i,d:"One per customer"}]}};
+const hSell=(k,s)=>{const H=HOG[k];say([[s.name,H.ln]]);mn={t:H.n,cash:"c",cur:0,it:H.it}};
+function findHint(){const s=npcs.find(s=>s.cz==curZ()&&!P.clues.includes(clueKey(s.cz,s.ck)));return s?`Hint: ${s.name} in the ${meta[s.r].name} has seen something.`:null}
+function stepMn(pr,adv){
+ const n=mn.it.length+1;
+ if(pr.ArrowUp||pr.w||pr.up)mn.cur=(mn.cur+n-1)%n;if(pr.ArrowDown||pr.s||pr.down)mn.cur=(mn.cur+1)%n;
+ if(pr.Escape){mnNo();return}
+ if(!adv)return;
+ if(mn.cur==n-1){mnNo();return}
+ const it=mn.it[mn.cur];
+ if(it.k!=null&&P.alley.got.includes(it.k)){msg="Already bought!";return}
+ if((mn.cash=="g"?P.alley.money:P.coins)<it.p){msg=mn.cash=="g"?"Not enough galleons.":"Not enough coins.";return}
+ if(mn.cash=="g")P.alley.money-=it.p;else P.coins-=it.p;
+ if(it.k!=null)P.alley.got.push(it.k);
+ msg=`Bought ${it.n}!`;if(it.c)mn=null;it.f();save()}
+function mnNo(){const f=mn.no;mn=null;if(f)f()}
+function drawMn(){panel(110,50,420,300);x.textAlign="left";x.fillStyle="#f0c040";x.font="bold 18px Arial";x.fillText(mn.t,130,80);
+ x.fillStyle="#facc15";x.font="14px Arial";x.textAlign="right";x.fillText(mn.cash=="g"?`Galleons: ${P.alley.money}`:`Coins: ${P.coins}`,510,80);
+ const n=mn.it.length+1;
+ for(let i=0;i<n;i++){const y=120+i*40,L=i==n-1,it=mn.it[i],got=!L&&it.k!=null&&P.alley.got.includes(it.k);
+  x.textAlign="left";x.fillStyle=mn.cur==i?"#facc15":"#e5e7eb";x.font="bold 15px Arial";x.fillText((mn.cur==i?"▶ ":"   ")+(L?mn.leave||"Leave":it.n),130,y);
+  if(!L){x.textAlign="right";x.fillStyle=got?"#4ade80":"#facc15";x.fillText(got?"Bought!":it.p?it.p+(mn.cash=="g"?"g":"c"):"free",510,y);
+   if(mn.cur==i&&it.d){x.textAlign="left";x.fillStyle="#9ca3af";x.font="12px Arial";x.fillText(it.d,150,y+16)}}}
+ x.textAlign="center";x.fillStyle="#9ca3af";x.font="12px Arial";x.fillText("Up/Down choose · E buy · Esc leave",320,336)}
+const RES=[[10,4],[10,7],[16,7],[5,5],[14,5],[6,4],[9,4],[12,4],[15,4]];
+const asleep=s=>curf()&&s.r!=COMMON&&!s.v,curf=()=>P.minute>=1260||P.minute<420;
+function unstick(){for(let r=4;r<=160;r+=4)for(const[a,b]of[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]]){const X=px+a*r,Y=py+b*r;if(X>=0&&Y>=40&&X<=608&&Y<=448&&!blocked(room,X,Y)){px=X;py=Y;return}}}
+function talkNpc(s){if(s.keep)s.keep(s);else if(s.cm&&P.flags.charmList)castCharm(s);else if(s.v)talkV(s);else talkStudent(s)}
+function talkV(s){const k=s.tk||0;s.tk=k+1;say([[s.name,s.L[k%3]]])}
+const burst=(X,Y,c,n)=>{for(let i=0;i<n;i++){const a=Math.random()*6.3,v=1+Math.random()*2.5;pts.push({x:X,y:Y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-1,l:40+Math.random()*30,c})}};
+function fxTick(){
+ if(fw>0){fw--;if(fw%6==0)burst(60+Math.random()*520,60+Math.random()*180,["#f87171","#fde047","#60a5fa","#4ade80","#f0abfc"][Math.floor(Math.random()*5)],18)}
+ if(fm>0)fm--;if(dance>0)dance--;
+ for(const p of pts){p.x+=p.vx;p.y+=p.vy;p.vy+=.05;p.l--}pts=pts.filter(p=>p.l>0);
+ for(const s of npcs){if(s.fx&&--s.fx.n<=0){if(s.hc0!=null){s.hc=s.hc0;s.hc0=null}s.fx=null}if(s.sayT>0)s.sayT--}}
+function okN(s,X,Y){const v=room>=NB;if(X<TS||X>18*TS||Y<(v?3:2)*TS||Y>(v?10:12)*TS||blocked(room,X,Y))return false;
+ if(!v){if(RES.some(([a,b])=>Math.hypot(a*TS-X,b*TS-Y)<TS*1.6))return false;if(room==COMMON&&Math.hypot(3*TS-X,10*TS-Y)<TS*2.4)return false}
+ for(const o of npcs)if(o!=s&&o.r==room){const d=Math.hypot(o.x-X,o.y-Y);if(d<28&&d<Math.hypot(o.x-s.x,o.y-s.y))return false}
+ return true}
+function wander(){for(const s of npcs){if(s.r!=room||s.fix||s.fx||asleep(s))continue;if(s.tg){walkTg(s);continue}
+ if(Math.hypot(s.x-px,s.y-py)<64){s.mv=0;continue}
+ if(!(s.wt>0)){const a=Math.floor(Math.random()*6);s.wd=a<4?[[1,0],[-1,0],[0,1],[0,-1]][a]:[0,0];s.wt=30+Math.floor(Math.random()*90)}
+ s.wt--;const[dx,dy]=s.wd,sp=dance>0&&s.v?1.2:.5;s.mv=0;
+ if(dx||dy){const X=s.x+dx*sp,Y=s.y+dy*sp;if(okN(s,X,Y)){s.x=X;s.y=Y;s.mv=1;if(dx)s.fl=dx<0}else s.wt=0}}}
+const dest=(s,r)=>{const m=meta[r];return!m.v&&!m.boss&&!m.common&&m.z==s.z&&m.z!=2&&r!=9},manh=(a,b)=>Math.abs(a%GW-b%GW)+Math.abs(Math.floor(a/GW)-Math.floor(b/GW));
+const nbrs=r=>{const a=[],c=r%GW,w=Math.floor(r/GW);if(c>0)a.push([r-1,-1,0]);if(c<GW-1)a.push([r+1,1,0]);if(w>0)a.push([r-GW,0,-1]);if(w<GH-1)a.push([r+GW,0,1]);return a};
+const lane=r=>{const m=meta[r];return m.hub?[9*TS,8*TS]:m.common?[11*TS,7*TS]:[10*TS,7*TS]};
+function doorIn(r,dx,dy){const[lx,ly]=lane(r);return dx>0?{x:-24,y:ly,tx:3*TS,ty:ly}:dx<0?{x:COLS*TS-8,y:ly,tx:16*TS,ty:ly}:dy>0?{x:lx,y:0,tx:lx,ty:3*TS}:{x:lx,y:ROWS*TS-8,tx:lx,ty:11*TS}}
+function syncCommon(){for(const s of npcs)if(s.r==COMMON&&!s.tg)s.h=Math.max(0,P.house)}
+function markWalkers(){for(const s of npcs)if(!s.fix&&!s.v&&!s.cm&&s.r!=COMMON&&!/_f\d$/.test(s.id)){s.wk=1;s.home=s.r}syncCommon();
+ if(P.year>2){const g=rng(P.year*191+7),l=[];for(let r=0;r<NB;r++){const m=meta[r];if(m.z<2&&!m.hub&&!m.boss&&!m.safe&&r!=1)l.push(r)}
+  for(let i=l.length-1;i>0;i--){const j=Math.floor(g()*(i+1));[l[i],l[j]]=[l[j],l[i]]}
+  MYST[6].clues.forEach((_,k)=>{const s=npcs.find(s=>s.r==l[k]&&s.wk);if(s){s.cz=6;s.ck=k}})}}
+function moveNpc(s,nr,dx,dy){
+ if(s.r==room){s.tg={to:nr,dx,dy,ph:0,k:0};return}
+ s.r=nr;s.w=8+Math.floor(Math.random()*30);
+ if(nr==room){const a=doorIn(nr,dx,dy);s.x=a.x;s.y=a.y;s.tg={arr:1,tx:a.tx,ty:a.ty,k:0}}
+ else{const[X,Y]=freeSpot(Math.random,nr);s.x=X;s.y=Y}}
+function walkTg(s){const t=s.tg;let tx,ty;
+ if(t.arr){tx=t.tx;ty=t.ty}
+ else{const[lx,ly]=lane(s.r);
+  if(t.ph==0){tx=t.dx?s.x:lx;ty=t.dx?ly:s.y;if(Math.abs(s.x-tx)<2&&Math.abs(s.y-ty)<2)t.ph=1}
+  if(t.ph==1){tx=t.dx?(t.dx>0?COLS*TS+8:-40):s.x;ty=t.dx?s.y:(t.dy>0?ROWS*TS+8:-40)}}
+ const vx=Math.abs(tx-s.x)>1?Math.sign(tx-s.x):0,vy=Math.abs(ty-s.y)>1?Math.sign(ty-s.y):0;let mv=0;
+ if(vx&&!blocked(room,s.x+vx*.9,s.y)){s.x+=vx*.9;mv=1}
+ if(vy&&!blocked(room,s.x,s.y+vy*.9)){s.y+=vy*.9;mv=1}
+ s.mv=mv;if(vx)s.fl=vx<0;
+ if(mv)t.k=0;else if(++t.k>120){s.tg=null;s.w=6;return}
+ if(t.arr){if(!vx&&!vy){s.tg=null;s.w=10+Math.floor(Math.random()*20)}return}
+ if(t.ph==1&&(t.dx>0&&s.x>=COLS*TS-10||t.dx<0&&s.x<=-22||t.dy>0&&s.y>=ROWS*TS-30||t.dy<0&&s.y<=-4)){s.r=t.to;s.tg=null;s.w=8+Math.floor(Math.random()*30);const[X,Y]=freeSpot(Math.random,s.r);s.x=X;s.y=Y;s.mv=0}}
+function npcTick(){const q=curSlot(),cl=curf(),cr=q&&q.k=="c"?q.r:-1,cnt={};
+ for(const s of npcs)cnt[s.r]=(cnt[s.r]||0)+1;
+ for(const s of npcs){if(!s.wk||s.fx)continue;
+  if(s.tg){if(s.r!=room){if(s.tg.to!=null)s.r=s.tg.to;const[X,Y]=freeSpot(Math.random,s.r);s.x=X;s.y=Y;s.tg=null;s.w=6}continue}
+  if(s.w>0){s.w--;continue}
+  if(cl){if(s.home==COMMON&&s.r!=COMMON){s.r=COMMON;const[X,Y]=freeSpot(Math.random,COMMON);s.x=X;s.y=Y}continue}
+  const A=nbrs(s.r).filter(n=>dest(s,n[0])&&(cnt[n[0]]||0)<6);if(!A.length)continue;
+  const tw=g=>{let b=null,bd=manh(s.r,g);for(const n of A){const d=manh(n[0],g);if(d<bd){bd=d;b=n}}return b};
+  let go=null;
+  if(cr>=0&&s.z==0&&s.r!=cr&&Math.random()<.5)go=tw(cr);
+  else if(s.r!=s.home&&Math.random()<.35)go=tw(s.home);
+  else if(Math.random()<.15)go=A[Math.floor(Math.random()*A.length)];
+  if(go){cnt[go[0]]=(cnt[go[0]]||0)+1;moveNpc(s,go[0],go[1],go[2])}}}
+function drawNpc(s){let X=s.x,Y=s.y;const f=s.fx;
+ if(f&&f.t=="lev")Y-=14+Math.sin(tick/8)*4;else if(f&&f.t=="giggle")X+=Math.sin(tick*2)*2;else if(dance>0&&s.v)Y-=Math.abs(Math.sin(tick/6))*6;else if(s.mv)Y+=Math.sin(tick/3)*1.5;
+ if(f&&f.t=="glow"){x.fillStyle="rgb(254 240 138 / 40%)";x.beginPath();x.arc(X+16,Y+16,28,0,7);x.fill()}
+ if(f&&f.t=="lev"){x.fillStyle="rgb(0 0 0 / 25%)";x.beginPath();x.ellipse(s.x+16,s.y+31,10,4,0,0,7);x.fill()}
+ if(s.fl){x.save();x.translate(X+TS,Y);x.scale(-1,1);x.drawImage(stuSprite(s),0,0);x.restore()}else x.drawImage(stuSprite(s),X,Y);
+ x.font="11px Arial";x.textAlign="center";x.fillStyle="#fff";x.fillText(s.name,s.x+16,s.y+44);
+ if(s.sayT>0){const w=x.measureText(s.say).width+10;x.fillStyle="#fff";x.fillRect(X+16-w/2,Y-24,w,16);x.fillStyle="#111";x.fillText(s.say,X+16,Y-12)}}
+const SCH=[{s:420,e:480,n:"Morning free time",r:8},{s:480,e:540,n:"Breakfast",r:0},{s:540,e:630,n:"Charms",r:2,k:"c"},{s:630,e:720,n:"Potions",r:10,k:"c"},{s:720,e:810,n:"Lunch",r:0},{s:810,e:900,n:"History of Magic",r:11,k:"c"},{s:900,e:1020,n:"Flying Lessons",r:18,k:"c"},{s:1020,e:1140,n:"Free time / Broomball",r:8},{s:1140,e:1200,n:"Dinner",r:0},{s:1200,e:1260,n:"Astronomy",r:16,k:"c"},{s:1260,e:1860,n:"CURFEW - Sleep",r:8}];
+const fmt=m=>`${Math.floor(m/60)%24}:${String(m%60).padStart(2,"0")}`,curSlot=()=>SCH.find(q=>(P.minute>=q.s&&P.minute<q.e)||(q.e>1440&&P.minute+1440<q.e)),nextSlot=q=>SCH[(SCH.indexOf(q)+1)%SCH.length],nid=()=>P.minute<420?P.day-1:P.day;
+function onTime(q){const key=`${P.day}|${q.n}`,l=P.ot?P.ot.split(","):[];if(l.includes(key))return;l.push(key);P.ot=l.slice(-12).join(",");P.coins+=2;msg="On time! +2 coins"}
+function classGate(r,p){const q=SCH.find(q=>q.k=="c"&&q.r==r);if(!q)return false;
+ if(curSlot()==q){onTime(q);return false}
+ say([[p,`This class runs ${fmt(q.s)}-${fmt(q.e)} every day. Come back in ${(q.s-P.minute+1440)%1440} minutes, at ${fmt(q.s)}.`]]);return true}
+function tickClock(){if(++tcnt<20)return;tcnt=0;if(++P.minute>=1440){P.minute=0;P.day++}clockEv()}
+function clockEv(){const m=P.minute,c=curSlot();
+ const nx=SCH.find(q=>q.k=="c"&&q.s-m==5&&q.r!=room);if(nx)msg=`${nx.n} starts in 5 minutes in the ${meta[nx.r].name}!`;
+ const st=SCH.find(q=>q.k=="c"&&q.s==m);if(st)msg=`${st.n} starts now! Go to the ${meta[st.r].name}.`;
+ if(c&&c.k=="c"&&c.r==room)onTime(c);
+ if(curf()&&room!=COMMON){if(P.warn!=nid()){P.warn=nid();cgr=15;say([["Prefect Dara","Curfew! All students back to the Common Room at once, or I will march you there myself."]])}else if(--cgr<=0)catchCurfew()}}
+function catchCurfew(){cgr=3;let t="Just this once.";
+ if(P.pen!=nid()){P.pen=nid();if(P.cup>0){P.cup=Math.max(0,P.cup-5);t="-5 House Cup points"}else{const c=Math.min(3,P.coins);P.coins-=c;t=`-${c} coins`}}
+ P.visited.add(COMMON);enter(COMMON,10*TS,10*TS);
+ say([["Prefect Dara",["Caught you sneaking around after curfew! Back to bed!","Aha! A midnight wanderer! Off to the Common Room with you!","Curfew means curfew, even for detectives!"][P.day%3]],["Narrator",`The prefect marches you back to the Common Room. (${t})`]])}
+function sleepTry(){const m=P.minute;
+ if(m<1200&&m>=420){say([["You","I'm not sleepy yet. The beds are for after 20:00."]]);return}
+ if(m>=420)P.day++;P.minute=420;tcnt=0;cgr=10;hp=P.maxhp;mana=P.maxmp;save();
+ say([["Narrator",`Zzz... You sleep soundly. It is 7:00 on day ${P.day}. Breakfast is at 8:00!`],["You",["I dreamed of chocolate frogs.","My toad stole my pillow again.","Five more minutes... no, wait, class!"][P.day%3]]])}
+function drawInv(){panel(120,50,400,380);x.textAlign="center";x.fillStyle="#f0c040";x.font="bold 18px Arial";x.fillText("Inventory",320,80);
+ x.font="14px Arial";x.fillStyle="#facc15";x.fillText(`Coins ${P.coins}   Hint scrolls ${P.hints}   Mana potions ${P.mpot}`,320,104);
+ x.fillStyle="#c4b5fd";x.fillText(`Potions (${P.pots.length}/20)`,320,132);x.textAlign="left";
+ if(!P.pots.length){x.fillStyle="#9ca3af";x.fillText("No potions yet. Brew some in Potions class or the Common Room corner.",140,170)}
+ const top=Math.max(0,Math.min(pk8-5,P.pots.length-10));
+ P.pots.slice(top,top+10).forEach((p,k)=>{const i=top+k,y=150+k*24;if(i==pk8){x.fillStyle="rgb(250 204 21 / 25%)";x.fillRect(136,y-4,368,22)}x.fillStyle=i==pk8?"#fde68a":"#e5e7eb";const t=potName(p);x.fillText((i==pk8?"▶ ":"   ")+(t.length>44?t.slice(0,43)+"…":t),142,y+12)});
+ x.textAlign="center";x.fillStyle="#9ca3af";x.font="12px Arial";x.fillText("Up/Down choose · E drink · I or Esc close",320,418)}
+function drawTT(){panel(70,46,500,388);x.textAlign="center";x.fillStyle="#f0c040";x.font="bold 18px Arial";x.fillText(`Timetable · Year ${P.year} · Day ${P.day} · ${fmt(P.minute)}`,320,76);
+ const cs=curSlot();SCH.forEach((q,i)=>{const y=106+i*26,on=q==cs;if(on){x.fillStyle="rgb(250 204 21 / 25%)";x.fillRect(80,y-17,480,24)}
+  x.textAlign="left";x.font=(on?"bold ":"")+"14px Arial";x.fillStyle=on?"#facc15":q.k=="c"?"#93c5fd":"#e5e7eb";x.fillText(`${fmt(q.s)}-${fmt(q.e%1440)}`,92,y);x.fillText(q.n+(q.k=="c"?" (class)":""),190,y);x.textAlign="right";x.fillText(meta[q.r].name,550,y)});
+ x.textAlign="center";x.fillStyle="#fde68a";x.font="13px Arial";x.fillText(`Now: ${cs.n}. Go to: ${meta[cs.r].name}`,320,414);x.fillStyle="#9ca3af";x.font="11px Arial";x.fillText("Curfew at 21:00. Sleep in the Common Room after 20:00. T or Esc to close",320,428)}
+function drawExtras(M){
+ if(!M.v&&curf()){x.fillStyle="rgb(10 10 70 / 30%)";x.fillRect(0,40,640,440)}
+ for(const p of pts){x.fillStyle=p.c;x.fillRect(p.x,p.y,3,3)}
+ x.textAlign="left";x.font="12px Arial";
+ if(M.v){const t=S_HINT(M);x.fillStyle="rgb(0 0 0 / 60%)";x.fillRect(0,454,640,26);x.fillStyle="#fde68a";x.textAlign="center";x.fillText(t,320,471)}
+ else{const q=curSlot(),n=nextSlot(q),t=`Year ${P.year} · Day ${P.day} · ${fmt(P.minute)} · ${q.n} (${meta[q.r].name}) · Next: ${n.n} ${fmt(n.s%1440)} · T: timetable`;x.fillStyle="rgb(0 0 0 / 55%)";x.fillRect(4,42,x.measureText(t).width+10,16);x.fillStyle=curf()?"#fca5a5":"#fde68a";x.fillText(t,9,54)}
+ if(wave&&room==9){x.textAlign="center";x.font="bold 16px Arial";x.fillStyle="#f0abfc";x.fillText(`Monsters left: ${left()}`,320,76)}
+ if(room==2&&P.flags.charmList){x.fillStyle="rgb(0 0 0 / 65%)";x.fillRect(0,440,640,40);x.textAlign="center";x.font="bold 14px Arial";x.fillStyle=CHARMS[chSel][3];x.fillText(`◀ Charm: ${CHARMS[chSel][0]} ▶  (${P.classes.includes("charms")?"passed":P.charms.length+"/4 cast"})`,320,458);x.font="11px Arial";x.fillStyle="#d1d5db";x.fillText("F or 5-8 pick a charm · E near a classmate to cast it",320,474)}}
+const S_HINT=M=>M.k=="alley"?`Cool Person Airea · Galleons: ${P.alley?P.alley.money:0} · Arrows move · E talk/buy · Space jump · Walk into a door to enter a shop · Platform 9¾ on the right`:`${M.k=="hogs"?"Pigsmead":M.name} · Coins: ${P.coins} · Arrows move · E talk/buy · Space jump · Walk to the shop doors`;
+function plaq(t,X,Y,al){x.font="bold 11px Arial";const w=x.measureText(t).width+10;x.textAlign="center";x.fillStyle="rgb(0 0 0 / 65%)";x.fillRect(al=="r"?X-w:al=="l"?X:X-w/2,Y-12,w,16);x.fillStyle="#facc15";x.fillText(t,al=="r"?X-w/2:al=="l"?X+w/2:X,Y)}
+function drawV(M){const S=V[room],rows=S.rows,k=S.k,sn=k=="hogs";
+ for(let j=0;j<ROWS;j++)for(let i=0;i<COLS;i++){const c=rows[j][i],X=i*TS,Y=j*TS;
+  if(k=="shop")x.fillStyle=c=="#"?"#2b1a0e":(i+j)%2?"#8a5a2b":"#7a4e25";
+  else x.fillStyle=c=="#"?(sn?"#5b4636":"#3a2f4a"):sn?((i+j)%2?"#e8f0f8":"#dde8f2"):((i+j)%2?"#4b4660":"#3f3a55");
+  x.fillRect(X,Y,TS,TS);
+  if(c=="L"){x.fillStyle="#111827";x.fillRect(X+14,Y+8,4,24);x.fillStyle="rgb(253 224 71 / 25%)";x.beginPath();x.arc(X+16,Y+8,16,0,7);x.fill();x.fillStyle="#fde047";x.beginPath();x.arc(X+16,Y+8,5,0,7);x.fill()}
+  else if(c=="B"){if(k=="shop"){x.fillStyle="#a16207";x.fillRect(X,Y+4,TS,TS-4);x.fillStyle="#ca8a04";x.fillRect(X,Y+4,TS,5)}else{x.fillStyle="#92400e";x.fillRect(X+4,Y+4,24,26);x.fillStyle="#451a03";x.fillRect(X+4,Y+10,24,3);x.fillRect(X+4,Y+22,24,3)}}
+  else if(c=="T"){x.drawImage(SP.tree,X,Y,TS,TS);x.fillStyle="#fff";x.fillRect(X+4,Y+2,24,5)}
+  else if(c=="S"){x.fillStyle="#5b3a1e";x.fillRect(X,Y+4,TS,TS-4);x.fillStyle=["#ef4444","#3b82f6","#facc15","#a855f7"][(i+j)%4];x.fillRect(X+6,Y+8,8,12);x.fillStyle=["#4ade80","#f97316","#e5e7eb","#38bdf8"][(i*3+j)%4];x.fillRect(X+18,Y+10,8,10)}}
+ for(const d of S.doors){const X=d.x*TS,Y=d.y*TS,W=d.w*TS,H=d.h*TS;
+  if(d.lab){const top=d.y<7;x.fillStyle=d.c;x.fillRect(X-TS,top?0:Y,W+2*TS,top?TS*2:TS*2);x.fillStyle="rgb(0 0 0 / 25%)";x.fillRect(X-TS,top?TS*2-8:Y,W+2*TS,8);x.fillStyle="#fde68a";x.fillRect(X-TS+8,top?TS*.7:Y+TS+8,14,14);x.fillRect(X+W+TS-22,top?TS*.7:Y+TS+8,14,14);
+   x.fillStyle="#2b1a0e";x.fillRect(X,Y,W,H);x.fillStyle="#facc15";x.fillRect(X+W-10,Y+H/2,4,4);plaq(d.lab,X+W/2,top?TS*2+14:Y-4)}
+  else if(k=="shop"){x.fillStyle="#2b1a0e";x.fillRect(X,Y,W,H);plaq("Exit",X+W/2,Y-4)}
+  else{x.fillStyle=d.fn==plat?"#7a1f2b":"#475569";x.fillRect(X,Y,W,H);if(d.fn==plat)plaq("Platform 9¾ ▶",X,Y-6,"r");else plaq("◀ Pigboils",X+TS,Y-6,"l")}}
+ if(k=="alley")plaq("◀ Leaky Cauldron",6,Y0(),"l");
+ if(k=="shop"){x.fillStyle="#7a1f2b";x.fillRect(7*TS,5*TS,6*TS,5*TS);x.fillStyle="#b4636f";x.strokeStyle="#facc15";x.lineWidth=2;x.strokeRect(7*TS+6,5*TS+6,6*TS-12,5*TS-12);x.fillStyle="#fde68a";x.font="bold 15px Arial";x.textAlign="center";x.fillText(S.t,320,2*TS-2)}
+ if(S.po)for(const i of[3,8,14]){x.fillStyle="#a16207";x.beginPath();x.arc(i*TS+16,TS+14,9,0,7);x.fill();x.fillStyle="#fff";x.fillRect(i*TS+10,TS+10,4,4);x.fillRect(i*TS+18,TS+10,4,4);x.fillStyle="#111";x.fillRect(i*TS+11,TS+11,2,2);x.fillRect(i*TS+19,TS+11,2,2)}
+ if(sn){x.fillStyle="#fff";for(let q=0;q<40;q++)x.fillRect((q*97+tick*(.3+q%3*.15))%640,(q*53+tick*(.6+q%4*.2))%480,2,2)}}
+const Y0=()=>5*TS+10;
+function drawGate(){x.fillStyle="#475569";x.fillRect(0,6*TS-10,10,3*TS+20);x.fillStyle="#1e293b";for(let j=0;j<3;j++)x.fillRect(0,6*TS+j*TS+2,TS-6,4);plaq(P.house>=0?"◀ Pigsmead":"◀ Gate (locked)",TS+4,6*TS-8,"l")}
+function drawPotCorner(){const X=2*TS,Y=3*TS;x.fillStyle="#7c2d12";x.fillRect(X,Y+10,3*TS,TS);x.fillStyle="#92400e";x.fillRect(X,Y+6,3*TS,6);
+ x.fillStyle="#111827";x.beginPath();x.ellipse(X+TS+16,Y+10,20,10,0,0,7);x.fill();x.fillStyle=`hsl(${tick*2%360} 70% 55%)`;x.beginPath();x.ellipse(X+TS+16,Y+6,15,5,0,0,7);x.fill();
+ [["#a78bfa",4],["#4ade80",68],["#38bdf8",80]].forEach(([c,o])=>{x.fillStyle=c;x.fillRect(X+o,Y-6,10,16);x.fillStyle="#e5e7eb";x.fillRect(X+o+3,Y-10,4,5)});
+ plaq("E: brew potions",X+TS+16,Y-14)}
+function drawBeds(){for(const i of[2,4]){x.fillStyle="#7c2d12";x.fillRect(i*TS,10*TS+4,TS+8,TS*2-8);x.fillStyle=(HOUSES[P.house]||HOUSES[0]).c;x.fillRect(i*TS+2,10*TS+8,TS+4,TS+4);x.fillStyle="#f5f5f4";x.fillRect(i*TS+2,10*TS+8,TS+4,10)}
+ plaq(P.minute>=1200||P.minute<420?"E: sleep":"Beds (after 20:00)",3*TS+4,10*TS-4)}
+const ING=[["Moonpetal","#a78bfa"],["Dragon Scale","#ef4444"],["Frog Spawn","#4ade80"],["Ginger Root","#f59e0b"],["Unicorn Hair","#e5e7eb"],["Fire Seed","#f97316"],["Owl Feather","#a16207"],["Blue Mushroom","#38bdf8"]];
+function icon(i,X,Y,s){x.fillStyle=ING[i][1];const m=i%4;
+ if(m==0){x.beginPath();x.arc(X+s/2,Y+s/2,s/2-2,0,7);x.fill()}
+ else if(m==1){x.beginPath();x.moveTo(X+s/2,Y+1);x.lineTo(X+s-1,Y+s/2);x.lineTo(X+s/2,Y+s-1);x.lineTo(X+1,Y+s/2);x.fill()}
+ else if(m==2){x.fillRect(X+3,Y+3,s-6,s-6);x.fillStyle="rgb(0 0 0 / 25%)";x.fillRect(X+s/2-1,Y+3,2,s-6)}
+ else{x.beginPath();x.moveTo(X+s/2,Y+2);x.lineTo(X+s-2,Y+s-2);x.lineTo(X+2,Y+s-2);x.fill()}
+ x.fillStyle="rgb(255 255 255 / 45%)";x.fillRect(X+s/2-3,Y+s/2-4,3,3)}
+const mix=a=>{if(!a.length)return"#334155";let r=0,g=0,b=0;for(const i of a){const h=ING[i][1];r+=parseInt(h.slice(1,3),16);g+=parseInt(h.slice(3,5),16);b+=parseInt(h.slice(5,7),16)}const n=a.length;return`rgb(${r/n|0} ${g/n|0} ${b/n|0})`};
+function newBrew(K,rec){if(!rec){const a=[0,1,2,3,4,5,6,7];for(let i=7;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}rec=a.slice(0,3+Math.floor(Math.random()*2)+(P.year>=6?1:0))}
+ return{K,rec,add:[],cur:0,ph:"add",bad:[],t:0,sp:0,hit:0,miss:0,bub:[],note:"Add the ingredients in the recipe order.",col:"#334155"}}
+let pk8=0,invOpen=false,lifts=[];const PN=["Mana Potion","Healing Draught","Gold Fizz","Shield Potion","Sparkle Potion","Fiery Burp","Feather Potion","Sleepy Brew","Perfect Elixir"];
+const potName=p=>p.length==1?PN[p[0]]:"Mixed Potion ("+p.map(i=>PN[i]).join(" + ")+")";
+function oops(i){switch(i){
+ case 0:mana=P.maxmp;return"mana full";
+ case 1:hp=Math.min(P.maxhp,hp+2);return"+2 health";
+ case 2:P.coins+=2;return"+2 coins";
+ case 3:inv=600;return"shielded";
+ case 4:fw=300;return"glittering";
+ case 5:hp=Math.max(1,hp-1);return"-1 health";
+ case 6:jmp=30;return"floating";
+ case 7:mana=Math.max(0,mana-10);return"sleepy, -10 mana";
+ default:hp=P.maxhp;mana=P.maxmp;return"fully restored"}}
+function bottle(p){if(P.pots.length<20){P.pots.push(p);pk8=P.pots.length-1;return true}msg="Your potion shelf is full (20). Drink some first!";return false}
+function drinkPot(){const p=P.pots[pk8];if(!p){msg="No potion selected. V picks one.";return}P.pots.splice(pk8,1);pk8=Math.min(pk8,Math.max(0,P.pots.length-1));msg=`Drank ${potName(p)}: ${p.map(oops).join(", ")}`;save()}
+function nextPot(){if(!P.pots.length){msg="You have no potions.";return}pk8=(pk8+1)%P.pots.length}
+function brewWin(b){b.ph="done";b.col="#22c55e";const K=b.K;bottle([8]);
+ if(K.home){b.note="Perfect brew! A Perfect Elixir is in your inventory (V/G). Press E to finish.";return}
+ if(!P.classes.includes(K.id)){P.classes.push(K.id);clsDone(K);save();say([[K.prof,"A perfect potion! Excellent work. Class passed!"]]);msg=`Class passed: ${K.name}`;b.note="Perfect! Press E to finish."}
+ else if(P.brewn<10){P.brewn++;P.coins++;b.note=`Lovely brew! +1 coin (${P.brewn}/10). Press E to finish.`}else b.note="Lovely brew! Press E to finish."}
+function stepBrew(pr,adv){const b=brew;b.t++;
+ if(pr.Escape){brew=null;return}
+ if(b.ph!="fail"&&b.t%7==0)b.bub.push({x:Math.random()*100-50,y:0,l:50});for(const u of b.bub){u.y-=1.2;u.l--}b.bub=b.bub.filter(u=>u.l>0);
+ if(b.ph=="add"){
+  if(pr.ArrowLeft||pr.a||pr.left)b.cur=(b.cur+7)%8;if(pr.ArrowRight||pr.d||pr.right)b.cur=(b.cur+1)%8;
+  if(pr.ArrowUp||pr.w||pr.up||pr.ArrowDown||pr.s||pr.down)b.cur=(b.cur+4)%8;
+  if(pr.f){if(b.bad.length){if(bottle(b.bad.slice())){save();msg=`Bottled ${potName(b.bad)}! V picks, G drinks.`;brew=null}}else b.note="Nothing odd to bottle. Keep adding ingredients, or Esc to leave.";return}
+  if(adv){if(b.cur==b.rec[b.add.length]&&!b.bad.length){b.add.push(b.cur);b.col=mix(b.add);if(b.add.length==b.rec.length)brewWin(b)}
+   else{b.bad.push(b.cur);b.col=mix(b.add.concat(b.bad));b.note=`Wrong ingredient: ${ING[b.cur][0]}! The brew will now have ${b.bad.map(i=>PN[i]).join(" + ")} effects. Keep adding, or press F to bottle it (${b.bad.length}).`}}}
+ else if(adv)brew=null}
+function drawBrew(){const b=brew,K=b.K;panel(20,44,600,392);x.textAlign="center";x.fillStyle="#f0c040";x.font="bold 18px Arial";x.fillText("Potions with "+K.prof,320,72);
+ x.fillStyle="#e8d8a8";x.fillRect(40,90,170,190);x.strokeStyle="#92400e";x.lineWidth=3;x.strokeRect(40,90,170,190);x.fillStyle="#7c2d12";x.font="bold 14px Arial";x.fillText("Recipe card",125,112);
+ b.rec.forEach((r,i)=>{const y=124+i*36;icon(r,52,y,24);x.textAlign="left";x.fillStyle=i<b.add.length?"#15803d":"#3b1d0a";x.font="13px Arial";x.fillText(`${i+1}. ${ING[r][0]}${i<b.add.length?" ✓":""}`,82,y+17)});
+ const cx=290,cy=235;x.fillStyle="#f97316";for(let i=-2;i<=2;i++){x.beginPath();x.moveTo(cx+i*24-8,cy+95);x.lineTo(cx+i*24,cy+70-Math.sin(b.t/4+i)*8);x.lineTo(cx+i*24+8,cy+95);x.fill()}
+ x.fillStyle="#111827";x.beginPath();x.ellipse(cx,cy+30,85,55,0,0,7);x.fill();x.fillStyle="#374151";x.beginPath();x.ellipse(cx,cy-8,85,22,0,0,7);x.fill();x.fillStyle=b.col;x.beginPath();x.ellipse(cx,cy-8,74,16,0,0,7);x.fill();
+ for(const u of b.bub){x.globalAlpha=u.l/50;x.fillStyle="#fff";x.beginPath();x.arc(cx+u.x,cy-8+u.y,3,0,7);x.fill()}x.globalAlpha=1;
+ if(b.ph=="fail"){x.fillStyle="rgb(156 163 175 / 70%)";for(let i=0;i<5;i++){x.beginPath();x.arc(cx+Math.sin(b.t/9+i)*30,cy-30-((b.t*1.5+i*18)%90),10+i*2,0,7);x.fill()}}
+ ING.forEach((g,i)=>{const X=380+(i%4)*56,Y=100+(i>>2)*78;x.fillStyle="#5b3a1e";x.fillRect(X-4,Y+36,50,5);
+  if(b.ph=="add"&&b.cur==i){x.strokeStyle="#facc15";x.lineWidth=3;x.strokeRect(X-5,Y-5,48,58)}
+  icon(i,X+4,Y,32);x.textAlign="center";x.fillStyle="#e5e7eb";x.font="9px Arial";x.fillText(g[0],X+20,Y+50)});
+ x.fillStyle="#fde68a";x.font="14px Arial";x.textAlign="center";wrap(b.note,520).forEach((l,i)=>x.fillText(l,320,376+i*18));
+ x.fillStyle="#9ca3af";x.font="12px Arial";x.fillText("Arrows choose · E add · F bottle odd potions · Esc leave",320,426)}
+const CHARMS=[["Hoverbug","lev",["Whoa! I'm floating!","Put me down! ...no wait, nice view.","Mum would never let me do this!"],"#93c5fd"],["Hairbow","hair",["My hair! Is it supposed to be this colour?","Ooh, a bold new look!","Nobody will recognise me now!"],"#f9a8d4"],["Giggle Gust","giggle",["Hee hee! Stop, that tickles!","Ha ha ha! I can't stop laughing!","Hehe... wheeze... hee hee!"],"#fde047"],["Glow Up","glow",["I'm a walking lantern!","Everything is so bright!","Ooh, shiny me!"],"#fef08a"],["Yoink","sum",["Whoa! I got summoned!","Hey! Who pulled me over here?","Accio me? Rude!"],"#fdba74"]];
+function charmTalk(p){
+ if(P.classes.includes("charms")){say([[p,"You have passed Charms practice! Cast any charm on your classmates for fun (F or 5-8 to pick, E to cast)."]]);return}
+ P.flags.charmList=1;say([[p,"Charm practice! Here is your charm list: Hoverbug, Hairbow, Giggle Gust and Glow Up."],[p,"Cast each one on a classmate to pass. Press F or 5-8 to pick a charm and E next to a classmate to cast it."]])}
+function castCharm(s,ci){const c=CHARMS[ci==null?chSel:ci];
+ s.fx={t:c[1],n:260};cd=20;if(c[1]=="hair"){s.hc0=s.hc;s.hc=(s.hc+1+Math.floor(Math.random()*5))%6}
+ s.say=c[2][Math.floor(Math.random()*3)];s.sayT=200;burst(s.x+16,s.y+16,c[3],16);
+ if(!P.charms.includes(c[1])){P.charms.push(c[1]);msg=`Charm practice: ${P.charms.length}/4 (${c[0]})`;
+  if(P.charms.length==4){P.classes.push("charms");P.hints++;P.coins+=10;msg="Class passed: Charms practice! +1 hint scroll, +10 coins";save();say([["Professor Quill","Splendid! All four charms, and not a single classmate harmed. Take a hint scroll and ten coins."]])}else save()}}
+const WN={wisp:"Boggart",bat:"Red Cap",shooter:"Grindylow",shade:"Dementor-shade"},left=()=>en.filter(e=>e.cls&&e.hp>0).length;
+function startWave(M){en=en.filter(e=>!e.cls);const XT=["bat","shade","shooter","charger","wisp"].slice(0,P.year-2),ty=["wisp","bat","shooter","wisp","shade",...XT],pos=[[3,4],[16,4],[3,10],[16,10],[10,11],[3,7],[16,7],[7,12],[13,12],[10,2]];
+ ty.forEach((t,k)=>{const T=TT[t];en.push({id:"d9_"+k,r:9,t,x:pos[k][0]*TS,y:pos[k][1]*TS,hp:T.hp+yh(),mhp:T.hp+yh(),sz:T.sz,z:0,cd:60+k*20,hit:0,slow:0,cls:1,nm:WN[t]})});
+ wave={n:ty.length};grace=90;say([[M.lesson.prof,"Welcome to Defence! Today is a practice duel. Dark creatures from my trunk are loose in this room."],[M.lesson.prof,L9TXT(M)],[M.lesson.prof,"Defeat them all with your spells (E to cast, Q to switch) to pass. If you are overwhelmed I will end the class. Begin!"]])}
+const L9TXT=M=>M.lesson.txt;
+function dismiss(){hp=P.maxhp;en=en.filter(e=>!e.cls);wave=null;bolts=[];ebolts=[];meta[9].lesson.active=false;grace=120;inv=90;say([["Professor Vale","Class dismissed! That was a tough duel. Talk to me when you are ready to try again."]])}
+function addVNpcs(){const g=rng(4242),R=n=>Math.floor(g()*n),
+ mk=(r,id,X,Y,o)=>npcs.push({r,id,x:X,y:Y,name:FIRST[R(FIRST.length)]+" "+LAST[R(LAST.length)],h:R(4),hs:R(5),hc:R(6),sk:R(4),z:0,line:"",...o}),
+ st=(r,id,o)=>{for(let n=0;n<50;n++){const i=3+R(14),j=4+R(6);if(!tileAt(r,i,j)&&!(Math.abs(i-9.5)<2&&j>8)){mk(r,id,i*TS,j*TS,{v:1,...o});return}}};
+ ALLEY.forEach((a,i)=>mk(NB+1+i,"k"+i,10*TS,2*TS,{name:AKP[i],fix:1,v:1,rg:96,keep:s=>aSell(i,s),L:[AKL[i],`Anything else from ${a[0]}? Take your time.`,`Come back soon! ${a[0]} is always open.`]}));
+ HOG.forEach((H,k)=>mk(NB+8+k,"hk"+k,10*TS,2*TS,{name:H.kp,fix:1,v:1,rg:96,keep:s=>hSell(k,s),L:[H.ln,`Anything else from ${H.n}?`,`Thanks for visiting ${H.n}!`]}));
+ for(let k=0;k<6;k++)st(NB,"a"+k,{});for(let k=0;k<7;k++)st(NB+7,"h"+k,{});
+ [[4,6],[7,9],[13,9],[16,6]].forEach(([i,j],k)=>mk(2,"2_c"+k,i*TS,j*TS,{cm:1,v:0,L:[`Hi! I'm in Charms practice too. Cast something on me, number ${k+1} volunteer reporting!`,`Professor Quill says Glow Up is the first charm everyone learns. Number ${k+1} here!`,`Careful with Hairbow on number ${k+1}. I like my hair!`]}));
+ for(const s of npcs)if(s.cm)s.v=0;
+ const co=npcs.find(s=>s.id==COMMON+"_f1"),be=npcs.find(s=>s.id==COMMON+"_f2");
+ co.L=[co.line,"Ben and I always check the detective notebook together.","Psst! I think the thief wears ink-stained gloves."];be.L=[be.line,"Cora says the red hair makes us the best detectives.","I bet the Hollow King is scared of ginger hair."]}
+const HOB=["collecting chocolate frog cards","brewing fizzy potions","knitting wizard socks","racing garden gnomes","polishing my broom","sketching the portraits","feeding the owls","juggling spellbooks","practising wand twirls","baking cauldron cakes","collecting enchanted buttons","whistling to the portraits"],PET=["toad","owl","cat","rat","ferret","kneazle","tortoise","puffskein"],FOOD=["pumpkin pasties","treacle tart","cauldron cakes","jelly slugs","sherbet lemons","butterbeer fudge","pickled newt eggs","steak pie"],PLC=["the Library","the Owlery","the Great Hall","the kitchens","the Greenhouse","the Broomball pitch","the lake shore","the dungeons","the clock tower","the grand staircase"],TCH=["Professor Quill","Professor Ashe","Professor Vale","Professor Wren","Professor Binns","Madam Hooch","Professor Sinistra"],CLS=["Charms","Potions","History of Magic","Astronomy","Flying Lessons","Defence"];
+const pk=(g,a)=>a[Math.floor(g()*a.length)],fn=s=>s.name.split(" ")[0],hn=s=>s.v?(s.r==NB?"Cool Person Airea":"Pigsmead"):HOUSES[s.h].n;
+const TL=[[(s,g)=>`Hi, I'm ${fn(s)} of ${hn(s)}. I spend my free time ${pk(g,HOB)}.`,(s,g)=>`${hn(s)} rocks! My ${pk(g,PET)} is the best pet near ${pk(g,PLC)}.`,(s,g)=>`Welcome! I'm ${fn(s)}, and I adore ${pk(g,FOOD)}.`,(s,g)=>`Call me ${fn(s)}. My favourite spot is ${pk(g,PLC)}.`,(s,g)=>`Nice to meet you! ${hn(s)} folk love ${pk(g,FOOD)} and ${pk(g,HOB)}.`],
+ [(s,g)=>`I heard ${pk(g,TCH)} was seen near ${pk(g,PLC)} at midnight.`,(s,g)=>`Rumour: someone from ${HOUSES[(s.h+1)%4].n} lost their ${pk(g,PET)} in ${pk(g,PLC)}.`,(s,g)=>`${pk(g,TCH)} secretly adores ${pk(g,FOOD)}. Don't tell anyone!`,(s,g)=>`${HOUSES[(s.h+2)%4].n} lead at Broomball, but ${fn(s)} says that will change.`,(s,g)=>`My ${pk(g,PET)} keeps sneaking into ${pk(g,CLS)} class.`],
+ [(s,g)=>`Tip: ${pk(g,CLS)} is easier after eating ${pk(g,FOOD)}.`,(s,g)=>`Tip: ${pk(g,TCH)} drops hints after ${pk(g,CLS)}, so listen well.`,(s,g)=>`Best nap spot: ${pk(g,PLC)}. Shh, ${fn(s)} never told you!`,(s,g)=>`If you get lost, look for ${pk(g,PLC)}. ${fn(s)} always finds it.`,(s,g)=>`Tip from ${fn(s)}: talk to everyone, witnesses hide in ${pk(g,PLC)}.`]];
+function assignLines(){const g=rng(9001),used=new Set(),tk=[...TALK];for(const s of npcs)if(s.L)s.L.forEach(l=>used.add(l));
+ for(let i=tk.length-1;i>0;i--){const j=Math.floor(g()*(i+1));[tk[i],tk[j]]=[tk[j],tk[i]]}
+ for(const s of npcs){if(!s.L)s.L=[0,1,2].map(k=>{let l=null;for(let n=0;n<300&&!l;n++){l=k==1&&tk.length&&n==0?tk.pop():TL[k][Math.floor(g()*5)](s,g);if(used.has(l))l=null}if(!l)l=TL[k][0](s,g)+" ("+used.size+")";used.add(l);return l});s.line=s.L[0]}}
 const HX=[160,320,480],clampN=(v,a,b)=>Math.max(a,Math.min(b,v));
 function startQ(){
  const me=Math.max(0,P.house),riv=(me+1+(P.matches||0)%3)%4;P.matches=(P.matches||0)+1;
  const ch=(t,X,Y)=>({t,x:X,y:Y,cd:0,hold:0}),b=()=>({x:60+Math.random()*520,y:160+Math.random()*200,vx:(Math.random()<.5?-1:1)*(2+Math.random()),vy:(Math.random()<.5?-1:1)*(2+Math.random())});
- const mp={t:0,me:1,x:320,y:380,cd:0,hold:0};
- qd={x:320,y:380,fx:0,fy:-1,t:3600,s0:0,s1:0,stun:0,res:null,flash:0,me,riv,mp,
+ const mp={t:0,me:0,x:320,y:380,cd:0,hold:0};
+ qd={role:null,ms:{x:80,y:400,stun:0},jmp:0,x:320,y:380,fx:0,fy:-1,t:3600,s0:0,s1:0,stun:0,res:null,flash:0,me,riv,mp,
   sn:{x:100,y:240,vx:3,vy:2},rs:{x:540,y:200},Q:{x:320,y:270,h:null,vx:0,vy:0,cd:30},
   pl:[mp,ch(0,230,340),ch(0,410,340),ch(1,200,220),ch(1,320,250),ch(1,440,220)],
   kp:[{x:320,y:432},{x:320,y:138}],bl:[b(),b()]}}
@@ -229,15 +505,22 @@ function qThrow(q,p,tx,ty,sp){const Q=q.Q,d=Math.hypot(tx-p.x,ty-p.y)||1;Q.h=nul
 function qGoal(q,team){q[team?"s1":"s0"]+=10;q.flash=60;const Q=q.Q;Q.x=320;Q.y=270;Q.vx=Q.vy=0;Q.h=null;Q.cd=40;msg=team?"The rival team scores!":"GOAL! +10 points"}
 function stepQ(pr){
  const q=qd,Q=q.Q;
- if(q.res){if(pr[" "]||pr.Enter){const win=q.s0>q.s1,c=win?50:10;P.coins+=c;P.cup=(P.cup||0)+(win?100:25);msg=`${win?"Your House wins":"Your House lost"} ${q.s0}-${q.s1}! +${c} coins, House Cup points: ${P.cup}`;qd=null;save()}return}
+ if(q.res){if(pr.e||pr.Enter){const win=q.s0>q.s1,c=win?50:10;P.coins+=c;P.cup=(P.cup||0)+(win?100:25);msg=`${win?"Your House wins":"Your House lost"} ${q.s0}-${q.s1}! +${c} coins, House Cup points: ${P.cup}`;qd=null;save()}return}
+ if(!q.role){const c=pr["1"]?"chaser":pr["2"]?"beater":pr["3"]?"seeker":null;if(pr.Escape){qd=null;return}if(c){q.role=c;q.mp.me=c=="chaser"?1:0}return}
+ const role=q.role;
  q.t--;if(q.flash>0)q.flash--;if(Q.cd>0)Q.cd--;
  let dx=0,dy=0;
  if(keys.ArrowLeft||keys.a||keys.left)dx=-1;else if(keys.ArrowRight||keys.d||keys.right)dx=1;
  if(keys.ArrowUp||keys.w||keys.up)dy=-1;else if(keys.ArrowDown||keys.s||keys.down)dy=1;
  if(dx||dy){q.fx=dx;q.fy=dy}
  if(q.stun>0)q.stun--;else{const sp=3.6+P.broom*.4+(q.me==0?.4:0);q.x=clampN(q.x+dx*sp,16,624);q.y=clampN(q.y+dy*sp,104,462)}
- q.mp.x=q.x;q.mp.y=q.y;
- if(pr[" "]&&Q.h===q.mp){const gx=q.fy<0||(!q.fx&&!q.fy)?HX.reduce((a,h)=>Math.abs(h-q.x)<Math.abs(a-q.x)?h:a,320):q.x+q.fx*200,gy=q.fy<0||(!q.fx&&!q.fy)?112:q.y+q.fy*200;qThrow(q,q.mp,gx,gy,10)}
+ if(role=="chaser"){q.mp.x=q.x;q.mp.y=q.y}
+ if(pr[" "]&&!q.jmp)q.jmp=25;if(q.jmp>0)q.jmp--;
+ if(role=="beater"&&pr.e){let nb=null,nd=90;for(const b of q.bl){const d=Math.hypot(b.x-q.x,b.y-q.y);if(d<nd){nd=d;nb=b}}
+  if(nb){let tg=null,td=1e9;const c=q.pl.filter(p=>p.t==1);if(q.t<1800)c.push(q.rs);for(const p of c){const d=Math.hypot(p.x-nb.x,p.y-nb.y);if(d<td){td=d;tg=p}}
+   const d=Math.hypot(tg.x-nb.x,tg.y-nb.y)||1;nb.vx=(tg.x-nb.x)/d*7;nb.vy=(tg.y-nb.y)/d*7;nb.bt=80;msg="Smash!"}}
+ if(role!="chaser"&&q.stun<=0)for(const b of q.bl)if(!(b.bt>0)&&Math.hypot(b.x-q.x,b.y-q.y)<22&&q.jmp<=0)q.stun=55;
+ if(role=="chaser"&&pr.e&&Q.h===q.mp){const gx=q.fy<0||(!q.fx&&!q.fy)?HX.reduce((a,h)=>Math.abs(h-q.x)<Math.abs(a-q.x)?h:a,320):q.x+q.fx*200,gy=q.fy<0||(!q.fx&&!q.fy)?112:q.y+q.fy*200;qThrow(q,q.mp,gx,gy,10)}
  for(const p of q.pl){if(p.cd>0)p.cd--;if(p.me)continue;
   const gy=p.t==0?112:452,spd=p.t==0?2.5:2.7;let tx=Q.x,ty=Q.y;
   if(Q.h===p){tx=320+Math.sin(tick/50+p.x)*140;ty=gy+(p.t==0?95:-95);p.hold++;
@@ -254,12 +537,15 @@ function stepQ(pr){
   Q.y=clampN(Q.y,104,462)}
  for(const k of q.kp){const tx=clampN(Q.x,200,440);k.x+=Math.sign(tx-k.x)*Math.min(2.4,Math.abs(tx-k.x))}
  for(const b of q.bl){b.x+=b.vx;b.y+=b.vy;if(b.x<12||b.x>628)b.vx*=-1;if(b.y<115||b.y>465)b.vy*=-1;
-  for(const p of q.pl)if(Math.hypot(b.x-p.x,b.y-p.y)<22&&(p.cd<=0||p.me)){if(p.me){if(q.stun>0)continue;q.stun=55}else p.cd=60;if(Q.h===p){Q.h=null;Q.vx=b.vx;Q.vy=b.vy;Q.cd=30}}}
+  if(b.bt>0&&--b.bt==0){const m=Math.hypot(b.vx,b.vy)||1;b.vx=b.vx/m*2.7;b.vy=b.vy/m*2.7}
+  if(b.bt>0&&q.t<1800&&Math.hypot(b.x-q.rs.x,b.y-q.rs.y)<24)q.rs.stun=150;
+  for(const p of q.pl)if(Math.hypot(b.x-p.x,b.y-p.y)<22&&!(b.bt>0&&p.t==0)&&(p.cd<=0||p.me)){if(p.me){if(q.stun>0||q.jmp>0)continue;q.stun=55}else p.cd=60;if(Q.h===p){Q.h=null;Q.vx=b.vx;Q.vy=b.vy;Q.cd=30}}}
  const s=q.sn;if(tick%45==0){s.vx=(Math.random()*2-1)*3.5;s.vy=(Math.random()*2-1)*3}
- const d=Math.hypot(s.x-q.x,s.y-q.y);if(d<160){s.x+=(s.x-q.x)/d*3.2;s.y+=(s.y-q.y)/d*3.2}
+ const sk=role=="seeker",d=Math.hypot(s.x-q.x,s.y-q.y);if(sk&&d<110){s.x+=(s.x-q.x)/d*1.6;s.y+=(s.y-q.y)/d*1.6}
  s.x=clampN(s.x+s.vx,20,620);s.y=clampN(s.y+s.vy,110,460);if(s.x<=20||s.x>=620)s.vx*=-1;if(s.y<=110||s.y>=460)s.vy*=-1;
- if(d<5){q.s0+=150;q.res="snitch";return}
- if(q.t<1800){const r=q.rs,rd=Math.hypot(s.x-r.x,s.y-r.y)||1;r.x+=(s.x-r.x)/rd*2.4;r.y+=(s.y-r.y)/rd*2.4;if(rd<20){q.s1+=150;q.res="rival";return}}
+ if(sk&&d<26){q.s0+=150;q.res="snitch";return}
+ if(q.t<1800){const r=q.rs;if(r.stun>0)r.stun--;else{const rd=Math.hypot(s.x-r.x,s.y-r.y)||1;r.x+=(s.x-r.x)/rd*2.4;r.y+=(s.y-r.y)/rd*2.4;if(rd<20){q.s1+=150;q.res="rival";return}}
+  if(!sk){const m=q.ms,md=Math.hypot(s.x-m.x,s.y-m.y)||1;m.x+=(s.x-m.x)/md*2.3;m.y+=(s.y-m.y)/md*2.3;if(md<20){q.s0+=150;q.res="mine";return}}}
  if(q.t<=0)q.res="time"}
 function drawQ(){
  const q=qd,Q=q.Q,H=HOUSES[q.me],R=HOUSES[q.riv];
@@ -273,42 +559,91 @@ function drawQ(){
  for(const b of q.bl){x.fillStyle="#111";x.beginPath();x.arc(b.x,b.y,10,0,7);x.fill();x.strokeStyle="#ef4444";x.lineWidth=2;x.stroke()}
  x.fillStyle="#fff";x.beginPath();x.arc(Q.x,Q.y,8,0,7);x.fill();x.strokeStyle="#b91c1c";x.lineWidth=2;x.stroke();
  const s=q.sn,r=q.rs;x.fillStyle="#facc15";x.beginPath();x.arc(s.x,s.y,5,0,7);x.fill();x.fillStyle="#fff";x.fillRect(s.x-14,s.y-2+Math.sin(tick/2)*3,9,3);x.fillRect(s.x+5,s.y-2+Math.sin(tick/2)*3,9,3);
- if(q.t<1800)dot(r.x,r.y,R.c2,8);
- if(!(q.stun&&tick%6<3)){x.fillStyle="#92400e";x.fillRect(q.x-22,q.y+14,48,4);x.drawImage(SP.wiz,q.x-16,q.y-16)}
+ if(q.t<1800){dot(r.x,r.y,R.c2,8);if(r.stun>0){x.fillStyle="#fff";x.font="12px Arial";x.fillText("stunned",r.x,r.y-14)}if(q.role&&q.role!="seeker")dot(q.ms.x,q.ms.y,H.c2,8)}
+ if(!(q.stun&&tick%6<3)){x.fillStyle="#92400e";x.fillRect(q.x-22,q.y+14,48,4);x.drawImage(SP.wiz,q.x-16,q.y-16-(q.jmp>0?Math.sin(Math.PI*(25-q.jmp)/25)*14:0))}
  x.textAlign="center";x.fillStyle="#fff";x.font="bold 18px Arial";x.fillText(`${H.n} ${q.s0}  :  ${q.s1} ${R.n}`,320,24);x.font="13px Arial";x.fillText(`Time ${Math.ceil(q.t/60)}`,320,38);
- x.textAlign="left";x.fillStyle="#fde047";x.font="13px Arial";x.fillText(Q.h===q.mp?"You have the Quaffle! Space: shoot at the top hoops":"Grab the Quaffle, score on the top hoops, catch the Snitch (+150)",8,96);
+ x.textAlign="left";x.fillStyle="#fde047";x.font="13px Arial";x.fillText(q.role=="beater"?"Beater: stand near a Bludger and press E to smash it at the rival team (Space: jump)":q.role=="seeker"?"Seeker: chase and catch the Golden Snitch (+150) before the rival Seeker does":Q.h===q.mp?"You have the Quaffle! E: shoot at the top hoops (Space: jump over Bludgers)":"Grab the Quaffle and score on the top hoops (+10). Your Seeker chases the Snitch.",8,96);
+ if(!q.role){x.fillStyle="rgb(0 0 0 / 80%)";x.fillRect(60,120,520,260);x.textAlign="center";x.fillStyle="#facc15";x.font="bold 26px Arial";x.fillText("Choose your position",320,162);x.fillStyle="#fff";x.font="16px Arial";
+  ["1  Chaser: carry the Quaffle and score goals","2  Beater: smash Bludgers into the rival team","3  Seeker: catch the Golden Snitch for 150 points"].forEach((t,i)=>x.fillText(t,320,215+i*44));x.fillStyle="#9ca3af";x.font="13px Arial";x.fillText("Press 1, 2 or 3 · Esc to cancel",320,360)}
  if(q.flash>0){x.fillStyle="#fff";x.textAlign="center";x.font="bold 34px Arial";x.fillText("GOAL!",320,260)}
  if(q.res){x.fillStyle="rgb(0 0 0 / 70%)";x.fillRect(0,170,640,140);x.textAlign="center";x.fillStyle="#facc15";x.font="bold 28px Arial";
-  x.fillText(q.res=="snitch"?"YOU CAUGHT THE GOLDEN SNITCH!":q.res=="rival"?"The rival Seeker caught the Snitch!":"Time's up!",320,216);
-  x.fillStyle="#fff";x.font="bold 22px Arial";x.fillText(q.s0>q.s1?`${H.n} WINS ${q.s0}-${q.s1}!`:`${R.n} win ${q.s1}-${q.s0}`,320,252);x.font="15px Arial";x.fillText("Space to return",320,286)}}
+  x.fillText(q.res=="snitch"?"YOU CAUGHT THE GOLDEN SNITCH!":q.res=="mine"?"Your Seeker caught the Snitch!":q.res=="rival"?"The rival Seeker caught the Snitch!":"Time's up!",320,216);
+  x.fillStyle="#fff";x.font="bold 22px Arial";x.fillText(q.s0>q.s1?`${H.n} WINS ${q.s0}-${q.s1}!`:`${R.n} win ${q.s1}-${q.s0}`,320,252);x.font="15px Arial";x.fillText("E to return",320,286)}}
 function talkLesson(M){
- const L=M.lesson,p=L.prof;
- if(P.learned.includes(L.s))say([[p,`You have already mastered ${SPELLS[L.s].n}. Well done! Practice makes perfect.`]]);
+ const L=M.lesson,p=L.prof;if(classGate(room,p))return;
+ if(P.learned.includes(L.s)){if(room==2)charmTalk(p);else if(M.wave&&P.year>2&&P.flags["dy"+P.year]!=1){L.active=true;startWave(M)}else say([[p,`You have already mastered ${SPELLS[L.s].n}.  Well done! Practice makes perfect.`]])}
  else if(L.s>1&&!P.learned.includes(L.s-1))say([[p,`You must finish the previous class first. Visit the ${LESSONS[[2,9,17][L.s-2]].name}.`]]);
- else if(!L.active){L.active=true;for(const r of M.runes)r.lit=false;say([[p,"Welcome to class!"],[p,L.txt],[p,"Hit all three glowing practice targets with a spell to show you understand. Space to cast!"]])}
- else say([[p,"Hit all three practice targets to pass the lesson."]])}
-function talkClass(M){const K=M.klass;
+ else if(!L.active){L.active=true;if(M.wave){startWave(M);return}for(const r of M.runes)r.lit=false;say([[p,"Welcome to class!"],[p,L.txt],[p,"Hit all three glowing practice targets with a spell to show you understand. E to cast!"]])}
+ else say(M.wave?[[p,`Defeat all the dark creatures to pass! Monsters left: ${left()}`]]:[[p,"Hit all three practice targets to pass the lesson."]])}
+function talkClass(M){const K=M.klass;if(classGate(room,K.prof))return;
+ if(K.id=="potions"){brew=newBrew(K);say([[K.prof,P.classes.includes(K.id)?"Back to the cauldron for fun? Brew away!":P.year>=6?"Advanced Potions! The recipes are longer now, so watch the card carefully. A wrong ingredient makes a different potion!":"Today we brew a real potion. Add the ingredients in the order on my recipe card. Beware: a wrong ingredient makes a different potion!"]]);return}
  if(P.classes.includes(K.id))say([[K.prof,"You have already passed this class. Well done!"]]);
  else{say([[K.prof,K.txt]]);quiz={K,cur:0}}}
 function talkStudent(s){
- const L=[[s.name,`I'm in ${HOUSES[s.h].n}. ${s.line}`]];
+ const k=s.tk||0,L=[[s.name,(k==0?`I'm in ${HOUSES[s.h].n}. `:"")+(s.L?s.L[k%3]:s.line)]];s.tk=k+1;
  if(!P.met.has(s.id)){P.met.add(s.id);const c=1+(P.house==2?1:0);P.coins+=c;msg=`Met ${s.name}! +${c} coin${c>1?"s":""}`}
  if(s.cz!=null){const key=clueKey(s.cz,s.ck),t=MYST[s.cz].clues[s.ck];
   if(!P.clues.includes(key)){P.clues.push(key);L.push([s.name,"Wait, I saw something! "+t]);L.push(["Narrator","New clue added to your notebook. Press C to read it."])}
   else L.push([s.name,"Like I told you: "+t])}
  say(L);save()}
 function openAccuse(z){
- if(P.boss.has(z)){say([["Narrator","This mystery is already solved."]]);return}
+ if(z==6?P.yc:P.boss.has(z)){say([["Narrator","This mystery is already solved."]]);return}
  const n=zoneClues(z).length;
- if(n<3)say([["Narrator",`You need more clues before you can accuse anyone (${n}/4 found in this region). Ask the students around!`]]);
+ if(n<3)say([["Narrator",`You need more clues before you can accuse anyone (${n}/${MYST[z].clues.length} found${z==6?"":" in this region"}). Ask the students around!`]])
  else acc={z,cur:0}}
 function solve(z){
- acc=null;P.boss.add(z);P.coins+=50*(z+1);P.maxmp+=5;mana=P.maxmp;
- if(z==ZN.length-1){end="win";localStorage.removeItem(KEY);say([["Narrator","You raise your wand and whisper: Lumos. The simplest light spreads through the Moonlit Spire."],["Professor Quill","No... the light... I only wanted the school to remember me!"],["Narrator","The shadow dissolves, and Professor Quill is herself again. The candles relight and the spellbooks return to their shelves. The mystery is solved, and your adventure at Hogwarts has only just begun."]])}
+ acc=null;if(z==6){say([...MYST[6].win,["Narrator",`Year ${P.year} mystery solved!`]]);finishYear();return}
+ P.boss.add(z);P.coins+=50*(z+1);P.maxmp+=5;mana=P.maxmp;
+ if(z==ZN.length-1){say([["Narrator","You raise your wand and whisper: Sparklight. The simplest light spreads through the Moonlit Spire."],["Professor Quill","No... the light... I only wanted the school to remember me!"],["Narrator","The shadow dissolves, and Professor Quill is herself again. The candles relight and the spellbooks return to their shelves. The mystery is solved, and your second year at Pigboils comes to an end."]]);finishYear()}
  else{say([...MYST[z].win,["Narrator",`Mystery solved! +${50*(z+1)} coins. The seal to the next region is broken.`]]);save()}}
-const dmgP=()=>1+P.power+(P.house==0?1:0),unlocked=i=>i==0||P.learned.includes(i);
-function hurt(n){if(inv>0||end)return;hp-=n;inv=60;if(hp<=0){hp=0;end="lose";msg="The forest creatures won this time. Press R to respawn."}}
-function kill(e){e.hp=0;P.dead.add(e.id);const t=Math.random();
+const yh=()=>Math.floor((P.year-1)/2),dm=()=>1+Math.floor((P.year-2)/3),curZ=()=>P.year>2?6:P.boss.size;
+function clsDone(K){if(P.year==2)K.done();else{const c=8*P.year;P.coins+=c;P.hints++;msg=`Class passed: ${K.name}. +${c} coins, +1 hint scroll`}}
+const YM={
+ 3:{q:"Who opened the creature pens and let the Moonbeast loose?",sus:["Keeper Bram","Prefect Mina","Trainee Rook"],ans:2,
+  clues:["Keeper Bram was fixing the greenhouse roof all night. His ladder is still out there.","Prefect Mina was on patrol with three other prefects, and they never left each other's sight.","Muddy boot prints by the pens have a patched sole, and Rook's left boot is patched.","A half-eaten glow-berry tart lay by the gate, and Rook is the only one who feeds the beasts glow-berries."],
+  win:[["Trainee Rook","All right! I only wanted to prove Moonbeasts can be trusted off the leash. I'm sorry!"],["Hope","Everyone deserves a second chance. Let's help bring the beast home."]]},
+ 4:{q:"Who turned the Greenhouse into a tangled jungle?",sus:["Professor Bramble","Gardener Moss","Student Isla Thorne"],ans:2,
+  clues:["Professor Bramble was giving a lecture all afternoon with forty students watching.","Gardener Moss sneezes near pollen. He would never plant a sticky vine seed.","The jungle seeds came in a sack stamped with the Thorne family farm seal.","Isla was seen carrying a heavy sack toward the Greenhouse before dawn."],
+  win:[["Isla Thorne","I wanted a prize-winning plant for the school fair! The seeds grew far too fast... I'll help clean it up."],["Hope","A little too much plant food. Good thing nobody was hurt."]]},
+ 5:{q:"Who stole the sealed O.W.L. exam papers?",sus:["Examiner Crane","Student Tobias Finch","Madam Pince"],ans:1,
+  clues:["Examiner Crane was locked in the staff room with the head teacher all night.","Madam Pince's keys never left her belt, and the exam cupboard needs two keys.","A copy of the exam answers, in a student's handwriting, was found in the Owlery.","Tobias's lucky green quill was found beside the exam cupboard."],
+  win:[["Tobias Finch","I panicked! I thought I would fail everything. I never meant to sell the answers..."],["Hope","The exams will be fair again. You can still do this, Tobias."]]},
+ 6:{q:"Who has been tampering with the school's potion supplies?",sus:["Professor Ashe","Cauldron-boy Gideon","Cook Winnie"],ans:2,
+  clues:["Professor Ashe's own bottles were tampered with too, and she was the one who raised the alarm.","Cauldron-boy Gideon scrubs cauldrons all evening, and many students saw him.","The sleepy brew smells of cinnamon, a spice used only in the kitchens.","Cook Winnie has been buying extra sleepy syrup from the apothecary.","A kitchen apron with a purple stain was left near the Dungeon stairs."],
+  win:[["Cook Winnie","I wanted the students to rest before exams! I only meant a little sleepy syrup. I'm so sorry!"],["Hope","Rest is good, but not like this. Time to tell the whole school the truth."]]},
+ 7:{q:"Who silenced the graduation bells?",sus:["Aide Corvin","Professor Binns","Clock-keeper Ostrel"],ans:2,
+  clues:["The bells were muffled by a spell that only a bell-keeper knows.","Professor Binns is a ghost and cannot touch the bell ropes.","Aide Corvin rehearsed his welcome speech in front of fifty guests all evening.","Ostrel's oil can was found at the top of the Clock Tower, beside fresh footprints.","Ostrel was furious that the school planned to replace the old bells with new ones."],
+  win:[["Clock-keeper Ostrel","These bells rang for a thousand years! I only wanted somebody to listen to them one last time."],["Hope","Then we'll ring them together, at your graduation."]]}};
+const YR={2:{c:100,hp:1,mp:10},3:{c:120,pow:1,mp:5},4:{c:150,hp:1,mp:10},5:{c:200,pow:1,mp:10},6:{c:250,hp:1,pow:1,mp:10},7:{c:400,hp:1,pow:1,mp:10}},
+ YT={3:"Care of Magical Creatures",4:"Herbology",5:"O.W.L. exams",6:"Advanced Potions",7:"N.E.W.T. finals and graduation"},
+ YI={3:[["Narrator","Year Three begins. Frost lies on the grounds, and a loud howl comes from the creature pens."],["Narrator","The Moonbeast has escaped! Talk to students for clues, then take your accusation to Prefect Dara in the Great Hall."],["Hope","History of Magic is now Care of Magical Creatures. The monsters are tougher this year too!"]],
+ 4:[["Narrator","Year Four begins. Vines are creeping through the Greenhouse windows and across the castle lawn."],["Hope","Herbology class has started, and someone is behind this jungle. Ask around, then see Prefect Dara."]],
+ 5:[["Narrator","Year Five begins. O.W.L. exams are next week... and the sealed exam papers have vanished!"],["Hope","The O.W.L. exams are in the old History classroom. First, find the thief!"]],
+ 6:[["Narrator","Year Six begins. Advanced Potions has longer recipes, and bottles all over the school are being tampered with."],["Hope","Five clues this time. Check your notebook with C, and Prefect Dara will hear your accusation."]],
+ 7:[["Narrator","Year Seven begins, your final year. N.E.W.T. finals are close, and the graduation bells have mysteriously gone silent."],["Hope","This is our last mystery at Pigboils. Let's make it count!"]]},
+ YCL={3:{n:"Care of Magical Creatures",p:"Professor Thorn",q:"A frightened creature backs away from you. What should you do first?",o:["Stay calm, bow and offer food","Shout and wave your wand","Run away screaming"],a:0,t:"Creatures sense fear before anything else. Answer my question, and I will give you a reward."},
+ 4:{n:"Herbology",p:"Professor Bramble",q:"Which plant is so loud when pulled up that gardeners wear earmuffs?",o:["The mandrake","The daisy","The tulip"],a:0,t:"Herbology takes patience and good gloves. Answer my question to pass the class."},
+ 5:{n:"O.W.L. Exams",p:"Examiner Crane",q:"O.W.L. question: which charm makes a simple light at your wand tip?",o:["Flamebolt","Sparklight","Frostbite"],a:1,t:"Welcome to your Ordinary Wizarding Levels exam. Silence, please. One question, take your time."},
+ 6:{n:"Dark Ages History",p:"Professor Binns",q:"Which charm throws enemies back without hurting them?",o:["Whoosh","Sparklight","Flamebolt"],a:0,t:"(droning) The Dark Ages ended when wizards learned to defend, not destroy. Answer, please."},
+ 7:{n:"N.E.W.T. Finals",p:"Examiner Crane",q:"N.E.W.T. final: what undoes a shadow that feeds on forgotten light?",o:["Fire and force","The simplest light charm","Running away"],a:1,t:"This is your final exam, graduate-to-be. One last question, then graduation!"}};
+const rwText=R=>[R.c&&`+${R.c} coins`,R.hp&&`+${R.hp} max heart`,R.mp&&`+${R.mp} max mana`,R.pow&&`+${R.pow} magic power`].filter(Boolean).join(", ");
+function setupYear(){const y=P.year,B=setupYear.b||(setupYear.b={}),K=CLASSES[11],c=YCL[y],sc=r=>SCH.find(q=>q.r==r&&q.k=="c");
+ if(!B.k){B.k={q:K.q,opts:K.opts,ans:K.ans,txt:K.txt,prof:K.prof}}
+ Object.assign(K,B.k);if(c)Object.assign(K,{q:c.q,opts:c.o,ans:c.a,txt:c.t,prof:c.p});
+ const hn=c?c.n:"History of Magic",pn=y>=6?"Advanced Potions":"Potions";
+ K.name=meta[11].name=sc(11).n=hn;CLASSES[10].name=meta[10].name=pn+" Classroom";sc(10).n=pn;
+ if(meta[9]&&meta[9].lesson)meta[9].lesson.txt=y==2?LESSONS[9].txt:`Year ${y} Defence: the dark creatures grow bolder every year, so keep moving and keep casting. Today's duel is tougher than the last.`;
+ if(y>2)MYST[6]=YM[y]}
+function finishYear(){const y=P.year,R=YR[y];P.coins+=R.c;P.maxhp+=R.hp||0;P.maxmp+=R.mp||0;P.power+=R.pow||0;hp=P.maxhp;mana=P.maxmp;
+ if(y>=7){end="win";localStorage.removeItem(sk(slot));say([["Narrator","The final bell rings. The Great Hall glows with floating candles as the whole school gathers for graduation."],["Prefect Dara","Presenting our graduate: a detective, a duellist and a friend to everyone!"],["Narrator","You step up to receive your scroll while the hall cheers. Seven years at Pigboils, and so many secrets uncovered."],["Hope","We did it! Whatever comes next, we'll face it together."],["Narrator","Congratulations, graduate! Thank you for playing."]])}
+ else{P.yc=y;yc={n:y};save()}}
+function advanceYear(){if(P.year>=7)return;
+ P.year++;P.yc=0;yc=null;P.clues=[];P.dead=new Set();P.classes=P.classes.filter(c=>c=="fly");P.charms=[];P.brewn=0;P.hints++;P.day++;P.minute=480;tcnt=0;
+ setupYear();populate();hp=P.maxhp;mana=P.maxmp;wave=null;mn=brew=quiz=acc=null;items=[];
+ P.visited.add(0);enter(0,10*TS,11*TS);say(YI[P.year]||[]);save()}
+const dmgP=()=>1+P.power+(P.house==0?1:0),unlocked=i=>i==0||(i<4?P.learned.includes(i):P.charms.includes(CHARMS[i-4][1]));
+function hurt(n){if(inv>0||end)return;hp-=n;inv=60;if(hp<=0){if(wave&&room==9){dismiss();return}hp=0;end="lose";msg="The forest creatures won this time. Press R to respawn."}}
+function kill(e){e.hp=0;if(!e.cls)P.dead.add(e.id);const t=Math.random();
  if(t<.7)items.push({r:e.r,t:"coin",v:1+Math.floor(Math.random()*3),x:e.x,y:e.y});else if(t<.85)items.push({r:e.r,t:"heart",x:e.x,y:e.y});else items.push({r:e.r,t:"mana",x:e.x,y:e.y})}
 function nearestEnemy(maxd){let b=null,bd=maxd;for(const e of en)if(e.r==room&&e.hp>0){const d=Math.hypot(e.x+e.sz/2-px-16,e.y+e.sz/2-py-16);if(d<bd){bd=d;b=e}}return b}
 function shootAt(arr,X,Y,tx,ty,sp,dmg,own,extra){const d=Math.hypot(tx-X,ty-Y)||1;arr.push({r:room,x:X,y:Y,dx:(tx-X)/d*sp,dy:(ty-Y)/d*sp,life:60,dmg,own,pierce:1,hit:new Set(),...extra})}
@@ -319,11 +654,17 @@ function cast(){
  mana-=S.cost;cd=S.cd-(P.got.size>=8?4:0)-(P.house==3?3:0);
  const mkb=(a,o)=>bolts.push({r:room,x:X,y:Y,dx:Math.cos(a)*8,dy:Math.sin(a)*8,life:50,dmg:d,own:"p",col:S.col,pierce:1,hit:new Set(),...o});
  const a=Math.atan2(uy,ux);
- if(spell==0)mkb(a);else if(spell==1)mkb(a,{dmg:d*2,pierce:3,big:1});else if(spell==2)mkb(a,{slow:1});else for(let k=-2;k<=2;k++)mkb(a+k*.3,{life:24,kb:1});
+ if(spell>=4){let t=null,bd=110;for(const s of npcs)if(s.r==room&&!asleep(s)){const d=Math.hypot(s.x-px,s.y-py);if(d<bd){bd=d;t=s}}if(t)castCharm(t,spell-4)}
+ if(spell==0)mkb(a);else if(spell==1)mkb(a,{dmg:d*2,pierce:3,big:1});else if(spell==2)mkb(a,{slow:1});else if(spell==3)for(let k=-2;k<=2;k++)mkb(a+k*.3,{life:24,kb:1});
+ else if(spell==4)for(let k=-1;k<=1;k++)mkb(a+k*.2,{life:36,lift:1,pierce:4,big:1,dmg:0});
+ else if(spell==5)for(let k=-3;k<=3;k++)mkb(a+k*.25,{life:20,slow:1});
+ else if(spell==6)mkb(a,{dmg:d+1,pierce:4,slow:1,big:1});
+ else if(spell==8){let n=0;for(const it of items)if(it.r==room&&!it.got){it.x=px;it.y=py;n++}for(const e of en)if(e.r==room&&e.hp>0&&Math.hypot(e.x-px,e.y-py)<380){e.x=px+(e.x<px?-1:1)*70;e.y=py+(e.y<py?-1:1)*20;e.hit=8}for(const s of npcs)if(s.r==room&&!s.fix&&!s.tg&&!asleep(s)&&Math.hypot(s.x-px,s.y-py)<380){s.x=px+(s.x<px?-1:1)*50;s.y=py+40;s.say="Whoa! I got summoned!";s.sayT=150}burst(px+16,py+16,"#fdba74",20);msg=n?"Yoink! Items fly to you.":"Yoink! Everything nearby is pulled to you."}
+ else for(let k=0;k<8;k++)mkb(k*Math.PI/4,{life:22,dmg:d+1,pierce:3,big:1});
 }
 function talkQuest(z){
  const n=ZN[z].npc,s=P.qs[z],c=metIn(z);
- if(s==0){P.qs[z]=1;say([[n,"This region is full of new faces, and everyone has seen something."],[n,`Chat with ${QN(z)} students here and I'll reward you. Press Space next to them.`]])}
+ if(s==0){P.qs[z]=1;say([[n,"This region is full of new faces, and everyone has seen something."],[n,`Chat with ${QN(z)} students here and I'll reward you. Press E next to them.`]])}
  else if(s==1){if(c>=QN(z)){P.qs[z]=2;P.coins+=40+30*z;let t=`Thank you! Take ${40+30*z} coins.`;if(z%2==1){P.maxmp+=10;t+=" And a boost to your mana!"}say([[n,t]]);save()}
   else say([[n,`You have met ${c}/${QN(z)} students. Keep chatting!`]])}
  else say([[n,"Thanks again. You're a true friend to everyone."]])}
@@ -335,20 +676,23 @@ function buy(i){
  msg="Purchased "+SHOP[i][0]+"!";save()}
 function step(){
  tick++;
- const adv=pressed[" "]||pressed.Enter,pr=pressed;pressed={};
- if(flash>0)flash--;
+ const adv=pressed.e||pressed.Enter,pr=pressed;pressed={};
+ if(menu){const n=pr.ArrowUp||pr.w||pr.up?-1:pr.ArrowDown||pr.s||pr.down?1:0;if(n)menu.cur=(menu.cur+10+n)%10;if(adv){slot=menu.cur+1;menu=null;start(load())}return}
+ if(flash>0)flash--;fxTick();
  if(cc){
   if(pr.ArrowUp||pr.up)cc.row=(cc.row+6)%7;if(pr.ArrowDown||pr.down)cc.row=(cc.row+1)%7;
   const d=(pr.ArrowRight||pr.right?1:0)-(pr.ArrowLeft||pr.left?1:0);
   if(d&&cc.row>0){const k=ccKey[cc.row];cc[k]=(cc[k]+d+ccLen[cc.row])%ccLen[cc.row];if(cc.row==1)cc.hs=cc.g?2:1;setWiz2()}
-  if(pr.Enter||pr[" "]){P.ch={name:(cc.name.trim()||(cc.g?"Wiz":"Witch")),g:cc.g,sk:cc.sk,hs:cc.hs,hc:cc.hc,os:cc.os,oc:cc.oc};cc=null;setWiz(P.house);save();beginStory()}
+  if(pr.Enter||pr.e){P.ch={name:(cc.name.trim()||(cc.g?"Wiz":"Witch")),g:cc.g,sk:cc.sk,hs:cc.hs,hc:cc.hc,os:cc.os,oc:cc.oc};cc=null;setWiz(P.house);save();beginStory()}
   return}
  if(qd){stepQ(pr);return}
  if(dlg.length){if(adv)dlg.shift();return}
- if(alley){stepAlley(pr);return}
+ if(yc){if(adv)advanceYear();return}
+ if(mn){stepMn(pr,adv);return}
+ if(brew){stepBrew(pr,adv);return}
  if(sort){
   if(pr.ArrowUp||pr.w||pr.up)sort.cur=(sort.cur+3)%4;if(pr.ArrowDown||pr.s||pr.down)sort.cur=(sort.cur+1)%4;
-  if(adv){const h=sort.cur;P.house=h;sort=null;setWiz(h);
+  if(adv){const h=sort.cur;P.house=h;syncCommon();sort=null;setWiz(h);
    if(h==1){P.maxmp+=10}
    hp=P.maxhp;mana=P.maxmp;save();
    say([["Sorting Hat",`${HOUSES[h].n.toUpperCase()}! Your perk: ${HOUSES[h].perk}.`],["You","Wait, someone is calling for help from the Library. East of here!"]])}
@@ -356,7 +700,7 @@ function step(){
  if(quiz){const n=quiz.K.opts.length;
   if(pr.ArrowUp||pr.w||pr.up)quiz.cur=(quiz.cur+n-1)%n;if(pr.ArrowDown||pr.s||pr.down)quiz.cur=(quiz.cur+1)%n;
   if(pr.Escape)quiz=null;
-  else if(adv){const K=quiz.K;if(quiz.cur==K.ans){P.classes.push(K.id);K.done();quiz=null;save();say([[K.prof,"Correct! Excellent work. Class passed!"]]);msg=`Class passed: ${K.name}`}else msg="Not quite. Try again!"}
+  else if(adv){const K=quiz.K;if(quiz.cur==K.ans){P.classes.push(K.id);clsDone(K);quiz=null;save();say([[K.prof,"Correct! Excellent work. Class passed!"]]);msg=`Class passed: ${K.name}`}else msg="Not quite. Try again!"}
   return}
  if(acc){const n=MYST[acc.z].sus.length;
   if(pr.ArrowUp||pr.w||pr.up)acc.cur=(acc.cur+n-1)%n;if(pr.ArrowDown||pr.s||pr.down)acc.cur=(acc.cur+1)%n;
@@ -364,23 +708,40 @@ function step(){
   else if(adv){if(acc.cur==MYST[acc.z].ans)solve(acc.z);else msg="That doesn't fit the clues. Check your notebook (C) and think again."}
   return}
  if(pr.c)notes=!notes;
+ if(pr.t)ttOpen=!ttOpen;
+ if(pr.i)invOpen=!invOpen;
+ if(invOpen){const n=P.pots.length;if(n){if(pr.ArrowUp||pr.w||pr.up)pk8=(pk8+n-1)%n;if(pr.ArrowDown||pr.s||pr.down)pk8=(pk8+1)%n;if(adv)drinkPot()}if(pr.Escape)invOpen=false;return}
  if(notes){if(adv||pr.Escape)notes=false;return}
- if(pr.m){showMap=!showMap}
- if(showMap){if(adv)showMap=false;return}
+ if(ttOpen){if(adv||pr.Escape)ttOpen=false;return}
+ if(pr.m){showMap=!showMap;mapCur=room<NB?room:0}
+ if(showMap){
+  const L=pr.ArrowLeft||pr.a||pr.left,Rt=pr.ArrowRight||pr.d||pr.right,U=pr.ArrowUp||pr.w||pr.up,D=pr.ArrowDown||pr.s||pr.down;
+  if(L&&mapCur%GW>0)mapCur--;if(Rt&&mapCur%GW<GW-1)mapCur++;if(U&&mapCur>=GW)mapCur-=GW;if(D&&mapCur<NB-GW)mapCur+=GW;
+  if(pr.Escape)showMap=false;
+  else if(adv){
+   if(mapCur==room)showMap=false;
+   else if(room>=NB)msg="You can't use the map from here.";
+   else if(!P.visited.has(mapCur))msg="You haven't been there yet.";
+   else{room=mapCur;px=10*TS;py=11*TS;bolts=[];ebolts=[];grace=45;P.room=room;P.px=px;P.py=py;showMap=false;save();msg="Teleported to the "+meta[room].name+"!"}}
+  return}
  if(shop){
   if(pr.ArrowUp||pr.w||pr.up)shop.cur=(shop.cur+4)%5;if(pr.ArrowDown||pr.s||pr.down)shop.cur=(shop.cur+1)%5;
   if(adv)buy(shop.cur);if(pr.Escape)shop=null;return}
  if(end)return;
- if(pr.q){do{spell=(spell+1)%4}while(!unlocked(spell))}
- for(let i=0;i<4;i++)if(pr[i+1]&&unlocked(i))spell=i;
+ if(pr.q){do{spell=(spell+1)%9}while(!unlocked(spell))}
+ for(let i=0;i<9;i++)if(pr[i+1]&&unlocked(i))spell=i;
  if(pr.j&&P.mpot>0&&mana<P.maxmp){P.mpot--;mana=P.maxmp}
- if(pr.h&&!dlg.length){if(P.hints<=0)msg="No hint scrolls. Buy one in a shop.";else{const s=npcs.find(s=>s.cz==P.boss.size&&!P.clues.includes(clueKey(s.cz,s.ck)));
+ if(pr.v)nextPot();if(pr.g)drinkPot();
+ if(pr[" "]&&!jmp)jmp=25;
+ if(pr.h&&!dlg.length){if(P.hints<=0)msg="No hint scrolls. Buy one in a shop.";else{const s=npcs.find(s=>s.cz==curZ()&&!P.clues.includes(clueKey(s.cz,s.ck)));
   if(s){P.hints--;msg=`Hint: ${s.name} in the ${meta[s.r].name} has seen something.`}else msg="You have every clue for this region. Visit the suspects!"}}
  let dx=0,dy=0;
  if(keys.ArrowLeft||keys.a||keys.left)dx=-1;else if(keys.ArrowRight||keys.d||keys.right)dx=1;
  if(keys.ArrowUp||keys.w||keys.up)dy=-1;else if(keys.ArrowDown||keys.s||keys.down)dy=1;
  if(dx||dy){face=[dx,dy];
-  if(!blocked(room,px+dx*3,py))px+=dx*3;if(!blocked(room,px,py+dy*3))py+=dy*3}
+  if(!blocked(room,px+dx*3,py,24,jmp>0))px+=dx*3;if(!blocked(room,px,py+dy*3,24,jmp>0))py+=dy*3}
+ if(room>=NB){px=clampN(px,0,608);py=clampN(py,0,448);if(doorStep())return}
+ else if(room==0&&px+16<TS&&py+16>6*TS&&py+16<9*TS){if(P.house>=0){enterHogs();return}px=TS-14;msg="The village gate is locked until you are sorted into a House."}
  const cx=px+16,cy=py+16,rx=room%GW,ry=Math.floor(room/GW);let nr=room,nx=px,ny=py;
  if(cx<0&&rx>0){nr=room-1;nx=COLS*TS-TS-8}else if(cx>COLS*TS&&rx<GW-1){nr=room+1;nx=8}
  else if(cy<0&&ry>0){nr=room-GW;ny=ROWS*TS-TS-8}else if(cy>ROWS*TS&&ry<GH-1){nr=room+GW;ny=8}
@@ -394,20 +755,25 @@ function step(){
    if(room==1&&!P.flags.lib){P.flags.lib=1;say([["Voice","Help! I'm trapped in the cage! Someone locked me in!"],["You","Hold on! I'll get you out!"]])}
    if(!P.flags["z"+nz]&&nz>0){P.flags["z"+nz]=1;say(ZN[nz].intro)}
    if(meta[room].boss&&!P.flags["b"+nz]){P.flags["b"+nz]=1;say([["Narrator",`This is the ${ZN[nz].bossRoom}. The suspects are gathered here, waiting. Collect clues from the people around, then talk to the suspects in the middle.`]])}}}
+ if(jmp>0&&--jmp==0&&blocked(room,px,py))unstick();
  const qx=room%GW,qy=Math.floor(room/GW);
  px=Math.max(qx>0?-40:-12,Math.min(qx<GW-1?COLS*TS+8:COLS*TS-20,px));py=Math.max(qy>0?-40:-12,Math.min(qy<GH-1?ROWS*TS+8:ROWS*TS-20,py));
  if(inv>0)inv--;if(grace>0)grace--;
  if(mana<P.maxmp)mana=Math.min(P.maxmp,mana+.03+.01*P.power+(P.house==3?.01:0));
  if(cd>0)cd--;
  const M=meta[room];let talked=false;
+ if(P.flags.charmList){if(pr.f)chSel=(chSel+1)%5;for(let i=0;i<5;i++)if(pr[i+5])chSel=i}
  if(M.lesson&&adv&&Math.abs(10*TS-px)<54&&Math.abs(4*TS-py)<54){talkLesson(M);talked=true}
  if(M.klass&&adv&&Math.abs(10*TS-px)<54&&Math.abs(4*TS-py)<54){talkClass(M);talked=true}
  if(M.boss&&adv&&Math.abs(10*TS-px)<150&&Math.abs(6*TS-py)<80){openAccuse(M.z);talked=true}
- if(adv&&!talked){let b=null,bd=48;for(const s of npcs)if(s.r==room){const d=Math.hypot(s.x-px,s.y-py);if(d<bd){bd=d;b=s}}if(b){talkStudent(b);talked=true}}
+ if(M.common&&adv&&!talked&&Math.abs(3.5*TS-px)<60&&Math.abs(4*TS-py)<60){brew=newBrew({home:1,id:"home",prof:"your cauldron",name:"Potion corner"});talked=true}
+ if(M.common&&adv&&!talked&&Math.abs(3*TS-px)<70&&Math.abs(10*TS-py)<60){sleepTry();talked=true}
+ if(room==0&&P.year>2&&!P.yc&&adv&&!talked&&Math.abs(10*TS-px)<54&&Math.abs(4*TS-py)<54){openAccuse(6);talked=true}
+ if(adv&&!talked){let b=null,bd=1e9;for(const s of npcs)if(s.r==room&&!asleep(s)){const d=Math.hypot(s.x-px,s.y-py);if(d<(s.rg||48)&&d<bd){bd=d;b=s}}if(b){talkNpc(b);talked=true}}
  if(M.hub&&adv){
   if(Math.abs(5*TS-px)<54&&Math.abs(5*TS-py)<54){talkQuest(M.z);talked=true}
   else if(Math.abs(14*TS-px)<54&&Math.abs(5*TS-py)<54){shop={cur:0};talked=true}}
- if(keys[" "]&&cd==0&&!talked&&!shop)cast();
+ if(keys.e&&cd==0&&!talked&&!shop&&room<NB)cast();
  if(room==1&&!P.freed&&Math.abs(girl.x-px)<46&&Math.abs(girl.y-py)<46){
   {P.freed=true;girl.free=true;msg="Hope is free and will follow you!";save();say([["Hope","Thank you! I'm Hope, a second-year. Someone locked me in this cage when I saw them take the spellbooks."],["Hope","I'll help you investigate. Talk to students, collect clues, and press C to read your notebook."],["Hope","Our Common Room, south of the Great Hall, is a safe place to rest. The Charms Classroom is just east of here. Let us learn some spells!"]])}}
  if(girl.free){const tx=px-face[0]*34,ty=py-face[1]*34;
@@ -415,13 +781,19 @@ function step(){
   girl.x+=(tx-girl.x)*.08;girl.y+=(ty-girl.y)*.08;
   if(gcd>0)gcd--;
   if(gcd==0){const t=nearestEnemy(280);if(t){gcd=50;shootAt(bolts,girl.x+16,girl.y+16,t.x+t.sz/2,t.y+t.sz/2,7,1+Math.floor(P.power/2),"girl")}}}
+ for(const L of lifts){if(L.n>0)L.n--;else if(!(L.r==room&&Math.abs(L.i*TS-px)<TS+4&&Math.abs(L.j*TS-py)<TS+4)){maps[L.r][L.j][L.i]=L.t;L.done=1}}lifts=lifts.filter(L=>!L.done);
  for(const b of bolts){b.x+=b.dx;b.y+=b.dy;b.life--;
   if(tileAt(b.r,Math.floor(b.x/TS),Math.floor(b.y/TS))==1)b.life=0;
   if(M.runes&&b.own=="p"&&(!M.lesson||M.lesson.active))for(const r of M.runes)if(!r.lit&&Math.hypot(r.x+16-b.x,r.y+16-b.y)<18){r.lit=true;if(!M.lesson&&M.runes.every(q=>q.lit))msg="The runes glow... a spellbook appears!"}
+  if(b.lift&&maps[b.r]){const ti=Math.floor(b.x/TS),tj=Math.floor(b.y/TS),tt=tileAt(b.r,ti,tj);if(tt>=2){maps[b.r][tj][ti]=0;lifts.push({r:b.r,i:ti,j:tj,t:tt,n:200});burst(ti*TS+16,tj*TS+16,"#93c5fd",10)}}
+  if(b.lift){for(const it of items)if(it.r==b.r&&!it.got&&Math.hypot(it.x-b.x,it.y-b.y)<44){it.x=px;it.y=py;msg="Hoverbug! The item floats to you."}
+   for(const s of npcs)if(s.r==b.r&&!b.hit.has(s)&&Math.abs(s.x+16-b.x)<20&&Math.abs(s.y+16-b.y)<20){b.hit.add(s);s.fx={t:"lev",n:240};s.say="Whoa! I'm floating!";s.sayT=160;burst(s.x+16,s.y+16,"#93c5fd",12)}}
   for(const e of en)if(e.hp>0&&e.r==b.r&&b.life>0&&!b.hit.has(e)&&Math.abs(e.x+e.sz/2-b.x)<e.sz/2+2&&Math.abs(e.y+e.sz/2-b.y)<e.sz/2+2){
-   e.hp-=b.dmg;e.hit=6;b.hit.add(e);if(b.slow)e.slow=180;if(b.kb){e.x=Math.max(TS,Math.min(COLS*TS-TS-e.sz,e.x+b.dx*4));e.y=Math.max(TS,Math.min(ROWS*TS-TS-e.sz,e.y+b.dy*4))}
+   e.hp-=b.dmg;e.hit=6;b.hit.add(e);if(b.lift)e.lift=150;if(b.slow)e.slow=180;if(b.kb){e.x=Math.max(TS,Math.min(COLS*TS-TS-e.sz,e.x+b.dx*4));e.y=Math.max(TS,Math.min(ROWS*TS-TS-e.sz,e.y+b.dy*4))}
    if(--b.pierce<=0)b.life=0;if(e.hp<=0)kill(e)}}
- for(const e of en){if(e.hp<=0||e.r!=room)continue;if(e.hit>0)e.hit--;if(grace>0)continue;
+ for(const e of en){if(e.hp<=0||e.r!=room)continue;if(e.hit>0)e.hit--;
+  if(e.lift>0){if(--e.lift==0){e.hp-=2;e.hit=8;if(e.hp<=0)kill(e)}continue}
+  if(grace>0)continue;
   const ex=e.x+e.sz/2,ey=e.y+e.sz/2,vx=px+16-ex,vy=py+16-ey,d=Math.hypot(vx,vy)||1;
   let s=TT[e.t].sp;if(e.slow>0){e.slow--;s*=.4}
   let dir=1;if(e.t=="shooter")dir=d<150?-1:d>230?1:0;
@@ -429,12 +801,12 @@ function step(){
   if(e.t=="bat"){mx+=Math.sin(tick/8+e.cd)*1.2;my+=Math.cos(tick/9+e.cd)*1.2}
   if(e.t=="charger"){if(e.charge>0){e.charge--;mx=e.cvx;my=e.cvy}else if(--e.cd<=0&&d<260){e.cd=150;e.charge=24;e.cvx=vx/d*5;e.cvy=vy/d*5}}
   if(!blocked(room,e.x+mx,e.y))e.x+=mx;if(!blocked(room,e.x,e.y+my))e.y+=my;
-  if(e.t=="shooter"&&--e.cd<=0){e.cd=110;shootAt(ebolts,ex,ey,px+16,py+16,3.5,1,"e")}
-  if(d<e.sz/2+10)hurt(1)}
+  if(e.t=="shooter"&&--e.cd<=0){e.cd=110;shootAt(ebolts,ex,ey,px+16,py+16,3.5,dm(),"e")}
+  if(d<e.sz/2+10)hurt(dm())}
  for(const b of ebolts){b.x+=b.dx;b.y+=b.dy;b.life--;if(tileAt(b.r,Math.floor(b.x/TS),Math.floor(b.y/TS))==1)b.life=0;if(Math.hypot(b.x-px-16,b.y-py-16)<14){b.life=0;hurt(b.dmg)}}
  ebolts=ebolts.filter(b=>b.life>0);
  bolts=bolts.filter(b=>b.life>0);
- if(M.lesson&&M.lesson.active&&M.runes.every(q=>q.lit)){const L=M.lesson;L.active=false;P.learned.push(L.s);spell=L.s;save();say([[L.prof,`Excellent work! You have learned ${SPELLS[L.s].n}!`],["Narrator","Press Q or 1-4 to switch spells."]])}
+ if(M.lesson&&M.lesson.active&&(M.wave?wave&&left()==0:M.runes.every(q=>q.lit))){const L=M.lesson;L.active=false;wave=null;en=en.filter(e=>!e.cls);if(!P.learned.includes(L.s)){P.learned.push(L.s);spell=L.s;say([[L.prof,`Excellent work! You have learned ${SPELLS[L.s].n}!`],["Narrator","Press Q or 1-4 to switch spells. Charms you practise join the list as spells 5-9 (5 charms incl. Yoink)."]])}else{P.flags["dy"+P.year]=1;const c=15*(P.year-2);P.coins+=c;say([[L.prof,`Excellent! You passed this year's Defence duel. +${c} coins.`]])}save()}
  for(const it of items){if(it.r!=room||it.got)continue;if(Math.abs(it.x-px)<26&&Math.abs(it.y-py)<26){
   if(it.t=="coin"){it.got=true;P.coins+=it.v}else if(it.t=="heart"&&hp<P.maxhp){it.got=true;hp++}else if(it.t=="mana"&&mana<P.maxmp){it.got=true;mana=Math.min(P.maxmp,mana+8)}}}
  items=items.filter(i=>!i.got);
@@ -450,6 +822,7 @@ function step(){
   if(n==8)say([["Hope","Halfway there! Your spells are getting faster."]]);
   if(n==BOOKS)say([["Narrator","All spellbooks glow at once and their magic flows into you."],["Hope","You collected every spellbook! Nothing can stop you now."]]);
   save()}}
+ if(room<NB&&!end)tickClock();wander();if(room<NB&&tick%60==0)npcTick();
  if(msg!==lastMsg){lastMsg=msg;msgT=300}else if(msgT>0&&--msgT==0&&!end)msg=lastMsg="";
  st.textContent=msg;
 }
@@ -459,23 +832,24 @@ function wrap(t,w){const out=[];let l="";for(const word of t.split(" ")){const n
 function panel(X,Y,W,H){x.fillStyle="rgb(10 5 30 / 94%)";x.fillRect(X,Y,W,H);x.strokeStyle="#d4a017";x.lineWidth=3;x.strokeRect(X,Y,W,H)}
 function draw(){
  if(qd){drawQ();return}
- if(alley&&!dlg.length){drawAlley();return}
  const M=meta[room],Z=ZN[M.z],[fl,wl]=Z.pal;
- for(let j=0;j<ROWS;j++)for(let i=0;i<COLS;i++){
+ if(!M.v)for(let j=0;j<ROWS;j++)for(let i=0;i<COLS;i++){
   const t=tileAt(room,i,j);
   x.fillStyle=t==1?wl:fl;x.fillRect(i*TS,j*TS,TS,TS);
   if(t==0&&(i+j)%2==0){x.fillStyle="rgb(255 255 255 / 4%)";x.fillRect(i*TS,j*TS,TS,TS)}
-  if(t==2)x.drawImage(SP[Z.ob],i*TS,j*TS)}
- if(M.z!=1&&M.z!=2)for(const i of [3,16])x.drawImage(SP.torch,i*TS,TS);
- if(M.z==0){const g=rng(room*5+1);for(let k=0;k<7;k++){x.drawImage(SP.candle,(2+g()*16)*TS,(1.5+g()*3)*TS+Math.sin(tick/20+k*2)*4)}
+  if(t==2)x.drawImage(SP[Z.ob],i*TS,j*TS);else if(t>2)drawFur(t,i*TS,j*TS)}
+ if(M.v)drawV(M);for(const L of lifts)if(L.r==room){const X=L.i*TS,Y=L.j*TS-22-Math.sin(tick/7+L.i)*4,w=L.n<30&&tick%4<2?.5:1;x.fillStyle="rgb(0 0 0 / 25%)";x.fillRect(X+4,L.j*TS+TS-4,TS-8,4);x.globalAlpha=w;if(L.t==2)x.drawImage(SP[Z.ob],X,Y);else drawFur(L.t,X,Y);x.globalAlpha=1}
+ if(room==0)drawGate();if(M.common)drawBeds(),drawPotCorner();
+ if(!M.v&&M.z!=1&&M.z!=2)for(const i of [3,16])x.drawImage(SP.torch,i*TS,TS);
+ if(M.z==0&&!M.v){const g=rng(room*5+1);for(let k=0;k<7;k++){x.drawImage(SP.candle,(2+g()*16)*TS,(1.5+g()*3)*TS+Math.sin(tick/20+k*2)*4)}
   if(M.hub)HOUSES.forEach((h,k)=>{const bx=[4,7,12,15][k]*TS;x.fillStyle=h.c;x.fillRect(bx,TS,24,64);x.fillStyle=h.c2;x.fillRect(bx,TS+20,24,6);x.fillRect(bx,TS+34,24,6);x.fillStyle=h.c;x.fillRect(bx+8,TS+64,8,8)})}
  if(M.hub){x.drawImage(SP.fount,10*TS,7*TS);x.drawImage(SP.quest,5*TS,5*TS);x.drawImage(SP.shop,14*TS,5*TS);
   x.font="bold 20px Arial";x.textAlign="center";x.fillStyle="#facc15";x.fillText(P.qs[M.z]==0?"!":P.qs[M.z]==1&&metIn(M.z)>=QN(M.z)?"?":"",5*TS+16,5*TS-4);
   x.font="12px Arial";x.fillStyle="#fff";x.fillText(Z.npc,5*TS+16,6*TS+16);x.fillText("Shop",14*TS+16,6*TS+16)}
  if(M.lesson){x.fillStyle="#14532d";x.fillRect(7*TS,TS,6*TS,40);x.strokeStyle="#92400e";x.lineWidth=3;x.strokeRect(7*TS,TS,6*TS,40);
   x.drawImage(SP.quest,10*TS,4*TS);x.font="12px Arial";x.textAlign="center";x.fillStyle="#fff";x.fillText(M.lesson.prof,10*TS+16,5*TS+16);
-  x.fillText(P.learned.includes(M.lesson.s)?SPELLS[M.lesson.s].n+" learned":M.lesson.active?"Hit the targets!":"Talk to the professor",10*TS,TS+24);
-  for(const r of M.runes){x.globalAlpha=M.lesson.active?(r.lit?1:.8):.25;x.drawImage(SP.rune,r.x,r.y);x.globalAlpha=1}}
+  x.fillText(P.learned.includes(M.lesson.s)?SPELLS[M.lesson.s].n+" learned":M.lesson.active?(M.wave?"Defeat the creatures!":"Hit the targets!"):"Talk to the professor",10*TS,TS+24);
+  for(const r of M.runes||[]){x.globalAlpha=M.lesson.active?(r.lit?1:.8):.25;x.drawImage(SP.rune,r.x,r.y);x.globalAlpha=1}}
  if(M.klass){const K=M.klass;x.fillStyle="#14532d";x.fillRect(7*TS,TS,6*TS,40);x.strokeStyle="#92400e";x.lineWidth=3;x.strokeRect(7*TS,TS,6*TS,40);
   x.drawImage(SP.quest,10*TS,4*TS);x.font="12px Arial";x.textAlign="center";x.fillStyle="#fff";x.fillText(K.prof,10*TS+16,5*TS+16);
   x.fillText(P.classes.includes(K.id)?K.name+" passed":"Talk to the professor",10*TS,TS+24)}
@@ -485,89 +859,106 @@ function draw(){
   x.fillStyle="#44403c";x.fillRect(9*TS,TS,2*TS,3*TS);x.fillStyle="#fb923c";x.fillRect(9*TS+8,2*TS+8,TS*2-16,TS*2-8);x.fillStyle="#fde047";x.fillRect(9*TS+20,3*TS,TS*2-40,TS);
   x.fillStyle=H.c;x.fillRect(4*TS,TS,24,64);x.fillRect(15*TS,TS,24,64);x.fillStyle=H.c2;x.fillRect(4*TS,TS+20,24,6);x.fillRect(15*TS,TS+20,24,6);
   x.fillStyle="#7c2d12";for(const[cx,cy]of[[5,6],[14,6],[5,9],[14,9]])x.fillRect(cx*TS,cy*TS,TS,TS-6);
-  x.font="12px Arial";x.textAlign="center";x.fillStyle="#fff";x.fillText("Fireplace (rest)",10*TS+16,8*TS+12);x.fillStyle="#92400e";x.fillRect(15*TS+4,7*TS+14,56,5);x.fillStyle="#d4a017";x.fillRect(15*TS+48,7*TS+11,14,11);x.fillStyle="#fff";x.fillText("Space: Quidditch!",16*TS,8*TS+12)}
+  x.font="12px Arial";x.textAlign="center";x.fillStyle="#fff";x.fillText("Fireplace (rest)",10*TS+16,8*TS+12);x.fillStyle="#92400e";x.fillRect(15*TS+4,7*TS+14,56,5);x.fillStyle="#d4a017";x.fillRect(15*TS+48,7*TS+11,14,11);x.fillStyle="#fff";x.fillText("E: Broomball!",16*TS,8*TS+12)}
+ if(room==0&&P.year>2&&!P.yc){x.drawImage(SP.quest,10*TS,4*TS);x.font="12px Arial";x.textAlign="center";x.fillStyle="#fff";x.fillText("Prefect Dara",10*TS+16,5*TS+16);
+  if(zoneClues(6).length>=3){x.font="bold 18px Arial";x.fillStyle="#facc15";x.fillText("!",10*TS+16,4*TS-4+Math.sin(tick/10)*2)}
+  if(!dlg.length&&!acc&&Math.abs(10*TS-px)<54&&Math.abs(4*TS-py)<54){x.fillStyle="#fff";x.font="bold 14px Arial";x.fillText("E: accuse",px+16,py-8)}}
  if(M.book>=0&&!P.got.has(M.book)){
   if(M.runes)for(const r of M.runes){x.globalAlpha=r.lit?1:.45;x.drawImage(SP.rune,r.x,r.y);x.globalAlpha=1}
   if(!M.runes||M.runes.every(q=>q.lit)){const[bx,by]=bookPos(room);x.drawImage(SP.book,bx,by+Math.sin(tick/10)*2)}}
  for(const it of items)if(it.r==room)x.drawImage(SP[it.t],it.x,it.y);
  if(room==1&&!P.freed){x.drawImage(SP.girl,girl.x,girl.y);x.fillStyle="#9ca3af";for(let k=-1;k<=3;k++)x.fillRect(girl.x-10+k*14,girl.y-12,3,56);x.fillRect(girl.x-12,girl.y-12,60,4);x.fillRect(girl.x-12,girl.y+40,60,4)}
- for(const e of en)if(e.r==room&&e.hp>0){x.globalAlpha=e.hit?.5:e.slow>0?.7:1;x.drawImage(SP[e.t],e.x,e.y,e.sz,e.sz);x.globalAlpha=1;
+ for(const e of en)if(e.r==room&&e.hp>0){const ly=e.lift>0?-20-Math.sin(tick/6)*4:0;if(e.lift>0){x.fillStyle="rgb(0 0 0 / 25%)";x.fillRect(e.x+4,e.y+e.sz-4,e.sz-8,4)}x.globalAlpha=e.hit?.5:e.slow>0?.7:1;x.drawImage(SP[e.t],e.x,e.y+ly,e.sz,e.sz);x.globalAlpha=1;
+   if(e.nm){x.font="bold 11px Arial";x.textAlign="center";x.fillStyle="#f0abfc";x.fillText(e.nm,e.x+e.sz/2,e.y-10)}
   if(e.slow>0){x.fillStyle="rgb(103 232 249 / 35%)";x.fillRect(e.x,e.y,e.sz,e.sz)}
   if(e.hp<e.mhp){x.fillStyle="#450a0a";x.fillRect(e.x,e.y-6,e.sz,4);x.fillStyle="#ef4444";x.fillRect(e.x,e.y-6,e.sz*e.hp/e.mhp,4)}}
- for(const s of npcs)if(s.r==room){x.drawImage(stuSprite(s),s.x,s.y);x.font="11px Arial";x.textAlign="center";x.fillStyle="#fff";x.fillText(s.name,s.x+16,s.y+44);
+ for(const s of npcs)if(s.r==room&&!asleep(s)){drawNpc(s);
   if(s.cz!=null&&!P.clues.includes(clueKey(s.cz,s.ck))){x.font="bold 18px Arial";x.fillStyle="#facc15";x.fillText("!",s.x+16,s.y-4+Math.sin(tick/10)*2)}}
  for(const b of bolts)if(b.r==room){const r=b.big?9:6;x.fillStyle=b.own=="girl"?"#93c5fd":b.col;x.fillRect(b.x-r,b.y-r,r*2,r*2);x.fillStyle="#fff";x.fillRect(b.x-3,b.y-3,6,6)}
  for(const b of ebolts){x.fillStyle="#c026d3";x.fillRect(b.x-5,b.y-5,10,10);x.fillStyle="#f5d0fe";x.fillRect(b.x-2,b.y-2,4,4)}
  if(girl.free)x.drawImage(SP.girl,girl.x,girl.y);
- if(!(inv&&tick%6<3))x.drawImage(SP.wiz,px,py);
+ if(jmp>0||true){const h=jmp>0?Math.sin(Math.PI*(25-jmp)/25)*14:0;if(h>0){x.fillStyle="rgb(0 0 0 / 30%)";x.beginPath();x.ellipse(px+16,py+31,11-h/3,4,0,0,7);x.fill()}
+  if(!(inv&&tick%6<3)){x.drawImage(SP.wiz,px,py-h);if(fm>0){x.fillStyle="#fff";x.fillRect(px+9,py-h+21,14,3)}}}
  x.textAlign="left";x.fillStyle="rgb(0 0 0 / 60%)";x.fillRect(0,0,COLS*TS,40);
- x.font="bold 15px Arial";x.fillStyle="#f0d060";x.fillText(`${M.common?(HOUSES[P.house]||{n:"House"}).n+" Common Room":M.name}  ·  ${Z.n}   ${"♥".repeat(hp)}${"♡".repeat(Math.max(0,P.maxhp-hp))}`,8,16);
+ x.font="bold 15px Arial";x.fillStyle="#f0d060";x.fillText(`${M.common?(HOUSES[P.house]||{n:"House"}).n+" Common Room":M.name}  ·  ${M.reg||Z.n}   ${"♥".repeat(hp)}${"♡".repeat(Math.max(0,P.maxhp-hp))}`,8,16);
  x.font="13px Arial";x.fillStyle="#93c5fd";x.fillText(`Mana ${Math.floor(mana)}/${P.maxmp}`,8,34);
- x.fillStyle="#facc15";x.fillText(`Coins ${P.coins}`,100,34); x.fillStyle="#93c5fd";x.fillText(`J ${P.mpot}`,175,34);x.fillStyle="#fde68a";x.fillText(`H ${P.hints}`,210,34);
+ x.fillStyle="#facc15";x.fillText(`Coins ${P.coins}`,100,34); x.fillStyle="#93c5fd";x.fillText(`J ${P.mpot}`,175,34);x.fillStyle="#fde68a";x.fillText(`H ${P.hints}`,210,34);x.fillStyle="#c4b5fd";x.fillText(`Potion (V/G): ${P.pots[pk8]?potName(P.pots[pk8])+" ("+(pk8+1)+"/"+P.pots.length+")":"none"}`,8,50);
   x.fillStyle=SPELLS[spell].col;x.fillText(`Spell: ${SPELLS[spell].n}`,245,34);x.fillStyle="#d1d5db";x.fillText(`Books ${P.got.size}/${BOOKS}  Mysteries ${P.boss.size}/${ZN.length}  Met ${P.met.size}  C: notebook`,350,34);
+ drawExtras(M);
  const mx0=COLS*TS-8*GW-4,my0=44;x.fillStyle="rgb(0 0 0 / 45%)";x.fillRect(mx0-2,my0-2,GW*8+4,GH*8+4);
  for(let r=0;r<NB;r++)if(P.visited.has(r)){x.fillStyle=r==room?"#fff":ZN[meta[r].z].pal[0];x.fillRect(mx0+(r%GW)*8,my0+Math.floor(r/GW)*8,7,7)}
- if((M.lesson||M.klass)&&!dlg.length&&Math.abs(10*TS-px)<54&&Math.abs(4*TS-py)<54){x.fillStyle="#fff";x.font="bold 14px Arial";x.textAlign="center";x.fillText("Space: talk",px+16,py-8)}
+ if((M.lesson||M.klass)&&!dlg.length&&Math.abs(10*TS-px)<54&&Math.abs(4*TS-py)<54){x.fillStyle="#fff";x.font="bold 14px Arial";x.textAlign="center";x.fillText("E: talk",px+16,py-8)}
  if(M.hub&&!dlg.length&&!shop){const nq=Math.abs(5*TS-px)<54&&Math.abs(5*TS-py)<54,ns=Math.abs(14*TS-px)<54&&Math.abs(5*TS-py)<54;
-  if(nq||ns){x.fillStyle="#fff";x.font="bold 14px Arial";x.textAlign="center";x.fillText("Space: "+(nq?"talk":"shop"),px+16,py-8)}}
+  if(nq||ns){x.fillStyle="#fff";x.font="bold 14px Arial";x.textAlign="center";x.fillText("E: "+(nq?"talk":"shop"),px+16,py-8)}}
  if(flash>0){x.fillStyle=`rgb(255 255 255 / ${flash*8}%)`;x.fillRect(0,0,640,480)}
  if(showMap){panel(40,50,560,380);x.textAlign="center";x.fillStyle="#f0c040";x.font="bold 18px Arial";x.fillText("World Map",320,74);
   x.font="bold 14px Arial";
   for(let r=0;r<NB;r++){const X=80+(r%GW)*60,Y=86+Math.floor(r/GW)*26;x.fillStyle=P.visited.has(r)?ZN[meta[r].z].pal[0]:"#1f2937";x.fillRect(X,Y,56,24);
    if(P.visited.has(r)&&meta[r].boss){x.fillStyle="#facc15";x.fillText("?",X+28,Y+17)}
-   if(r==room){x.strokeStyle="#fff";x.lineWidth=3;x.strokeRect(X,Y,56,24)}}
-  x.font="13px Arial";x.fillStyle="#9ca3af";x.fillText("Press M or Space to close",320,418)}
- if(M.boss&&!dlg.length&&!acc&&Math.abs(10*TS-px)<150&&Math.abs(6*TS-py)<80){x.fillStyle="#fff";x.font="bold 14px Arial";x.textAlign="center";x.fillText("Space: question suspects",px+16,py-8)}
+   if(r==room){x.strokeStyle="#fff";x.lineWidth=3;x.strokeRect(X,Y,56,24)}
+   if(r==mapCur){x.strokeStyle="#facc15";x.lineWidth=3;x.strokeRect(X-2,Y-2,60,28)}}
+  x.font="bold 15px Arial";x.fillStyle="#e5e7eb";x.fillText(P.visited.has(mapCur)?meta[mapCur].name+(mapCur==room?" (you are here)":""):"Unexplored",320,402);
+  x.font="13px Arial";x.fillStyle="#9ca3af";x.fillText("Arrows choose a visited room · E teleport there · M or Esc close",320,420)}
+ if(M.boss&&!dlg.length&&!acc&&Math.abs(10*TS-px)<150&&Math.abs(6*TS-py)<80){x.fillStyle="#fff";x.font="bold 14px Arial";x.textAlign="center";x.fillText("E: question suspects",px+16,py-8)}
+ if(brew)drawBrew();if(mn)drawMn();if(ttOpen)drawTT();if(invOpen)drawInv();
  if(quiz){const K=quiz.K;panel(60,120,520,240);x.textAlign="center";x.fillStyle="#f0c040";x.font="bold 18px Arial";x.fillText(K.name+" Quiz",320,150);
   x.fillStyle="#fff";x.font="16px Arial";wrap(K.q,460).forEach((l,i)=>x.fillText(l,320,185+i*22));
   K.opts.forEach((o,i)=>{x.fillStyle=quiz.cur==i?"#facc15":"#e5e7eb";x.fillText((quiz.cur==i?"▶ ":"")+o,320,250+i*34)});
-  x.font="12px Arial";x.fillStyle="#9ca3af";x.fillText("Up/Down choose, Space answer, Esc leave",320,345)}
+  x.font="12px Arial";x.fillStyle="#9ca3af";x.fillText("Up/Down choose, E answer, Esc leave",320,345)}
  if(acc){const Mi=MYST[acc.z];panel(40,40,560,400);x.textAlign="center";x.fillStyle="#f0c040";x.font="bold 18px Arial";x.fillText(Mi.q,320,72);
   x.font="13px Arial";x.textAlign="left";let y=104;for(const c of Mi.clues){if(P.clues.includes(clueKey(acc.z,Mi.clues.indexOf(c)))){x.fillStyle="#d1d5db";for(const l of wrap("• "+c,500)){x.fillText(l,60,y);y+=17}}}
   x.textAlign="center";Mi.sus.forEach((n,i)=>{x.fillStyle=acc.cur==i?"#facc15":"#e5e7eb";x.font="bold 16px Arial";x.fillText((acc.cur==i?"▶ ":"")+n,320,330+i*30)});
-  x.font="12px Arial";x.fillStyle="#9ca3af";x.fillText("Up/Down choose, Space accuse, Esc leave",320,425)}
+  x.font="12px Arial";x.fillStyle="#9ca3af";x.fillText("Up/Down choose, E accuse, Esc leave",320,425)}
  if(notes){panel(40,40,560,400);x.textAlign="center";x.fillStyle="#f0c040";x.font="bold 18px Arial";x.fillText("Detective's Notebook",320,70);
   x.font="13px Arial";x.textAlign="left";let y=96;
-  for(let z=0;z<ZN.length;z++){if(z>P.boss.size)break;const f=P.clues.filter(c=>c.startsWith(z+"_"));x.fillStyle=P.boss.has(z)?"#86efac":"#fde68a";x.fillText(`${P.boss.has(z)?"✔ ":""}${MYST[z].q}  (${f.length}/4 clues)`,60,y);y+=18;
-  if(P.boss.has(z)){y+=2;continue}
+  for(const z of P.year>2?[6]:[0,1,2,3,4,5]){if(z<6&&z>P.boss.size)break;const f=P.clues.filter(c=>c.startsWith(z+"_")),sv=z==6?P.yc:P.boss.has(z);x.fillStyle=sv?"#86efac":"#fde68a";x.fillText(`${sv?"✔ ":""}${MYST[z].q}  (${f.length}/${MYST[z].clues.length} clues)`,60,y);y+=18;
+  if(sv){y+=2;continue}
   x.fillStyle="#d1d5db";for(const c of f){for(const l of wrap("• "+MYST[z].clues[+c.split("_")[1]],490)){x.fillText(l,70,y);y+=15}}y+=6}
-  x.fillStyle="#9ca3af";x.fillText(`Classes passed: ${P.classes.length}/4   Students met: ${P.met.size}   Hint scrolls: ${P.hints}`,60,420)}
+  x.fillStyle="#9ca3af";x.fillText(`Classes passed: ${P.classes.length}/5   Students met: ${P.met.size}   Hint scrolls: ${P.hints}`,60,420)}
  if(cc){x.fillStyle="#0b0720";x.fillRect(0,0,640,480);panel(60,30,520,420);x.textAlign="center";x.fillStyle="#f0c040";x.font="bold 22px Arial";x.fillText("Create Your Student",320,68);
   CCROWS.forEach((n,i)=>{const y=110+i*44;x.textAlign="left";x.fillStyle=cc.row==i?"#facc15":"#e5e7eb";x.font="bold 16px Arial";x.fillText((cc.row==i?"▶ ":"   ")+n,85,y);
    x.fillStyle="#fff";x.font="16px Arial";x.fillText((i&&cc.row==i?"◀ ":"")+ccVal(cc,i)+(i&&cc.row==i?" ▶":""),205,y)});
   x.imageSmoothingEnabled=false;x.drawImage(SP.wiz,400,130,128,128);x.imageSmoothingEnabled=true;
   x.textAlign="center";x.fillStyle="#cbd5e1";x.font="14px Arial";x.fillText(cc.name.trim()||"?",464,285);
-  x.fillStyle="#9ca3af";x.font="12px Arial";x.fillText("Up/Down row · Left/Right change · type your name · Space/Enter start",320,432)}
+  x.fillStyle="#9ca3af";x.font="12px Arial";x.fillText("Up/Down row · Left/Right change · type your name · Enter/E start",320,432)}
  if(sort){panel(130,90,380,280);x.textAlign="center";x.fillStyle="#f0c040";x.font="bold 20px Arial";x.fillText("The Sorting Hat",320,122);
   HOUSES.forEach((h,i)=>{const y=150+i*54;x.fillStyle=h.c;x.fillRect(150,y,24,36);x.fillStyle=h.c2;x.fillRect(150,y+12,24,5);x.fillRect(150,y+22,24,5);
    x.textAlign="left";x.fillStyle=sort.cur==i?"#facc15":"#e5e7eb";x.font="bold 16px Arial";x.fillText((sort.cur==i?"▶ ":"   ")+h.n,185,y+16);x.font="13px Arial";x.fillStyle="#9ca3af";x.fillText(h.perk,205,y+34)});
-  x.textAlign="center";x.fillStyle="#9ca3af";x.font="12px Arial";x.fillText("Up/Down choose · Space confirm",320,358)}
+  x.textAlign="center";x.fillStyle="#9ca3af";x.font="12px Arial";x.fillText("Up/Down choose · E confirm",320,358)}
  if(shop){panel(150,100,340,270);x.textAlign="left";x.fillStyle="#f0c040";x.font="bold 18px Arial";x.fillText("Shop",170,130);x.fillStyle="#facc15";x.font="14px Arial";x.fillText(`Coins: ${P.coins}`,400,130);
   SHOP.forEach(([n,pr,ok],i)=>{const y=165+i*36;x.fillStyle=shop.cur==i?"#facc15":"#e5e7eb";x.font="bold 15px Arial";
    x.fillText((shop.cur==i?"▶ ":"   ")+n,170,y);x.textAlign="right";x.fillText(i==4?"":ok()?pr()+"c":"sold out",470,y);x.textAlign="left"});
-  x.fillStyle="#9ca3af";x.font="12px Arial";x.fillText("Up/Down choose · Space buy",170,350)}
+  x.fillStyle="#9ca3af";x.font="12px Arial";x.fillText("Up/Down choose · E buy",170,350)}
  if(end&&!dlg.length){x.fillStyle="rgb(0 0 0 / 65%)";x.fillRect(0,170,640,120);x.textAlign="center";x.fillStyle=end=="win"?"#facc15":"#f87171";x.font="bold 36px Arial";
-  x.fillText(end=="win"?"YOU WIN!":"GAME OVER",320,225);x.font="16px Arial";x.fillStyle="#fff";x.fillText(end=="win"?"Press N twice for a new game":"Press R to respawn from your last save",320,258)}
+  x.fillText(end=="win"?(P.year>=7?"GRADUATED!":"YOU WIN!"):"GAME OVER",320,225);x.font="16px Arial";x.fillStyle="#fff";x.fillText(end=="win"?"Press N twice for a new game":"Press R to respawn from your last save",320,258)}
+ if(yc&&!dlg.length){panel(90,100,460,250);x.textAlign="center";x.fillStyle="#f0c040";x.font="bold 28px Arial";x.fillText(`Year ${yc.n} complete!`,320,150);x.font="15px Arial";x.fillStyle="#fff";
+  wrap(yc.n==2?"The Hollow King's shadow is gone and the spellbooks are home.":"Mystery solved: "+MYST[6].q,420).forEach((l,i)=>x.fillText(l,320,190+i*20));
+  x.fillStyle="#86efac";x.fillText("Reward: "+rwText(YR[yc.n]),320,238);x.fillStyle="#93c5fd";x.fillText(`Next: Year ${yc.n+1}, ${YT[yc.n+1]}`,320,268);x.fillStyle="#d1d5db";x.fillText("Your spells, coins and upgrades come with you.",320,296);x.fillStyle="#facc15";x.font="bold 16px Arial";x.fillText(`E: begin Year ${yc.n+1}`,320,332)}
  if(dlg.length){const[who0,text]=dlg[0],who=who0=="You"&&P.ch?P.ch.name:who0;panel(16,360,608,108);
   x.textAlign="left";x.fillStyle="#f0c040";x.font="bold 16px Arial";x.fillText(who,30,384);
   x.fillStyle="#fff";x.font="16px Arial";wrap(text,580).slice(0,3).forEach((l,i)=>x.fillText(l,30,410+i*22));
-  x.fillStyle="#9ca3af";x.textAlign="right";x.fillText("Space ▶",610,458)}
+  x.fillStyle="#9ca3af";x.textAlign="right";x.fillText("E ▶",610,458)}
 }
-function loop(){step();draw();requestAnimationFrame(loop)}
+function drawMenu(){x.fillStyle="#1b1230";x.fillRect(0,0,640,480);x.textAlign="center";x.fillStyle="#f0c040";x.font="bold 26px Arial";x.fillText("Pigboils Adventchurs",320,48);x.font="14px Arial";x.fillStyle="#d1d5db";x.fillText("Choose a save slot · Up/Down · E to play · Esc in game saves and quits here",320,72);
+ for(let i=0;i<10;i++){const s=rawSlot(i+1),y=90+i*37;x.fillStyle=i==menu.cur?"#4b3a78":"#2a1f4a";x.fillRect(100,y,440,31);if(i==menu.cur){x.strokeStyle="#facc15";x.lineWidth=2;x.strokeRect(100,y,440,31)}
+  x.textAlign="left";x.fillStyle="#fff";x.font="bold 15px Arial";x.fillText(`Slot ${i+1}`,112,y+21);x.font="14px Arial";x.fillStyle=s?"#fde68a":"#9ca3af";x.fillText(s?`${(s.ch&&s.ch.name)||"Student"} · Year ${s.year||2} · Day ${s.day||1} · Books ${(s.got||[]).length}/${BOOKS}`:"Empty - new game",190,y+21)}}
+function loop(){step();draw();if(menu)drawMenu();requestAnimationFrame(loop)}
 addEventListener("keydown",e=>{const k=e.key.length==1?e.key.toLowerCase():e.key;
  if(cc){
   if(cc.row==0){if(e.key=="Backspace")cc.name=cc.name.slice(0,-1);else if(/^[A-Za-z]$/.test(e.key)&&cc.name.length<10)cc.name+=e.key}
   if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," "].includes(e.key))e.preventDefault();
-  if(!e.repeat&&(e.key.length>1||k==" "))pressed[k]=true;
-  if(k==" "&&cc.row==0)delete pressed[" "];
+  if(!e.repeat&&(e.key.length>1||k=="e"))pressed[k]=true;
+  if(k=="e"&&cc.row==0)delete pressed.e;
   return}
+ if(menu){if(["ArrowUp","ArrowDown"].includes(e.key))e.preventDefault();if(!e.repeat)pressed[k]=true;return}
+ if(k=="Escape"&&!qd&&!dlg.length&&!mn&&!brew&&!sort&&!quiz&&!acc&&!notes&&!ttOpen&&!invOpen&&!showMap&&!yc&&!shop){save();menu={cur:slot-1};return}
  if(k=="r"&&(end||dlg.length==0&&!shop)){start(load());return}
- if(k=="n"){if(nConfirm>tick){localStorage.removeItem(KEY);start(null);nConfirm=0}else{nConfirm=tick+180;msg="Press N again to erase your save and start over."}return}
+ if(k=="n"){if(nConfirm>tick){localStorage.removeItem(sk(slot));start(null);nConfirm=0}else{nConfirm=tick+180;msg="Press N again to erase this slot and start over."}return}
  if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," "].includes(e.key))e.preventDefault();
  if(!e.repeat)pressed[k]=true;keys[k]=true});
 addEventListener("keyup",e=>{keys[e.key.length==1?e.key.toLowerCase():e.key]=false});
 document.querySelectorAll("[data-k]").forEach(b=>{const k=b.dataset.k;
  b.addEventListener("pointerdown",e=>{e.preventDefault();keys[k]=true;pressed[k]=true});
  for(const ev of ["pointerup","pointerleave","pointercancel"])b.addEventListener(ev,()=>keys[k]=false)});
-build();start(load());loop();
+build();start(load());menu={cur:0};loop();
 </script></body></html>
