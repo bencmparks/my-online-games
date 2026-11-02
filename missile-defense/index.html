@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Missile Defense | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#020617;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:#020617}
+main{width:min(100%,38rem);padding:1.25rem;border:.2rem solid #38bdf8;border-radius:1.25rem;background:rgb(8 15 40 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.5rem 0;color:#7dd3fc}
+canvas{width:100%;max-width:34rem;background:#000;border:.2rem solid #334155;border-radius:.5rem;touch-action:none;cursor:crosshair}
+button{padding:.5rem 1.2rem;margin:.3rem;border:0;border-radius:.5rem;background:#0284c7;color:#fff;font-weight:700;font-size:1rem;cursor:pointer}
+#info{font-weight:700;color:#fde047}
+</style></head>
+<body><main><a href="../">← All games</a><h1>🚀 Missile Defense</h1>
+<p>Enemy missiles are raining on your cities! Click or tap to launch an interceptor; its blast destroys missiles. Ammo is limited each wave, so aim ahead.</p>
+<div id="info">Score 0 · Cities 6 · Wave 1 · Best 0</div>
+<canvas id="c" width="560" height="460"></canvas><br><button id="go">Start</button></main>
+<script>
+const cv=document.getElementById("c"),x=cv.getContext("2d"),W=560,H=460,info=document.getElementById("info"),go=document.getElementById("go");
+let best=+localStorage.getItem("mdBest")||0,st="idle",score,wave,cities,bases,en,mine,boomz,toSpawn,ammo,t,wait;
+const BX=[60,280,500];
+function wavInit(){toSpawn=8+wave*3;ammo=[10,12,10].map(a=>a+Math.min(6,wave));en=[];mine=[];boomz=[];t=0;wait=0}
+function start(){score=0;wave=1;cities=[0,1,2,3,4,5].map(i=>({x:110+i*60+(i>2?60:0),alive:1}));wavInit();st="play";go.textContent="Restart";show()}
+function show(){info.textContent=`Score ${score} · Cities ${cities?cities.filter(c=>c.alive).length:6} · Wave ${wave} · Best ${best}`}
+function targets(){return [...cities.filter(c=>c.alive).map(c=>c.x),...BX.filter((b,i)=>ammo[i]>=0)]}
+function spawn(){const tg=targets();const tx=tg[Math.random()*tg.length|0],sx=Math.random()*W,sy=0,d=Math.hypot(tx-sx,H-20),v=(.6+wave*.07)*(1+Math.random()*.4);
+en.push({sx,sy,tx,ty:H-20,x:sx,y:sy,vx:(tx-sx)/d*v,vy:(H-20)/d*v});const e=en[en.length-1];
+if(wave>=4&&Math.random()<.2)e.split=1}
+function fireAt(px,py){if(st!=="play")return;let bi=-1,bd=1e9;BX.forEach((b,i)=>{if(ammo[i]>0){const d=Math.hypot(b-px,H-30-py);if(d<bd){bd=d;bi=i}}});if(bi<0||py>H-50)return;ammo[bi]--;mine.push({x:BX[bi],y:H-30,tx:px,ty:py,sx:BX[bi],sy:H-30})}
+function over(){st="over";if(score>best){best=score;localStorage.setItem("mdBest",best)}show()}
+function upd(){t++;wait--;
+if(toSpawn>0&&wait<=0){spawn();toSpawn--;wait=Math.max(12,60-wave*4)*(.5+Math.random())}
+en.forEach(e=>{e.x+=e.vx;e.y+=e.vy;
+if(e.split&&e.y>H*.35){e.split=0;for(let k=0;k<2;k++){const a=Math.atan2(e.vy,e.vx)+(k?.35:-.35),v=Math.hypot(e.vx,e.vy);en.push({sx:e.x,sy:e.y,x:e.x,y:e.y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,tx:e.tx,ty:H-20})}}
+if(e.y>=H-24){e.dead=1;boomz.push({x:e.x,y:H-24,r:0,m:26,g:1,bad:1});cities.forEach(c=>{if(c.alive&&Math.abs(c.x-e.x)<22)c.alive=0});BX.forEach((b,i)=>{if(Math.abs(b-e.x)<24)ammo[i]=0})}});
+mine.forEach(m=>{const d=Math.hypot(m.tx-m.x,m.ty-m.y);if(d<6){m.dead=1;boomz.push({x:m.tx,y:m.ty,r:0,m:34+Math.min(14,wave*2),g:1})}else{m.x+=(m.tx-m.x)/d*6;m.y+=(m.ty-m.y)/d*6}});
+boomz.forEach(b=>{if(b.g){b.r+=1.2;if(b.r>=b.m)b.g=0}else b.r-=.8;if(b.r<=0&&!b.g)b.dead=1;
+if(!b.bad)en.forEach(e=>{if(!e.dead&&Math.hypot(e.x-b.x,e.y-b.y)<b.r){e.dead=1;score+=25;boomz.push({x:e.x,y:e.y,r:0,m:16,g:1})}})});
+en=en.filter(e=>!e.dead);mine=mine.filter(m=>!m.dead);boomz=boomz.filter(b=>!b.dead);
+if(!cities.some(c=>c.alive))return over();
+if(!toSpawn&&!en.length&&!boomz.length){const live=cities.filter(c=>c.alive).length,leftover=ammo.reduce((a,b)=>a+Math.max(0,b),0);score+=live*100+leftover*5;wave++;
+if(live<6&&wave%3===0){const d=cities.find(c=>!c.alive);if(d)d.alive=1}wavInit()}
+show()}
+function draw(){const g=x.createLinearGradient(0,0,0,H);g.addColorStop(0,"#020617");g.addColorStop(1,"#1e1b4b");x.fillStyle=g;x.fillRect(0,0,W,H);
+x.fillStyle="#fff";for(let i=0;i<50;i++)x.fillRect((i*89)%W,(i*47)%(H-60),1,1);
+if(st==="idle"){x.fillStyle="#7dd3fc";x.font="bold 28px Arial";x.textAlign="center";x.fillText("Press Start",W/2,H/2);ground();return}
+ground();
+en.forEach(e=>{x.strokeStyle="rgb(248 113 113 / 60%)";x.lineWidth=1;x.beginPath();x.moveTo(e.sx,e.sy);x.lineTo(e.x,e.y);x.stroke();x.fillStyle="#fff";x.fillRect(e.x-2,e.y-2,4,4)});
+mine.forEach(m=>{x.strokeStyle="rgb(125 211 252 / 60%)";x.beginPath();x.moveTo(m.sx,m.sy);x.lineTo(m.x,m.y);x.stroke();x.fillStyle="#7dd3fc";x.fillRect(m.x-2,m.y-2,4,4);x.strokeStyle="#7dd3fc";x.strokeRect(m.tx-4,m.ty-4,8,8)});
+boomz.forEach(b=>{x.fillStyle=b.bad?"rgb(251 146 60 / 70%)":"rgb(253 224 71 / 60%)";x.beginPath();x.arc(b.x,b.y,Math.max(0,b.r),0,7);x.fill()});
+if(st==="over"){x.fillStyle="rgb(0 0 0 / 60%)";x.fillRect(0,H/2-50,W,100);x.fillStyle="#f87171";x.font="bold 32px Arial";x.textAlign="center";x.fillText("Cities Lost",W/2,H/2);x.font="18px Arial";x.fillStyle="#fff";x.fillText("Score "+score+" · Wave "+wave,W/2,H/2+30)}}
+function ground(){x.fillStyle="#14532d";x.fillRect(0,H-20,W,20);
+(cities||[]).forEach(c=>{if(c.alive){x.fillStyle="#38bdf8";x.fillRect(c.x-14,H-34,28,14);x.fillRect(c.x-8,H-42,6,8);x.fillRect(c.x+2,H-46,8,12);x.fillStyle="#fde047";x.fillRect(c.x-8,H-30,3,3);x.fillRect(c.x+3,H-30,3,3)}else{x.fillStyle="#44403c";x.fillRect(c.x-12,H-24,24,4)}});
+BX.forEach((b,i)=>{const a=ammo?ammo[i]:10;x.fillStyle=a>0?"#94a3b8":"#44403c";x.beginPath();x.moveTo(b-18,H-20);x.lineTo(b,H-36);x.lineTo(b+18,H-20);x.fill();x.fillStyle="#fff";x.font="12px Arial";x.textAlign="center";x.fillText(Math.max(0,a||0),b,H-6)})}
+function loop(){if(st==="play")upd();draw();requestAnimationFrame(loop)}
+cv.addEventListener("pointerdown",e=>{const r=cv.getBoundingClientRect();fireAt((e.clientX-r.left)/r.width*W,(e.clientY-r.top)/r.height*H)});
+go.addEventListener("click",()=>{start();go.blur()});show();loop();
+</script></body></html>

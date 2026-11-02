@@ -81,3 +81,5 @@ Keep a list of my games here.
 - Quick Draw (`quick-draw/`)
 - Box Pusher (`box-pusher/`)
 - Blackjack (`blackjack/`)
+- Star Invaders (`star-invaders/`)
+- Missile Defense (`missile-defense/`)

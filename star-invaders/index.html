@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Star Invaders | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#020617;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#1e1b4b,#020617 70%)}
+main{width:min(100%,34rem);padding:1.25rem;border:.2rem solid #4ade80;border-radius:1.25rem;background:rgb(2 6 23 / 94%);text-align:center}a{color:#86efac}h1{margin:.5rem 0;color:#4ade80;letter-spacing:.1rem}
+canvas{width:100%;max-width:30rem;background:#000;border:.2rem solid #334155;border-radius:.5rem;touch-action:none}
+button{padding:.5rem 1.2rem;margin:.3rem;border:0;border-radius:.5rem;background:#16a34a;color:#fff;font-weight:700;font-size:1rem;cursor:pointer}
+#info{font-weight:700;color:#fde047}
+</style></head>
+<body><main><a href="../">← All games</a><h1>👾 Star Invaders</h1>
+<p>Stop the alien fleet! ←/→ or A/D to move, Space to fire. On touch, drag to move; you auto-fire.</p>
+<div id="info">Score 0 · Lives 3 · Wave 1 · Best 0</div>
+<canvas id="c" width="480" height="560"></canvas><br><button id="go">Start</button></main>
+<script>
+const cv=document.getElementById("c"),x=cv.getContext("2d"),W=480,H=560,info=document.getElementById("info"),go=document.getElementById("go");
+let best=+localStorage.getItem("siBest")||0,st="idle",keys={},touchX=null,score,lives,wave,pl,sh,al,ab,dir,spd,cd,t,shields,ufo,pops;
+function wavInit(){al=[];for(let r=0;r<5;r++)for(let c=0;c<9;c++)al.push({x:50+c*42,y:50+r*34,r});dir=1;spd=.4+wave*.12;ab=[];sh=[];pops=[];ufo=null;
+shields=[];for(let s=0;s<4;s++)for(let a=0;a<6;a++)for(let b=0;b<3;b++)shields.push({x:50+s*108+a*9,y:440+b*9,hp:2})}
+function start(){score=0;lives=3;wave=1;pl={x:W/2};cd=0;t=0;wavInit();st="play";go.textContent="Restart";show()}
+function show(){info.textContent=`Score ${score} · Lives ${lives} · Wave ${wave} · Best ${best}`}
+function boom(px,py,c){for(let i=0;i<10;i++)pops.push({x:px,y:py,vx:(Math.random()-.5)*4,vy:(Math.random()-.5)*4,l:20,c})}
+function over(){st="over";if(score>best){best=score;localStorage.setItem("siBest",best)}show()}
+function upd(){t++;
+if(keys.ArrowLeft||keys.KeyA)pl.x-=4;if(keys.ArrowRight||keys.KeyD)pl.x+=4;if(touchX!==null)pl.x+=Math.max(-5,Math.min(5,touchX-pl.x));
+pl.x=Math.max(20,Math.min(W-20,pl.x));cd--;
+if((keys.Space||touchX!==null)&&cd<=0&&sh.length<3){sh.push({x:pl.x,y:510});cd=18}
+sh.forEach(s=>s.y-=8);sh=sh.filter(s=>s.y>-10);
+let edge=false;const alive=al.length,sp=spd*(1+(45-alive)/20);al.forEach(a=>{a.x+=dir*sp;if(a.x<20||a.x>W-20)edge=true});
+if(edge){dir*=-1;al.forEach(a=>{a.y+=14;a.x+=dir*sp})}
+if(al.some(a=>a.y>470))return over();
+if(t%Math.max(18,60-wave*5)===0&&al.length){const col={};al.forEach(a=>{const k=Math.round(a.x/42);if(!col[k]||a.y>col[k].y)col[k]=a});const L=Object.values(col),a=L[Math.random()*L.length|0];ab.push({x:a.x,y:a.y+10})}
+ab.forEach(b=>b.y+=3+wave*.3);
+if(!ufo&&Math.random()<.002)ufo={x:-30,v:2};if(ufo){ufo.x+=ufo.v;if(ufo.x>W+30)ufo=null}
+sh.forEach(s=>{if(s.dead)return;
+for(const a of al){if(!a.dead&&Math.abs(a.x-s.x)<14&&Math.abs(a.y-s.y)<10){a.dead=1;s.dead=1;score+=10+(4-Math.min(4,a.r))*10;boom(a.x,a.y,"#4ade80");break}}
+if(!s.dead&&ufo&&Math.abs(ufo.x-s.x)<18&&Math.abs(s.y-28)<10){score+=100+((Math.random()*3|0)*50);boom(ufo.x,28,"#f472b6");ufo=null;s.dead=1}
+if(!s.dead)for(const b of shields)if(b.hp>0&&Math.abs(b.x-s.x)<6&&Math.abs(b.y-s.y)<6){b.hp--;s.dead=1;break}});
+sh=sh.filter(s=>!s.dead);al=al.filter(a=>!a.dead);
+ab.forEach(b=>{if(b.dead)return;for(const s of shields)if(s.hp>0&&Math.abs(s.x-b.x)<6&&Math.abs(s.y-b.y)<6){s.hp--;b.dead=1;return}
+if(Math.abs(b.x-pl.x)<16&&b.y>500&&b.y<530){b.dead=1;lives--;boom(pl.x,515,"#f87171");if(lives<=0)over()}});
+ab=ab.filter(b=>!b.dead&&b.y<H);
+pops.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.l--});pops=pops.filter(p=>p.l>0);
+if(!al.length){wave++;wavInit()}
+show()}
+function drawAlien(a){const f=Math.floor(t/20)%2,c=["#f472b6","#fb923c","#fb923c","#38bdf8","#38bdf8"][a.r];x.fillStyle=c;x.fillRect(a.x-11,a.y-6,22,10);x.fillRect(a.x-8,a.y-10,16,4);x.fillStyle="#000";x.fillRect(a.x-6,a.y-4,4,4);x.fillRect(a.x+2,a.y-4,4,4);x.fillStyle=c;if(f){x.fillRect(a.x-13,a.y+4,4,5);x.fillRect(a.x+9,a.y+4,4,5)}else{x.fillRect(a.x-9,a.y+4,4,5);x.fillRect(a.x+5,a.y+4,4,5)}}
+function draw(){x.fillStyle="#000";x.fillRect(0,0,W,H);x.fillStyle="#fff";for(let i=0;i<40;i++)x.fillRect((i*97+t*(.1+i%3*.05))%W,(i*53)%H,1,1);
+if(st==="idle"){x.fillStyle="#4ade80";x.font="bold 28px Arial";x.textAlign="center";x.fillText("Press Start",W/2,H/2);return}
+al.forEach(drawAlien);if(ufo){x.fillStyle="#f472b6";x.beginPath();x.ellipse(ufo.x,28,18,7,0,0,7);x.fill();x.fillStyle="#fde047";x.fillRect(ufo.x-6,20,12,5)}
+shields.forEach(b=>{if(b.hp>0){x.fillStyle=b.hp>1?"#22c55e":"#166534";x.fillRect(b.x-4,b.y-4,8,8)}});
+x.fillStyle="#fde047";sh.forEach(s=>x.fillRect(s.x-1.5,s.y-8,3,12));x.fillStyle="#f87171";ab.forEach(b=>x.fillRect(b.x-2,b.y-6,4,12));
+x.fillStyle="#4ade80";x.fillRect(pl.x-18,520,36,10);x.fillRect(pl.x-10,512,20,8);x.fillRect(pl.x-2,504,4,8);
+pops.forEach(p=>{x.fillStyle=p.c;x.globalAlpha=p.l/20;x.fillRect(p.x,p.y,3,3)});x.globalAlpha=1;
+if(st==="over"){x.fillStyle="rgb(0 0 0 / 60%)";x.fillRect(0,H/2-50,W,100);x.fillStyle="#f87171";x.font="bold 32px Arial";x.textAlign="center";x.fillText("Game Over",W/2,H/2);x.font="18px Arial";x.fillStyle="#fff";x.fillText("Score "+score,W/2,H/2+30)}}
+function loop(){if(st==="play")upd();draw();requestAnimationFrame(loop)}
+addEventListener("keydown",e=>{keys[e.code]=true;if(e.code==="Space"||e.code.startsWith("Arrow"))e.preventDefault()});addEventListener("keyup",e=>keys[e.code]=false);
+function tp(e){const r=cv.getBoundingClientRect();touchX=(e.clientX-r.left)/r.width*W}
+cv.addEventListener("pointerdown",e=>{if(e.pointerType!=="mouse"){tp(e)}else keys.Space=true});cv.addEventListener("pointermove",e=>{if(e.pointerType!=="mouse")tp(e);else{const r=cv.getBoundingClientRect();if(pl)pl.x=(e.clientX-r.left)/r.width*W}});
+addEventListener("pointerup",()=>{touchX=null;keys.Space=false});
+go.addEventListener("click",()=>{start();go.blur()});show();loop();
+</script></body></html>
