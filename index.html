@@ -332,14 +332,53 @@
           if (top < 8) top = Math.min(r.bottom + 10, innerHeight - h - 8);
           box.style.left = left + 'px';
           box.style.top = top + 'px';
-          var f = document.createElement('iframe');
-          f.src = a.getAttribute('href');
+          var f = document.createElement('iframe'), href = a.getAttribute('href');
           f.tabIndex = -1;
           f.setAttribute('title', 'Preview');
           box.innerHTML = '';
           box.appendChild(f);
           box.classList.add('show');
+          var token = a;
+          fetch(href).then(function (r) { if (!r.ok) throw 0; return r.text(); }).then(function (html) {
+            if (cur !== token) return;
+            var base = new URL(href, location.href).href;
+            f.srcdoc = html.replace(/<head[^>]*>/i, function (m) {
+              return m + '<base href="' + base + '"><script>(' + bot.toString() + ')()<\/script>';
+            });
+          }).catch(function () { if (cur === token) f.src = href; });
         }, 350);
+      }
+      // Autoplay bot: runs inside the preview copy only, with throwaway storage so no real saves change.
+      function bot() {
+        var mem = {};
+        var st = { getItem: function (k) { return k in mem ? mem[k] : null; }, setItem: function (k, v) { mem[k] = String(v); }, removeItem: function (k) { delete mem[k]; }, clear: function () { mem = {}; }, key: function () { return null; }, length: 0 };
+        try { Object.defineProperty(window, 'localStorage', { value: st }); Object.defineProperty(window, 'sessionStorage', { value: st }); } catch (e) {}
+        var keys = [['ArrowLeft', 37], ['ArrowRight', 39], ['ArrowUp', 38], ['ArrowDown', 40], [' ', 32], ['a', 65], ['d', 68], ['w', 87], ['s', 83], ['Enter', 13]];
+        function key(t, k) {
+          var e = new KeyboardEvent(t, { key: k[0], code: k[0] === ' ' ? 'Space' : k[0].length > 1 ? k[0] : 'Key' + k[0].toUpperCase(), keyCode: k[1], which: k[1], bubbles: true, cancelable: true });
+          document.dispatchEvent(e); window.dispatchEvent(e);
+        }
+        function mouse(x, y, types) {
+          var el = document.elementFromPoint(x, y) || document.body;
+          types.forEach(function (t) {
+            var C = t.indexOf('pointer') === 0 ? PointerEvent : MouseEvent;
+            el.dispatchEvent(new C(t, { clientX: x, clientY: y, bubbles: true, cancelable: true, button: 0, buttons: t.indexOf('up') > 0 || t === 'click' ? 0 : 1, pointerType: 'mouse' }));
+          });
+        }
+        var held = null, n = 0;
+        setInterval(function () {
+          n++;
+          if (held) { key('keyup', held); held = null; }
+          var btn = Array.prototype.find.call(document.querySelectorAll('button, [role=button]'), function (b) { return !b.disabled && b.offsetParent && /^\s*\W*\s*(start|play|new game|begin|launch|go|deal|again|restart|continue|next)\b/i.test(b.textContent); });
+          if (btn && n % 6 === 1) { btn.click(); return; }
+          var r = Math.random();
+          if (r < .55) { held = keys[Math.random() * keys.length | 0]; key('keydown', held); }
+          else {
+            var x = Math.random() * innerWidth, y = Math.random() * innerHeight;
+            mouse(x, y, ['pointermove', 'mousemove']);
+            if (r < .85) mouse(x, y, ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click']);
+          }
+        }, 220);
       }
       document.querySelectorAll('.games .game-card').forEach(function (a) {
         a.addEventListener('mouseenter', function () { show(a); });
