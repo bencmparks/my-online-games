@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Box Pusher | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#713f12,#0b1020 70%)}
+main{width:min(100%,34rem);padding:1.25rem;border:.2rem solid #fbbf24;border-radius:1.25rem;background:rgb(8 12 30 / 94%);text-align:center}a{color:#fde047}h1{margin:.5rem 0;color:#fef08a}
+#board{display:grid;gap:2px;justify-content:center;margin:.8rem auto}.t{width:2.6rem;height:2.6rem;display:grid;place-items:center;font-size:1.6rem;border-radius:.25rem;background:#292524}
+.t.w{background:#78350f}.t.n{background:transparent}.t.g{background:#14532d}.t.b{background:#b45309}.t.ok{background:#16a34a}
+#msg{min-height:1.6rem;font-weight:800;color:#4ade80}
+button{padding:.4rem .9rem;margin:.15rem;border:0;border-radius:.5rem;background:#d97706;color:#fff;font-weight:700;cursor:pointer}button.pad{width:3rem;height:3rem;font-size:1.3rem}
+#pad{display:grid;grid-template-columns:repeat(3,3rem);gap:.3rem;justify-content:center;margin:.5rem auto}
+</style></head>
+<body><main><a href="../">← All games</a><h1>📦 Box Pusher</h1>
+<p>Push every 📦 onto a ⭐ goal. You can only push, never pull! Arrows or WASD to move · Z undo · R restart.</p>
+<div>Level <b id="lv">1</b> / <span id="tot"></span> · Moves <b id="mv">0</b> · Best <b id="bs">-</b></div>
+<div id="board"></div><div id="msg"></div>
+<div id="pad"><span></span><button class="pad" data-d="0">⬆️</button><span></span><button class="pad" data-d="2">⬅️</button><button class="pad" data-d="1">⬇️</button><button class="pad" data-d="3">➡️</button></div>
+<div><button id="undo">Undo</button><button id="reset">Restart</button><button id="prev">◀ Level</button><button id="next">Level ▶</button></div></main>
+<script>
+const LV=[
+["#######","#     #","# .$@ #","#     #","#######"],
+["########","#  .   #","#  $   #","#  @   #","########"],
+["#######","#.   .#","# $ $ #","#  @  #","#######"],
+["########","#   .  #","# $ #  #","#  $ . #","#  @   #","########"],
+["########","#  .   #","# $$ # #","#  @ . #","########"],
+["#########","#.  #   #","#   $   #","#  $@#  #","#  # .  #","#########"],
+["#########","#  .    #","# $$ .  #","#   @   #","#########"],
+["##########","#  .  .  #","#  $  $  #","#  .  $  #","#     @  #","##########"]
+];
+const bd=document.getElementById("board");let L,g,px,py,boxes,goals,hist,mv,lvl=+localStorage.getItem("bpLevel")||0,bests=JSON.parse(localStorage.getItem("bpBest")||"{}");
+if(lvl>=LV.length)lvl=0;document.getElementById("tot").textContent=LV.length;
+function load(n){lvl=n;localStorage.setItem("bpLevel",n);L=LV[n];const W=Math.max(...L.map(r=>r.length));g=L.map(r=>r.padEnd(W," ").split("").map(c=>c==="#"?"#":" "));boxes=new Set();goals=new Set();hist=[];mv=0;
+ L.forEach((r,y)=>[...r].forEach((c,x)=>{if(c==="@"){px=x;py=y}if(c==="$")boxes.add(x+","+y);if(c===".")goals.add(x+","+y)}));
+ bd.style.gridTemplateColumns=`repeat(${W},2.6rem)`;document.getElementById("msg").textContent="";draw()}
+function draw(){const W=g[0].length;bd.innerHTML="";g.forEach((row,y)=>row.forEach((c,x)=>{const k=x+","+y,d=document.createElement("div");d.className="t";
+ if(c==="#"){d.classList.add("w");d.textContent=""}else{if(goals.has(k)){d.classList.add("g");d.textContent="⭐"}if(boxes.has(k)){d.classList.add(goals.has(k)?"ok":"b");d.textContent="📦"}if(x===px&&y===py)d.textContent="🧑"}
+ bd.appendChild(d)}));
+ document.getElementById("lv").textContent=lvl+1;document.getElementById("mv").textContent=mv;document.getElementById("bs").textContent=bests[lvl]||"-"}
+function move(d){const[dx,dy]=[[0,-1],[0,1],[-1,0],[1,0]][d],nx=px+dx,ny=py+dy;if(!g[ny]||g[ny][nx]!==" ")return;
+ const k=nx+","+ny;if(boxes.has(k)){const bx=nx+dx,by=ny+dy,bk=bx+","+by;if(!g[by]||g[by][bx]!==" "||boxes.has(bk))return;hist.push([px,py,[...boxes]]);boxes.delete(k);boxes.add(bk)}else hist.push([px,py,[...boxes]]);
+ px=nx;py=ny;mv++;draw();if([...goals].every(k=>boxes.has(k))){if(!bests[lvl]||mv<bests[lvl]){bests[lvl]=mv;localStorage.setItem("bpBest",JSON.stringify(bests))}draw();document.getElementById("msg").textContent=lvl+1<LV.length?`Solved in ${mv} moves! 🎉 Press Level ▶`:"All levels solved! 🏆";hist=[]}}
+function undo(){const h=hist.pop();if(!h)return;px=h[0];py=h[1];boxes=new Set(h[2]);mv=Math.max(0,mv-1);document.getElementById("msg").textContent="";draw()}
+const K={ArrowUp:0,w:0,ArrowDown:1,s:1,ArrowLeft:2,a:2,ArrowRight:3,d:3};
+addEventListener("keydown",e=>{const d=K[e.key];if(d!==undefined){e.preventDefault();move(d)}else if(e.key==="z")undo();else if(e.key==="r")load(lvl)});
+document.querySelectorAll(".pad").forEach(b=>b.onclick=()=>move(+b.dataset.d));
+document.getElementById("undo").onclick=undo;document.getElementById("reset").onclick=()=>load(lvl);document.getElementById("next").onclick=()=>load((lvl+1)%LV.length);document.getElementById("prev").onclick=()=>load((lvl+LV.length-1)%LV.length);
+load(lvl);
+</script></body></html>

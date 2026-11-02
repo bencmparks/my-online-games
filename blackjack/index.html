@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Blackjack | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#14532d,#0b1020 70%)}
+main{width:min(100%,38rem);padding:1.25rem;border:.2rem solid #22c55e;border-radius:1.25rem;background:rgb(6 40 22 / 94%);text-align:center}a{color:#86efac}h1{margin:.5rem 0;color:#bbf7d0}
+.hand{display:flex;gap:.4rem;justify-content:center;min-height:5.2rem;margin:.3rem 0}.cd{width:3.4rem;height:4.8rem;border-radius:.4rem;background:#fff;color:#111;font-weight:800;font-size:1.2rem;display:grid;place-items:center;line-height:1.1;box-shadow:0 2px 6px #0008}
+.cd.red{color:#dc2626}.cd.back{background:repeating-linear-gradient(45deg,#1d4ed8 0 6px,#1e3a8a 6px 12px);color:transparent}
+h3{margin:.4rem 0 0;font-size:1rem;color:#d1fae5}#msg{min-height:2rem;font-size:1.2rem;font-weight:800;color:#fde047;margin:.5rem 0}
+button{padding:.5rem 1rem;margin:.15rem;border:0;border-radius:.5rem;background:#16a34a;color:#fff;font-weight:700;font-size:1rem;cursor:pointer}button:disabled{opacity:.35;cursor:default}button.bet{background:#ca8a04}
+#chips{font-size:1.3rem;font-weight:800;color:#fde047}
+</style></head>
+<body><main><a href="../">← All games</a><h1>🃏 Blackjack</h1>
+<p>Get closer to 21 than the dealer without going over. Blackjack pays 3 to 2. The dealer stands on 17.</p>
+<div id="chips"></div>
+<h3>Dealer <span id="dt"></span></h3><div class="hand" id="dh"></div>
+<h3>You <span id="pt"></span></h3><div class="hand" id="ph"></div>
+<div id="msg"></div>
+<div id="bets"><button class="bet" data-b="10">Bet 10</button><button class="bet" data-b="25">Bet 25</button><button class="bet" data-b="50">Bet 50</button><button class="bet" data-b="100">Bet 100</button></div>
+<div id="acts"><button id="hit">Hit</button><button id="stand">Stand</button><button id="dbl">Double</button></div>
+<p><button id="reset" style="background:#475569">Reset chips</button></p></main>
+<script>
+const $=id=>document.getElementById(id);
+let chips=+localStorage.getItem("bjChips")||100,deck,P,D,bet,phase="bet",best=+localStorage.getItem("bjBest")||chips;
+const SU=["♠","♥","♦","♣"],RK=["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
+function newDeck(){deck=[];for(let d=0;d<4;d++)SU.forEach(s=>RK.forEach(r=>deck.push({s,r})));for(let i=deck.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]]}}
+const val=h=>{let t=0,a=0;h.forEach(c=>{if(c.r==="A"){a++;t+=11}else t+="JQK".includes(c.r)?10:+c.r});while(t>21&&a){t-=10;a--}return t};
+const draw=()=>{if(deck.length<20)newDeck();return deck.pop()};
+function card(c,hide){const d=document.createElement("div");d.className="cd"+(hide?" back":"")+(c.s==="♥"||c.s==="♦"?" red":"");d.innerHTML=hide?"?":`${c.r}<br>${c.s}`;return d}
+function render(hideD){$("chips").textContent="💰 Chips: "+chips;$("dh").innerHTML="";D.forEach((c,i)=>$("dh").appendChild(card(c,hideD&&i===1)));$("ph").innerHTML="";P.forEach(c=>$("ph").appendChild(card(c)));
+ $("dt").textContent=D.length?(hideD?"":`(${val(D)})`):"";$("pt").textContent=P.length?`(${val(P)})`:"";
+ const bt=phase==="bet";document.querySelectorAll(".bet").forEach(b=>{b.style.display=bt?"":"none";b.disabled=+b.dataset.b>chips});$("acts").style.display=bt?"none":"";$("dbl").disabled=P.length!==2||chips<bet}
+function deal(b){if(chips<b)return;bet=b;chips-=b;P=[draw(),draw()];D=[draw(),draw()];phase="play";$("msg").textContent="";render(true);if(val(P)===21)finish()}
+function finish(){phase="done";let m,pw=0;const p=val(P),d0=val(D);
+ if(p===21&&P.length===2&&!(d0===21&&D.length===2)){pw=bet*2.5;m="Blackjack! 🎉"}
+ else{while(val(D)<17)D.push(draw());const d=val(D);
+  if(p>21)m="Bust! You lose.";else if(d>21){pw=bet*2;m="Dealer busts! You win!"}else if(p>d){pw=bet*2;m="You win! 🎉"}else if(p===d){pw=bet;m="Push — bet returned."}else m="Dealer wins."}
+ chips+=pw;if(chips>best){best=chips;localStorage.setItem("bjBest",best)}localStorage.setItem("bjChips",chips);render(false);
+ if(chips<10){m+=" You're out of chips — press Reset chips!";}else m+=" Place a bet for the next hand.";$("msg").textContent=m;phase="bet";render(false)}
+document.querySelectorAll(".bet").forEach(b=>b.onclick=()=>deal(+b.dataset.b));
+$("hit").onclick=()=>{if(phase!=="play")return;P.push(draw());render(true);if(val(P)>=21)finish()};
+$("stand").onclick=()=>{if(phase==="play")finish()};
+$("dbl").onclick=()=>{if(phase!=="play"||P.length!==2||chips<bet)return;chips-=bet;bet*=2;P.push(draw());finish()};
+$("reset").onclick=()=>{chips=100;localStorage.setItem("bjChips",100);P=[];D=[];phase="bet";$("msg").textContent="Fresh start with 100 chips.";render(false)};
+newDeck();P=[];D=[];$("msg").textContent="Place a bet to deal.";render(false);
+</script></body></html>

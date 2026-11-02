@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Guess Who | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#7f1d1d,#0b1020 70%)}
+main{width:min(100%,44rem);padding:1.25rem;border:.2rem solid #f87171;border-radius:1.25rem;background:rgb(8 12 30 / 94%);text-align:center}a{color:#fca5a5}h1{margin:.5rem 0;color:#fecaca}
+#board{display:grid;grid-template-columns:repeat(6,1fr);gap:.4rem;margin:.8rem 0}
+.card{padding:.2rem;border:2px solid #475569;border-radius:.5rem;background:#1e293b;cursor:pointer;color:#e5e7eb;font-size:.75rem;font-weight:700}
+.card svg{display:block;width:100%;height:auto}.card.down{background:#7f1d1d;border-color:#450a0a}.card.down svg{opacity:.08}
+.card.pick{border-color:#fde047;box-shadow:0 0 10px #fde047}body.guessing .card:hover{border-color:#4ade80}
+#ctl{display:flex;flex-wrap:wrap;gap:.5rem;justify-content:center;align-items:center;margin:.5rem 0}
+select,button{padding:.45rem .8rem;border:0;border-radius:.5rem;font-size:1rem}select{background:#1f2937;color:#fff;max-width:100%}button{background:#dc2626;color:#fff;font-weight:700;cursor:pointer}button.alt{background:#16a34a}button:disabled{opacity:.4;cursor:default}
+#msg{min-height:3rem;margin:.4rem 0;font-weight:800;color:#fde047}#log{max-height:7rem;overflow:auto;text-align:left;font-size:.85rem;background:#0f172a;border-radius:.5rem;padding:.4rem .7rem;color:#cbd5e1}
+#mine{display:flex;gap:.6rem;align-items:center;justify-content:center;margin:.4rem 0}#mine svg{width:3.2rem}
+</style></head>
+<body><main><a href="../">← All games</a><h1>🕵️ Guess Who?</h1>
+<p>The CPU secretly picked a person. Ask yes/no questions, flip down people who don't match, then press <b>Make a guess</b> and click who you think it is. The CPU is hunting for <i>your</i> secret person too — first to guess right wins, a wrong guess loses!</p>
+<div id="mine"></div><div id="msg"></div>
+<div id="ctl"><select id="q"></select><button id="ask">Ask</button><button id="gs" class="alt">Make a guess</button></div>
+<div id="board"></div><div id="log"></div>
+<p>Wins: <strong id="w">0</strong> · Losses: <strong id="l">0</strong> · <button id="again" class="alt">New game</button></p></main>
+<script>
+const NAMES="Alex Bea Cal Dana Eli Fay Gus Hana Ivan June Kai Lena Milo Nia Omar Pia Quinn Rex Sia Tom Uma Vic Wren Zoe".split(" ");
+const HAIR=["black","brown","blonde","red","gray","bald"],HC={black:"#1f2937",brown:"#78350f",blonde:"#facc15",red:"#ea580c",gray:"#9ca3af"},SKIN=["#fde68a","#f5c7a1","#d6a06b","#a16a3f","#7c4a28"];
+const P=NAMES.map((n,i)=>({n,i,hair:HAIR[i%6],glasses:((i/6|0)&1)===1,hat:((i/6|0)>>1)===1,beard:i%5<2,stache:i%7<3,rings:i%8===3||i%8===6,skin:SKIN[(i*3)%5]}));
+const QS=[...["black","brown","blonde","red","gray"].map(h=>({t:`Do they have ${h} hair?`,f:p=>p.hair===h})),{t:"Are they bald?",f:p=>p.hair==="bald"},{t:"Do they wear glasses?",f:p=>p.glasses},{t:"Do they wear a hat?",f:p=>p.hat},{t:"Do they have a beard?",f:p=>p.beard},{t:"Do they have a mustache?",f:p=>p.stache},{t:"Do they wear earrings?",f:p=>p.rings}];
+function face(p,w){const hc=HC[p.hair];let s=`<svg viewBox="0 0 100 110"><rect width="100" height="110" rx="8" fill="#334155"/>`;
+ if(p.hair!=="bald")s+=`<ellipse cx="50" cy="38" rx="36" ry="30" fill="${hc}"/>`;
+ s+=`<ellipse cx="50" cy="52" rx="28" ry="32" fill="${p.skin}"/>`;
+ if(p.hair!=="bald")s+=`<path d="M22,48 Q24,22 50,20 Q76,22 78,48 Q66,32 50,34 Q34,32 22,48Z" fill="${hc}"/>`;
+ if(p.rings)s+=`<circle cx="21" cy="62" r="3.5" fill="#fde047"/><circle cx="79" cy="62" r="3.5" fill="#fde047"/>`;
+ if(p.beard)s+=`<path d="M24,62 Q50,104 76,62 Q70,86 50,88 Q30,86 24,62Z" fill="${p.hair==="bald"?"#44403c":hc}"/>`;
+ s+=`<circle cx="39" cy="50" r="3" fill="#111"/><circle cx="61" cy="50" r="3" fill="#111"/>`;
+ if(p.glasses)s+=`<g fill="none" stroke="#0f172a" stroke-width="2.5"><circle cx="39" cy="50" r="9"/><circle cx="61" cy="50" r="9"/><path d="M48,50 L52,50"/></g>`;
+ s+=p.stache?`<path d="M38,67 Q50,60 62,67 Q50,72 38,67Z" fill="${p.hair==="bald"?"#44403c":hc}"/>`:"";
+ s+=`<path d="M40,74 Q50,82 60,74" fill="none" stroke="#7f1d1d" stroke-width="2.5" stroke-linecap="round"/>`;
+ if(p.hat)s+=`<rect x="22" y="22" width="56" height="9" rx="3" fill="#dc2626"/><path d="M32,24 Q50,0 68,24Z" fill="#b91c1c"/>`;
+ return s+"</svg>"}
+const $=id=>document.getElementById(id),board=$("board"),msg=$("msg"),log=$("log"),qSel=$("q");
+let secret,mine,down,cand,asked,cpuAsked,over,guessing,turn,wins=+localStorage.getItem("gwWins")||0,loss=+localStorage.getItem("gwLoss")||0;
+const upd=()=>{$("w").textContent=wins;$("l").textContent=loss};
+const say=t=>{log.innerHTML+=t+"<br>";log.scrollTop=1e9};
+function qOpts(){qSel.innerHTML="";QS.forEach((q,i)=>{if(!asked.has(i)){const o=document.createElement("option");o.value=i;o.textContent=q.t;qSel.appendChild(o)}})}
+function render(){board.innerHTML="";P.forEach(p=>{const b=document.createElement("button");b.className="card"+(down.has(p.i)?" down":"")+(mine.i===p.i?" pick":"");b.innerHTML=face(p)+p.n;b.onclick=()=>click(p);board.appendChild(b)});
+ $("mine").innerHTML=`<span>Your secret person:</span>${face(mine)}<b>${mine.n}</b>`;document.body.classList.toggle("guessing",guessing)}
+function start(){secret=P[Math.floor(Math.random()*24)];mine=P[Math.floor(Math.random()*24)];down=new Set();cand=P.slice();asked=new Set();cpuAsked=new Set();over=false;guessing=false;log.innerHTML="";msg.textContent="Ask a question to start!";qOpts();$("ask").disabled=false;$("gs").textContent="Make a guess";render();upd()}
+function click(p){if(over)return;if(guessing){guess(p);return}if(down.has(p.i))down.delete(p.i);else down.add(p.i);render()}
+function end(win,t){over=true;win?wins++:loss++;localStorage.setItem("gwWins",wins);localStorage.setItem("gwLoss",loss);msg.textContent=t;upd();$("ask").disabled=true}
+function guess(p){guessing=false;$("gs").textContent="Make a guess";if(p.i===secret.i){render();end(true,`🎉 Yes! It was ${secret.n}! You win!`)}else{render();end(false,`❌ It wasn't ${p.n}. The CPU's person was ${secret.n}. You lose!`)}}
+$("gs").onclick=()=>{if(over)return;guessing=!guessing;$("gs").textContent=guessing?"Cancel guess":"Make a guess";msg.textContent=guessing?"Click the person you think it is!":"Ask a question to continue!";render()};
+$("ask").onclick=()=>{if(over||qSel.value==="")return;const i=+qSel.value,q=QS[i];asked.add(i);const ans=q.f(secret);say(`<b>You:</b> ${q.t} → <b>${ans?"Yes":"No"}</b>`);msg.textContent=ans?"Yes!":"No.";qOpts();setTimeout(cpuTurn,500)};
+function cpuTurn(){if(over)return;
+ if(cand.length===1||(cand.length===2&&Math.random()<.5)){const g=cand[Math.floor(Math.random()*cand.length)];if(g.i===mine.i){say(`<b>CPU:</b> Is it ${g.n}? <b>Yes!</b>`);end(false,`😈 The CPU guessed ${mine.n} — you lose!`)}else{say(`<b>CPU:</b> Is it ${g.n}? No.`);cand=cand.filter(c=>c.i!==g.i);msg.textContent=`The CPU guessed ${g.n} and was wrong. Your turn!`}return}
+ let best=-1,bs=1e9;QS.forEach((q,i)=>{if(cpuAsked.has(i))return;const y=cand.filter(q.f).length,s=Math.abs(y-cand.length/2)+Math.random()*.5;if(y>0&&y<cand.length&&s<bs){bs=s;best=i}});
+ if(best<0){const g=cand[0];if(g.i===mine.i)end(false,`😈 The CPU guessed ${mine.n}!`);else cand=cand.filter(c=>c.i!==g.i);return}
+ cpuAsked.add(best);const q=QS[best],ans=q.f(mine);cand=cand.filter(p=>q.f(p)===ans);say(`<b>CPU:</b> ${q.t} → <b>${ans?"Yes":"No"}</b>`);msg.textContent=`The CPU asked: "${q.t}" You answered ${ans?"Yes":"No"}. Your turn!`}
+$("again").onclick=start;start();
+</script></body></html>

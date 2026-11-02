@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bowling | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#7c2d12,#0b1020 70%)}
+main{width:min(100%,34rem);padding:1.25rem;border:.2rem solid #fdba74;border-radius:1.25rem;background:rgb(8 12 30 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.5rem 0;color:#fed7aa;font-size:1.6rem}
+canvas{width:100%;max-width:22rem;border-radius:.6rem;background:#92400e;touch-action:manipulation;cursor:pointer}
+#msg{min-height:2rem;font-size:1.2rem;font-weight:800;color:#fde047;margin:.4rem 0}
+table{margin:.5rem auto;border-collapse:collapse;font-size:.8rem}td,th{border:1px solid #475569;padding:.2rem .3rem;min-width:1.8rem}
+button{padding:.4rem 1rem;border:0;border-radius:.5rem;background:#475569;color:#fff;cursor:pointer}
+</style></head>
+<body><main><a href="../">← All games</a><h1>🎳 Bowling</h1>
+<p>Click (or press <strong>Space</strong>) twice per roll: first to lock your <strong>aim</strong> near the center, then to lock the <strong>power</strong> in the green zone. 10 frames with strike and spare bonuses.</p>
+<canvas id="c" width="352" height="480"></canvas><div id="msg"></div><div id="sc"></div>
+<p>Best score: <strong id="best">0</strong> · <button id="again">New game</button></p></main>
+<script>
+const c=document.getElementById("c"),x=c.getContext("2d"),msg=document.getElementById("msg"),sc=document.getElementById("sc"),bestEl=document.getElementById("best");
+const LX=36,LW=280,CX=LX+LW/2,PY=[70,100,130,160],PX=[[0],[-18,18],[-36,0,36],[-54,-18,18,54]];
+const pinPos=[];PX.forEach((r,i)=>r.forEach(o=>pinPos.push([CX+o,PY[i]+20])));
+let rolls,standing,frame,ball,phase,aim,pw,t=0,roll,fell,best=+localStorage.getItem("bowlBest")||0;bestEl.textContent=best;
+function reset(){rolls=[];standing=Array(10).fill(true);frame=0;ball=0;phase="aim";aim=0;pw=0;roll=null;fell=[];msg.textContent="Click to lock your aim";score()}
+function total(){let s=0,i=0;for(let f=0;f<10;f++){if(rolls[i]===undefined)break;if(rolls[i]===10){if(rolls[i+2]===undefined)break;s+=10+rolls[i+1]+rolls[i+2];i++}else{if(rolls[i+1]===undefined)break;if(rolls[i]+rolls[i+1]===10){if(rolls[i+2]===undefined)break;s+=10+rolls[i+2]}else s+=rolls[i]+rolls[i+1];i+=2}}return s}
+function frames(){const out=[];let i=0,run=0;
+ for(let f=0;f<10;f++){const a=rolls[i],b=rolls[i+1],d=rolls[i+2];let cell,sum=null;
+  if(a===undefined){out.push(["",""]);continue}
+  if(f<9){if(a===10){cell="X";if(b!==undefined&&d!==undefined)sum=10+b+d;i++}
+   else{cell=(a||"-")+" "+(b===undefined?"":a+b===10?"/":b||"-");if(b!==undefined){if(a+b===10){if(d!==undefined)sum=10+d}else sum=a+b}i+=2}}
+  else{cell=[a,b,d].map((v,k,ar)=>v===undefined?"":v===10?"X":(k>0&&ar[k-1]!==10&&ar[k-1]+v===10)?"/":v||"-").join(" ");
+   const need=a===10||(b!==undefined&&a+b===10)?3:2;if(rolls.length-i>=need)sum=rolls.slice(i,i+need).reduce((p,q)=>p+q,0)}
+  if(sum!==null){run+=sum}out.push([cell,sum===null?"":run])}
+ return out}
+function score(){const fr=frames();sc.innerHTML="<table><tr>"+fr.map((_,i)=>`<th>${i+1}</th>`).join("")+"<th>Total</th></tr><tr>"+fr.map(f=>`<td>${f[0]}</td>`).join("")+`<td rowspan="2"><strong>${total()}</strong></td></tr><tr>`+fr.map(f=>`<td>${f[1]}</td>`).join("")+"</tr></table>"}
+function click(){
+ if(roll)return;
+ if(phase==="aim"){phase="power";msg.textContent="Now lock the power in the green zone!"}
+ else if(phase==="power")launch();
+ else if(phase==="over")reset()}
+function launch(){const up=standing.filter(Boolean).length,gutter=Math.abs(aim)>.92;
+ const q=Math.max(0,1-Math.abs(aim)*1.1-Math.abs(pw-.82)*1.3);
+ let n=gutter?0:Math.round(up*Math.min(1,Math.max(0,q+(Math.random()-.4)*.25)));
+ if(!gutter&&q>.93)n=up;
+ const idx=standing.map((s,i)=>s?i:-1).filter(i=>i>=0).sort(()=>Math.random()-.5).slice(0,n);
+ roll={t:0,x0:CX,x1:CX+aim*LW*.45,n,idx,spd:.008+pw*.008,anim:{}};phase="roll"}
+function finish(){const n=roll.n;roll.idx.forEach(i=>{standing[i]=false;fell.push(i)});roll=null;rolls.push(n);
+ const up=standing.filter(Boolean).length,fresh=()=>{standing.fill(true);fell=[]};
+ if(frame<9){
+  if(ball===0&&n<10){ball=1;msg.textContent=n?`${n} down. Roll again!`:"Missed everything! Roll again."}
+  else{msg.textContent=ball===0?"STRIKE!":up===0?"SPARE!":`${n} down.`;frame++;ball=0;fresh()}}
+ else{ball++;const r=rolls.slice(-ball);let done=false;
+  if(ball===1){if(n===10){fresh();msg.textContent="STRIKE!"}else msg.textContent=`${n} down.`}
+  else if(ball===2){if(r[0]===10){if(n===10){fresh();msg.textContent="STRIKE!"}else msg.textContent=`${n} down.`}
+   else if(r[0]+n===10){fresh();msg.textContent="SPARE!"}else done=true}
+  else done=true;
+  if(done)frame=10}
+ score();
+ if(frame>=10){phase="over";const tt=total();msg.textContent=`Game over! Final score: ${tt}. Click for a new game.`;if(tt>best){best=tt;localStorage.setItem("bowlBest",best);bestEl.textContent=best}}
+ else{phase="aim"}}
+function draw(){t++;
+ if(phase==="aim")aim=Math.sin(t/14);
+ if(phase==="power")pw=(Math.sin(t/10)+1)/2;
+ x.fillStyle="#0b1020";x.fillRect(0,0,352,480);x.fillStyle="#d97706";x.fillRect(LX,0,LW,480);x.fillStyle="#b45309";for(let i=0;i<6;i++)x.fillRect(LX+8+i*45,0,3,480);x.fillStyle="#1f2937";x.fillRect(0,0,LX,480);x.fillRect(LX+LW,0,LX,480);
+ pinPos.forEach(([px,py],i)=>{const a=roll&&roll.anim[i];if(!standing[i])return;x.save();x.translate(px,py);if(a){const k=a.t/60;x.translate(a.dir*k*50,-k*30+k*k*40);x.rotate(a.dir*k*5);x.globalAlpha=Math.max(.15,1-k*.8)}x.fillStyle="#fff";x.beginPath();x.arc(0,0,9,0,7);x.fill();x.fillStyle="#dc2626";x.fillRect(-7,1,14,3);x.restore()});
+ let bx=CX+aim*LW*.45,by=440;
+ if(phase==="aim"||phase==="power"){x.strokeStyle="rgb(250 204 21 / 70%)";x.setLineDash([6,6]);x.beginPath();x.moveTo(bx,430);x.lineTo(bx,200);x.stroke();x.setLineDash([])}
+ if(roll){roll.t=Math.min(1.15,roll.t+roll.spd);const r=Math.min(1,roll.t);bx=roll.x0+(roll.x1-roll.x0)*r;by=440-roll.t*340;
+  roll.idx.forEach(i=>{if(!roll.anim[i]&&440-roll.t*340<=pinPos[i][1]+14)roll.anim[i]={t:0,dir:Math.random()<.5?-1:1}});
+  Object.values(roll.anim).forEach(a=>{if(a.t<60)a.t++});
+  if(roll.t>=1.15&&roll.idx.every(i=>roll.anim[i]&&roll.anim[i].t>=60)){finish();bx=CX+aim*LW*.45;by=440}}
+ if(by>40){const br=phase==="roll"?12-(440-by)/340*3:12;x.fillStyle="#1e3a8a";x.beginPath();x.arc(bx,by,br,0,7);x.fill();x.fillStyle="#fff";x.fillRect(bx-4,by-4,2,2);x.fillRect(bx+1,by-5,2,2)}
+ if(phase==="power"){x.fillStyle="#374151";x.fillRect(LX+LW+4,160,22,280);x.fillStyle="#22c55e";x.fillRect(LX+LW+4,440-280*.92,22,280*.2);x.fillStyle="#fde047";x.fillRect(LX+LW+2,440-pw*280-3,26,6)}
+ if(phase==="aim"){x.fillStyle="#374151";x.fillRect(LX,462,LW,10);x.fillStyle="#22c55e";x.fillRect(CX-14,462,28,10);x.fillStyle="#fde047";x.fillRect(CX+aim*LW*.45-3,458,6,18)}
+ requestAnimationFrame(draw)}
+c.addEventListener("pointerdown",e=>{e.preventDefault();click()});
+addEventListener("keydown",e=>{if(e.code==="Space"){e.preventDefault();if(!e.repeat)click()}});
+document.getElementById("again").onclick=reset;
+reset();draw();
+</script></body></html>

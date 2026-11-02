@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Fishing Frenzy | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#0c4a6e,#0b1020 70%)}
+main{width:min(100%,42rem);padding:1.25rem;border:.2rem solid #38bdf8;border-radius:1.25rem;background:rgb(8 12 30 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.5rem 0;color:#bae6fd;font-size:1.6rem}
+canvas{width:100%;border-radius:.6rem;background:#0369a1;touch-action:manipulation;cursor:pointer}
+button{padding:.4rem 1rem;border:0;border-radius:.5rem;background:#475569;color:#fff;cursor:pointer}
+</style></head>
+<body><main><a href="../">← All games</a><h1>🎣 Fishing Frenzy</h1>
+<p>Your hook swings side to side. <strong>Click</strong> or press <strong>Space</strong> to cast it. Big fish and treasure chests are worth a lot but reel in slowly, and boots are just junk. You have 60 seconds!</p>
+<canvas id="c" width="640" height="440"></canvas>
+<p>Best score: <strong id="best">0</strong> · <button id="again">New game</button></p></main>
+<script>
+const c=document.getElementById("c"),x=c.getContext("2d"),bestEl=document.getElementById("best");
+const W=640,H=440,BX=320,BY=70,TYPES=[{e:"🐟",r:12,v:10,s:1,sp:1.6,n:7},{e:"🐠",r:17,v:30,s:.7,sp:1.1,n:4},{e:"🐡",r:24,v:70,s:.45,sp:.8,n:2},{e:"🥾",r:15,v:-15,s:.8,sp:.5,n:2},{e:"🧰",r:22,v:150,s:.3,sp:0,n:1}];
+let fish,score,time,ang,len,state,got,t=0,best=+localStorage.getItem("fishBest")||0,popups,over;bestEl.textContent=best;
+function spawn(T){const y=T.e==="🧰"?H-35:130+Math.random()*(H-190);return{T,x:Math.random()*W,y,dir:Math.random()<.5?-1:1,ph:Math.random()*6}}
+function reset(){fish=[];TYPES.forEach(T=>{for(let i=0;i<T.n;i++)fish.push(spawn(T))});score=0;time=3600;ang=0;len=40;state="swing";got=null;popups=[];over=false}
+function cast(){if(over){reset();return}if(state==="swing")state="out"}
+function tip(){return[BX+Math.sin(ang)*len,BY+Math.cos(ang)*len]}
+function step(){t++;if(over)return;
+ time--;if(time<=0){over=true;if(score>best){best=score;localStorage.setItem("fishBest",best);bestEl.textContent=best}}
+ fish.forEach(f=>{if(f===got)return;if(f.T.sp){f.x+=f.dir*f.T.sp;f.y+=Math.sin(t/30+f.ph)*.3;if(f.x<-30)f.x=W+30;if(f.x>W+30)f.x=-30}});
+ if(state==="swing"){ang=Math.sin(t/40)*1.15;len=40}
+ else if(state==="out"){len+=6;const[px,py]=tip();
+  const hit=fish.find(f=>Math.hypot(f.x-px,f.y-py)<f.T.r+6);
+  if(hit){got=hit;state="in"}else if(px<0||px>W||py>H)state="in"}
+ else if(state==="in"){len-=got?5.5*got.T.s+1:7;if(got){const[px,py]=tip();got.x=px;got.y=py+got.T.r*.6}
+  if(len<=40){len=40;if(got){score=Math.max(0,score+got.T.v);popups.push({t:60,v:got.T.v,x:BX,y:BY+30});const T=got.T;fish.splice(fish.indexOf(got),1);fish.push(spawn(T));got=null}state="swing"}}
+ popups.forEach(p=>{p.t--;p.y-=.6});popups=popups.filter(p=>p.t>0)}
+function draw(){
+ x.fillStyle="#7dd3fc";x.fillRect(0,0,W,90);x.fillStyle="#0369a1";x.fillRect(0,90,W,H-90);x.fillStyle="#075985";x.fillRect(0,H-25,W,25);
+ x.fillStyle="#92400e";x.fillRect(BX-50,BY-30,100,18);x.fillStyle="#b45309";x.fillRect(BX-34,BY-48,68,18);
+ x.textAlign="center";x.textBaseline="middle";
+ fish.forEach(f=>{x.save();x.translate(f.x,f.y);if(f.dir>0&&f.T.sp)x.scale(-1,1);x.font=f.T.r*1.7+"px serif";x.fillText(f.T.e,0,0);x.restore()});
+ const[px,py]=tip();x.strokeStyle="#f8fafc";x.lineWidth=2;x.beginPath();x.moveTo(BX,BY-12);x.lineTo(px,py);x.stroke();x.fillStyle="#fde047";x.beginPath();x.arc(px,py,5,0,7);x.fill();
+ x.fillStyle="#fff";x.font="bold 20px Arial";x.textAlign="left";x.fillText(`Score ${score}`,12,24);x.textAlign="right";x.fillText(`Time ${Math.ceil(time/60)}`,W-12,24);
+ popups.forEach(p=>{x.fillStyle=p.v>=0?"#bbf7d0":"#fecaca";x.textAlign="center";x.fillText((p.v>=0?"+":"")+p.v,p.x,p.y)});
+ if(over){x.fillStyle="rgb(0 0 0 / 60%)";x.fillRect(0,0,W,H);x.fillStyle="#fde047";x.font="bold 40px Arial";x.textAlign="center";x.fillText("Time's up!",W/2,170);x.fillStyle="#fff";x.font="24px Arial";x.fillText(`You scored ${score} points`,W/2,220);x.fillText("Click to play again",W/2,260)}
+ step();requestAnimationFrame(draw)}
+c.addEventListener("pointerdown",e=>{e.preventDefault();cast()});
+addEventListener("keydown",e=>{if(e.code==="Space"||e.code==="ArrowDown"){e.preventDefault();if(!e.repeat)cast()}});
+document.getElementById("again").onclick=reset;
+reset();draw();
+</script></body></html>

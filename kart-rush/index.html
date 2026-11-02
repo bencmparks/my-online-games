@@ -7,14 +7,14 @@ canvas{display:block;width:100%;height:auto;margin:1rem 0;border:.2rem solid #47
 button{border:0;border-radius:.5rem;background:#facc15;color:#1e293b;cursor:pointer;font:inherit;font-weight:bold;touch-action:none}.dpad button{font-size:1.3rem}.a{width:4.5rem;height:4.5rem;border-radius:50%;font-size:1.1rem}
 </style></head>
 <body><main><a href="../">← All games</a><h1>🏎️ Kart Rush</h1>
-<p>First-person kart racing! Race 5 rivals over 3 laps, grab item boxes, hit the boost pads, launch off ramps and glide, glide off cliffs, swim through the water, and don't slip on bananas. Pick from 6 built-in tracks or build your own.</p>
-<p><strong>↑/W</strong> gas · <strong>↓/S</strong> brake · <strong>←/→ or A/D</strong> steer · <strong>E / Space</strong> use item and start · title screen: <strong>←/→</strong> choose track, <strong>M</strong> difficulty, <strong>↑/G</strong> garage, <strong>↓/C</strong> build your own track.</p>
+<p>First-person kart racing! Race 5 rivals over 1 to 10 laps you choose, grab item boxes, hit the boost pads, launch off ramps and glide, glide off cliffs, swim through the water, and don't slip on bananas. Pick from 6 built-in tracks or build your own.</p>
+<p><strong>↑/W</strong> gas · <strong>↓/S</strong> brake · <strong>←/→ or A/D</strong> steer · <strong>E / Space</strong> use item and start · title screen: <strong>←/→</strong> choose track, <strong>M</strong> difficulty, <strong>L</strong> number of laps, <strong>↑/G</strong> garage, <strong>↓/C</strong> build your own track.</p>
 <canvas id="g" width="640" height="480" aria-label="Kart Rush racing game"></canvas>
 <div class="pad"><div class="dpad"><span></span><button data-k="up" type="button">▲</button><span></span><button data-k="left" type="button">◀</button><span></span><button data-k="right" type="button">▶</button><span></span><button data-k="down" type="button">▼</button><span></span></div><button class="a" data-k="act" type="button">ITEM</button></div>
 </main>
 <script>
 const C=document.querySelector("#g"),x=C.getContext("2d");
-const W=640,H=480,LAPS=3,RH=80,SPL=36,NK=6;
+const W=640,H=480,RH=80,SPL=36,NK=6;
 const rng=seed=>{let s=seed>>>0;return()=>{s=(Math.imul(s,1664525)+1013904223)>>>0;return s/4294967296}};
 const TRACKS=[
  {name:"Meadow Loop",grass:"#4caf50",tuft:"#3f9a43",road:"#4b5563",tree:"#1d6f33",pts:[[500,400],[1100,300],[1700,380],[2100,700],[1900,1100],[1400,1200],[1300,1500],[800,1550],[400,1300],[350,850]],pads:[.12,.5,.8],boxes:[.3,.7]},
@@ -30,6 +30,8 @@ TRACKS.push(
  {name:"Lakeside",grass:"#5fae6e",tuft:"#4d9a5c",road:"#52525b",tree:"#14532d",pts:[[300,800],[600,350],[1200,250],[1800,400],[2250,800],[2100,1300],[1600,1500],[1100,1300],[800,1600],[400,1500]],boxes:[.35,.8]}
 );
 TRACKS.forEach(d=>{d.pads=PADS;d.ramps=RAMPS;d.water=WATER});
+const LAPOPT=[1,2,3,5,10];let LAPS=3;try{LAPS=LAPOPT.includes(+localStorage.getItem("kartRushLaps"))?+localStorage.getItem("kartRushLaps"):3}catch(e){}
+const cycleLaps=()=>{LAPS=LAPOPT[(LAPOPT.indexOf(LAPS)+1)%LAPOPT.length];try{localStorage.setItem("kartRushLaps",LAPS)}catch(e){}};
 let mode="title",sel=0,T=null,K=[],P=null,bananas=[],shells=[],boxes=[],t=0,raceT=0,cnt=0,done=0,results=[],held={},best={};
 try{best=JSON.parse(localStorage.getItem("kartRushBest")||"{}")}catch(e){}
 const CARS=[
@@ -42,7 +44,7 @@ const CARS=[
  {n:"Golden Rocket",price:2000,spd:7.8,acc:.23,hand:.066,col:"#f59e0b"}
 ];
 const DIFFS=["Easy","Medium","Hard"],DSPD=[.85,1,1.1],DPRIZE=[.7,1,1.5],DCOL=["#4ade80","#facc15","#f87171"];let diff=1;try{diff=Math.max(0,Math.min(2,+localStorage.getItem("kartRushDiff")||1))}catch(e){}
-const cycleDiff=()=>{diff=(diff+1)%3;try{localStorage.setItem("kartRushDiff",diff)}catch(e){}},bkey=id=>diff===1?id:id+"-"+diff;
+const cycleDiff=()=>{diff=(diff+1)%3;try{localStorage.setItem("kartRushDiff",diff)}catch(e){}},bkey=id=>(diff===1?id:id+"-"+diff)+(LAPS===3?"":"-L"+LAPS);
 const UPN=["Top speed","Acceleration","Handling"],MAXUP=5,PRIZE=[100,70,50,35,25,15];
 let save={coins:0,owned:[0],car:0,up:{}},gsel=0,grow=0,gmsg="",earned=0;
 try{const s=JSON.parse(localStorage.getItem("kartRushSave")||"null");if(s&&Array.isArray(s.owned))save=Object.assign(save,s)}catch(e){}
@@ -182,7 +184,7 @@ function update(){
   for(const k of K){if(k===s.own&&s.age<25)continue;if(k.inv>0&&k.spin<=0)continue;if((k.x-s.x)**2+(k.y-s.y)**2<22*22){k.spin=70;k.v*=.2;hit=true;break}}
   if(hit||s.age>300)shells.splice(i,1)}
  const order=rankAll();
- if(mode==="race"&&P.fin!==null&&!done){done=1;earned=Math.round(PRIZE[P.rank]*DPRIZE[diff]);save.coins+=earned;store();results=order.map(k=>k.name+(k.fin!==null?`  ${(k.fin/60).toFixed(1)}s`:"  racing"));
+ if(mode==="race"&&P.fin!==null&&!done){done=1;earned=Math.round(PRIZE[P.rank]*DPRIZE[diff]*LAPS/3);save.coins+=earned;store();results=order.map(k=>k.name+(k.fin!==null?`  ${(k.fin/60).toFixed(1)}s`:"  racing"));
   const bid=bkey(T.def.id),bt=best[bid];if(bt===undefined||P.fin<bt){best[bid]=P.fin;try{localStorage.setItem("kartRushBest",JSON.stringify(best))}catch(e){}}
   setTimeout(()=>{mode="done"},1200)}
 }
@@ -218,6 +220,7 @@ function editPress(k){
 }
 addEventListener("keydown",e=>{
  if(mode==="title"&&e.code==="KeyM")cycleDiff();
+else if(mode==="title"&&e.code==="KeyL")cycleLaps();
  else if(mode==="title"&&e.code==="KeyG")press("up");
  else if(mode==="title"&&e.code==="KeyC")press("down");
  else if(mode==="title"&&e.code==="KeyX"&&sel>=TRACKS.length){const i=sel-TRACKS.length;maps.splice(i,1);TR.splice(sel,1);storeMaps();sel=Math.min(sel,TR.length-1)}
@@ -225,7 +228,7 @@ addEventListener("keydown",e=>{
  else if(mode==="edit"&&e.code==="Escape")editPress("left")
 });
 C.addEventListener("pointerdown",e=>{
- if(mode==="title"){const r=C.getBoundingClientRect();if((e.clientY-r.top)/r.height*H>436){e.preventDefault();cycleDiff()}return}
+ if(mode==="title"){const r=C.getBoundingClientRect();const cy=(e.clientY-r.top)/r.height*H;if(cy>436){e.preventDefault();cycleDiff()}else if(cy>148&&cy<180){e.preventDefault();cycleLaps()}return}
  if(mode!=="edit")return;e.preventDefault();
  const r=C.getBoundingClientRect(),a=(e.clientX-r.left)*W/r.width,b=(e.clientY-r.top)*H/r.height;
  if(edPts.length>=4&&Math.hypot(a-edPts[0][0],b-edPts[0][1])<18){editPress("act");return}
@@ -329,6 +332,7 @@ function drawTitle(){
  x.save();x.translate(W/2,230);x.scale(3,3);drawKart({x:0,y:0,a:-Math.PI/2+Math.sin(t/20)*.2,col:CARS[save.car].col,boost:Math.floor(t/20)%2?1:0,inv:0,spin:0});x.restore();
  text(`🪙 ${save.coins}   ·   ${CARS[save.car].n}`,W-16,64,20,"#fde047","right");
  text("↑ / G: Garage (buy cars & upgrades)",W/2,392,16,"#a7f3d0","center");
+ text(`L: Laps ◀ ${LAPS} ▶ (click here to change)`,W/2,168,18,"#fde68a","center");
  text(`◀  ${TR[sel].name}  ▶`,W/2,330,28,"#7dd3fc","center");
  const tp=TR[sel],tm=Math.min(150/tp.bw,110/tp.bh);
  x.save();x.fillStyle="rgb(255 255 255 / 8%)";x.fillRect(W-190,100,170,130);x.strokeStyle="#7dd3fc";x.lineWidth=4;x.beginPath();tp.S.forEach((s,i)=>i?x.lineTo(W-180+s.x*tm,110+s.y*tm):x.moveTo(W-180+s.x*tm,110+s.y*tm));x.closePath();x.stroke();x.restore();

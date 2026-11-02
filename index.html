@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>My Online Games</title>
+  <script>try{if(localStorage.getItem('darkMode')==='1')document.documentElement.classList.add('dark')}catch(e){}</script>
   <style>
     :root {
       color-scheme: dark;
@@ -97,6 +98,79 @@
     .games .game-card:nth-child(6n + 5) { background-color: rgb(14 165 233 / 45%); }
     .games .game-card:nth-child(6n) { background-color: rgb(168 85 247 / 45%); }
 
+    #dark-toggle {
+      position: fixed;
+      top: .75rem;
+      right: .75rem;
+      z-index: 5;
+      padding: .5rem .9rem;
+      border: .15rem solid rgb(255 255 255 / 70%);
+      border-radius: 2rem;
+      background: rgb(30 27 75 / 85%);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    html.dark body {
+      background: radial-gradient(circle at 50% 0, #1e1b4b, #020617 75%);
+      animation: none;
+    }
+
+    html.dark main {
+      border-color: #334155;
+      background: rgb(2 6 23 / 92%);
+      box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 60%);
+    }
+
+    html.dark h1 { text-shadow: .1rem .1rem 0 #1e293b; }
+    html.dark .intro { color: #94a3b8; }
+    html.dark .game-card { border-color: #334155; background: #0f172a; box-shadow: none; }
+    html.dark .games .game-card { background-color: #0f172a; }
+    html.dark .game-card:hover,
+    html.dark .game-card:focus-visible { border-color: #818cf8; box-shadow: 0 0 1rem rgb(129 140 248 / 45%); }
+    html.dark .game-card h2 { text-shadow: none; color: #e2e8f0; }
+    html.dark .game-card p { color: #94a3b8; }
+    html.dark .games .game-card:nth-child(6n + 1) { border-left: .35rem solid #ef4444; }
+    html.dark .games .game-card:nth-child(6n + 2) { border-left: .35rem solid #f97316; }
+    html.dark .games .game-card:nth-child(6n + 3) { border-left: .35rem solid #eab308; }
+    html.dark .games .game-card:nth-child(6n + 4) { border-left: .35rem solid #22c55e; }
+    html.dark .games .game-card:nth-child(6n + 5) { border-left: .35rem solid #0ea5e9; }
+    html.dark .games .game-card:nth-child(6n) { border-left: .35rem solid #a855f7; }
+
+    #preview {
+      position: fixed;
+      z-index: 20;
+      width: 20rem;
+      height: 13.5rem;
+      overflow: hidden;
+      border: .2rem solid #fff;
+      border-radius: .8rem;
+      background: #0b1020;
+      box-shadow: 0 1rem 2.5rem rgb(0 0 0 / 55%);
+      pointer-events: none;
+      opacity: 0;
+      transform: scale(.96);
+      transition: opacity 150ms ease, transform 150ms ease;
+    }
+
+    #preview.show { opacity: 1; transform: none; }
+
+    #preview iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 960px;
+      height: 648px;
+      border: 0;
+      transform: scale(.3333);
+      transform-origin: 0 0;
+      background: #0b1020;
+    }
+
+    @media (hover: none) { #preview { display: none; } }
+
     @keyframes rainbow-sky {
       to { background-position: 0 0, 0 0, 0 0, 0 0, 100% 100%; }
     }
@@ -108,6 +182,7 @@
   </style>
 </head>
 <body>
+  <button id="dark-toggle" type="button" aria-pressed="false">🌙 Dark mode</button>
   <main>
     <h1 id="greeting">Hi!</h1>
     <p class="intro">Pick a game and start playing.</p>
@@ -221,8 +296,61 @@
       <a class="game-card" href="horse-derby/"><h2>Horse Derby</h2><p>Alternate keys to gallop and out-race three CPU horses.</p></a>
       <a class="game-card" href="horse-lasso/"><h2>Horse Lasso</h2><p>Lasso wild horses on the prairie before time runs out.</p></a>
       <a class="game-card" href="i-am-so-cool/"><h2>I AM SO COOL</h2><p>Click the big cool emoji to explode it, then plant a seed and water it back.</p></a>
+      <a class="game-card" href="bowling/"><h2>Bowling</h2><p>Lock your aim and power to roll strikes and spares across 10 frames.</p></a>
+      <a class="game-card" href="fishing-frenzy/"><h2>Fishing Frenzy</h2><p>Swing and cast your hook to reel in fish and treasure before time runs out.</p></a>
+      <a class="game-card" href="battleship/"><h2>Battleship</h2><p>Hunt down and sink the CPU fleet before it sinks yours.</p></a>
+      <a class="game-card" href="life-clicker/"><h2>Life Clicker</h2><p>Click to slowly grow bones, muscles, organs and more until you are a fully grown person.</p></a>
+      <a class="game-card" href="pinball/"><h2>Cosmic Pinball</h2><p>Launch the ball and flip it off bumpers to rack up a high score.</p></a>
+      <a class="game-card" href="word-guess/"><h2>Word Guess</h2><p>Guess the secret 5-letter word in 6 tries using color clues.</p></a>
+      <a class="game-card" href="guess-who/"><h2>Guess Who</h2><p>Ask yes/no questions to find the CPU's secret person before it finds yours.</p></a>
+      <a class="game-card" href="quick-draw/"><h2>Quick Draw</h2><p>Wait for DRAW! then fire faster than the outlaw — but not too early.</p></a>
+      <a class="game-card" href="box-pusher/"><h2>Box Pusher</h2><p>Push every box onto its goal across 8 puzzle levels.</p></a>
+      <a class="game-card" href="blackjack/"><h2>Blackjack</h2><p>Beat the dealer to 21 with chips, doubling down and 3-to-2 blackjacks.</p></a>
     </section>
   </main>
+  <div id="preview" aria-hidden="true"></div>
+  <script>
+    (function () {
+      var b = document.getElementById('dark-toggle'), h = document.documentElement;
+      function sync() { var d = h.classList.contains('dark'); b.textContent = d ? '☀️ Light mode' : '🌙 Dark mode'; b.setAttribute('aria-pressed', d); }
+      b.onclick = function () { h.classList.toggle('dark'); try { localStorage.setItem('darkMode', h.classList.contains('dark') ? '1' : '0'); } catch (e) {} sync(); };
+      sync();
+    })();
+  </script>
+  <script>
+    (function () {
+      var box = document.getElementById('preview'), timer, cur;
+      function hide() { clearTimeout(timer); cur = null; box.classList.remove('show'); setTimeout(function () { if (!cur) box.innerHTML = ''; }, 160); }
+      function show(a) {
+        if (cur === a) return;
+        cur = a;
+        clearTimeout(timer);
+        timer = setTimeout(function () {
+          var r = a.getBoundingClientRect(), w = box.offsetWidth || 320, h = box.offsetHeight || 216;
+          var left = Math.min(Math.max(8, r.left + r.width / 2 - w / 2), innerWidth - w - 8);
+          var top = r.top - h - 10;
+          if (top < 8) top = Math.min(r.bottom + 10, innerHeight - h - 8);
+          box.style.left = left + 'px';
+          box.style.top = top + 'px';
+          var f = document.createElement('iframe');
+          f.src = a.getAttribute('href');
+          f.tabIndex = -1;
+          f.setAttribute('title', 'Preview');
+          box.innerHTML = '';
+          box.appendChild(f);
+          box.classList.add('show');
+        }, 350);
+      }
+      document.querySelectorAll('.games .game-card').forEach(function (a) {
+        a.addEventListener('mouseenter', function () { show(a); });
+        a.addEventListener('mouseleave', hide);
+        a.addEventListener('focus', function () { show(a); });
+        a.addEventListener('blur', hide);
+        a.addEventListener('click', hide);
+      });
+      addEventListener('scroll', hide, { passive: true });
+    })();
+  </script>
   <script src="shared/profile.js"></script>
   <script>
     const name = GameProfiles.getActiveProfileName();

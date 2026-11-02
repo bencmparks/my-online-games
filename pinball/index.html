@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pinball | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#0e7490,#020617 70%)}
+main{width:min(100%,32rem);padding:1.25rem;border:.2rem solid #22d3ee;box-shadow:0 0 25px #22d3ee66;border-radius:1.25rem;background:rgb(8 12 30 / 94%);text-align:center}a{color:#67e8f9}h1{margin:.5rem 0;color:#a5f3fc}
+canvas{width:100%;max-width:26rem;border-radius:.7rem;background:#020617;touch-action:none}
+</style></head>
+<body><main><a href="../">← All games</a><h1>🪐 Cosmic Pinball</h1>
+<p>A one-way gate keeps the ball out of the launch lane once it is in play. Hold Space to charge the plunger, release to launch. Left/Right arrows (or Z and /) flip. On touch, tap the left or right half. 3 balls!</p>
+<canvas id="c" width="400" height="620"></canvas></main>
+<script>
+const cv=document.getElementById("c"),x=cv.getContext("2d");
+const WALLS=[[10,10,10,500],[10,500,110,556],[355,130,355,590],[355,590,390,590],[390,60,390,590],[390,60,340,10],[10,10,340,10],[355,500,255,556],[10,300,60,260],[10,130,10,300]];
+const BUMP=[[130,190,22],[250,190,22],[190,280,22],[90,360,16],[290,360,16]];
+const GATE=[390,90,355,130],PORT=[{x:26,y:282},{x:332,y:300},{x:190,y:410}],EXITS=[[110,150,1.5,.5],[300,150,-1.5,.5],[200,60,0,1],[60,80,1,1],[290,80,-1,1],[190,230,0,.5],[60,420,1.5,0],[300,440,-1.5,0],[190,130,.5,1]];
+const FL=[{px:110,py:556,s:1,a:.5,t:.5},{px:255,py:556,s:-1,a:.5,t:.5}],FLEN=68,REST=.5,UP=-.5;
+let ball,score,balls,over,charge=0,charging=false,best=+localStorage.getItem("pinballBest")||0,keys={l:false,r:false},flash=[0,0,0,0,0],launched;
+let still=0,lastExit=-1;function newBall(){still=0;ball={x:372,y:570,vx:0,vy:0,cool:0};launched=false;charge=0}
+function reset(){score=0;balls=3;over=false;newBall()}
+function launch(){if(launched)return;launched=true;ball.vy=-(14+5*charge);charge=0}
+addEventListener("keydown",e=>{if(e.code==="ArrowLeft"||e.code==="KeyZ")keys.l=true;if(e.code==="ArrowRight"||e.code==="Slash")keys.r=true;if(e.code==="Space"){e.preventDefault();if(over){reset();return}if(!launched)charging=true}if(e.code.startsWith("Arrow"))e.preventDefault()});
+addEventListener("keyup",e=>{if(e.code==="ArrowLeft"||e.code==="KeyZ")keys.l=false;if(e.code==="ArrowRight"||e.code==="Slash")keys.r=false;if(e.code==="Space"&&charging){charging=false;launch()}});
+const ptr={};
+function pt(e){const r=cv.getBoundingClientRect();return[(e.clientX-r.left)/r.width*400,(e.clientY-r.top)/r.height*620]}
+cv.addEventListener("pointerdown",e=>{if(over){reset();return}const[px,py]=pt(e);if(!launched&&px>300&&py>400){launch();return}ptr[e.pointerId]=px<200?"l":"r";sync()});
+const up=e=>{delete ptr[e.pointerId];sync()};cv.addEventListener("pointerup",up);cv.addEventListener("pointercancel",up);
+let kl=0,kr=0;function sync(){kl=Object.values(ptr).includes("l");kr=Object.values(ptr).includes("r")}
+function flipTip(f){const ang=f.s>0?f.a:Math.PI-f.a;return[f.px+Math.cos(ang)*FLEN,f.py+Math.sin(ang)*FLEN]}
+function seg(ax,ay,bx,by,sv,e){const dx=bx-ax,dy=by-ay,l2=dx*dx+dy*dy;let u=((ball.x-ax)*dx+(ball.y-ay)*dy)/l2;u=Math.max(0,Math.min(1,u));const cx=ax+dx*u,cy=ay+dy*u;let nx=ball.x-cx,ny=ball.y-cy,d=Math.hypot(nx,ny);if(d>=8||d===0)return false;nx/=d;ny/=d;ball.x=cx+nx*8;ball.y=cy+ny*8;
+ const vn=(ball.vx-sv[0])*nx+(ball.vy-sv[1])*ny;if(vn<0){ball.vx-=(1+e)*vn*nx;ball.vy-=(1+e)*vn*ny}return true}
+function step(){FL.forEach((f,i)=>{const on=i?keys.r||kr:keys.l||kl,tgt=on?UP:REST;f.o=f.a;f.a+=Math.max(-.12,Math.min(.12,tgt-f.a))});
+ if(charging)charge=Math.min(1,charge+.02);
+ if(!launched){ball.x=372;ball.y=570+charge*14;return}
+ if(ball.cool>0)ball.cool--;still=Math.hypot(ball.vx,ball.vy)<.4&&ball.x<350?still+1:0;if(still>90){ball.vy=-4;ball.vx=(Math.random()<.5?-1:1)*2;still=0}
+ for(let s=0;s<5;s++){ball.vy+=.036;ball.x+=ball.vx/5;ball.y+=ball.vy/5;
+  const sp=Math.hypot(ball.vx,ball.vy);if(sp>20){ball.vx*=20/sp;ball.vy*=20/sp}
+  WALLS.forEach(w=>seg(w[0],w[1],w[2],w[3],[0,0],.5));
+  if(ball.vy>0)seg(GATE[0],GATE[1],GATE[2],GATE[3],[0,0],.3);
+  FL.forEach(f=>{const[tx,ty]=flipTip(f),da=(f.a-(f.o??f.a))*5,w=f.s>0?da:-da;const sv=(()=>{const rx=ball.x-f.px,ry=ball.y-f.py;return[-w*ry,w*rx]})();seg(f.px,f.py,tx,ty,sv,.4)});
+  BUMP.forEach((b,i)=>{const dx=ball.x-b[0],dy=ball.y-b[1],d=Math.hypot(dx,dy);if(d<b[2]+8){const nx=dx/d,ny=dy/d;ball.x=b[0]+nx*(b[2]+8);ball.y=b[1]+ny*(b[2]+8);const vn=ball.vx*nx+ball.vy*ny;if(vn<0){ball.vx-=2*vn*nx;ball.vy-=2*vn*ny}ball.vx+=nx*3;ball.vy+=ny*3;score+=i<3?100:50;flash[i]=12}});
+  PORT.forEach(p=>{if(ball.cool<=0&&Math.hypot(ball.x-p.x,ball.y-p.y)<13){let k;do{k=Math.floor(Math.random()*EXITS.length)}while(k===lastExit);lastExit=k;const X2=EXITS[k];ball.x=X2[0];ball.y=X2[1];ball.vx=X2[2]+(Math.random()-.5);ball.vy=X2[3];ball.cool=45;score+=250;pflash=15}});
+  if(ball.y>630){balls--;if(balls<=0){over=true;if(score>best){best=score;localStorage.setItem("pinballBest",best)}}else newBall();return}
+  if(ball.x>356&&ball.y>560&&ball.y<590&&Math.abs(ball.vy)<.5&&Math.abs(ball.vx)<.5)launched=false}}
+const STARS=Array.from({length:70},(_,i)=>[(i*97)%400,(i*53)%620,.6+(i%3)*.5,i*.7]);
+const PLAN=[["#38bdf8","#0c4a6e"],["#f472b6","#831843"],["#facc15","#854d0e"],["#4ade80","#14532d"],["#c084fc","#581c87"]];
+let tick=0,pflash=0;
+function glow(c,b){x.shadowColor=c;x.shadowBlur=b}
+function draw(){tick++;const bg=x.createLinearGradient(0,0,0,620);bg.addColorStop(0,"#020617");bg.addColorStop(.6,"#1e1b4b");bg.addColorStop(1,"#4c1d95");x.fillStyle=bg;x.fillRect(0,0,400,620);
+ STARS.forEach(s=>{x.globalAlpha=.4+.6*Math.abs(Math.sin(tick/40+s[3]));x.fillStyle="#fff";x.fillRect(s[0],s[1],s[2],s[2])});x.globalAlpha=1;
+ x.fillStyle="rgba(0,0,0,.35)";x.fillRect(355,130,35,470);
+ PORT.forEach((p,i)=>{for(let k=0;k<3;k++){x.strokeStyle=`rgba(167,139,250,${.25+.15*Math.sin(tick/12+k+i)+(pflash>0?.4:0)})`;x.lineWidth=2;x.beginPath();x.arc(p.x,p.y,5+k*3+Math.sin(tick/10+k)*1.5,0,7);x.stroke()}});if(pflash>0)pflash--;
+ x.lineCap="round";x.lineWidth=3;glow("#f472b6",8);x.strokeStyle="#f9a8d4";x.beginPath();x.moveTo(GATE[0],GATE[1]);x.lineTo(GATE[2],GATE[3]);x.stroke();x.lineWidth=5;glow("#22d3ee",14);x.strokeStyle="#67e8f9";WALLS.forEach(w=>{x.beginPath();x.moveTo(w[0],w[1]);x.lineTo(w[2],w[3]);x.stroke()});
+ BUMP.forEach((b,i)=>{const on=flash[i]>0,p=PLAN[i];glow(on?"#fde047":p[0],on?30:14);const gr=x.createRadialGradient(b[0]-b[2]*.3,b[1]-b[2]*.3,2,b[0],b[1],b[2]);gr.addColorStop(0,on?"#fff":p[0]);gr.addColorStop(1,on?"#f59e0b":p[1]);x.fillStyle=gr;x.beginPath();x.arc(b[0],b[1],b[2]*(on?1.12:1),0,7);x.fill();
+  x.lineWidth=2;x.strokeStyle="rgba(255,255,255,.8)";x.beginPath();x.ellipse(b[0],b[1],b[2]*1.35,b[2]*.35,-.4,0,7);x.stroke();if(on)flash[i]--});
+ glow("#f0abfc",16);FL.forEach((f,i)=>{const[tx,ty]=flipTip(f),g2=x.createLinearGradient(f.px,f.py,tx,ty);g2.addColorStop(0,"#f0abfc");g2.addColorStop(1,"#22d3ee");x.lineWidth=13;x.strokeStyle=g2;x.beginPath();x.moveTo(f.px,f.py);x.lineTo(tx,ty);x.stroke();x.fillStyle="#fff";x.beginPath();x.arc(f.px,f.py,4,0,7);x.fill()});
+ glow("#fff",12);const bg2=x.createRadialGradient(ball.x-3,ball.y-3,1,ball.x,ball.y,8);bg2.addColorStop(0,"#fff");bg2.addColorStop(.6,"#94a3b8");bg2.addColorStop(1,"#475569");x.fillStyle=bg2;x.beginPath();x.arc(ball.x,ball.y,8,0,7);x.fill();glow("transparent",0);
+ if(!launched){x.fillStyle="#334155";x.fillRect(358,602,28,8);x.fillStyle="#f472b6";x.fillRect(358,602,28*charge,8)}
+ x.fillStyle="#e0f2fe";glow("#38bdf8",8);x.font="bold 20px Arial";x.textAlign="left";x.fillText("★ "+score,22,34);x.textAlign="right";x.fillText("● ".repeat(Math.max(0,balls)).trim(),344,34);x.font="14px Arial";x.fillText("Best "+best,344,54);glow("transparent",0);
+ if(over){x.fillStyle="rgba(2,6,23,.8)";x.fillRect(0,230,400,150);x.fillStyle="#f0abfc";x.textAlign="center";x.font="bold 34px Arial";glow("#f0abfc",16);x.fillText("GAME OVER",200,290);glow("transparent",0);x.fillStyle="#fff";x.font="18px Arial";x.fillText("Space or tap to play again",200,330)}}
+function loop(){if(!over)step();draw();requestAnimationFrame(loop)}
+reset();loop();
+</script></body></html>

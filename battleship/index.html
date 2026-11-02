@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Battleship | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#164e63,#0b1020 70%)}
+main{width:min(100%,46rem);padding:1.25rem;border:.2rem solid #22d3ee;border-radius:1.25rem;background:rgb(8 12 30 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.5rem 0;color:#a5f3fc;font-size:1.6rem}
+.boards{display:flex;flex-wrap:wrap;gap:1rem;justify-content:center}.boards h2{font-size:1rem;margin:.3rem}
+.grid{display:grid;grid-template-columns:repeat(8,2.2rem);gap:2px;justify-content:center}
+.grid button{width:2.2rem;height:2.2rem;padding:0;border:0;border-radius:.2rem;background:#0e7490;color:#fff;font-size:1.1rem;cursor:pointer}
+.grid button.ship{background:#64748b}.grid button.hit{background:#dc2626}.grid button.miss{background:#1e3a8a}.grid button.sunk{background:#7f1d1d}
+.grid.enemy button:hover:not(:disabled){background:#06b6d4}.grid button:disabled{cursor:default}
+#msg{min-height:2rem;font-size:1.2rem;font-weight:800;color:#fde047;margin:.6rem 0}
+#again{padding:.4rem 1rem;border:0;border-radius:.5rem;background:#475569;color:#fff;cursor:pointer}
+</style></head>
+<body><main><a href="../">← All games</a><h1>🚢 Battleship</h1>
+<p>Click the enemy waters to fire. Sink all 5 of the CPU's ships before it sinks yours. 🔥 = hit, 💧 = miss.</p>
+<div class="boards"><div><h2>Enemy waters</h2><div class="grid enemy" id="en"></div></div><div><h2>Your fleet</h2><div class="grid" id="me"></div></div></div>
+<div id="msg"></div><p>Wins: <strong id="w">0</strong> · Losses: <strong id="l">0</strong> · <button id="again">New game</button></p></main>
+<script>
+const N=8,LENS=[5,4,3,3,2],en=document.getElementById("en"),me=document.getElementById("me"),msg=document.getElementById("msg");
+let wins=+localStorage.getItem("bsWins")||0,loss=+localStorage.getItem("bsLoss")||0,E,M,eb,mb,busy,over,queue;
+const upd=()=>{document.getElementById("w").textContent=wins;document.getElementById("l").textContent=loss};
+function place(){const g=Array.from({length:N},()=>Array(N).fill(-1)),ships=[];
+ LENS.forEach((L,id)=>{for(;;){const h=Math.random()<.5,r=Math.floor(Math.random()*(h?N:N-L+1)),cc=Math.floor(Math.random()*(h?N-L+1:N));
+  const cells=Array.from({length:L},(_,k)=>h?[r,cc+k]:[r+k,cc]);if(cells.every(([a,b])=>g[a][b]<0)){cells.forEach(([a,b])=>g[a][b]=id);ships.push({cells,hits:0});break}}});
+ return{g,ships,shot:Array.from({length:N},()=>Array(N).fill(false))}}
+function build(el,own){el.innerHTML="";const bs=[];for(let r=0;r<N;r++){bs.push([]);for(let cc=0;cc<N;cc++){const b=document.createElement("button");b.setAttribute("aria-label",`Row ${r+1} column ${cc+1}`);if(!own)b.onclick=()=>fire(r,cc);else b.disabled=true;el.appendChild(b);bs[r].push(b)}}return bs}
+function paint(B,bs,own){for(let r=0;r<N;r++)for(let cc=0;cc<N;cc++){const b=bs[r][cc],id=B.g[r][cc],s=B.shot[r][cc];let cls="",tx="";
+ if(s&&id>=0){cls=B.ships[id].hits===B.ships[id].cells.length?"sunk":"hit";tx="🔥"}else if(s){cls="miss";tx="💧"}else if(own&&id>=0)cls="ship";
+ b.className=cls;b.textContent=tx;if(!own)b.disabled=s||over}}
+function shoot(B,r,cc){B.shot[r][cc]=true;const id=B.g[r][cc];if(id<0)return{hit:false};const s=B.ships[id];s.hits++;return{hit:true,sunk:s.hits===s.cells.length,len:s.cells.length}}
+const allSunk=B=>B.ships.every(s=>s.hits===s.cells.length);
+function fire(r,cc){if(busy||over||E.shot[r][cc])return;const o=shoot(E,r,cc);
+ if(allSunk(E)){over=true;wins++;localStorage.setItem("bsWins",wins);upd();msg.textContent="🎉 You sank the whole enemy fleet!";paint(E,eb,false);return}
+ paint(E,eb,false);msg.textContent=o.sunk?`You sank a ${o.len}-long ship!`:o.hit?"Hit!":"Miss.";busy=true;setTimeout(cpu,700)}
+function cpu(){let r,cc;
+ while(queue.length){const q=queue.shift();if(!M.shot[q[0]][q[1]]){[r,cc]=q;break}}
+ if(r===undefined){const all=[],par=[];for(let a=0;a<N;a++)for(let b=0;b<N;b++)if(!M.shot[a][b]){all.push([a,b]);if((a+b)%2===0)par.push([a,b])}
+  const any=par.length?par:all;[r,cc]=any[Math.floor(Math.random()*any.length)]}
+ const o=shoot(M,r,cc);
+ if(o.hit&&!o.sunk)[[1,0],[-1,0],[0,1],[0,-1]].forEach(([a,b])=>{const R=r+a,C=cc+b;if(R>=0&&R<N&&C>=0&&C<N&&!M.shot[R][C])queue.push([R,C])});
+ if(o.sunk)queue=[];
+ paint(M,mb,true);
+ if(allSunk(M)){over=true;loss++;localStorage.setItem("bsLoss",loss);upd();msg.textContent="💥 The CPU sank your fleet!";paint(E,eb,false);return}
+ msg.textContent+=` CPU: ${o.sunk?"sank one of your ships!":o.hit?"hit your ship!":"missed."}`;busy=false}
+function start(){E=place();M=place();eb=build(en,false);mb=build(me,true);busy=false;over=false;queue=[];msg.textContent="Your turn: fire at the enemy waters!";paint(E,eb,false);paint(M,mb,true);upd()}
+document.getElementById("again").onclick=start;start();
+</script></body></html>

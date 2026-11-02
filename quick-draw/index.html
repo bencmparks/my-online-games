@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Quick Draw | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#92400e,#0b1020 70%)}
+main{width:min(100%,38rem);padding:1.25rem;border:.2rem solid #f59e0b;border-radius:1.25rem;background:rgb(8 12 30 / 94%);text-align:center}a{color:#fcd34d}h1{margin:.5rem 0;color:#fde68a}
+#arena{position:relative;height:15rem;border-radius:.8rem;background:linear-gradient(#fbbf24 0 55%,#a16207 55%);cursor:pointer;user-select:none;overflow:hidden;display:flex;align-items:flex-end;justify-content:space-around;padding-bottom:1.5rem;font-size:5rem}
+#arena.go{box-shadow:inset 0 0 0 .6rem #ef4444}.fig{transition:transform .1s}.fig.shot{transform:rotate(-90deg) translateX(1rem)}
+#sign{position:absolute;top:.8rem;left:0;right:0;font-size:2.2rem;font-weight:900;color:#1c1917}
+#sign.draw{color:#dc2626;font-size:3.2rem}
+#msg{min-height:3rem;margin:.6rem 0;font-weight:800;color:#fde047}#stats{color:#cbd5e1}
+button{padding:.45rem 1rem;border:0;border-radius:.5rem;background:#d97706;color:#fff;font-weight:700;cursor:pointer}
+</style></head>
+<body><main><a href="../">← All games</a><h1>🤠 Quick Draw</h1>
+<p>Wait for <b>DRAW!</b>, then press Space or click as fast as you can. Shoot before the outlaw does — but fire too early and you lose!</p>
+<div id="arena"><div id="sign">Click or press Space to start</div><div class="fig" id="me">🤠</div><div class="fig" id="cpu">🥸</div></div>
+<div id="msg"></div><div id="stats"></div></main>
+<script>
+const A=document.getElementById("arena"),sign=document.getElementById("sign"),msg=document.getElementById("msg"),me=document.getElementById("me"),cpu=document.getElementById("cpu");
+const OUT=["🥸","😈","🤡","👹","💀","👽","🐲"];
+let st="idle",t0,timer,level=1,best=+localStorage.getItem("qdBest")||0,streak=0,bestStreak=+localStorage.getItem("qdStreak")||0,cpuMs;
+const stats=()=>document.getElementById("stats").textContent=`Level ${level} · Win streak ${streak} · Best streak ${bestStreak}`+(best?` · Fastest ${best} ms`:"");
+function ready(){st="wait";A.classList.remove("go");me.classList.remove("shot");cpu.classList.remove("shot");sign.className="";sign.textContent="Steady...";msg.textContent="";cpu.textContent=OUT[(level-1)%OUT.length];
+ cpuMs=Math.max(220,620-level*40+Math.random()*80);timer=setTimeout(()=>{st="draw";t0=performance.now();A.classList.add("go");sign.className="draw";sign.textContent="DRAW!";timer=setTimeout(()=>{if(st==="draw")lose(`The outlaw shot first in ${Math.round(cpuMs)} ms!`)},cpuMs)},1200+Math.random()*2800);stats()}
+function lose(t){clearTimeout(timer);st="idle";me.classList.add("shot");streak=0;level=Math.max(1,level-0);sign.className="";sign.textContent="You lose!";msg.textContent=t+" Click to try again.";stats()}
+function fire(){if(st==="idle"){ready();return}
+ if(st==="wait"){lose("Too early — you fired before DRAW!");return}
+ if(st==="draw"){const ms=Math.round(performance.now()-t0);clearTimeout(timer);st="idle";cpu.classList.add("shot");streak++;if(streak>bestStreak){bestStreak=streak;localStorage.setItem("qdStreak",bestStreak)}
+  if(!best||ms<best){best=ms;localStorage.setItem("qdBest",best)}level++;sign.className="";sign.textContent=`${ms} ms!`;msg.textContent=`You win! The next outlaw is faster (${Math.round(Math.max(220,620-level*40))} ms). Click to duel again.`;stats()}}
+A.addEventListener("pointerdown",e=>{e.preventDefault();fire()});
+addEventListener("keydown",e=>{if(e.code==="Space"){e.preventDefault();fire()}});
+stats();
+</script></body></html>

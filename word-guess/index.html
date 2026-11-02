@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Word Guess | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#365314,#0b1020 70%)}
+main{width:min(100%,26rem);padding:1.25rem;border:.2rem solid #a3e635;border-radius:1.25rem;background:rgb(8 12 30 / 94%);text-align:center}a{color:#bef264}h1{margin:.5rem 0;color:#d9f99d}
+#grid{display:grid;gap:.35rem;margin:.8rem auto;width:15rem}.row{display:grid;grid-template-columns:repeat(5,1fr);gap:.35rem}
+.c{aspect-ratio:1;display:grid;place-items:center;border:2px solid #475569;border-radius:.3rem;font-size:1.6rem;font-weight:800;text-transform:uppercase}
+.c.f{border-color:#94a3b8}.c.g{background:#16a34a;border-color:#16a34a}.c.y{background:#ca8a04;border-color:#ca8a04}.c.x{background:#374151;border-color:#374151}
+#kb{display:flex;flex-direction:column;gap:.3rem;align-items:center}.kr{display:flex;gap:.25rem}
+#kb button{min-width:1.8rem;height:2.4rem;padding:0 .3rem;border:0;border-radius:.3rem;background:#475569;color:#fff;font-weight:700;cursor:pointer}
+#kb button.g{background:#16a34a}#kb button.y{background:#ca8a04}#kb button.x{background:#1f2937;color:#6b7280}
+#msg{min-height:1.6rem;margin:.5rem 0;font-weight:800;color:#fde047}#again{padding:.4rem 1rem;border:0;border-radius:.5rem;background:#65a30d;color:#fff;font-weight:700;cursor:pointer}
+</style></head>
+<body><main><a href="../">← All games</a><h1>🔤 Word Guess</h1>
+<p>Guess the secret 5-letter word in 6 tries. 🟩 right spot, 🟨 wrong spot, ⬛ not in the word.</p>
+<div id="grid"></div><div id="msg"></div><div id="kb"></div>
+<p>Wins: <strong id="w">0</strong> · Streak: <strong id="s">0</strong> · <button id="again">New word</button></p></main>
+<script>
+const WORDS="about above actor adult after again alarm alert alive angel angry apple arena arrow aside award badge baker beach beard beast berry black blade blame blank blast blaze blend bless blind block bloom board boost brain brand brave bread break brick bride brief bring broad brown brush build cabin candy carry catch cause chain chair chalk charm chase cheap check cheese chest chief child chill claim class clean clear climb clock cloud clown coach coast coral count court cover crane crash crazy cream crown crush curve dance dealt depth dirty dozen dragon drama dream dress drift drink drive eagle earth elbow empty enemy enjoy enter equal error event every exact extra fable faint fairy faith false fancy feast fence fever field fight final flame flash fleet float flock flood floor flour focus force forest frame fresh front frost fruit giant glass globe gloom glory glove grace grain grand grape grass great green greet grill group guard guess guest guide habit happy harsh heart heavy honey horse hotel house human humor ideal image index jelly jewel joint juice jumbo knife knock laugh layer learn lemon level light limit lived lobby local logic loose lucky lunch magic major maple march marsh match maybe mayor media melon merry metal might model money month moral mouse mouth movie music naive nerve never night noble noise north novel nurse ocean olive onion orbit order other otter outer owner paint panel paper party pasta patch peace pearl pedal phone photo piano pilot pitch pizza place plain plane plant plate plaza point polar pound power press price pride prize proud pulse punch queen quick quiet quilt radio raise range rapid raven reach ready realm relax rider ridge rifle right river robot rocky rough round royal rugby salad scale scare scene scoop scout seven shade shake shape share shark sharp sheep shelf shell shine shirt shock shore short shout sight silly skate skill sleep slice slide small smart smile smoke snack snake solid sound south space spare spark speak speed spell spice spike spoon sport spray squad stack staff stage stair stamp stand star start state steam steel stick stone storm story stove straw study sugar sunny super sweet swift sword table tiger toast today tooth torch total touch tower toxic trace track trade trail train treat trend trial tribe trick truck trust truth twice uncle under union unity upper urban usual valid value video virus visit vital voice waste watch water wheel where while white whole whose width witch woman world worry worth wrist write yacht young youth zebra".split(" ").filter(w=>w.length===5);
+const g=document.getElementById("grid"),kb=document.getElementById("kb"),msg=document.getElementById("msg");
+let ans,row,col,cells,over,keyst,wins=+localStorage.getItem("wgWins")||0,streak=+localStorage.getItem("wgStreak")||0;
+const upd=()=>{document.getElementById("w").textContent=wins;document.getElementById("s").textContent=streak};
+function start(){ans=WORDS[Math.floor(Math.random()*WORDS.length)];row=0;col=0;over=false;keyst={};msg.textContent="";g.innerHTML="";cells=[];
+ for(let r=0;r<6;r++){const d=document.createElement("div");d.className="row";cells.push([]);for(let c=0;c<5;c++){const e=document.createElement("div");e.className="c";d.appendChild(e);cells[r].push(e)}g.appendChild(d)}
+ kb.innerHTML="";["qwertyuiop","asdfghjkl","⏎zxcvbnm⌫"].forEach(s=>{const d=document.createElement("div");d.className="kr";[...s].forEach(k=>{const b=document.createElement("button");b.textContent=k;b.id="k"+k;b.onclick=()=>press(k);d.appendChild(b)});kb.appendChild(d)});upd()}
+function press(k){if(over)return;if(k==="⌫"){if(col>0){col--;cells[row][col].textContent="";cells[row][col].classList.remove("f")}}
+ else if(k==="⏎"){if(col<5){msg.textContent="Need 5 letters";return}msg.textContent="";submit()}
+ else if(col<5&&/^[a-z]$/.test(k)){cells[row][col].textContent=k;cells[row][col].classList.add("f");col++}}
+function submit(){const guess=cells[row].map(c=>c.textContent).join(""),res=Array(5).fill("x"),left={};
+ for(let i=0;i<5;i++){if(guess[i]===ans[i])res[i]="g";else left[ans[i]]=(left[ans[i]]||0)+1}
+ for(let i=0;i<5;i++)if(res[i]==="x"&&left[guess[i]]>0){res[i]="y";left[guess[i]]--}
+ res.forEach((r,i)=>{cells[row][i].classList.add(r);const k=guess[i],o=keyst[k];if(!o||(o==="x"&&r!=="x")||(o==="y"&&r==="g")){keyst[k]=r;const b=document.getElementById("k"+k);b.className=r}});
+ if(guess===ans){over=true;wins++;streak++;msg.textContent="You got it! 🎉"}
+ else if(++row>=6){over=true;streak=0;msg.textContent="The word was "+ans.toUpperCase()}
+ col=0;if(over){localStorage.setItem("wgWins",wins);localStorage.setItem("wgStreak",streak);upd()}}
+addEventListener("keydown",e=>{if(e.ctrlKey||e.metaKey||e.altKey)return;if(e.key==="Enter")press("⏎");else if(e.key==="Backspace")press("⌫");else if(/^[a-zA-Z]$/.test(e.key))press(e.key.toLowerCase())});
+document.getElementById("again").onclick=start;start();
+</script></body></html>
