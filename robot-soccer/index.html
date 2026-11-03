@@ -1,0 +1,813 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A quick game of robot soccer.">
+  <title>Robot Soccer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Playfair+Display:wght@600&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --cream: #f9f1e1;
+      --night: #263a42;
+      --field: #397c6a;
+      --field-dark: #286455;
+      --red: #e84943;
+      --gold: #efb63b;
+      --purple: #b89bea;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      display: grid;
+      min-height: 100vh;
+      margin: 0;
+      place-items: center;
+      color: var(--cream);
+      background:
+        repeating-linear-gradient(115deg, rgba(240, 121, 152, 0.18) 0 4px, rgba(239, 182, 59, 0.14) 4px 8px, rgba(99, 185, 226, 0.16) 8px 12px, rgba(184, 155, 234, 0.14) 12px 16px, transparent 16px 34px),
+        linear-gradient(135deg, rgba(232, 73, 67, 0.32), transparent 55%),
+        var(--night);
+      font-family: "Plus Jakarta Sans", sans-serif;
+    }
+
+    .game {
+      width: min(100% - 28px, 820px);
+      padding: 28px;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    a {
+      color: var(--cream);
+      font-family: "DM Mono", monospace;
+      font-size: 0.72rem;
+      letter-spacing: 0.05em;
+      text-decoration: none;
+      text-transform: uppercase;
+    }
+
+    a:hover { color: var(--gold); }
+
+    h1 {
+      margin: 0;
+      font-family: "Playfair Display", serif;
+      font-size: clamp(2rem, 5vw, 3.4rem);
+      letter-spacing: -0.04em;
+    }
+
+    .scoreboard {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 16px;
+      font-family: "DM Mono", monospace;
+      font-size: 0.83rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .score {
+      min-width: 47px;
+      padding: 8px 11px;
+      color: var(--night);
+      background: var(--cream);
+      font-size: 1.1rem;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      border: 5px solid var(--cream);
+      background: var(--field);
+      box-shadow: 11px 11px 0 var(--purple);
+      touch-action: none;
+    }
+
+    .bottom-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      margin-top: 22px;
+    }
+
+    .instructions {
+      margin: 0;
+      color: rgba(249, 241, 225, 0.82);
+      font-size: 0.84rem;
+      line-height: 1.5;
+    }
+
+    button {
+      min-height: 42px;
+      padding: 0 16px;
+      border: 1px solid var(--cream);
+      color: var(--night);
+      background: var(--gold);
+      cursor: pointer;
+      font: 700 0.82rem "Plus Jakarta Sans", sans-serif;
+    }
+
+    button:hover { background: var(--cream); }
+
+    .skill-control {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--cream);
+      font: 500 0.72rem "DM Mono", monospace;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    select,
+    input[type="color"] {
+      min-height: 42px;
+      padding: 0 30px 0 12px;
+      border: 1px solid var(--cream);
+      border-radius: 0;
+      color: var(--cream);
+      background: var(--night);
+      font: 700 0.8rem "Plus Jakarta Sans", sans-serif;
+      cursor: pointer;
+    }
+
+    input[type="color"] {
+      width: 48px;
+      padding: 4px;
+    }
+
+    select:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .tutorial {
+      position: fixed;
+      z-index: 10;
+      inset: 0;
+      display: grid;
+      padding: 22px;
+      place-items: center;
+      background: rgba(19, 33, 39, 0.76);
+    }
+
+    .tutorial-card {
+      width: min(100%, 470px);
+      padding: clamp(27px, 6vw, 45px);
+      border: 3px solid var(--cream);
+      background: var(--night);
+      box-shadow: 12px 12px 0 var(--red);
+    }
+
+    .tutorial-label {
+      margin: 0 0 12px;
+      color: var(--gold);
+      font: 500 0.72rem "DM Mono", monospace;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+    }
+
+    .tutorial h2 {
+      margin: 0 0 16px;
+      font-family: "Playfair Display", serif;
+      font-size: clamp(2rem, 6vw, 3.2rem);
+      line-height: 0.95;
+    }
+
+    .tutorial ol {
+      display: grid;
+      gap: 10px;
+      margin: 0 0 26px;
+      padding-left: 24px;
+      color: rgba(249, 241, 225, 0.88);
+      line-height: 1.5;
+    }
+
+    .tutorial-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .tutorial-actions .secondary {
+      color: var(--cream);
+      background: transparent;
+    }
+
+    .tutorial-actions .secondary:hover {
+      color: var(--night);
+      background: var(--cream);
+    }
+
+    .tutorial-actions .delete {
+      color: #ffdce0;
+      border-color: var(--red);
+      background: transparent;
+    }
+
+    .tutorial-actions .delete:hover {
+      color: var(--cream);
+      background: var(--red);
+    }
+
+    @media (max-width: 560px) {
+      .game { padding: 19px 0 28px; }
+      header, .bottom-bar { align-items: flex-start; flex-direction: column; }
+      .bottom-bar { gap: 14px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="game">
+    <header>
+      <h1>Robot Soccer</h1>
+      <a href="../">← Back home</a>
+    </header>
+
+    <div class="scoreboard" aria-label="Scoreboard">
+      <span>You</span><span class="score" id="player-score">0</span>
+      <span>:</span>
+      <span class="score" id="robot-score">0</span><span id="opponent-label">Robot</span>
+    </div>
+
+    <canvas id="pitch" width="760" height="456" aria-label="Robot soccer game. Use arrow keys or WASD to play."></canvas>
+
+    <div class="bottom-bar">
+      <p class="instructions" id="instructions">Move with <strong>arrow keys</strong> or <strong>WASD</strong>. First to 5 goals wins.</p>
+      <div class="tutorial-actions">
+        <label class="skill-control" for="robot-skill">Robot skill
+          <select id="robot-skill">
+            <option value="easy">Easy</option>
+            <option value="medium" selected>Medium</option>
+            <option value="hard">Hard</option>
+          </select>
+        </label>
+        <label class="skill-control" for="player-color">Player 1
+          <input id="player-color" type="color" value="#efb63b">
+        </label>
+        <label class="skill-control" for="player-face">Player 1 face
+          <select id="player-face">
+            <option value="smile" selected>Smile</option>
+            <option value="cool">Cool</option>
+            <option value="wink">Wink</option>
+          </select>
+        </label>
+        <label class="skill-control" for="player-hair">Player 1 hair
+          <select id="player-hair">
+            <option value="short" selected>Short</option>
+            <option value="bald">Bald</option>
+            <option value="spikes">Spikes</option>
+            <option value="curls">Curls</option>
+            <option value="mohawk">Mohawk</option>
+          </select>
+        </label>
+        <label class="skill-control" for="opponent-color"><span id="opponent-color-label">Robot</span>
+          <input id="opponent-color" type="color" value="#e84943">
+        </label>
+        <label class="skill-control" for="opponent-face"><span id="opponent-face-label">Robot</span> face
+          <select id="opponent-face">
+            <option value="robot" selected>Robot classic</option>
+            <option value="robot-happy">Robot happy</option>
+            <option value="robot-wink">Robot wink</option>
+            <option value="robot-angry">Robot angry</option>
+            <option value="smile">Smile</option>
+            <option value="cool">Cool</option>
+            <option value="wink">Wink</option>
+          </select>
+        </label>
+        <label class="skill-control" for="opponent-hair"><span id="opponent-hair-label">Robot</span> hair
+          <select id="opponent-hair">
+            <option value="short" selected>Short</option>
+            <option value="bald">Bald</option>
+            <option value="spikes">Spikes</option>
+            <option value="curls">Curls</option>
+            <option value="mohawk">Mohawk</option>
+          </select>
+        </label>
+        <button class="secondary" id="mode-toggle" type="button">2 players: off</button>
+        <button id="restart" type="button">Restart match</button>
+      </div>
+    </div>
+  </main>
+
+  <section class="tutorial" id="tutorial" role="dialog" aria-modal="true" aria-labelledby="tutorial-title">
+    <div class="tutorial-card">
+      <p class="tutorial-label">How to play</p>
+      <h2 id="tutorial-title">Score on the robot.</h2>
+      <ol>
+        <li>Use <strong>arrow keys</strong> or <strong>WASD</strong> to move your gold player.</li>
+        <li>Run into the ball to kick it toward the robot’s goal on the right.</li>
+        <li>For 2 players, turn on the mode below: gold uses WASD and red uses arrow keys.</li>
+      </ol>
+      <div class="tutorial-actions">
+        <button id="start-game" type="button">Let’s play</button>
+        <button class="secondary" id="skip-tutorial" type="button">Skip tutorial</button>
+        <button class="delete" id="delete-tutorial" type="button">Delete tutorial</button>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    const canvas = document.querySelector("#pitch");
+    const context = canvas.getContext("2d");
+    const playerScoreElement = document.querySelector("#player-score");
+    const robotScoreElement = document.querySelector("#robot-score");
+    const opponentLabel = document.querySelector("#opponent-label");
+    const instructions = document.querySelector("#instructions");
+    const restartButton = document.querySelector("#restart");
+    const modeToggleButton = document.querySelector("#mode-toggle");
+    const robotSkillSelect = document.querySelector("#robot-skill");
+    const playerColorInput = document.querySelector("#player-color");
+    const opponentColorInput = document.querySelector("#opponent-color");
+    const opponentColorLabel = document.querySelector("#opponent-color-label");
+    const playerFaceSelect = document.querySelector("#player-face");
+    const opponentFaceSelect = document.querySelector("#opponent-face");
+    const opponentFaceLabel = document.querySelector("#opponent-face-label");
+    const playerHairSelect = document.querySelector("#player-hair");
+    const opponentHairSelect = document.querySelector("#opponent-hair");
+    const opponentHairLabel = document.querySelector("#opponent-hair-label");
+    const tutorial = document.querySelector("#tutorial");
+    const startGameButton = document.querySelector("#start-game");
+    const skipTutorialButton = document.querySelector("#skip-tutorial");
+    const deleteTutorialButton = document.querySelector("#delete-tutorial");
+    const keys = new Set();
+    const goalHeight = 146;
+    const winScore = 5;
+    let playerScore = 0;
+    let robotScore = 0;
+    let gameOver = false;
+    let twoPlayerMode = false;
+    let robotSkill = "medium";
+    let tutorialOpen = true;
+    let goalMessage = "";
+    let goalMessageUntil = 0;
+    let celebrationParticles = [];
+
+    const player = { x: 120, y: 228, radius: 22, speed: 4.8, color: "#efb63b", face: "smile", hair: "short" };
+    const robot = { x: 640, y: 228, radius: 24, speed: 3.2, color: "#e84943", face: "robot", hair: "short" };
+    const ball = { x: 380, y: 228, radius: 12, dx: 0, dy: 0 };
+    const robotSkills = {
+      easy: { speed: 2.25, chaseLine: 0.62 },
+      medium: { speed: 3.2, chaseLine: 0.52 },
+      hard: { speed: 4.15, chaseLine: 0.42 }
+    };
+
+    function resetField() {
+      player.x = 120;
+      player.y = canvas.height / 2;
+      robot.x = canvas.width - 120;
+      robot.y = canvas.height / 2;
+      ball.x = canvas.width / 2;
+      ball.y = canvas.height / 2;
+      ball.dx = 0;
+      ball.dy = 0;
+    }
+
+    function resetMatch() {
+      playerScore = 0;
+      robotScore = 0;
+      gameOver = false;
+      playerScoreElement.textContent = playerScore;
+      robotScoreElement.textContent = robotScore;
+      resetField();
+    }
+
+    function clamp(character) {
+      character.x = Math.max(character.radius, Math.min(canvas.width - character.radius, character.x));
+      character.y = Math.max(character.radius, Math.min(canvas.height - character.radius, character.y));
+    }
+
+    function movePlayer() {
+      let dx = 0;
+      let dy = 0;
+      if (keys.has("w") || (!twoPlayerMode && keys.has("arrowup"))) dy -= 1;
+      if (keys.has("s") || (!twoPlayerMode && keys.has("arrowdown"))) dy += 1;
+      if (keys.has("a") || (!twoPlayerMode && keys.has("arrowleft"))) dx -= 1;
+      if (keys.has("d") || (!twoPlayerMode && keys.has("arrowright"))) dx += 1;
+      if (dx && dy) { dx *= 0.707; dy *= 0.707; }
+      player.x += dx * player.speed;
+      player.y += dy * player.speed;
+      clamp(player);
+    }
+
+    function moveRobot() {
+      if (twoPlayerMode) {
+        let dx = 0;
+        let dy = 0;
+        if (keys.has("arrowup")) dy -= 1;
+        if (keys.has("arrowdown")) dy += 1;
+        if (keys.has("arrowleft")) dx -= 1;
+        if (keys.has("arrowright")) dx += 1;
+        if (dx && dy) { dx *= 0.707; dy *= 0.707; }
+        robot.x += dx * player.speed;
+        robot.y += dy * player.speed;
+        clamp(robot);
+        return;
+      }
+      const skill = robotSkills[robotSkill];
+      const targetX = ball.x > canvas.width * skill.chaseLine ? ball.x : canvas.width * skill.chaseLine;
+      const targetY = ball.y;
+      const angle = Math.atan2(targetY - robot.y, targetX - robot.x);
+      robot.x += Math.cos(angle) * skill.speed;
+      robot.y += Math.sin(angle) * skill.speed;
+      clamp(robot);
+    }
+
+    function kick(character) {
+      const distanceX = ball.x - character.x;
+      const distanceY = ball.y - character.y;
+      const distance = Math.hypot(distanceX, distanceY);
+      if (distance < character.radius + ball.radius) {
+        const angle = Math.atan2(distanceY, distanceX);
+        const strength = character === player ? 6.8 : 5.1;
+        ball.dx = Math.cos(angle) * strength;
+        ball.dy = Math.sin(angle) * strength;
+        ball.x = character.x + Math.cos(angle) * (character.radius + ball.radius + 1);
+        ball.y = character.y + Math.sin(angle) * (character.radius + ball.radius + 1);
+      }
+    }
+
+    function scoreGoal() {
+      const inGoal = ball.y > (canvas.height - goalHeight) / 2 && ball.y < (canvas.height + goalHeight) / 2;
+      if (!inGoal) return false;
+      if (ball.x <= ball.radius) {
+        robotScore += 1;
+        robotScoreElement.textContent = robotScore;
+        goalMessage = twoPlayerMode ? "PLAYER 2 SCORES!" : "ROBOT GOAL!";
+      } else if (ball.x >= canvas.width - ball.radius) {
+        playerScore += 1;
+        playerScoreElement.textContent = playerScore;
+        goalMessage = "GOOOOAL! YOU SCORE!";
+      } else {
+        return false;
+      }
+      gameOver = playerScore === winScore || robotScore === winScore;
+      goalMessageUntil = performance.now() + 1200;
+      celebrateGoal();
+      resetField();
+      return true;
+    }
+
+    function moveBall() {
+      ball.x += ball.dx;
+      ball.y += ball.dy;
+      ball.dx *= 0.987;
+      ball.dy *= 0.987;
+      const atTopOrBottom = ball.y <= ball.radius || ball.y >= canvas.height - ball.radius;
+      const atSide = ball.x <= ball.radius || ball.x >= canvas.width - ball.radius;
+
+      if (atTopOrBottom) {
+        const atTop = ball.y <= ball.radius;
+        ball.y = atTop ? ball.radius + 1 : canvas.height - ball.radius - 1;
+        ball.dy = atTop ? Math.abs(ball.dy || 3.5) : -Math.abs(ball.dy || 3.5);
+        ball.dx += ((ball.x - canvas.width / 2) / canvas.width) * 1.8;
+      }
+
+      if (atSide && !scoreGoal()) {
+        const atLeft = ball.x <= ball.radius;
+        ball.x = atLeft ? ball.radius + 1 : canvas.width - ball.radius - 1;
+        ball.dx = atLeft ? Math.abs(ball.dx || 3.5) : -Math.abs(ball.dx || 3.5);
+        ball.dy += ((ball.y - canvas.height / 2) / canvas.height) * 1.8;
+      }
+    }
+
+    function drawField() {
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.fillStyle = "#397c6a";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.fillStyle = "rgba(19, 79, 63, 0.24)";
+      for (let x = 0; x < canvas.width; x += 76) context.fillRect(x, 0, 38, canvas.height);
+      context.strokeStyle = "#f9f1e1";
+      context.lineWidth = 4;
+      context.strokeRect(18, 18, canvas.width - 36, canvas.height - 36);
+      context.beginPath();
+      context.arc(canvas.width / 2, canvas.height / 2, 64, 0, Math.PI * 2);
+      context.stroke();
+      context.beginPath();
+      context.moveTo(canvas.width / 2, 18);
+      context.lineTo(canvas.width / 2, canvas.height - 18);
+      context.stroke();
+      context.strokeRect(0, (canvas.height - goalHeight) / 2, 18, goalHeight);
+      context.strokeRect(canvas.width - 18, (canvas.height - goalHeight) / 2, 18, goalHeight);
+      context.fillStyle = "rgba(249, 241, 225, 0.78)";
+      context.font = "500 13px 'DM Mono'";
+      context.textAlign = "center";
+      context.fillText("YOUR GOAL", 66, 49);
+      context.fillText(twoPlayerMode ? "PLAYER 2 GOAL" : "ROBOT GOAL", canvas.width - 76, 49);
+    }
+
+    function drawHair(character) {
+      if (character.face.startsWith("robot") || character.hair === "bald") return;
+      context.fillStyle = "#4b3328";
+      if (character.hair === "spikes") {
+        context.beginPath();
+        context.moveTo(character.x - 17, character.y - 4);
+        context.lineTo(character.x - 12, character.y - 23);
+        context.lineTo(character.x - 4, character.y - 14);
+        context.lineTo(character.x + 2, character.y - 25);
+        context.lineTo(character.x + 9, character.y - 14);
+        context.lineTo(character.x + 16, character.y - 22);
+        context.lineTo(character.x + 18, character.y - 4);
+        context.closePath();
+        context.fill();
+      } else if (character.hair === "curls") {
+        for (let curl = -1; curl <= 1; curl += 1) {
+          context.beginPath();
+          context.arc(character.x + curl * 9, character.y - 14, 8, 0, Math.PI * 2);
+          context.fill();
+        }
+      } else if (character.hair === "mohawk") {
+        context.fillRect(character.x - 5, character.y - 25, 10, 20);
+      } else {
+        context.beginPath();
+        context.arc(character.x, character.y - 3, character.radius - 3, Math.PI, Math.PI * 2);
+        context.lineTo(character.x + character.radius - 3, character.y - 2);
+        context.lineTo(character.x - character.radius + 3, character.y - 2);
+        context.closePath();
+        context.fill();
+      }
+    }
+
+    function drawPlayer(character) {
+      context.fillStyle = character.color;
+      context.beginPath();
+      context.arc(character.x, character.y, character.radius, 0, Math.PI * 2);
+      context.fill();
+      context.fillStyle = "#263a42";
+      context.strokeStyle = "#263a42";
+      drawHair(character);
+      if (character.face.startsWith("robot")) {
+        context.fillStyle = "#263a42";
+        context.fillRect(character.x - 13, character.y - 8, 26, 14);
+        context.fillStyle = "#f9f1e1";
+        context.fillRect(character.x - 8, character.y - 4, 5, 5);
+        if (character.face === "robot-wink") {
+          context.strokeStyle = "#f9f1e1";
+          context.lineWidth = 2;
+          context.beginPath();
+          context.moveTo(character.x + 3, character.y - 2);
+          context.lineTo(character.x + 9, character.y - 2);
+          context.stroke();
+        } else {
+          context.fillStyle = character.face === "robot-angry" ? "#e84943" : "#f9f1e1";
+          context.fillRect(character.x + 3, character.y - 4, 5, 5);
+        }
+        if (character.face === "robot-happy") {
+          context.strokeStyle = "#f9f1e1";
+          context.lineWidth = 2;
+          context.beginPath();
+          context.arc(character.x, character.y + 1, 5, 0.15, Math.PI - 0.15);
+          context.stroke();
+        }
+        if (character.face === "robot-angry") {
+          context.strokeStyle = "#e84943";
+          context.lineWidth = 2;
+          context.beginPath();
+          context.moveTo(character.x - 9, character.y - 8);
+          context.lineTo(character.x - 3, character.y - 5);
+          context.moveTo(character.x + 9, character.y - 8);
+          context.lineTo(character.x + 3, character.y - 5);
+          context.stroke();
+        }
+        context.strokeStyle = "#263a42";
+        context.lineWidth = 3;
+        context.beginPath();
+        context.moveTo(character.x, character.y - 15);
+        context.lineTo(character.x, character.y - 23);
+        context.stroke();
+        return;
+      }
+      if (character.face === "cool") {
+        context.fillRect(character.x - 13, character.y - 8, 11, 6);
+        context.fillRect(character.x + 2, character.y - 8, 11, 6);
+        context.fillRect(character.x - 2, character.y - 6, 4, 2);
+      } else {
+        context.beginPath();
+        context.arc(character.x - 7, character.y - 5, 2.8, 0, Math.PI * 2);
+        context.fill();
+        if (character.face !== "wink") {
+          context.beginPath();
+          context.arc(character.x + 7, character.y - 5, 2.8, 0, Math.PI * 2);
+          context.fill();
+        } else {
+          context.lineWidth = 2;
+          context.beginPath();
+          context.moveTo(character.x + 4, character.y - 5);
+          context.lineTo(character.x + 10, character.y - 5);
+          context.stroke();
+        }
+      }
+      context.lineWidth = 2;
+      context.beginPath();
+      context.arc(character.x, character.y + 2, 8, 0.15, Math.PI - 0.15);
+      context.stroke();
+    }
+
+    function drawPentagon(x, y, radius, rotation) {
+      context.beginPath();
+      for (let point = 0; point < 5; point += 1) {
+        const angle = rotation + point * (Math.PI * 2 / 5);
+        const pointX = x + Math.cos(angle) * radius;
+        const pointY = y + Math.sin(angle) * radius;
+        if (point === 0) context.moveTo(pointX, pointY);
+        else context.lineTo(pointX, pointY);
+      }
+      context.closePath();
+      context.fill();
+    }
+
+    function drawBall() {
+      context.fillStyle = "#f9f1e1";
+      context.beginPath();
+      context.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+      context.fill();
+      context.save();
+      context.beginPath();
+      context.arc(ball.x, ball.y, ball.radius - 1, 0, Math.PI * 2);
+      context.clip();
+      context.fillStyle = "#263a42";
+      drawPentagon(ball.x, ball.y, 4.3, -Math.PI / 2);
+      for (let panel = 0; panel < 5; panel += 1) {
+        const angle = -Math.PI / 2 + panel * (Math.PI * 2 / 5);
+        drawPentagon(ball.x + Math.cos(angle) * 8.4, ball.y + Math.sin(angle) * 8.4, 3.3, angle);
+      }
+      context.restore();
+      context.strokeStyle = "#263a42";
+      context.lineWidth = 1.5;
+      context.beginPath();
+      context.arc(ball.x, ball.y, ball.radius - 0.75, 0, Math.PI * 2);
+      context.stroke();
+    }
+
+    function drawEndMessage() {
+      if (!gameOver) return;
+      const winner = playerScore === winScore ? "You win!" : twoPlayerMode ? "Player 2 wins!" : "Robot wins!";
+      context.fillStyle = "rgba(38, 58, 66, 0.84)";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.fillStyle = "#f9f1e1";
+      context.font = "600 48px 'Playfair Display'";
+      context.textAlign = "center";
+      context.fillText(winner, canvas.width / 2, canvas.height / 2 - 8);
+      context.font = "500 18px 'Plus Jakarta Sans'";
+      context.fillText("Press Restart match to play again", canvas.width / 2, canvas.height / 2 + 32);
+    }
+
+    function drawGoalMessage() {
+      if (performance.now() > goalMessageUntil) return;
+      context.fillStyle = "rgba(232, 73, 67, 0.88)";
+      context.fillRect(0, canvas.height / 2 - 72, canvas.width, 144);
+      context.strokeStyle = "#f9f1e1";
+      context.lineWidth = 5;
+      context.strokeRect(10, canvas.height / 2 - 62, canvas.width - 20, 124);
+      context.fillStyle = "#f9f1e1";
+      context.font = "600 48px 'Playfair Display'";
+      context.textAlign = "center";
+      context.fillText(goalMessage, canvas.width / 2, canvas.height / 2 + 16);
+    }
+
+    function celebrateGoal() {
+      const colors = ["#f9f1e1", "#efb63b", "#e84943", "#b89bea", "#63b9e2", "#69c48e"];
+      celebrationParticles = Array.from({ length: 110 }, () => {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 3 + Math.random() * 8;
+        return {
+          x: canvas.width / 2,
+          y: canvas.height / 2,
+          dx: Math.cos(angle) * speed,
+          dy: Math.sin(angle) * speed - 2,
+          size: 5 + Math.random() * 8,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          life: 1
+        };
+      });
+    }
+
+    function updateCelebration() {
+      celebrationParticles = celebrationParticles.filter((particle) => {
+        particle.x += particle.dx;
+        particle.y += particle.dy;
+        particle.dy += 0.16;
+        particle.life -= 0.018;
+        return particle.life > 0;
+      });
+    }
+
+    function drawCelebration() {
+      celebrationParticles.forEach((particle) => {
+        context.globalAlpha = particle.life;
+        context.fillStyle = particle.color;
+        context.fillRect(particle.x, particle.y, particle.size, particle.size);
+      });
+      context.globalAlpha = 1;
+    }
+
+    function loop() {
+      if (!gameOver && !tutorialOpen) {
+        movePlayer();
+        moveRobot();
+        kick(player);
+        kick(robot);
+        moveBall();
+      }
+      drawField();
+      drawPlayer(player);
+      drawPlayer(robot);
+      drawBall();
+      updateCelebration();
+      drawCelebration();
+      drawGoalMessage();
+      drawEndMessage();
+      requestAnimationFrame(loop);
+    }
+
+    window.addEventListener("keydown", (event) => {
+      const key = event.key.toLowerCase();
+      if (["arrowup", "arrowdown", "arrowleft", "arrowright", "w", "a", "s", "d"].includes(key)) event.preventDefault();
+      keys.add(key);
+    });
+    window.addEventListener("keyup", (event) => keys.delete(event.key.toLowerCase()));
+    restartButton.addEventListener("click", resetMatch);
+    modeToggleButton.addEventListener("click", toggleTwoPlayerMode);
+    robotSkillSelect.addEventListener("change", updateRobotSkill);
+    playerColorInput.addEventListener("input", updatePlayerColor);
+    opponentColorInput.addEventListener("input", updateOpponentColor);
+    playerFaceSelect.addEventListener("change", updatePlayerFace);
+    opponentFaceSelect.addEventListener("change", updateOpponentFace);
+    playerHairSelect.addEventListener("change", updatePlayerHair);
+    opponentHairSelect.addEventListener("change", updateOpponentHair);
+    startGameButton.addEventListener("click", dismissTutorial);
+    skipTutorialButton.addEventListener("click", dismissTutorial);
+    deleteTutorialButton.addEventListener("click", deleteTutorial);
+
+    function dismissTutorial() {
+      tutorialOpen = false;
+      tutorial.hidden = true;
+    }
+
+    function deleteTutorial() {
+      tutorialOpen = false;
+      tutorial.remove();
+    }
+
+    function toggleTwoPlayerMode() {
+      twoPlayerMode = !twoPlayerMode;
+      opponentLabel.textContent = twoPlayerMode ? "Player 2" : "Robot";
+      opponentColorLabel.textContent = twoPlayerMode ? "Player 2" : "Robot";
+      opponentFaceLabel.textContent = twoPlayerMode ? "Player 2" : "Robot";
+      opponentHairLabel.textContent = twoPlayerMode ? "Player 2" : "Robot";
+      modeToggleButton.textContent = twoPlayerMode ? "2 players: on" : "2 players: off";
+      robotSkillSelect.disabled = twoPlayerMode;
+      instructions.innerHTML = twoPlayerMode
+        ? "<strong>Player 1:</strong> WASD &nbsp; <strong>Player 2:</strong> arrow keys. First to 5 wins."
+        : "Move with <strong>arrow keys</strong> or <strong>WASD</strong>. First to 5 goals wins.";
+      resetMatch();
+    }
+
+    function updateRobotSkill() {
+      robotSkill = robotSkillSelect.value;
+      resetMatch();
+    }
+
+    function updatePlayerColor() {
+      player.color = playerColorInput.value;
+    }
+
+    function updateOpponentColor() {
+      robot.color = opponentColorInput.value;
+    }
+
+    function updatePlayerFace() {
+      player.face = playerFaceSelect.value;
+    }
+
+    function updateOpponentFace() {
+      robot.face = opponentFaceSelect.value;
+    }
+
+    function updatePlayerHair() {
+      player.hair = playerHairSelect.value;
+    }
+
+    function updateOpponentHair() {
+      robot.hair = opponentHairSelect.value;
+    }
+
+    resetField();
+    loop();
+  </script>
+</body>
+</html>

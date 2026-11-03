@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A timed dragon castle target minigame.">
+  <title>Dragon Castle</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Playfair+Display:wght@600&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --cream: #fff4df;
+      --night: #170d2b;
+      --cyan: #85d6ff;
+      --pink: #d64b82;
+      --lime: #f4bc3a;
+      --purple: #7f4ab8;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      display: grid;
+      min-height: 100vh;
+      margin: 0;
+      place-items: center;
+      color: var(--cream);
+      background:
+        repeating-linear-gradient(115deg, rgba(255, 43, 214, 0.18) 0 4px, rgba(216, 255, 62, 0.14) 4px 8px, rgba(0, 229, 255, 0.18) 8px 12px, rgba(143, 54, 255, 0.16) 12px 16px, transparent 16px 34px),
+        radial-gradient(circle at 15% 17%, rgba(0, 229, 255, 0.32), transparent 30rem),
+        var(--night);
+      font-family: "Plus Jakarta Sans", sans-serif;
+    }
+
+    main {
+      width: min(100% - 28px, 860px);
+      padding: 28px;
+    }
+
+    header, .bottom-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    header { margin-bottom: 20px; }
+
+    h1 {
+      margin: 0;
+      font-family: "Playfair Display", serif;
+      font-size: clamp(2rem, 5vw, 3.4rem);
+      letter-spacing: -0.04em;
+    }
+
+    a {
+      color: var(--cream);
+      font-family: "DM Mono", monospace;
+      font-size: 0.72rem;
+      letter-spacing: 0.05em;
+      text-decoration: none;
+      text-transform: uppercase;
+    }
+
+    a:hover { color: var(--lime); }
+
+    .scoreboard {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 16px;
+      font-family: "DM Mono", monospace;
+      font-size: 0.83rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .score {
+      min-width: 54px;
+      padding: 8px 11px;
+      color: var(--night);
+      background: var(--cream);
+      font-size: 1.1rem;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      border: 5px solid var(--cream);
+      background: var(--night);
+      box-shadow: 0 0 0 2px var(--purple), 0 0 30px rgba(0, 229, 255, 0.65), 12px 12px 0 rgba(143, 54, 255, 0.8);
+      cursor: none;
+      touch-action: none;
+    }
+
+    .bottom-bar { margin-top: 22px; }
+
+    p {
+      margin: 0;
+      color: rgba(237, 255, 253, 0.88);
+      font-size: 0.84rem;
+      line-height: 1.5;
+    }
+
+    button {
+      min-height: 42px;
+      padding: 0 16px;
+      border: 1px solid var(--cream);
+      color: var(--night);
+      background: var(--lime);
+      cursor: pointer;
+      font: 700 0.82rem "Plus Jakarta Sans", sans-serif;
+    }
+
+    button:hover { background: var(--cream); }
+
+    @media (max-width: 560px) {
+      main { padding: 19px 0 28px; }
+      header, .bottom-bar { align-items: flex-start; flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Dragon Castle</h1>
+      <a href="../">← Back home</a>
+    </header>
+
+    <div class="scoreboard" aria-label="Dragon Castle score">
+      <span>Score</span><span class="score" id="score">0</span>
+      <span>Time</span><span class="score" id="time">30</span>
+      <span>Hits</span><span class="score" id="hits">0</span>
+    </div>
+
+    <canvas id="game" width="800" height="500" aria-label="Dragon Castle. Move the pointer to aim the royal scope and click flying dragons to tag them."></canvas>
+
+    <div class="bottom-bar">
+      <p>Move the <strong>royal scope</strong> with your pointer and <strong>click or tap</strong> flying dragons as they fly over the castle hills. Far targets are worth more points.</p>
+      <button id="restart" type="button">Restart game</button>
+    </div>
+  </main>
+
+  <script>
+    const canvas = document.querySelector("#game");
+    const context = canvas.getContext("2d");
+    const scoreElement = document.querySelector("#score");
+    const timeElement = document.querySelector("#time");
+    const hitsElement = document.querySelector("#hits");
+    const restartButton = document.querySelector("#restart");
+    let drones = [];
+    let score = 0;
+    let hits = 0;
+    let timeRemaining = 30;
+    let spawnTime = 0;
+    let previousTime = 0;
+    let gameOver = false;
+    const scope = { x: 400, y: 250, radius: 112 };
+
+    function restartGame() {
+      drones = [];
+      score = 0;
+      hits = 0;
+      timeRemaining = 30;
+      spawnTime = 0;
+      previousTime = 0;
+      gameOver = false;
+      scoreElement.textContent = score;
+      hitsElement.textContent = hits;
+      timeElement.textContent = timeRemaining;
+    }
+
+    function createDrone() {
+      const size = 18 + Math.random() * 12;
+      drones.push({
+        worldX: -0.95 + Math.random() * 1.9,
+        worldY: -0.78 + Math.random() * 1.4,
+        depth: 0.03,
+        size,
+        speed: 0.1 + Math.random() * 0.14,
+        wobble: Math.random() * Math.PI * 2,
+        color: ["#d64b82", "#f4bc3a", "#85d6ff", "#7f4ab8"][Math.floor(Math.random() * 4)]
+      });
+    }
+
+    function projectDrone(drone) {
+      const perspective = 0.22 + drone.depth * 1.42;
+      return {
+        x: canvas.width / 2 + drone.worldX * canvas.width * 0.38 * perspective,
+        y: canvas.height * 0.3 + drone.worldY * canvas.height * 0.29 * perspective,
+        size: drone.size * perspective
+      };
+    }
+
+    function update(delta) {
+      if (gameOver) return;
+      spawnTime += delta;
+      if (spawnTime > 0.82) {
+        createDrone();
+        spawnTime = 0;
+      }
+      drones.forEach((drone) => {
+        drone.depth += drone.speed * delta;
+        drone.worldX += Math.sin(performance.now() / 720 + drone.wobble) * 0.025 * delta;
+      });
+      drones = drones.filter((drone) => drone.depth < 1.08);
+      timeRemaining = Math.max(0, timeRemaining - delta);
+      timeElement.textContent = Math.ceil(timeRemaining);
+      if (timeRemaining === 0) gameOver = true;
+    }
+
+    function drawDrone(drone) {
+      const projected = projectDrone(drone);
+      const size = projected.size;
+      context.save();
+      context.translate(projected.x, projected.y);
+      context.shadowColor = drone.color;
+      context.shadowBlur = 11 + projected.size * 0.22;
+      context.fillStyle = drone.color;
+
+      context.beginPath();
+      context.moveTo(-size * 0.45, size * 0.1);
+      context.quadraticCurveTo(-size * 1.2, size * 0.15, -size * 1.48, size * 0.7);
+      context.lineTo(-size * 1.08, size * 0.36);
+      context.lineTo(-size * 0.78, size * 0.5);
+      context.lineTo(-size * 0.52, size * 0.2);
+      context.closePath();
+      context.fill();
+
+      context.beginPath();
+      context.moveTo(-size * 0.2, 0);
+      context.lineTo(-size * 1.05, -size * 1.05);
+      context.lineTo(-size * 0.25, -size * 0.55);
+      context.lineTo(size * 0.05, -size * 1.2);
+      context.lineTo(size * 0.42, -size * 0.35);
+      context.lineTo(size * 0.2, size * 0.05);
+      context.closePath();
+      context.fill();
+
+      context.beginPath();
+      context.moveTo(-size * 0.08, 0);
+      context.lineTo(size * 0.45, -size * 0.88);
+      context.lineTo(size * 0.63, -size * 0.22);
+      context.lineTo(size * 1.12, -size * 0.7);
+      context.lineTo(size * 0.72, size * 0.2);
+      context.lineTo(size * 0.22, size * 0.2);
+      context.closePath();
+      context.fill();
+
+      context.beginPath();
+      context.ellipse(-size * 0.08, size * 0.12, size * 0.78, size * 0.34, 0, 0, Math.PI * 2);
+      context.fill();
+
+      context.fillStyle = "#071523";
+      context.beginPath();
+      context.arc(size * 0.68, -size * 0.1, size * 0.32, 0, Math.PI * 2);
+      context.fill();
+
+      context.fillStyle = drone.color;
+      context.beginPath();
+      context.moveTo(size * 0.55, -size * 0.34);
+      context.lineTo(size * 0.47, -size * 0.7);
+      context.lineTo(size * 0.72, -size * 0.37);
+      context.lineTo(size * 0.82, -size * 0.67);
+      context.lineTo(size * 0.92, -size * 0.23);
+      context.closePath();
+      context.fill();
+
+      context.strokeStyle = drone.color;
+      context.lineWidth = Math.max(1.5, size * 0.08);
+      context.beginPath();
+      context.moveTo(-size * 0.05, size * 0.32);
+      context.lineTo(-size * 0.16, size * 0.68);
+      context.lineTo(size * 0.08, size * 0.68);
+      context.moveTo(size * 0.32, size * 0.25);
+      context.lineTo(size * 0.25, size * 0.62);
+      context.lineTo(size * 0.48, size * 0.62);
+      context.stroke();
+
+      context.fillStyle = "#f4bc3a";
+      context.beginPath();
+      context.arc(size * 0.77, -size * 0.16, Math.max(2, size * 0.09), 0, Math.PI * 2);
+      context.fill();
+      context.restore();
+    }
+
+    function drawDepthGrid() {
+      const horizonY = canvas.height * 0.51;
+      context.strokeStyle = "rgba(244, 188, 58, 0.32)";
+      context.lineWidth = 1;
+      for (let line = 1; line <= 10; line += 1) {
+        const depth = line / 10;
+        const y = horizonY + (canvas.height - horizonY) * depth * depth;
+        context.beginPath();
+        context.moveTo(0, y);
+        context.lineTo(canvas.width, y);
+        context.stroke();
+      }
+      for (let line = -7; line <= 7; line += 1) {
+        context.beginPath();
+        context.moveTo(canvas.width / 2, horizonY);
+        context.lineTo(canvas.width / 2 + line * 120, canvas.height);
+        context.stroke();
+      }
+    }
+
+    function drawLandscape() {
+      const sky = context.createLinearGradient(0, 0, 0, canvas.height * 0.52);
+      sky.addColorStop(0, "#281849");
+      sky.addColorStop(0.56, "#a64b71");
+      sky.addColorStop(1, "#f19a66");
+      context.fillStyle = sky;
+      context.fillRect(0, 0, canvas.width, canvas.height * 0.52);
+      context.fillStyle = "#f4bc3a";
+      context.beginPath();
+      context.arc(120, 115, 45, 0, Math.PI * 2);
+      context.fill();
+      context.fillStyle = "#493361";
+      context.beginPath();
+      context.moveTo(0, 295);
+      context.lineTo(150, 185);
+      context.lineTo(285, 295);
+      context.lineTo(430, 165);
+      context.lineTo(590, 295);
+      context.lineTo(710, 195);
+      context.lineTo(800, 295);
+      context.lineTo(800, 340);
+      context.lineTo(0, 340);
+      context.closePath();
+      context.fill();
+      const ground = context.createLinearGradient(0, canvas.height * 0.5, 0, canvas.height);
+      ground.addColorStop(0, "#38514a");
+      ground.addColorStop(1, "#172f37");
+      context.fillStyle = ground;
+      context.fillRect(0, canvas.height * 0.51, canvas.width, canvas.height * 0.49);
+    }
+
+    function drawCastle() {
+      const baseY = canvas.height - 66;
+      context.fillStyle = "#261940";
+      context.fillRect(0, baseY, canvas.width, canvas.height - baseY);
+      context.fillStyle = "#3c285d";
+      context.fillRect(250, baseY - 84, 300, 84);
+      context.fillRect(215, baseY - 132, 70, 132);
+      context.fillRect(515, baseY - 132, 70, 132);
+      context.fillStyle = "#f4bc3a";
+      for (let x = 220; x <= 550; x += 42) context.fillRect(x, baseY - 92, 16, 10);
+      context.fillRect(224, baseY - 141, 16, 10);
+      context.fillRect(524, baseY - 141, 16, 10);
+      context.fillStyle = "#85d6ff";
+      context.fillRect(365, baseY - 48, 22, 29);
+      context.fillRect(413, baseY - 48, 22, 29);
+      context.fillStyle = "#d64b82";
+      context.beginPath();
+      context.moveTo(249, baseY - 132);
+      context.lineTo(249, baseY - 175);
+      context.lineTo(279, baseY - 146);
+      context.closePath();
+      context.fill();
+      context.beginPath();
+      context.moveTo(549, baseY - 132);
+      context.lineTo(549, baseY - 175);
+      context.lineTo(519, baseY - 146);
+      context.closePath();
+      context.fill();
+    }
+
+    function drawScope() {
+      context.save();
+      context.fillStyle = "rgba(5, 7, 20, 0.76)";
+      context.beginPath();
+      context.rect(0, 0, canvas.width, canvas.height);
+      context.arc(scope.x, scope.y, scope.radius, 0, Math.PI * 2, true);
+      context.fill("evenodd");
+      context.strokeStyle = "#00e5ff";
+      context.lineWidth = 3;
+      context.beginPath();
+      context.arc(scope.x, scope.y, scope.radius, 0, Math.PI * 2);
+      context.stroke();
+      context.beginPath();
+      context.moveTo(scope.x - 20, scope.y);
+      context.lineTo(scope.x + 20, scope.y);
+      context.moveTo(scope.x, scope.y - 20);
+      context.lineTo(scope.x, scope.y + 20);
+      context.stroke();
+      context.restore();
+    }
+
+    function draw() {
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      drawLandscape();
+      drawDepthGrid();
+      drawCastle();
+      [...drones].sort((first, second) => first.depth - second.depth).forEach(drawDrone);
+      drawScope();
+      if (gameOver) {
+        context.fillStyle = "rgba(5, 7, 20, 0.9)";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.fillStyle = "#d8ff3e";
+        context.font = "600 52px 'Playfair Display'";
+        context.textAlign = "center";
+        context.fillText(`Score: ${score}`, canvas.width / 2, canvas.height / 2 - 8);
+        context.fillStyle = "#edfffd";
+        context.font = "600 18px 'Plus Jakarta Sans'";
+        context.fillText(`${hits} dragons tagged`, canvas.width / 2, canvas.height / 2 + 30);
+        context.font = "600 15px 'Plus Jakarta Sans'";
+        context.fillText("Press Restart game for another mission", canvas.width / 2, canvas.height / 2 + 60);
+      }
+    }
+
+    function updateScope(event) {
+      const bounds = canvas.getBoundingClientRect();
+      scope.x = Math.max(scope.radius, Math.min(canvas.width - scope.radius, (event.clientX - bounds.left) * canvas.width / bounds.width));
+      scope.y = Math.max(scope.radius, Math.min(canvas.height - scope.radius, (event.clientY - bounds.top) * canvas.height / bounds.height));
+    }
+
+    function tagDrone(event) {
+      if (gameOver) return;
+      updateScope(event);
+      const hitIndex = drones.findIndex((drone) => {
+        const projected = projectDrone(drone);
+        return Math.hypot(scope.x - projected.x, scope.y - projected.y) < projected.size;
+      });
+      if (hitIndex === -1) return;
+      const drone = drones[hitIndex];
+      const points = drone.depth < 0.35 ? 30 : drone.depth < 0.68 ? 20 : 10;
+      drones.splice(hitIndex, 1);
+      score += points;
+      hits += 1;
+      scoreElement.textContent = score;
+      hitsElement.textContent = hits;
+    }
+
+    function loop(timestamp) {
+      if (!previousTime) previousTime = timestamp;
+      const delta = Math.min((timestamp - previousTime) / 1000, 0.05);
+      previousTime = timestamp;
+      update(delta);
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    canvas.addEventListener("pointermove", updateScope);
+    canvas.addEventListener("pointerdown", tagDrone);
+    restartButton.addEventListener("click", restartGame);
+
+    restartGame();
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>

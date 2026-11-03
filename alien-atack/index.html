@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A neon alien spaceship shooter minigame.">
+  <title>Alien Atack</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Playfair+Display:wght@600&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --cream: #edfffd;
+      --night: #071523;
+      --cyan: #00e5ff;
+      --pink: #ff2bd6;
+      --lime: #d8ff3e;
+      --purple: #8f36ff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      display: grid;
+      min-height: 100vh;
+      margin: 0;
+      place-items: center;
+      color: var(--cream);
+      background:
+        repeating-linear-gradient(115deg, rgba(255, 43, 214, 0.18) 0 4px, rgba(216, 255, 62, 0.14) 4px 8px, rgba(0, 229, 255, 0.18) 8px 12px, rgba(143, 54, 255, 0.16) 12px 16px, transparent 16px 34px),
+        radial-gradient(circle at 86% 16%, rgba(255, 43, 214, 0.32), transparent 30rem),
+        var(--night);
+      font-family: "Plus Jakarta Sans", sans-serif;
+    }
+
+    main {
+      width: min(100% - 28px, 860px);
+      padding: 28px;
+    }
+
+    header, .bottom-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    header { margin-bottom: 20px; }
+
+    h1 {
+      margin: 0;
+      font-family: "Playfair Display", serif;
+      font-size: clamp(2rem, 5vw, 3.4rem);
+      letter-spacing: -0.04em;
+    }
+
+    a {
+      color: var(--cream);
+      font-family: "DM Mono", monospace;
+      font-size: 0.72rem;
+      letter-spacing: 0.05em;
+      text-decoration: none;
+      text-transform: uppercase;
+    }
+
+    a:hover { color: var(--lime); }
+
+    .scoreboard {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 16px;
+      font-family: "DM Mono", monospace;
+      font-size: 0.83rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .score {
+      min-width: 52px;
+      padding: 8px 11px;
+      color: var(--night);
+      background: var(--cream);
+      font-size: 1.1rem;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      border: 5px solid var(--cream);
+      background: var(--night);
+      box-shadow: 0 0 0 2px var(--purple), 0 0 30px rgba(0, 229, 255, 0.65), 12px 12px 0 rgba(143, 54, 255, 0.8);
+      touch-action: none;
+    }
+
+    .bottom-bar { margin-top: 22px; }
+
+    p {
+      margin: 0;
+      color: rgba(237, 255, 253, 0.88);
+      font-size: 0.84rem;
+      line-height: 1.5;
+    }
+
+    button {
+      min-height: 42px;
+      padding: 0 16px;
+      border: 1px solid var(--cream);
+      color: var(--night);
+      background: var(--lime);
+      cursor: pointer;
+      font: 700 0.82rem "Plus Jakarta Sans", sans-serif;
+    }
+
+    button:hover { background: var(--cream); }
+
+    @media (max-width: 560px) {
+      main { padding: 19px 0 28px; }
+      header, .bottom-bar { align-items: flex-start; flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Alien Atack</h1>
+      <a href="../">← Back home</a>
+    </header>
+
+    <div class="scoreboard" aria-label="Alien Atack score">
+      <span>Score</span><span class="score" id="score">0</span>
+      <span>Lives</span><span class="score" id="lives">3</span>
+      <span>Wave</span><span class="score" id="wave">1</span>
+    </div>
+
+    <canvas id="game" width="800" height="500" aria-label="Alien Atack. Use arrow keys or A and D to move, and Space to fire."></canvas>
+
+    <div class="bottom-bar">
+      <p>Move with <strong>arrow keys</strong> or <strong>A / D</strong>. Hold <strong>Space</strong> to fire your ship’s blaster at the alien spaceships.</p>
+      <button id="restart" type="button">Restart game</button>
+    </div>
+  </main>
+
+  <script>
+    const canvas = document.querySelector("#game");
+    const context = canvas.getContext("2d");
+    const scoreElement = document.querySelector("#score");
+    const livesElement = document.querySelector("#lives");
+    const waveElement = document.querySelector("#wave");
+    const restartButton = document.querySelector("#restart");
+    const keys = new Set();
+    const player = { x: 400, y: 450, width: 58, height: 38, speed: 390 };
+    let bullets = [];
+    let aliens = [];
+    let score = 0;
+    let lives = 3;
+    let wave = 1;
+    let alienDirection = 1;
+    let fireCooldown = 0;
+    let previousTime = 0;
+    let gameOver = false;
+
+    function buildAliens() {
+      aliens = [];
+      const columns = 8;
+      const rows = 3 + Math.min(2, wave - 1);
+      for (let row = 0; row < rows; row += 1) {
+        for (let column = 0; column < columns; column += 1) {
+          aliens.push({
+            x: 115 + column * 82,
+            y: 70 + row * 58,
+            width: 38,
+            height: 25,
+            color: ["#ff2bd6", "#d8ff3e", "#00e5ff", "#8f36ff"][row % 4]
+          });
+        }
+      }
+      alienDirection = 1;
+    }
+
+    function restartGame() {
+      bullets = [];
+      score = 0;
+      lives = 3;
+      wave = 1;
+      fireCooldown = 0;
+      previousTime = 0;
+      gameOver = false;
+      player.x = canvas.width / 2;
+      scoreElement.textContent = score;
+      livesElement.textContent = lives;
+      waveElement.textContent = wave;
+      buildAliens();
+    }
+
+    function fire() {
+      if (fireCooldown > 0 || gameOver) return;
+      bullets.push({ x: player.x, y: player.y - player.height / 2, speed: 620, radius: 4 });
+      fireCooldown = 0.18;
+    }
+
+    function loseLife() {
+      lives -= 1;
+      livesElement.textContent = lives;
+      bullets = [];
+      if (lives <= 0) {
+        gameOver = true;
+        return;
+      }
+      buildAliens();
+    }
+
+    function update(delta) {
+      if (gameOver) return;
+      let movement = 0;
+      if (keys.has("arrowleft") || keys.has("a")) movement -= 1;
+      if (keys.has("arrowright") || keys.has("d")) movement += 1;
+      player.x += movement * player.speed * delta;
+      player.x = Math.max(player.width / 2, Math.min(canvas.width - player.width / 2, player.x));
+      fireCooldown = Math.max(0, fireCooldown - delta);
+      if (keys.has(" ")) fire();
+      bullets.forEach((bullet) => { bullet.y -= bullet.speed * delta; });
+      bullets = bullets.filter((bullet) => bullet.y > -bullet.radius);
+
+      const alienSpeed = (30 + wave * 8) * delta * alienDirection;
+      aliens.forEach((alien) => { alien.x += alienSpeed; });
+      const hitEdge = aliens.some((alien) => alien.x - alien.width / 2 < 18 || alien.x + alien.width / 2 > canvas.width - 18);
+      if (hitEdge) {
+        alienDirection *= -1;
+        aliens.forEach((alien) => { alien.y += 20; });
+      }
+
+      bullets = bullets.filter((bullet) => {
+        const hitAlienIndex = aliens.findIndex((alien) => Math.abs(bullet.x - alien.x) < alien.width / 2 + bullet.radius
+          && Math.abs(bullet.y - alien.y) < alien.height / 2 + bullet.radius);
+        if (hitAlienIndex === -1) return true;
+        aliens.splice(hitAlienIndex, 1);
+        score += 10;
+        scoreElement.textContent = score;
+        return false;
+      });
+
+      if (!aliens.length) {
+        wave += 1;
+        waveElement.textContent = wave;
+        buildAliens();
+      } else if (aliens.some((alien) => alien.y + alien.height / 2 >= player.y - player.height / 2)) {
+        loseLife();
+      }
+    }
+
+    function drawAlien(alien) {
+      context.save();
+      context.translate(alien.x, alien.y);
+      context.shadowColor = alien.color;
+      context.shadowBlur = 16;
+      context.fillStyle = alien.color;
+      context.beginPath();
+      context.ellipse(0, 4, alien.width / 2, alien.height / 2, 0, 0, Math.PI * 2);
+      context.fill();
+      context.fillStyle = "#071523";
+      context.fillRect(-12, -8, 24, 8);
+      context.fillStyle = "#edfffd";
+      context.fillRect(-8, -6, 5, 3);
+      context.fillRect(3, -6, 5, 3);
+      context.restore();
+    }
+
+    function drawPlayer() {
+      context.save();
+      context.translate(player.x, player.y);
+      context.shadowColor = "#00e5ff";
+      context.shadowBlur = 20;
+      context.fillStyle = "#00e5ff";
+      context.beginPath();
+      context.moveTo(0, -player.height / 2);
+      context.lineTo(player.width / 2, player.height / 2);
+      context.lineTo(0, player.height / 2 - 8);
+      context.lineTo(-player.width / 2, player.height / 2);
+      context.closePath();
+      context.fill();
+      context.fillStyle = "#d8ff3e";
+      context.fillRect(-4, -player.height / 2 - 13, 8, 16);
+      context.restore();
+    }
+
+    function draw() {
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.fillStyle = "#071523";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.fillStyle = "rgba(237, 255, 253, 0.7)";
+      for (let index = 0; index < 55; index += 1) {
+        const x = (index * 97) % canvas.width;
+        const y = (index * 53) % canvas.height;
+        context.fillRect(x, y, 2, 2);
+      }
+      aliens.forEach(drawAlien);
+      context.fillStyle = "#d8ff3e";
+      context.shadowColor = "#d8ff3e";
+      context.shadowBlur = 12;
+      bullets.forEach((bullet) => {
+        context.beginPath();
+        context.arc(bullet.x, bullet.y, bullet.radius, 0, Math.PI * 2);
+        context.fill();
+      });
+      context.shadowBlur = 0;
+      drawPlayer();
+      if (gameOver) {
+        context.fillStyle = "rgba(5, 7, 20, 0.9)";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.fillStyle = "#ff2bd6";
+        context.font = "600 52px 'Playfair Display'";
+        context.textAlign = "center";
+        context.fillText("MISSION OVER", canvas.width / 2, canvas.height / 2 - 8);
+        context.fillStyle = "#edfffd";
+        context.font = "600 18px 'Plus Jakarta Sans'";
+        context.fillText(`Final score: ${score}`, canvas.width / 2, canvas.height / 2 + 30);
+        context.font = "600 15px 'Plus Jakarta Sans'";
+        context.fillText("Press Restart game to blast off again", canvas.width / 2, canvas.height / 2 + 60);
+      }
+    }
+
+    function loop(timestamp) {
+      if (!previousTime) previousTime = timestamp;
+      const delta = Math.min((timestamp - previousTime) / 1000, 0.05);
+      previousTime = timestamp;
+      update(delta);
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    window.addEventListener("keydown", (event) => {
+      const key = event.key.toLowerCase();
+      if (["arrowleft", "arrowright", "a", "d", " "].includes(key)) event.preventDefault();
+      keys.add(key);
+    });
+    window.addEventListener("keyup", (event) => keys.delete(event.key.toLowerCase()));
+    restartButton.addEventListener("click", restartGame);
+
+    restartGame();
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>

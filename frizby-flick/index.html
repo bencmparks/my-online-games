@@ -1,0 +1,546 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A colorful Frisbee target-throwing minigame.">
+  <title>Frizby Flick</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Playfair+Display:wght@600&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --cream: #e9fbff;
+      --night: #050714;
+      --sky: #00e5ff;
+      --field: #092b36;
+      --gold: #d8ff3e;
+      --red: #ff2bd6;
+      --purple: #8f36ff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      display: grid;
+      min-height: 100vh;
+      margin: 0;
+      place-items: center;
+      color: var(--cream);
+      background:
+        repeating-linear-gradient(115deg, rgba(255, 43, 214, 0.2) 0 4px, rgba(216, 255, 62, 0.15) 4px 8px, rgba(0, 229, 255, 0.2) 8px 12px, rgba(143, 54, 255, 0.18) 12px 16px, transparent 16px 34px),
+        radial-gradient(circle at 14% 18%, rgba(255, 43, 214, 0.35), transparent 30rem),
+        radial-gradient(circle at 88% 74%, rgba(0, 229, 255, 0.3), transparent 27rem),
+        var(--night);
+      font-family: "Plus Jakarta Sans", sans-serif;
+    }
+
+    body[data-style="sunset"] {
+      --cream: #fff1dc;
+      --night: #3a1025;
+      --sky: #ff7a59;
+      --field: #6d2544;
+      --gold: #ffd45b;
+      --red: #ff4778;
+      --purple: #9d58d2;
+      background:
+        repeating-linear-gradient(115deg, rgba(255, 71, 120, 0.2) 0 4px, rgba(255, 212, 91, 0.16) 4px 8px, rgba(255, 122, 89, 0.2) 8px 12px, rgba(157, 88, 210, 0.16) 12px 16px, transparent 16px 34px),
+        radial-gradient(circle at 15% 15%, rgba(255, 71, 120, 0.38), transparent 30rem),
+        radial-gradient(circle at 88% 74%, rgba(255, 212, 91, 0.28), transparent 27rem),
+        var(--night);
+    }
+
+    body[data-style="ocean"] {
+      --cream: #edfffd;
+      --night: #041d2b;
+      --sky: #21d4fd;
+      --field: #0c4963;
+      --gold: #a6ffcb;
+      --red: #ff7bc8;
+      --purple: #6c7bff;
+      background:
+        repeating-linear-gradient(115deg, rgba(33, 212, 253, 0.2) 0 4px, rgba(166, 255, 203, 0.15) 4px 8px, rgba(108, 123, 255, 0.18) 8px 12px, rgba(255, 123, 200, 0.15) 12px 16px, transparent 16px 34px),
+        radial-gradient(circle at 14% 18%, rgba(33, 212, 253, 0.32), transparent 30rem),
+        radial-gradient(circle at 88% 74%, rgba(108, 123, 255, 0.32), transparent 27rem),
+        var(--night);
+    }
+
+    main {
+      width: min(100% - 28px, 820px);
+      padding: 28px;
+    }
+
+    header, .bottom-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    header { margin-bottom: 20px; }
+
+    h1 {
+      margin: 0;
+      font-family: "Playfair Display", serif;
+      font-size: clamp(2rem, 5vw, 3.4rem);
+      letter-spacing: -0.04em;
+    }
+
+    a {
+      color: var(--cream);
+      font-family: "DM Mono", monospace;
+      font-size: 0.72rem;
+      letter-spacing: 0.05em;
+      text-decoration: none;
+      text-transform: uppercase;
+    }
+
+    a:hover { color: var(--gold); }
+
+    .scoreboard {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 16px;
+      font-family: "DM Mono", monospace;
+      font-size: 0.83rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .score {
+      min-width: 48px;
+      padding: 8px 11px;
+      color: var(--night);
+      background: var(--cream);
+      font-size: 1.1rem;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      border: 5px solid var(--cream);
+      background: var(--sky);
+      box-shadow: 0 0 0 2px var(--purple), 0 0 30px rgba(0, 229, 255, 0.65), 12px 12px 0 rgba(143, 54, 255, 0.8);
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    .bottom-bar { margin-top: 22px; }
+
+    p {
+      margin: 0;
+      color: rgba(233, 251, 255, 0.86);
+      font-size: 0.84rem;
+      line-height: 1.5;
+    }
+
+    button {
+      min-height: 42px;
+      padding: 0 16px;
+      border: 1px solid var(--cream);
+      color: var(--night);
+      background: var(--gold);
+      cursor: pointer;
+      font: 700 0.82rem "Plus Jakarta Sans", sans-serif;
+    }
+
+    button:hover { background: var(--cream); }
+
+    .game-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--cream);
+      font: 500 0.72rem "DM Mono", monospace;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    select {
+      min-height: 42px;
+      padding: 0 28px 0 11px;
+      border: 1px solid var(--cream);
+      border-radius: 0;
+      color: var(--cream);
+      background: var(--night);
+      font: 700 0.8rem "Plus Jakarta Sans", sans-serif;
+      cursor: pointer;
+    }
+
+    @media (max-width: 560px) {
+      main { padding: 19px 0 28px; }
+      header, .bottom-bar { align-items: flex-start; flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Frizby Flick</h1>
+      <a href="../">← Back home</a>
+    </header>
+
+    <div class="scoreboard" aria-label="Frisbee score">
+      <span id="score-label">Score</span><span class="score" id="score">0</span>
+      <span id="throws-label">Throws</span><span class="score" id="throws">0 / 10</span>
+      <span id="best-label">Best</span><span class="score" id="best-score">0</span>
+    </div>
+
+    <canvas id="game" width="760" height="456" aria-label="Frizby Flick. Move your pointer to aim and click or tap to throw."></canvas>
+
+    <div class="bottom-bar">
+      <p>Move your pointer to aim, then <strong>click or tap</strong> to throw. Hit the moving target: center = 3 points.</p>
+      <div class="game-controls">
+        <label for="game-mode">Mode
+          <select id="game-mode">
+            <option value="classic" selected>Classic</option>
+            <option value="turbo">Turbo</option>
+            <option value="practice">Practice</option>
+          </select>
+        </label>
+        <label for="game-style">Style
+          <select id="game-style">
+            <option value="neon" selected>Neon</option>
+            <option value="sunset">Sunset</option>
+            <option value="ocean">Ocean</option>
+          </select>
+        </label>
+        <label for="player-count">Players
+          <select id="player-count">
+            <option value="one" selected>1 player</option>
+            <option value="two">2 players</option>
+          </select>
+        </label>
+        <button id="restart" type="button">Restart game</button>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const canvas = document.querySelector("#game");
+    const context = canvas.getContext("2d");
+    const scoreElement = document.querySelector("#score");
+    const throwsElement = document.querySelector("#throws");
+    const bestScoreElement = document.querySelector("#best-score");
+    const scoreLabel = document.querySelector("#score-label");
+    const throwsLabel = document.querySelector("#throws-label");
+    const bestLabel = document.querySelector("#best-label");
+    const restartButton = document.querySelector("#restart");
+    const modeSelect = document.querySelector("#game-mode");
+    const styleSelect = document.querySelector("#game-style");
+    const playerCountSelect = document.querySelector("#player-count");
+    const modes = {
+      classic: { name: "Classic", maxThrows: 10, targetSpeed: 1.7, targetRadius: 53 },
+      turbo: { name: "Turbo", maxThrows: 10, targetSpeed: 3.5, targetRadius: 38 },
+      practice: { name: "Practice", maxThrows: Infinity, targetSpeed: 1.1, targetRadius: 63 }
+    };
+    let activeMode = modes.classic;
+    const styles = {
+      neon: {
+        targetGlow: "#ff2bd6", targetOuter: "#00e5ff", targetMiddle: "#ff2bd6", targetInner: "#d8ff3e",
+        frisbee: "#8f36ff", frisbeeGlow: "#8f36ff", rim: "#00e5ff", sky: "#071523",
+        cloud: "rgba(0, 229, 255, 0.62)", field: "#092b36", stripe: "rgba(0, 229, 255, 0.1)",
+        aim: "rgba(216, 255, 62, 0.85)", message: "#d8ff3e", overlay: "rgba(5, 7, 20, 0.88)", overlayText: "#00e5ff"
+      },
+      sunset: {
+        targetGlow: "#ff4778", targetOuter: "#ffd45b", targetMiddle: "#ff4778", targetInner: "#fff1dc",
+        frisbee: "#9d58d2", frisbeeGlow: "#ff7a59", rim: "#fff1dc", sky: "#542039",
+        cloud: "rgba(255, 241, 220, 0.62)", field: "#6d2544", stripe: "rgba(255, 212, 91, 0.12)",
+        aim: "rgba(255, 212, 91, 0.9)", message: "#ffd45b", overlay: "rgba(58, 16, 37, 0.88)", overlayText: "#fff1dc"
+      },
+      ocean: {
+        targetGlow: "#6c7bff", targetOuter: "#21d4fd", targetMiddle: "#6c7bff", targetInner: "#a6ffcb",
+        frisbee: "#ff7bc8", frisbeeGlow: "#21d4fd", rim: "#edfffd", sky: "#062d42",
+        cloud: "rgba(237, 255, 253, 0.62)", field: "#0c4963", stripe: "rgba(166, 255, 203, 0.12)",
+        aim: "rgba(166, 255, 203, 0.9)", message: "#a6ffcb", overlay: "rgba(4, 29, 43, 0.88)", overlayText: "#21d4fd"
+      }
+    };
+    let activeStyle = styles.neon;
+    let score = 0;
+    let throws = 0;
+    let bestScore = 0;
+    let resultMessage = "";
+    let twoPlayerMode = false;
+    let currentPlayer = 0;
+    let playerScores = [0, 0];
+    let playerThrows = [0, 0];
+    let aimY = canvas.height / 2;
+    let waitingForNextThrow = false;
+    let gameOver = false;
+    const target = { x: 620, y: 210, radius: activeMode.targetRadius, direction: 1, speed: activeMode.targetSpeed };
+    const frisbee = { x: 110, y: canvas.height / 2, dx: 0, dy: 0, flying: false, radius: 18 };
+
+    function randomTargetPosition() {
+      target.y = 80 + Math.random() * (canvas.height - 160);
+      target.direction = Math.random() > 0.5 ? 1 : -1;
+    }
+
+    function resetThrow() {
+      frisbee.x = 110;
+      frisbee.y = canvas.height / 2;
+      frisbee.dx = 0;
+      frisbee.dy = 0;
+      frisbee.flying = false;
+      waitingForNextThrow = false;
+      randomTargetPosition();
+    }
+
+    function restartGame() {
+      score = 0;
+      throws = 0;
+      gameOver = false;
+      resultMessage = "";
+      currentPlayer = 0;
+      playerScores = [0, 0];
+      playerThrows = [0, 0];
+      if (!twoPlayerMode) loadBestScore();
+      updateScoreboard();
+      resetThrow();
+    }
+
+    function loadBestScore() {
+      const storedScore = Number(window.localStorage.getItem(`frizby-flick-best-${modeSelect.value}`));
+      bestScore = Number.isFinite(storedScore) ? storedScore : 0;
+      bestScoreElement.textContent = bestScore;
+    }
+
+    function recordResult() {
+      if (score > bestScore) {
+        bestScore = score;
+        window.localStorage.setItem(`frizby-flick-best-${modeSelect.value}`, String(bestScore));
+        bestScoreElement.textContent = bestScore;
+        resultMessage = "NEW BEST SCORE!";
+      } else {
+        resultMessage = `Best score to beat: ${bestScore}`;
+      }
+    }
+
+    function updateThrowsDisplay() {
+      throwsElement.textContent = activeMode.maxThrows === Infinity ? `${throws} / ∞` : `${throws} / ${activeMode.maxThrows}`;
+    }
+
+    function updateScoreboard() {
+      if (twoPlayerMode) {
+        scoreLabel.textContent = "Player 1";
+        scoreElement.textContent = playerScores[0];
+        throwsLabel.textContent = "Player 2";
+        throwsElement.textContent = playerScores[1];
+        bestLabel.textContent = "Turn";
+        bestScoreElement.textContent = `P${currentPlayer + 1}`;
+        return;
+      }
+      scoreLabel.textContent = "Score";
+      scoreElement.textContent = score;
+      throwsLabel.textContent = "Throws";
+      bestLabel.textContent = "Best";
+      bestScoreElement.textContent = bestScore;
+      updateThrowsDisplay();
+    }
+
+    function throwFrisbee() {
+      if (frisbee.flying || waitingForNextThrow || gameOver) return;
+      frisbee.flying = true;
+      frisbee.dx = 8.5;
+      frisbee.dy = (aimY - frisbee.y) / 60;
+      if (twoPlayerMode) playerThrows[currentPlayer] += 1;
+      else throws += 1;
+      updateScoreboard();
+    }
+
+    function finishThrow(points) {
+      if (twoPlayerMode) {
+        if (points) playerScores[currentPlayer] += points;
+        frisbee.flying = false;
+        waitingForNextThrow = true;
+        window.setTimeout(() => {
+          const bothPlayersFinished = playerThrows[0] >= 5 && playerThrows[1] >= 5;
+          if (bothPlayersFinished) {
+            gameOver = true;
+            resultMessage = playerScores[0] === playerScores[1]
+              ? "It’s a tie!"
+              : `Player ${playerScores[0] > playerScores[1] ? 1 : 2} wins!`;
+            updateScoreboard();
+            return;
+          }
+          currentPlayer = currentPlayer === 0 ? 1 : 0;
+          updateScoreboard();
+          resetThrow();
+        }, 650);
+        return;
+      }
+      if (points) {
+        score += points;
+        updateScoreboard();
+      }
+      frisbee.flying = false;
+      waitingForNextThrow = true;
+      window.setTimeout(() => {
+        if (throws >= activeMode.maxThrows) {
+          gameOver = true;
+          recordResult();
+          return;
+        }
+        resetThrow();
+      }, 650);
+    }
+
+    function update() {
+      if (!frisbee.flying && !gameOver) {
+        target.y += target.direction * target.speed;
+        if (target.y < target.radius + 15 || target.y > canvas.height - target.radius - 15) target.direction *= -1;
+      }
+      if (!frisbee.flying) return;
+      frisbee.x += frisbee.dx;
+      frisbee.y += frisbee.dy;
+      frisbee.dy += 0.014;
+      const passedTarget = frisbee.x >= target.x - 2;
+      if (passedTarget) {
+        const distance = Math.abs(frisbee.y - target.y);
+        const points = distance < 15 ? 3 : distance < 32 ? 2 : distance < target.radius ? 1 : 0;
+        finishThrow(points);
+      } else if (frisbee.y < 0 || frisbee.y > canvas.height) {
+        finishThrow(0);
+      }
+    }
+
+    function drawTarget() {
+      context.save();
+      context.translate(target.x, target.y);
+      context.shadowColor = activeStyle.targetGlow;
+      context.shadowBlur = 24;
+      context.fillStyle = activeStyle.targetOuter;
+      context.beginPath();
+      context.arc(0, 0, target.radius, 0, Math.PI * 2);
+      context.fill();
+      context.fillStyle = activeStyle.targetMiddle;
+      context.beginPath();
+      context.arc(0, 0, 37, 0, Math.PI * 2);
+      context.fill();
+      context.fillStyle = activeStyle.targetInner;
+      context.beginPath();
+      context.arc(0, 0, 20, 0, Math.PI * 2);
+      context.fill();
+      context.fillStyle = "#050714";
+      context.beginPath();
+      context.arc(0, 0, 7, 0, Math.PI * 2);
+      context.fill();
+      context.restore();
+    }
+
+    function drawFrisbee() {
+      context.save();
+      context.translate(frisbee.x, frisbee.y);
+      context.rotate(frisbee.flying ? frisbee.x * 0.12 : -0.2);
+      context.shadowColor = activeStyle.frisbeeGlow;
+      context.shadowBlur = 18;
+      context.fillStyle = activeStyle.frisbee;
+      context.beginPath();
+      context.ellipse(0, 0, frisbee.radius, 8, 0, 0, Math.PI * 2);
+      context.fill();
+      context.strokeStyle = activeStyle.rim;
+      context.lineWidth = 2;
+      context.beginPath();
+      context.ellipse(0, 0, frisbee.radius - 5, 3.5, 0, 0, Math.PI * 2);
+      context.stroke();
+      context.restore();
+    }
+
+    function draw() {
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.fillStyle = activeStyle.sky;
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.fillStyle = activeStyle.cloud;
+      context.beginPath();
+      context.arc(120, 76, 31, 0, Math.PI * 2);
+      context.arc(154, 76, 25, 0, Math.PI * 2);
+      context.arc(180, 80, 19, 0, Math.PI * 2);
+      context.fill();
+      context.fillStyle = activeStyle.field;
+      context.fillRect(0, 325, canvas.width, 131);
+      context.fillStyle = activeStyle.stripe;
+      for (let x = 0; x < canvas.width; x += 76) context.fillRect(x, 325, 38, 131);
+      if (!frisbee.flying && !gameOver) {
+        context.strokeStyle = activeStyle.aim;
+        context.lineWidth = 2;
+        context.setLineDash([7, 7]);
+        context.beginPath();
+        context.moveTo(frisbee.x, frisbee.y);
+        context.lineTo(430, aimY);
+        context.stroke();
+        context.setLineDash([]);
+      }
+      drawTarget();
+      drawFrisbee();
+      if (waitingForNextThrow) {
+        context.fillStyle = activeStyle.message;
+        context.font = "600 26px 'Playfair Display'";
+        context.textAlign = "center";
+        context.fillText("Nice throw!", canvas.width / 2, 55);
+      }
+      if (gameOver) {
+        context.fillStyle = activeStyle.overlay;
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.fillStyle = activeStyle.overlayText;
+        context.font = "600 52px 'Playfair Display'";
+        context.textAlign = "center";
+        const finalScore = twoPlayerMode ? resultMessage : `${activeMode.name}: ${score} points`;
+        context.fillText(finalScore, canvas.width / 2, canvas.height / 2 - 8);
+        context.font = "600 18px 'Plus Jakarta Sans'";
+        context.fillText(twoPlayerMode ? `Player 1: ${playerScores[0]} · Player 2: ${playerScores[1]}` : resultMessage, canvas.width / 2, canvas.height / 2 + 34);
+        context.font = "600 15px 'Plus Jakarta Sans'";
+        context.fillText(twoPlayerMode ? "Press Restart for another 5 throws each" : "Pass it to a friend or press Restart to try again", canvas.width / 2, canvas.height / 2 + 63);
+      }
+    }
+
+    function gameLoop() {
+      update();
+      draw();
+      requestAnimationFrame(gameLoop);
+    }
+
+    function updateAim(event) {
+      const bounds = canvas.getBoundingClientRect();
+      aimY = Math.max(20, Math.min(canvas.height - 20, (event.clientY - bounds.top) * canvas.height / bounds.height));
+    }
+
+    canvas.addEventListener("pointermove", updateAim);
+    canvas.addEventListener("pointerdown", (event) => {
+      updateAim(event);
+      throwFrisbee();
+    });
+    restartButton.addEventListener("click", restartGame);
+    modeSelect.addEventListener("change", updateMode);
+    styleSelect.addEventListener("change", updateStyle);
+    playerCountSelect.addEventListener("change", updatePlayerCount);
+
+    function updateMode() {
+      activeMode = modes[modeSelect.value];
+      target.radius = activeMode.targetRadius;
+      target.speed = activeMode.targetSpeed;
+      restartGame();
+    }
+
+    function updateStyle() {
+      document.body.dataset.style = styleSelect.value;
+      activeStyle = styles[styleSelect.value];
+    }
+
+    function updatePlayerCount() {
+      twoPlayerMode = playerCountSelect.value === "two";
+      restartGame();
+    }
+
+    restartGame();
+    gameLoop();
+  </script>
+</body>
+</html>

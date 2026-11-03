@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A colorful two-player ping pong minigame.">
+  <title>Ping Pong Pop</title>
+  <style>
+    :root { --ink: #151833; --cream: #fff9e8; --cyan: #5de5ee; --pink: #ff6694; --yellow: #ffdc64; --purple: #7e62d2; }
+    * { box-sizing: border-box; }
+    body { display: grid; min-height: 100vh; margin: 0; place-items: center; color: var(--cream); background: radial-gradient(circle at 18% 14%, rgba(93, 229, 238, 0.3), transparent 25rem), repeating-linear-gradient(130deg, rgba(255, 102, 148, 0.16) 0 7px, transparent 7px 28px), var(--ink); font-family: Arial, sans-serif; }
+    main { width: min(100% - 28px, 860px); padding: 28px; }
+    header, .bottom-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    header { margin-bottom: 18px; }
+    h1 { margin: 0; font-size: clamp(2.1rem, 6vw, 3.5rem); letter-spacing: -0.06em; }
+    a { color: var(--cream); font-size: 0.78rem; font-weight: 700; letter-spacing: 0.08em; text-decoration: none; text-transform: uppercase; }
+    a:hover { color: var(--yellow); }
+    .scoreboard { display: flex; justify-content: center; gap: 14px; margin-bottom: 14px; font-size: 0.82rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
+    .score { display: inline-block; min-width: 52px; padding: 8px 10px; color: var(--ink); background: var(--cream); font-size: 1.1rem; text-align: center; }
+    canvas { display: block; width: 100%; border: 5px solid var(--cream); background: #2b2258; box-shadow: 10px 10px 0 var(--purple), 0 0 28px rgba(93, 229, 238, 0.45); touch-action: none; }
+    .bottom-bar { margin-top: 20px; }
+    p { max-width: 620px; margin: 0; color: rgba(255, 249, 232, 0.9); font-size: 0.9rem; line-height: 1.5; }
+    button, select, input { min-height: 42px; padding: 0 10px; border: 1px solid var(--cream); color: var(--ink); background: var(--yellow); font-weight: 800; }
+    button, select { cursor: pointer; }
+    input[type="color"] { width: 48px; padding: 3px; cursor: pointer; }
+    .customize { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: -2px 0 14px; }
+    .customize label { display: flex; align-items: center; gap: 6px; font-size: 0.76rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; }
+    .customize input[type="text"] { width: 104px; }
+    button:hover { background: var(--cyan); }
+    @media (max-width: 620px) { main { padding: 19px 0 28px; } header, .bottom-bar { align-items: flex-start; flex-direction: column; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Ping Pong Pop</h1>
+      <a href="../">← Back home</a>
+    </header>
+    <div class="scoreboard" aria-label="Ping Pong Pop score">
+      <span id="pink-label">Pink <span class="score" id="pink-score">0</span></span>
+      <span id="cyan-label">Cyan <span class="score" id="cyan-score">0</span></span>
+      <span>First to <span class="score">7</span></span>
+    </div>
+    <div class="customize" aria-label="Player customization">
+      <label>Player 1 <input id="pink-name" type="text" value="Pink" maxlength="12"><input id="pink-color" type="color" value="#ff6694" aria-label="Player 1 color"></label>
+      <label>Player 2 <input id="cyan-name" type="text" value="Cyan" maxlength="12"><input id="cyan-color" type="color" value="#5de5ee" aria-label="Player 2 color"></label>
+    </div>
+    <canvas id="game" width="800" height="500" aria-label="Ping Pong Pop. Pink uses W and S. Cyan uses the up and down arrows."></canvas>
+    <div class="bottom-bar">
+      <p id="controls"><strong>Pink player:</strong> W / S. <strong>Cyan player:</strong> Up / Down arrows. Return the ball past the other paddle. The first player to seven points wins.</p>
+      <div>
+        <select id="mode" aria-label="Ping Pong Pop mode">
+          <option value="two-player" selected>2 players</option>
+          <option value="robot">Robot mode</option>
+        </select>
+        <button id="restart" type="button">New match</button>
+      </div>
+    </div>
+  </main>
+  <script>
+    const canvas = document.querySelector("#game");
+    const context = canvas.getContext("2d");
+    const pinkScoreElement = document.querySelector("#pink-score");
+    const cyanScoreElement = document.querySelector("#cyan-score");
+    const pinkLabel = document.querySelector("#pink-label");
+    const cyanLabel = document.querySelector("#cyan-label");
+    const controlsElement = document.querySelector("#controls");
+    const modeSelect = document.querySelector("#mode");
+    const pinkNameInput = document.querySelector("#pink-name");
+    const cyanNameInput = document.querySelector("#cyan-name");
+    const pinkColorInput = document.querySelector("#pink-color");
+    const cyanColorInput = document.querySelector("#cyan-color");
+    const restartButton = document.querySelector("#restart");
+    const keys = new Set();
+    const paddles = {
+      pink: { x: 35, y: 210, width: 18, height: 94, color: "#ff6694", score: 0 },
+      cyan: { x: 747, y: 210, width: 18, height: 94, color: "#5de5ee", score: 0 }
+    };
+    const ball = { x: 400, y: 250, radius: 11, velocityX: 0, velocityY: 0 };
+    let previousTime = 0;
+    let serveAt = 0;
+    let gameOver = false;
+    let message = "Get ready!";
+    let audioContext;
+    let robotMode = false;
+
+    function prepareAudio() {
+      if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioContext.state === "suspended") audioContext.resume();
+    }
+
+    function playMissPop() {
+      if (!audioContext) return;
+      const oscillator = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      oscillator.type = "sine";
+      oscillator.frequency.setValueAtTime(180, audioContext.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(75, audioContext.currentTime + 0.16);
+      gain.gain.setValueAtTime(0.14, audioContext.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.16);
+      oscillator.connect(gain);
+      gain.connect(audioContext.destination);
+      oscillator.start();
+      oscillator.stop(audioContext.currentTime + 0.16);
+    }
+
+    function updateScore() {
+      pinkScoreElement.textContent = paddles.pink.score;
+      cyanScoreElement.textContent = paddles.cyan.score;
+    }
+
+    function resetBall(direction) {
+      ball.x = canvas.width / 2;
+      ball.y = canvas.height / 2;
+      ball.velocityX = 0;
+      ball.velocityY = 0;
+      serveAt = performance.now() + 750;
+      message = "Serve!";
+      window.setTimeout(() => {
+        if (!gameOver) {
+          ball.velocityX = direction * 350;
+          ball.velocityY = (Math.random() - 0.5) * 220;
+          message = "";
+        }
+      }, 750);
+    }
+
+    function restartGame() {
+      paddles.pink.y = 210;
+      paddles.cyan.y = 210;
+      paddles.pink.score = 0;
+      paddles.cyan.score = 0;
+      gameOver = false;
+      updateScore();
+      resetBall(Math.random() < 0.5 ? -1 : 1);
+    }
+
+    function playerNames() {
+      return {
+        pink: pinkNameInput.value.trim() || "Player 1",
+        cyan: cyanNameInput.value.trim() || (robotMode ? "Robot" : "Player 2")
+      };
+    }
+
+    function applyCustomization() {
+      const names = playerNames();
+      paddles.pink.color = pinkColorInput.value;
+      paddles.cyan.color = cyanColorInput.value;
+      pinkLabel.firstChild.textContent = `${names.pink} `;
+      cyanLabel.firstChild.textContent = `${names.cyan} `;
+      pinkLabel.style.color = paddles.pink.color;
+      cyanLabel.style.color = paddles.cyan.color;
+      controlsElement.textContent = robotMode
+        ? `${names.pink}: W / S. ${names.cyan} controls the right paddle. The first player to seven points wins.`
+        : `${names.pink}: W / S. ${names.cyan}: Up / Down arrows. The first player to seven points wins.`;
+    }
+
+    function updateMode() {
+      robotMode = modeSelect.value === "robot";
+      applyCustomization();
+      restartGame();
+    }
+
+    function movePaddle(paddle, upKey, downKey, delta) {
+      const direction = (keys.has(upKey) ? -1 : 0) + (keys.has(downKey) ? 1 : 0);
+      paddle.y = Math.max(12, Math.min(canvas.height - paddle.height - 12, paddle.y + direction * 410 * delta));
+    }
+
+    function moveRobot(delta) {
+      const targetY = ball.velocityX > 0 ? ball.y : canvas.height / 2;
+      const paddleCenter = paddles.cyan.y + paddles.cyan.height / 2;
+      const movement = Math.max(-285 * delta, Math.min(285 * delta, targetY - paddleCenter));
+      paddles.cyan.y = Math.max(12, Math.min(canvas.height - paddles.cyan.height - 12, paddles.cyan.y + movement));
+    }
+
+    function hitPaddle(paddle, direction) {
+      const hitsX = direction < 0
+        ? ball.x - ball.radius <= paddle.x + paddle.width && ball.x > paddle.x
+        : ball.x + ball.radius >= paddle.x && ball.x < paddle.x + paddle.width;
+      const hitsY = ball.y + ball.radius >= paddle.y && ball.y - ball.radius <= paddle.y + paddle.height;
+      if (!hitsX || !hitsY || ball.velocityX * direction <= 0) return false;
+      ball.x = direction < 0 ? paddle.x + paddle.width + ball.radius : paddle.x - ball.radius;
+      ball.velocityX = Math.abs(ball.velocityX) * direction * -1.06;
+      const impact = (ball.y - (paddle.y + paddle.height / 2)) / (paddle.height / 2);
+      ball.velocityY += impact * 190;
+      return true;
+    }
+
+    function score(pointWinner) {
+      playMissPop();
+      paddles[pointWinner].score += 1;
+      updateScore();
+      if (paddles[pointWinner].score >= 7) {
+        gameOver = true;
+        ball.velocityX = 0;
+        ball.velocityY = 0;
+        message = `${playerNames()[pointWinner]} wins!`;
+      } else {
+        resetBall(pointWinner === "pink" ? -1 : 1);
+      }
+    }
+
+    function update(delta) {
+      movePaddle(paddles.pink, "w", "s", delta);
+      if (robotMode) moveRobot(delta);
+      else movePaddle(paddles.cyan, "arrowup", "arrowdown", delta);
+      if (gameOver || performance.now() < serveAt) return;
+      ball.x += ball.velocityX * delta;
+      ball.y += ball.velocityY * delta;
+      if (ball.y - ball.radius < 10 || ball.y + ball.radius > canvas.height - 10) {
+        ball.y = Math.max(10 + ball.radius, Math.min(canvas.height - 10 - ball.radius, ball.y));
+        ball.velocityY *= -1;
+      }
+      hitPaddle(paddles.pink, -1);
+      hitPaddle(paddles.cyan, 1);
+      if (ball.x < -ball.radius) score("cyan");
+      if (ball.x > canvas.width + ball.radius) score("pink");
+    }
+
+    function drawPaddle(paddle) {
+      context.fillStyle = paddle.color;
+      context.shadowColor = paddle.color;
+      context.shadowBlur = 18;
+      context.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
+      context.fillStyle = "rgba(255,255,255,0.5)";
+      context.fillRect(paddle.x + 4, paddle.y + 8, 4, paddle.height - 16);
+      context.shadowBlur = 0;
+    }
+
+    function draw() {
+      const court = context.createLinearGradient(0, 0, canvas.width, canvas.height);
+      court.addColorStop(0, "#34286e");
+      court.addColorStop(1, "#1b1640");
+      context.fillStyle = court;
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.strokeStyle = "rgba(255, 249, 232, 0.55)";
+      context.lineWidth = 4;
+      context.setLineDash([14, 14]);
+      context.beginPath();
+      context.moveTo(canvas.width / 2, 10);
+      context.lineTo(canvas.width / 2, canvas.height - 10);
+      context.stroke();
+      context.setLineDash([]);
+      drawPaddle(paddles.pink);
+      drawPaddle(paddles.cyan);
+      context.fillStyle = "#fff9e8";
+      context.shadowColor = "#fff9e8";
+      context.shadowBlur = 18;
+      context.beginPath();
+      context.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+      context.fill();
+      context.shadowBlur = 0;
+      if (message) {
+        context.fillStyle = "rgba(21, 24, 51, 0.72)";
+        context.fillRect(220, 205, 360, 88);
+        context.fillStyle = "#ffdc64";
+        context.font = "800 34px Arial";
+        context.textAlign = "center";
+        context.fillText(message, canvas.width / 2, 260);
+      }
+    }
+
+    function loop(timestamp) {
+      if (!previousTime) previousTime = timestamp;
+      const delta = Math.min((timestamp - previousTime) / 1000, 0.05);
+      previousTime = timestamp;
+      update(delta);
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    window.addEventListener("keydown", (event) => {
+      const key = event.key.toLowerCase();
+      prepareAudio();
+      if (["w", "s", "arrowup", "arrowdown"].includes(key)) event.preventDefault();
+      keys.add(key);
+    });
+    window.addEventListener("keyup", (event) => keys.delete(event.key.toLowerCase()));
+    restartButton.addEventListener("click", () => {
+      prepareAudio();
+      restartGame();
+    });
+    modeSelect.addEventListener("change", updateMode);
+    [pinkNameInput, cyanNameInput, pinkColorInput, cyanColorInput].forEach((input) => input.addEventListener("input", applyCustomization));
+    applyCustomization();
+    restartGame();
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>

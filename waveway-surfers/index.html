@@ -1,0 +1,922 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="An original ocean-surf endless runner minigame.">
+  <title>Waveway Surfers</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Playfair+Display:wght@600&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --cream: #effffd;
+      --night: #062a45;
+      --cyan: #4ee9ec;
+      --pink: #ff7a9c;
+      --gold: #ffd66b;
+      --purple: #387bd8;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      display: grid;
+      min-height: 100vh;
+      margin: 0;
+      place-items: center;
+      color: var(--cream);
+      background:
+        repeating-linear-gradient(115deg, rgba(239, 93, 136, 0.18) 0 4px, rgba(246, 199, 76, 0.14) 4px 8px, rgba(84, 223, 255, 0.18) 8px 12px, rgba(122, 90, 224, 0.16) 12px 16px, transparent 16px 34px),
+        radial-gradient(circle at 18% 16%, rgba(84, 223, 255, 0.3), transparent 30rem),
+        var(--night);
+      font-family: "Plus Jakarta Sans", sans-serif;
+    }
+
+    main {
+      width: min(100% - 28px, 860px);
+      padding: 28px;
+    }
+
+    header, .bottom-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    header { margin-bottom: 20px; }
+
+    h1 {
+      margin: 0;
+      font-family: "Playfair Display", serif;
+      font-size: clamp(2rem, 5vw, 3.4rem);
+      letter-spacing: -0.04em;
+    }
+
+    a {
+      color: var(--cream);
+      font-family: "DM Mono", monospace;
+      font-size: 0.72rem;
+      letter-spacing: 0.05em;
+      text-decoration: none;
+      text-transform: uppercase;
+    }
+
+    a:hover { color: var(--gold); }
+
+    .scoreboard {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 16px;
+      font-family: "DM Mono", monospace;
+      font-size: 0.83rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .score {
+      min-width: 58px;
+      padding: 8px 11px;
+      color: var(--night);
+      background: var(--cream);
+      font-size: 1.1rem;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      border: 5px solid var(--cream);
+      background: var(--night);
+      box-shadow: 0 0 0 2px var(--purple), 0 0 30px rgba(84, 223, 255, 0.65), 12px 12px 0 rgba(122, 90, 224, 0.8);
+      touch-action: none;
+    }
+
+    .bottom-bar { margin-top: 22px; }
+
+    p {
+      margin: 0;
+      color: rgba(255, 244, 223, 0.88);
+      font-size: 0.84rem;
+      line-height: 1.5;
+    }
+
+    button {
+      min-height: 42px;
+      padding: 0 16px;
+      border: 1px solid var(--cream);
+      color: var(--night);
+      background: var(--gold);
+      cursor: pointer;
+      font: 700 0.82rem "Plus Jakarta Sans", sans-serif;
+    }
+
+    select {
+      min-height: 42px;
+      padding: 0 28px 0 11px;
+      border: 1px solid var(--cream);
+      border-radius: 0;
+      color: var(--cream);
+      background: var(--night);
+      font: 700 0.82rem "Plus Jakarta Sans", sans-serif;
+      cursor: pointer;
+    }
+
+    button:hover { background: var(--cream); }
+
+    body[data-style="sunset"] {
+      --cream: #fff2dc;
+      --night: #392040;
+      --cyan: #ffb26b;
+      --pink: #ee6f8f;
+      --gold: #ffd66b;
+      --purple: #8b5ca8;
+      background:
+        radial-gradient(circle at 15% 16%, rgba(255, 178, 107, 0.35), transparent 30rem),
+        linear-gradient(145deg, #442144, #d2676d, #f0a067);
+    }
+
+    body[data-style="realistic"] {
+      --cream: #f5f1e4;
+      --night: #163340;
+      --cyan: #4a9bb1;
+      --pink: #d56b54;
+      --gold: #e5bd64;
+      --purple: #557487;
+      background:
+        radial-gradient(circle at 18% 16%, rgba(126, 185, 201, 0.28), transparent 30rem),
+        linear-gradient(145deg, #234955, #739daa, #d7c296);
+    }
+
+    @media (max-width: 560px) {
+      main { padding: 19px 0 28px; }
+      header, .bottom-bar { align-items: flex-start; flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Waveway Surfers</h1>
+      <a href="../">← Back home</a>
+    </header>
+
+    <div class="scoreboard" aria-label="Waveway Surfers score">
+      <span>Distance</span><span class="score" id="distance">0</span>
+      <span>Lives</span><span class="score" id="lives">3</span>
+      <span>Speed</span><span class="score" id="speed">1x</span>
+      <span>Level</span><span class="score" id="level">1</span>
+      <span>Power</span><span class="score" id="power">--</span>
+      <span>Checkpoint</span><span class="score" id="checkpoint">L1</span>
+    </div>
+
+    <canvas id="game" width="800" height="500" aria-label="Waveway Surfers. Use left and right arrows or A and D to change wave lanes, and W, up arrow, or Space to jump."></canvas>
+
+    <div class="bottom-bar">
+      <p>Use <strong>A / D</strong> or <strong>left / right arrows</strong> to switch wave lanes. Use <strong>W</strong>, <strong>Space</strong>, or <strong>up arrow</strong> to jump driftwood and dodge reef rocks. Gold T doubles your speed; pink + restores a life.</p>
+      <div>
+        <select id="style-select" aria-label="Waveway Surfers style">
+          <option value="classic" selected>Classic Surf</option>
+          <option value="sunset">Sunset Surf</option>
+          <option value="realistic">Realistic Coast</option>
+        </select>
+        <select id="audio-style" aria-label="Audio style">
+          <option value="tropical" selected>Tropical Audio</option>
+          <option value="calm">Calm Beach Audio</option>
+          <option value="arcade">Arcade Audio</option>
+          <option value="rock">Surf Rock Audio</option>
+        </select>
+        <button id="music-toggle" type="button" aria-pressed="false">Music: Off</button>
+        <button id="sound-toggle" type="button" aria-pressed="false">Sounds: Off</button>
+        <button id="continue-level" type="button" hidden>Continue to level 2</button>
+        <button id="restart" type="button">Restart surf</button>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const canvas = document.querySelector("#game");
+    const context = canvas.getContext("2d");
+    const distanceElement = document.querySelector("#distance");
+    const livesElement = document.querySelector("#lives");
+    const speedElement = document.querySelector("#speed");
+    const levelElement = document.querySelector("#level");
+    const powerElement = document.querySelector("#power");
+    const checkpointElement = document.querySelector("#checkpoint");
+    const styleSelect = document.querySelector("#style-select");
+    const audioStyleSelect = document.querySelector("#audio-style");
+    const musicToggle = document.querySelector("#music-toggle");
+    const soundToggle = document.querySelector("#sound-toggle");
+    const restartButton = document.querySelector("#restart");
+    const continueLevelButton = document.querySelector("#continue-level");
+    const lanes = [260, 400, 540];
+    const player = { lane: 1, x: lanes[1], y: 410, width: 42, height: 65, velocityY: 0, onGround: true, lives: 3, invulnerableUntil: 0, turboUntil: 0 };
+    const gravity = 1350;
+    let obstacles = [];
+    let powerups = [];
+    let distance = 0;
+    let speed = 235;
+    let level = 1;
+    let nextLevelDistance = 600;
+    let levelMessageUntil = 0;
+    let checkpointMessageUntil = 0;
+    let awaitingNextLevel = false;
+    let powerupSpawnTime = 0;
+    let checkpointLevel = 1;
+    let checkpointDistance = 0;
+    let checkpointLives = 3;
+    const styles = {
+      classic: {
+        skyTop: "#55c9e6", skyBottom: "#9de5e6", sun: "#ffd66b", hills: "#2b6d91",
+        waterTop: "#187da8", waterBottom: "#0d5c82", foam: "rgba(239, 255, 253, 0.72)",
+        lane: "rgba(78, 233, 236, 0.72)", rock: "#387bd8", rockHighlight: "#effffd",
+        driftwood: "#9b633c", driftLine: "#5d3825", sand: "#f2cb7c", sandShade: "#d99b5f",
+        palm: "#165c47", palmDark: "#0d3f37", breaker: "#0b6991"
+      },
+      sunset: {
+        skyTop: "#6e315d", skyBottom: "#f2a16d", sun: "#ffd66b", hills: "#5b3858",
+        waterTop: "#337b9b", waterBottom: "#23576f", foam: "rgba(255, 242, 220, 0.76)",
+        lane: "rgba(255, 178, 107, 0.75)", rock: "#8b5ca8", rockHighlight: "#fff2dc",
+        driftwood: "#80472e", driftLine: "#4f2d25", sand: "#e7ae70", sandShade: "#b86c53",
+        palm: "#3e4e42", palmDark: "#293a35", breaker: "#286b86"
+      },
+      realistic: {
+        skyTop: "#89bed1", skyBottom: "#e6d4a1", sun: "#f4c86d", hills: "#52777a",
+        waterTop: "#397c8d", waterBottom: "#1f5969", foam: "rgba(245, 241, 228, 0.76)",
+        lane: "rgba(188, 225, 229, 0.7)", rock: "#65777b", rockHighlight: "#d6d3c7",
+        driftwood: "#79543b", driftLine: "#503724", sand: "#d9c38f", sandShade: "#a78a64",
+        palm: "#315f4e", palmDark: "#214637", breaker: "#286b79"
+      }
+    };
+    let activeStyle = styles.classic;
+    let spawnTime = 0;
+    let roadOffset = 0;
+    let previousTime = 0;
+    let gameOver = false;
+    let audioContext;
+    let musicEnabled = false;
+    let soundEnabled = false;
+    let musicTimer;
+    let musicNote = 0;
+    let audioStyle = "tropical";
+    const audioStyles = {
+      tropical: {
+        notes: [262, 330, 392, 330, 294, 349, 440, 349],
+        tempo: 360,
+        musicType: "triangle",
+        musicVolume: 0.035,
+        sounds: {
+          jump: [494, 0.14, "triangle", 0.09], lane: [330, 0.08, "sine", 0.06],
+          turbo: [784, 0.28, "sawtooth", 0.08], life: [659, 0.22, "triangle", 0.09],
+          hit: [105, 0.3, "square", 0.08], level: [523, 0.32, "triangle", 0.08]
+        }
+      },
+      calm: {
+        notes: [220, 247, 294, 330, 294, 247],
+        tempo: 580,
+        musicType: "sine",
+        musicVolume: 0.025,
+        sounds: {
+          jump: [392, 0.18, "sine", 0.06], lane: [262, 0.12, "sine", 0.045],
+          turbo: [659, 0.25, "sine", 0.06], life: [523, 0.3, "sine", 0.07],
+          hit: [130, 0.24, "sine", 0.05], level: [440, 0.4, "sine", 0.07]
+        }
+      },
+      arcade: {
+        notes: [523, 659, 784, 659, 880, 784, 659, 523],
+        tempo: 220,
+        musicType: "square",
+        musicVolume: 0.022,
+        sounds: {
+          jump: [740, 0.1, "square", 0.06], lane: [520, 0.06, "square", 0.055],
+          turbo: [980, 0.2, "sawtooth", 0.07], life: [880, 0.18, "square", 0.065],
+          hit: [90, 0.2, "sawtooth", 0.07], level: [1047, 0.28, "square", 0.065]
+        }
+      },
+      rock: {
+        notes: [196, 247, 294, 247, 220, 294, 330, 294],
+        tempo: 285,
+        musicType: "sawtooth",
+        musicVolume: 0.025,
+        sounds: {
+          jump: [440, 0.12, "sawtooth", 0.07], lane: [294, 0.08, "triangle", 0.055],
+          turbo: [880, 0.24, "sawtooth", 0.08], life: [587, 0.2, "sawtooth", 0.07],
+          hit: [82, 0.25, "square", 0.08], level: [659, 0.3, "sawtooth", 0.075]
+        }
+      }
+    };
+
+    function levelLength(levelNumber) {
+      return 600 + (levelNumber - 1) * 180;
+    }
+
+    function levelEndDistance(levelNumber) {
+      let totalDistance = 0;
+      for (let currentLevel = 1; currentLevel <= levelNumber; currentLevel += 1) {
+        totalDistance += levelLength(currentLevel);
+      }
+      return totalDistance;
+    }
+
+    function getAudioContext() {
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioContext.state === "suspended") audioContext.resume();
+      return audioContext;
+    }
+
+    function playTone(frequency, duration, type, volume) {
+      const audio = getAudioContext();
+      const oscillator = audio.createOscillator();
+      const gain = audio.createGain();
+      oscillator.type = type;
+      oscillator.frequency.value = frequency;
+      gain.gain.setValueAtTime(volume, audio.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + duration);
+      oscillator.connect(gain);
+      gain.connect(audio.destination);
+      oscillator.start();
+      oscillator.stop(audio.currentTime + duration);
+    }
+
+    function playSound(name) {
+      if (!soundEnabled) return;
+      const [frequency, duration, type, volume] = audioStyles[audioStyle].sounds[name];
+      playTone(frequency, duration, type, volume);
+    }
+
+    function playMusicBeat() {
+      if (!musicEnabled) return;
+      const selectedAudioStyle = audioStyles[audioStyle];
+      playTone(
+        selectedAudioStyle.notes[musicNote % selectedAudioStyle.notes.length],
+        Math.min(0.35, selectedAudioStyle.tempo / 1500),
+        selectedAudioStyle.musicType,
+        selectedAudioStyle.musicVolume
+      );
+      musicNote += 1;
+    }
+
+    function updateMusic() {
+      window.clearInterval(musicTimer);
+      if (musicEnabled) {
+        playMusicBeat();
+        musicTimer = window.setInterval(playMusicBeat, audioStyles[audioStyle].tempo);
+      }
+    }
+
+    function restartGame() {
+      obstacles = [];
+      powerups = [];
+      const resumeCheckpoint = gameOver && checkpointLevel > 1;
+      distance = resumeCheckpoint ? checkpointDistance : 0;
+      speed = 235 + (resumeCheckpoint ? (checkpointLevel - 1) * 45 : 0);
+      level = resumeCheckpoint ? checkpointLevel : 1;
+      nextLevelDistance = levelEndDistance(level);
+      levelMessageUntil = 0;
+      checkpointMessageUntil = 0;
+      awaitingNextLevel = false;
+      powerupSpawnTime = 0;
+      continueLevelButton.hidden = true;
+      spawnTime = 0;
+      roadOffset = 0;
+      previousTime = 0;
+      gameOver = false;
+      player.lane = 1;
+      player.x = lanes[1];
+      player.y = 410;
+      player.velocityY = 0;
+      player.onGround = true;
+      player.lives = resumeCheckpoint ? checkpointLives : 3;
+      player.invulnerableUntil = 0;
+      player.turboUntil = 0;
+      if (!resumeCheckpoint) {
+        checkpointLevel = 1;
+        checkpointDistance = 0;
+        checkpointLives = 3;
+      }
+      updateStatus();
+    }
+
+    function updateStatus() {
+      distanceElement.textContent = Math.floor(distance);
+      livesElement.textContent = player.lives;
+      const turboMultiplier = player.turboUntil > performance.now() ? 2 : 1;
+      speedElement.textContent = `${((speed / 235) * turboMultiplier).toFixed(1)}x`;
+      levelElement.textContent = level;
+      const turboSeconds = Math.ceil((player.turboUntil - performance.now()) / 1000);
+      powerElement.textContent = turboSeconds > 0 ? `${turboSeconds}s` : "--";
+      checkpointElement.textContent = `L${checkpointLevel}`;
+    }
+
+    function switchLane(change) {
+      if (gameOver || awaitingNextLevel) return;
+      const nextLane = Math.max(0, Math.min(lanes.length - 1, player.lane + change));
+      if (nextLane !== player.lane) playSound("lane");
+      player.lane = nextLane;
+    }
+
+    function jump() {
+      if (gameOver || awaitingNextLevel || !player.onGround) return;
+      player.velocityY = -560;
+      player.onGround = false;
+      playSound("jump");
+    }
+
+    function createObstacle() {
+      const kind = Math.random() > 0.36 ? "driftwood" : "reef-rock";
+      obstacles.push({
+        lane: Math.floor(Math.random() * lanes.length),
+        depth: 0,
+        kind
+      });
+    }
+
+    function createPowerup() {
+      powerups.push({
+        lane: Math.floor(Math.random() * lanes.length),
+        depth: 0,
+        type: Math.random() > 0.55 ? "life" : "turbo"
+      });
+    }
+
+    function projectObstacle(obstacle) {
+      const scale = 0.22 + obstacle.depth * 0.78;
+      return {
+        x: canvas.width / 2 + (lanes[obstacle.lane] - canvas.width / 2) * scale,
+        y: 120 + obstacle.depth * obstacle.depth * 340,
+        width: (obstacle.kind === "reef-rock" ? 70 : 42) * scale,
+        height: (obstacle.kind === "reef-rock" ? 70 : 42) * scale
+      };
+    }
+
+    function hitObstacle(obstacle) {
+      const projected = projectObstacle(obstacle);
+      if (obstacle.kind === "driftwood" && player.y < 385) return false;
+      return obstacle.depth > 0.84
+        && player.lane === obstacle.lane
+        && player.y + player.height / 2 >= projected.y - projected.height / 2;
+    }
+
+    function loseLife() {
+      player.lives -= 1;
+      player.invulnerableUntil = performance.now() + 1100;
+      playSound("hit");
+      updateStatus();
+      if (player.lives <= 0) gameOver = true;
+    }
+
+    function update(delta) {
+      if (gameOver || awaitingNextLevel) return;
+      const turboActive = player.turboUntil > performance.now();
+      const currentSpeed = speed * (turboActive ? 2 : 1);
+      speed += delta * 4;
+      distance += currentSpeed * delta * 0.08;
+      if (distance >= nextLevelDistance) {
+        awaitingNextLevel = true;
+        continueLevelButton.textContent = `Continue to level ${level + 1}`;
+        continueLevelButton.hidden = false;
+      }
+      roadOffset = (roadOffset + currentSpeed * delta) % 70;
+      player.x += (lanes[player.lane] - player.x) * Math.min(1, delta * 11);
+      player.velocityY += gravity * delta;
+      player.y += player.velocityY * delta;
+      if (player.y >= 410) {
+        player.y = 410;
+        player.velocityY = 0;
+        player.onGround = true;
+      }
+      spawnTime += delta;
+      if (spawnTime > Math.max(0.58, 1.05 - speed / 850)) {
+        createObstacle();
+        spawnTime = 0;
+      }
+      powerupSpawnTime += delta;
+      if (powerupSpawnTime > 7) {
+        createPowerup();
+        powerupSpawnTime = 0;
+      }
+      obstacles.forEach((obstacle) => { obstacle.depth += delta * (0.19 + currentSpeed / 1700); });
+      powerups.forEach((powerup) => { powerup.depth += delta * (0.19 + currentSpeed / 1700); });
+      const now = performance.now();
+      obstacles = obstacles.filter((obstacle) => {
+        if (hitObstacle(obstacle) && player.turboUntil > now) return false;
+        if (player.invulnerableUntil <= now && hitObstacle(obstacle)) {
+          loseLife();
+          return false;
+        }
+        return obstacle.depth < 1.15;
+      });
+      powerups = powerups.filter((powerup) => {
+        if (powerup.depth > 0.84 && player.lane === powerup.lane) {
+          if (powerup.type === "turbo") {
+            player.turboUntil = now + 5000;
+            playSound("turbo");
+          }
+          if (powerup.type === "life") {
+            player.lives = Math.min(5, player.lives + 1);
+            playSound("life");
+          }
+          updateStatus();
+          return false;
+        }
+        return powerup.depth < 1.15;
+      });
+      updateStatus();
+    }
+
+    function drawOcean() {
+      const sky = context.createLinearGradient(0, 0, 0, canvas.height);
+      sky.addColorStop(0, activeStyle.skyTop);
+      sky.addColorStop(0.52, activeStyle.skyBottom);
+      sky.addColorStop(1, activeStyle.waterTop);
+      context.fillStyle = sky;
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.fillStyle = activeStyle.sun;
+      context.beginPath();
+      context.arc(126, 104, 48, 0, Math.PI * 2);
+      context.fill();
+      context.fillStyle = activeStyle.hills;
+      context.beginPath();
+      context.moveTo(0, 245);
+      context.lineTo(165, 180);
+      context.lineTo(310, 245);
+      context.lineTo(485, 165);
+      context.lineTo(660, 245);
+      context.lineTo(800, 190);
+      context.lineTo(800, 300);
+      context.lineTo(0, 300);
+      context.closePath();
+      context.fill();
+      drawTropicalBeach();
+    }
+
+    function drawPalm(x, baseY, scale, lean) {
+      context.save();
+      context.translate(x, baseY);
+      context.scale(scale, scale);
+      context.rotate(lean);
+      context.strokeStyle = activeStyle.sandShade;
+      context.lineWidth = 11;
+      context.lineCap = "round";
+      context.beginPath();
+      context.moveTo(0, 0);
+      context.quadraticCurveTo(-5, -44, 8, -88);
+      context.stroke();
+      context.translate(8, -88);
+      context.strokeStyle = activeStyle.palm;
+      context.lineWidth = 9;
+      for (const angle of [-2.5, -1.95, -1.35, -0.78, -0.25]) {
+        context.save();
+        context.rotate(angle);
+        context.beginPath();
+        context.moveTo(0, 0);
+        context.quadraticCurveTo(29, -14, 49, 2);
+        context.stroke();
+        context.restore();
+      }
+      context.fillStyle = activeStyle.palmDark;
+      context.beginPath();
+      context.arc(0, 0, 8, 0, Math.PI * 2);
+      context.fill();
+      context.restore();
+    }
+
+    function drawTropicalBeach() {
+      context.fillStyle = activeStyle.sand;
+      context.beginPath();
+      context.moveTo(0, 264);
+      context.quadraticCurveTo(100, 235, 212, 255);
+      context.lineTo(174, 294);
+      context.lineTo(0, 315);
+      context.closePath();
+      context.fill();
+      context.beginPath();
+      context.moveTo(800, 254);
+      context.quadraticCurveTo(688, 228, 590, 258);
+      context.lineTo(632, 296);
+      context.lineTo(800, 318);
+      context.closePath();
+      context.fill();
+      context.strokeStyle = activeStyle.foam;
+      context.lineWidth = 3;
+      context.beginPath();
+      context.moveTo(0, 275);
+      context.quadraticCurveTo(97, 247, 201, 265);
+      context.moveTo(800, 265);
+      context.quadraticCurveTo(697, 240, 604, 267);
+      context.stroke();
+      drawPalm(72, 278, 0.92, -0.08);
+      drawPalm(145, 273, 0.68, 0.13);
+      drawPalm(735, 270, 0.9, 0.08);
+      drawPalm(666, 277, 0.62, -0.14);
+    }
+
+    function drawWaves() {
+      context.fillStyle = activeStyle.waterTop;
+      context.beginPath();
+      context.moveTo(105, canvas.height);
+      context.lineTo(695, canvas.height);
+      context.lineTo(522, 122);
+      context.lineTo(278, 122);
+      context.closePath();
+      context.fill();
+      context.strokeStyle = activeStyle.foam;
+      context.lineWidth = 3;
+      for (const waveOffset of [-1, 1]) {
+        context.beginPath();
+        context.moveTo(canvas.width / 2 + waveOffset * 245, canvas.height);
+        context.lineTo(canvas.width / 2 + waveOffset * 72, 122);
+        context.stroke();
+      }
+      context.strokeStyle = activeStyle.foam;
+      for (let y = 125 + roadOffset; y < canvas.height; y += 70) {
+        const progress = (y - 120) / (canvas.height - 120);
+        const left = canvas.width / 2 - 72 - progress * 173;
+        const right = canvas.width / 2 + 72 + progress * 173;
+        context.beginPath();
+        context.moveTo(left, y);
+        context.lineTo(right, y);
+        context.stroke();
+      }
+      const swell = Math.sin(roadOffset / 12) * 10;
+      context.fillStyle = activeStyle.breaker;
+      context.beginPath();
+      context.moveTo(-30, canvas.height);
+      context.lineTo(-30, 454);
+      context.quadraticCurveTo(130, 374 + swell, 292, 422);
+      context.quadraticCurveTo(449, 468, 601, 400 - swell);
+      context.quadraticCurveTo(704, 357 + swell, 830, 426);
+      context.lineTo(830, canvas.height);
+      context.closePath();
+      context.fill();
+      context.strokeStyle = activeStyle.foam;
+      context.lineWidth = 10;
+      context.lineCap = "round";
+      context.beginPath();
+      context.moveTo(-30, 454);
+      context.quadraticCurveTo(130, 374 + swell, 292, 422);
+      context.quadraticCurveTo(449, 468, 601, 400 - swell);
+      context.quadraticCurveTo(704, 357 + swell, 830, 426);
+      context.stroke();
+      context.lineCap = "butt";
+      context.strokeStyle = activeStyle.lane;
+      context.lineWidth = 2;
+      for (let lane = 1; lane < lanes.length; lane += 1) {
+        context.beginPath();
+        context.moveTo(canvas.width / 2, 122);
+        context.lineTo(lane === 1 ? 400 : 0, canvas.height);
+        context.stroke();
+      }
+    }
+
+    function drawObstacle(obstacle) {
+      const projected = projectObstacle(obstacle);
+      const color = obstacle.kind === "reef-rock" ? activeStyle.rock : activeStyle.driftwood;
+      context.save();
+      context.translate(projected.x, projected.y);
+      context.shadowColor = color;
+      context.shadowBlur = 14;
+      context.fillStyle = color;
+      if (obstacle.kind === "reef-rock") {
+        context.beginPath();
+        context.moveTo(-projected.width * 0.5, projected.height * 0.38);
+        context.lineTo(-projected.width * 0.42, -projected.height * 0.12);
+        context.lineTo(-projected.width * 0.2, -projected.height * 0.42);
+        context.lineTo(projected.width * 0.02, -projected.height * 0.17);
+        context.lineTo(projected.width * 0.26, -projected.height * 0.48);
+        context.lineTo(projected.width * 0.48, projected.height * 0.18);
+        context.lineTo(projected.width * 0.34, projected.height * 0.44);
+        context.lineTo(-projected.width * 0.24, projected.height * 0.48);
+        context.closePath();
+        context.fill();
+        context.fillStyle = activeStyle.rockHighlight;
+        context.beginPath();
+        context.moveTo(-projected.width * 0.25, -projected.height * 0.1);
+        context.lineTo(-projected.width * 0.14, -projected.height * 0.3);
+        context.lineTo(projected.width * 0.02, -projected.height * 0.13);
+        context.lineTo(-projected.width * 0.08, projected.height * 0.04);
+        context.closePath();
+        context.fill();
+        context.strokeStyle = activeStyle.driftLine;
+        context.lineWidth = Math.max(1, projected.width * 0.05);
+        context.beginPath();
+        context.moveTo(projected.width * 0.08, -projected.height * 0.07);
+        context.lineTo(projected.width * 0.19, projected.height * 0.3);
+        context.moveTo(projected.width * 0.19, projected.height * 0.3);
+        context.lineTo(projected.width * 0.34, projected.height * 0.12);
+        context.stroke();
+      } else {
+        context.rotate(-0.2);
+        context.strokeStyle = color;
+        context.lineWidth = projected.height * 0.6;
+        context.lineCap = "round";
+        context.beginPath();
+        context.moveTo(-projected.width * 0.52, projected.height * 0.05);
+        context.quadraticCurveTo(0, -projected.height * 0.24, projected.width * 0.52, projected.height * 0.04);
+        context.stroke();
+        context.fillStyle = activeStyle.driftLine;
+        context.lineWidth = Math.max(1, projected.height * 0.1);
+        context.beginPath();
+        context.moveTo(-projected.width * 0.15, -projected.height * 0.12);
+        context.lineTo(-projected.width * 0.28, -projected.height * 0.48);
+        context.moveTo(projected.width * 0.13, -projected.height * 0.08);
+        context.lineTo(projected.width * 0.32, -projected.height * 0.36);
+        context.stroke();
+        context.fillStyle = activeStyle.rockHighlight;
+        context.beginPath();
+        context.arc(projected.width * 0.5, projected.height * 0.04, projected.height * 0.18, 0, Math.PI * 2);
+        context.fill();
+        context.lineCap = "butt";
+      }
+      context.restore();
+    }
+
+    function drawPowerup(powerup) {
+      const projected = projectObstacle({ ...powerup, kind: "driftwood" });
+      const details = powerup.type === "life"
+        ? { color: "#ff7a9c", label: "+" }
+        : { color: "#ffd66b", label: "T" };
+      context.save();
+      context.translate(projected.x, projected.y);
+      context.rotate(Math.PI / 4);
+      context.shadowColor = details.color;
+      context.shadowBlur = 20;
+      context.fillStyle = details.color;
+      context.fillRect(-projected.width / 2, -projected.width / 2, projected.width, projected.width);
+      context.rotate(-Math.PI / 4);
+      context.fillStyle = "#062a45";
+      context.font = `700 ${Math.max(8, projected.width * 0.32)}px 'DM Mono'`;
+      context.textAlign = "center";
+      context.fillText(details.label, 0, projected.width * 0.12);
+      context.restore();
+    }
+
+    function drawSurfer() {
+      if (player.invulnerableUntil > performance.now() && Math.floor(performance.now() / 85) % 2 === 0) return;
+      context.save();
+      context.translate(player.x, player.y);
+      const lean = -0.16 + Math.sin(performance.now() / 210) * 0.05;
+      context.rotate(lean);
+      context.shadowColor = player.turboUntil > performance.now() ? "#ffd66b" : "#4ee9ec";
+      context.shadowBlur = 18;
+      context.fillStyle = "#effffd";
+      context.beginPath();
+      context.moveTo(-48, 38);
+      context.quadraticCurveTo(0, 52, 48, 38);
+      context.quadraticCurveTo(0, 28, -48, 38);
+      context.closePath();
+      context.fill();
+
+      context.strokeStyle = "#ff7a9c";
+      context.lineWidth = 8;
+      context.lineCap = "round";
+      context.beginPath();
+      context.moveTo(5, -5);
+      context.lineTo(0, 22);
+      context.stroke();
+
+      context.strokeStyle = "#effffd";
+      context.lineWidth = 6;
+      context.beginPath();
+      context.moveTo(-5, 18);
+      context.lineTo(-21, 29);
+      context.lineTo(-5, 38);
+      context.moveTo(9, 20);
+      context.lineTo(27, 24);
+      context.lineTo(17, 38);
+      context.stroke();
+
+      context.strokeStyle = "#ff7a9c";
+      context.lineWidth = 5;
+      context.beginPath();
+      context.moveTo(-4, -1);
+      context.lineTo(-22, 12);
+      context.lineTo(-34, 6);
+      context.moveTo(13, 0);
+      context.lineTo(35, -9);
+      context.lineTo(48, 0);
+      context.stroke();
+
+      context.fillStyle = "#effffd";
+      context.beginPath();
+      context.arc(14, -22, 13, 0, Math.PI * 2);
+      context.fill();
+      context.fillStyle = "#523a2d";
+      context.beginPath();
+      context.arc(19, -28, 14, Math.PI * 0.82, Math.PI * 2);
+      context.fill();
+      context.lineCap = "butt";
+      context.restore();
+    }
+
+    function draw() {
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      drawOcean();
+      drawWaves();
+      [...obstacles].sort((first, second) => first.depth - second.depth).forEach(drawObstacle);
+      [...powerups].sort((first, second) => first.depth - second.depth).forEach(drawPowerup);
+      drawSurfer();
+      if (performance.now() < levelMessageUntil) {
+        context.fillStyle = "#ffd66b";
+        context.font = "600 32px 'Playfair Display'";
+        context.textAlign = "center";
+        context.fillText(`LEVEL ${level}!`, canvas.width / 2, 72);
+      }
+      if (performance.now() < checkpointMessageUntil) {
+        context.fillStyle = "#ff7a9c";
+        context.font = "600 24px 'DM Mono'";
+        context.textAlign = "center";
+        context.fillText(`CHECKPOINT: LEVEL ${checkpointLevel}`, canvas.width / 2, 106);
+      }
+      if (awaitingNextLevel) {
+        context.fillStyle = "rgba(6, 42, 69, 0.78)";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.fillStyle = "#ffd66b";
+        context.font = "600 48px 'Playfair Display'";
+        context.textAlign = "center";
+        context.fillText(`LEVEL ${level} COMPLETE!`, canvas.width / 2, canvas.height / 2 - 8);
+        context.fillStyle = "#effffd";
+        context.font = "600 18px 'Plus Jakarta Sans'";
+        context.fillText("Use Continue to catch the next wave", canvas.width / 2, canvas.height / 2 + 32);
+      }
+      if (gameOver) {
+        context.fillStyle = "rgba(23, 20, 45, 0.9)";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.fillStyle = "#f6c74c";
+        context.font = "600 52px 'Playfair Display'";
+        context.textAlign = "center";
+        context.fillText("WIPEOUT!", canvas.width / 2, canvas.height / 2 - 8);
+        context.fillStyle = "#effffd";
+        context.font = "600 18px 'Plus Jakarta Sans'";
+        context.fillText(`Distance: ${Math.floor(distance)}`, canvas.width / 2, canvas.height / 2 + 30);
+        context.font = "600 15px 'Plus Jakarta Sans'";
+        context.fillText(checkpointLevel > 1 ? `Press Restart surf to resume at level ${checkpointLevel}` : "Press Restart surf to ride again", canvas.width / 2, canvas.height / 2 + 60);
+      }
+    }
+
+    function loop(timestamp) {
+      if (!previousTime) previousTime = timestamp;
+      const delta = Math.min((timestamp - previousTime) / 1000, 0.05);
+      previousTime = timestamp;
+      update(delta);
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    window.addEventListener("keydown", (event) => {
+      const key = event.key.toLowerCase();
+      if (["a", "d", "w", "arrowleft", "arrowright", "arrowup", " "].includes(key)) event.preventDefault();
+      if (key === "a" || key === "arrowleft") switchLane(-1);
+      if (key === "d" || key === "arrowright") switchLane(1);
+      if (key === "w" || key === "arrowup" || key === " ") jump();
+    });
+    continueLevelButton.addEventListener("click", () => {
+      awaitingNextLevel = false;
+      level += 1;
+      nextLevelDistance = levelEndDistance(level);
+      speed += 45;
+      playSound("level");
+      levelMessageUntil = performance.now() + 1200;
+      if (level % 5 === 0) {
+        checkpointLevel = level;
+        checkpointDistance = distance;
+        checkpointLives = Math.max(3, player.lives);
+        checkpointMessageUntil = performance.now() + 2200;
+      }
+      continueLevelButton.hidden = true;
+      updateStatus();
+    });
+    styleSelect.addEventListener("change", () => {
+      document.body.dataset.style = styleSelect.value;
+      activeStyle = styles[styleSelect.value];
+    });
+    audioStyleSelect.addEventListener("change", () => {
+      audioStyle = audioStyleSelect.value;
+      musicNote = 0;
+      updateMusic();
+      if (soundEnabled) playSound("life");
+    });
+    musicToggle.addEventListener("click", () => {
+      musicEnabled = !musicEnabled;
+      musicToggle.textContent = `Music: ${musicEnabled ? "On" : "Off"}`;
+      musicToggle.setAttribute("aria-pressed", String(musicEnabled));
+      updateMusic();
+    });
+    soundToggle.addEventListener("click", () => {
+      soundEnabled = !soundEnabled;
+      soundToggle.textContent = `Sounds: ${soundEnabled ? "On" : "Off"}`;
+      soundToggle.setAttribute("aria-pressed", String(soundEnabled));
+      if (soundEnabled) playSound("life");
+    });
+    restartButton.addEventListener("click", restartGame);
+
+    restartGame();
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>

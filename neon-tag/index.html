@@ -1,0 +1,742 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A local two to four player neon tag game.">
+  <title>Neon Tag</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Playfair+Display:wght@600&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --cream: #edfffd;
+      --night: #071523;
+      --cyan: #00e5ff;
+      --pink: #ff2bd6;
+      --lime: #d8ff3e;
+      --purple: #8f36ff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      display: grid;
+      min-height: 100vh;
+      margin: 0;
+      place-items: center;
+      color: var(--cream);
+      background:
+        repeating-linear-gradient(115deg, rgba(255, 43, 214, 0.18) 0 4px, rgba(216, 255, 62, 0.14) 4px 8px, rgba(0, 229, 255, 0.18) 8px 12px, rgba(143, 54, 255, 0.16) 12px 16px, transparent 16px 34px),
+        radial-gradient(circle at 15% 17%, rgba(143, 54, 255, 0.34), transparent 30rem),
+        var(--night);
+      font-family: "Plus Jakarta Sans", sans-serif;
+    }
+
+    main {
+      width: min(100% - 28px, 920px);
+      padding: 28px;
+    }
+
+    header, .bottom-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    header { margin-bottom: 20px; }
+
+    h1 {
+      margin: 0;
+      font-family: "Playfair Display", serif;
+      font-size: clamp(2rem, 5vw, 3.4rem);
+      letter-spacing: -0.04em;
+    }
+
+    a {
+      color: var(--cream);
+      font-family: "DM Mono", monospace;
+      font-size: 0.72rem;
+      letter-spacing: 0.05em;
+      text-decoration: none;
+      text-transform: uppercase;
+    }
+
+    a:hover { color: var(--lime); }
+
+    .scoreboard, .game-controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 14px;
+    }
+
+    .scoreboard {
+      margin-bottom: 16px;
+      font-family: "DM Mono", monospace;
+      font-size: 0.83rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .score {
+      min-width: 57px;
+      padding: 8px 11px;
+      color: var(--night);
+      background: var(--cream);
+      font-size: 1.1rem;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--cream);
+      font: 500 0.72rem "DM Mono", monospace;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    select, button {
+      min-height: 42px;
+      border: 1px solid var(--cream);
+      border-radius: 0;
+      font: 700 0.82rem "Plus Jakarta Sans", sans-serif;
+      cursor: pointer;
+    }
+
+    input[type="color"] {
+      width: 44px;
+      min-height: 42px;
+      padding: 4px;
+      border: 1px solid var(--cream);
+      background: var(--night);
+      cursor: pointer;
+    }
+
+    select {
+      padding: 0 28px 0 11px;
+      color: var(--cream);
+      background: var(--night);
+    }
+
+    button {
+      padding: 0 16px;
+      color: var(--night);
+      background: var(--lime);
+    }
+
+    button:hover { background: var(--cream); }
+
+    canvas {
+      display: block;
+      width: 100%;
+      border: 5px solid var(--cream);
+      background: var(--night);
+      box-shadow: 0 0 0 2px var(--purple), 0 0 30px rgba(0, 229, 255, 0.65), 12px 12px 0 rgba(143, 54, 255, 0.8);
+    }
+
+    .bottom-bar {
+      align-items: flex-start;
+      margin-top: 22px;
+    }
+
+    p {
+      max-width: 620px;
+      margin: 0;
+      color: rgba(237, 255, 253, 0.88);
+      font-size: 0.84rem;
+      line-height: 1.55;
+    }
+
+    @media (max-width: 560px) {
+      main { padding: 19px 0 28px; }
+      header, .bottom-bar { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Neon Tag</h1>
+      <a href="../">← Back home</a>
+    </header>
+
+    <div class="scoreboard" aria-label="Neon Tag game status">
+      <span>Time</span><span class="score" id="time">35</span>
+      <span>Round</span><span class="score" id="round">1</span>
+      <span>It</span><span class="score" id="it-player">P1</span>
+    </div>
+
+    <canvas id="game" width="840" height="500" aria-label="Neon Tag. Two to four players use shared keyboard controls to avoid being IT."></canvas>
+
+    <div class="bottom-bar">
+      <p id="controls">Choose 2–4 players. Run, jump across platforms, and spend the least time as IT to win.</p>
+      <div class="game-controls">
+        <label for="player-count">Players
+          <select id="player-count">
+            <option value="2" selected>2 players</option>
+            <option value="3">3 players</option>
+            <option value="4">4 players</option>
+          </select>
+        </label>
+        <label for="map-select">Map
+          <select id="map-select">
+            <option value="random" selected>Random rounds</option>
+            <option value="rainbow">Rainbow Run</option>
+            <option value="sky">Sky Steps</option>
+            <option value="pulse">Pulse Pit</option>
+            <option value="canyon">Color Canyon</option>
+            <option value="tower">Prism Tower</option>
+            <option value="bridges">Glow Bridges</option>
+          </select>
+        </label>
+        <label for="player-one-color">P1
+          <input id="player-one-color" type="color" value="#00e5ff">
+        </label>
+        <label for="player-two-color">P2
+          <input id="player-two-color" type="color" value="#ff2bd6">
+        </label>
+        <label for="player-three-color">P3
+          <input id="player-three-color" type="color" value="#d8ff3e">
+        </label>
+        <label for="player-four-color">P4
+          <input id="player-four-color" type="color" value="#8f36ff">
+        </label>
+        <button id="continue-round" type="button" hidden>Continue to round 2</button>
+        <button id="restart" type="button">Restart game</button>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const canvas = document.querySelector("#game");
+    const context = canvas.getContext("2d");
+    const timeElement = document.querySelector("#time");
+    const roundElement = document.querySelector("#round");
+    const itPlayerElement = document.querySelector("#it-player");
+    const controlsElement = document.querySelector("#controls");
+    const playerCountSelect = document.querySelector("#player-count");
+    const mapSelect = document.querySelector("#map-select");
+    const continueRoundButton = document.querySelector("#continue-round");
+    const restartButton = document.querySelector("#restart");
+    const playerColorInputs = [
+      document.querySelector("#player-one-color"),
+      document.querySelector("#player-two-color"),
+      document.querySelector("#player-three-color"),
+      document.querySelector("#player-four-color")
+    ];
+    const keys = new Set();
+    const gravity = 1250;
+    const roundsPerGame = 5;
+    const secondsPerRound = 35;
+    const mapLayouts = {
+      rainbow: [
+        { x: 0, y: 466, width: 840, height: 34, color: "#ff2bd6" },
+        { x: 44, y: 385, width: 170, height: 18, color: "#ff8a2b" },
+        { x: 626, y: 385, width: 170, height: 18, color: "#d8ff3e" },
+        { x: 230, y: 320, width: 175, height: 18, color: "#00e5ff" },
+        { x: 435, y: 320, width: 175, height: 18, color: "#8f36ff", motion: "horizontal", range: 105, speed: 1.35 },
+        { x: 72, y: 260, width: 160, height: 18, color: "#ff2bd6", disappearing: true, visibleFor: 2.3, cycle: 4.2 },
+        { x: 608, y: 260, width: 160, height: 18, color: "#ff8a2b", motion: "vertical", range: 74, speed: 1.55 },
+        { x: 315, y: 200, width: 210, height: 18, color: "#d8ff3e", disappearing: true, visibleFor: 2, cycle: 3.6 }
+      ],
+      sky: [
+        { x: 0, y: 466, width: 840, height: 34, color: "#00e5ff" },
+        { x: 42, y: 400, width: 128, height: 18, color: "#8f36ff" },
+        { x: 202, y: 350, width: 128, height: 18, color: "#ff2bd6" },
+        { x: 364, y: 300, width: 128, height: 18, color: "#ff8a2b" },
+        { x: 526, y: 250, width: 128, height: 18, color: "#d8ff3e" },
+        { x: 670, y: 200, width: 126, height: 18, color: "#00e5ff" },
+        { x: 300, y: 185, width: 160, height: 18, color: "#8f36ff", motion: "vertical", range: 68, speed: 1.7 }
+      ],
+      pulse: [
+        { x: 0, y: 466, width: 840, height: 34, color: "#8f36ff" },
+        { x: 72, y: 360, width: 180, height: 18, color: "#ff2bd6", disappearing: true, visibleFor: 1.8, cycle: 3.2 },
+        { x: 588, y: 360, width: 180, height: 18, color: "#00e5ff", disappearing: true, visibleFor: 2.2, cycle: 3.9 },
+        { x: 300, y: 310, width: 240, height: 18, color: "#d8ff3e", motion: "horizontal", range: 145, speed: 1.15 },
+        { x: 92, y: 220, width: 170, height: 18, color: "#ff8a2b", motion: "vertical", range: 65, speed: 1.35 },
+        { x: 578, y: 220, width: 170, height: 18, color: "#ff2bd6", motion: "vertical", range: 65, speed: 1.5 }
+      ],
+      canyon: [
+        { x: 0, y: 466, width: 840, height: 34, color: "#ff8a2b" },
+        { x: 28, y: 390, width: 145, height: 18, color: "#ff2bd6" },
+        { x: 230, y: 340, width: 150, height: 18, color: "#d8ff3e" },
+        { x: 460, y: 340, width: 150, height: 18, color: "#00e5ff" },
+        { x: 667, y: 390, width: 145, height: 18, color: "#8f36ff" },
+        { x: 325, y: 260, width: 190, height: 18, color: "#ff8a2b", motion: "horizontal", range: 135, speed: 1.25 },
+        { x: 110, y: 205, width: 150, height: 18, color: "#ff2bd6", disappearing: true, visibleFor: 2.1, cycle: 3.7 }
+      ],
+      tower: [
+        { x: 0, y: 466, width: 840, height: 34, color: "#8f36ff" },
+        { x: 78, y: 400, width: 130, height: 18, color: "#00e5ff" },
+        { x: 218, y: 345, width: 130, height: 18, color: "#d8ff3e" },
+        { x: 358, y: 290, width: 130, height: 18, color: "#ff8a2b" },
+        { x: 498, y: 235, width: 130, height: 18, color: "#ff2bd6" },
+        { x: 638, y: 180, width: 130, height: 18, color: "#8f36ff" },
+        { x: 290, y: 170, width: 160, height: 18, color: "#00e5ff", motion: "vertical", range: 62, speed: 1.6 }
+      ],
+      bridges: [
+        { x: 0, y: 466, width: 840, height: 34, color: "#d8ff3e" },
+        { x: 45, y: 380, width: 195, height: 18, color: "#00e5ff", motion: "horizontal", range: 75, speed: 1.2 },
+        { x: 300, y: 380, width: 195, height: 18, color: "#ff2bd6", disappearing: true, visibleFor: 2.2, cycle: 3.8 },
+        { x: 600, y: 380, width: 195, height: 18, color: "#8f36ff", motion: "horizontal", range: 75, speed: 1.4 },
+        { x: 145, y: 270, width: 170, height: 18, color: "#ff8a2b", disappearing: true, visibleFor: 1.9, cycle: 3.4 },
+        { x: 520, y: 270, width: 170, height: 18, color: "#d8ff3e", disappearing: true, visibleFor: 2.3, cycle: 4 },
+        { x: 335, y: 205, width: 170, height: 18, color: "#00e5ff", motion: "vertical", range: 58, speed: 1.4 }
+      ]
+    };
+    let platforms = [];
+    const playerTemplates = [
+      { color: "#00e5ff", controls: { jump: "w", left: "a", right: "d" }, label: "A/D MOVE · W JUMP" },
+      { color: "#ff2bd6", controls: { jump: "arrowup", left: "arrowleft", right: "arrowright" }, label: "LEFT/RIGHT MOVE · UP JUMP" },
+      { color: "#d8ff3e", controls: { jump: "i", left: "j", right: "l" }, label: "J/L MOVE · I JUMP" },
+      { color: "#8f36ff", controls: { jump: "t", left: "f", right: "h" }, label: "F/H MOVE · T JUMP" }
+    ];
+    let players = [];
+    let powerups = [];
+    let powerupSpawnTime = 0;
+    let itIndex = 0;
+    let timeRemaining = secondsPerRound;
+    let round = 0;
+    let tagCooldown = 0;
+    let previousTime = 0;
+    let gameOver = false;
+    let winnerIndexes = [];
+    let awaitingNextRound = false;
+    let eliminatedPlayerIndex = null;
+
+    function buildPlayers() {
+      const playerCount = Number(playerCountSelect.value);
+      const startPositions = [
+        [170, 150],
+        [670, 350],
+        [670, 150],
+        [170, 350]
+      ];
+      players = playerTemplates.slice(0, playerCount).map((template, index) => ({
+        ...template,
+        x: startPositions[index][0],
+        y: startPositions[index][1],
+        radius: 22,
+        speed: 190,
+        jumpSpeed: 610,
+        velocityY: 0,
+        onGround: false,
+        jumpHeld: false,
+        speedBoostUntil: 0,
+        jumpBoostUntil: 0,
+        shield: false,
+        active: true
+      }));
+    }
+
+    function loadMap() {
+      const mapNames = Object.keys(mapLayouts);
+      const mapName = mapSelect.value === "random"
+        ? mapNames[Math.floor(Math.random() * mapNames.length)]
+        : mapSelect.value;
+      platforms = doublePlatformLayout(mapLayouts[mapName]).map((platform) => ({
+        ...platform,
+        startX: platform.x,
+        startY: platform.y,
+        visible: true
+      }));
+    }
+
+    function doublePlatformLayout(layout) {
+      const companionColors = ["#00e5ff", "#ff2bd6", "#d8ff3e", "#ff8a2b", "#8f36ff"];
+      const companionPlatforms = layout.map((platform, index) => {
+        if (index === 0) {
+          return { x: 270, y: 420, width: 300, height: 18, color: "#00e5ff" };
+        }
+        return {
+          ...platform,
+          x: canvas.width - platform.x - platform.width,
+          y: Math.max(110, platform.y - (index % 2 === 0 ? 40 : 70)),
+          color: companionColors[index % companionColors.length],
+          range: platform.range ? Math.max(45, platform.range * 0.6) : undefined
+        };
+      });
+      return [...layout, ...companionPlatforms];
+    }
+
+    function startRound() {
+      const alivePlayers = players
+        .map((player, index) => ({ player, index }))
+        .filter(({ player }) => player.active);
+      if (alivePlayers.length <= 1) {
+        winnerIndexes = alivePlayers.map(({ index }) => index);
+        gameOver = true;
+        return;
+      }
+      const startPositions = [
+        [130, 140],
+        [710, 140],
+        [130, 330],
+        [710, 330]
+      ];
+      round += 1;
+      timeRemaining = secondsPerRound;
+      tagCooldown = 1;
+      awaitingNextRound = false;
+      eliminatedPlayerIndex = null;
+      continueRoundButton.hidden = true;
+      loadMap();
+      powerups = [];
+      powerupSpawnTime = 0;
+      alivePlayers.forEach(({ player, index }) => {
+        player.x = startPositions[index][0];
+        player.y = startPositions[index][1];
+        player.velocityY = 0;
+        player.onGround = false;
+      });
+      itIndex = alivePlayers[Math.floor(Math.random() * alivePlayers.length)].index;
+      updateStatus();
+    }
+
+    function restartGame() {
+      buildPlayers();
+      round = 0;
+      previousTime = 0;
+      gameOver = false;
+      winnerIndexes = [];
+      awaitingNextRound = false;
+      eliminatedPlayerIndex = null;
+      continueRoundButton.hidden = true;
+      startRound();
+      controlsElement.textContent = players.map((player, index) => `P${index + 1}: ${player.label}`).join(" · ") + ". Pick up S for speed, J for high jumps, or O for a tag shield. Be IT when the round ends and you are out!";
+    }
+
+    function updateStatus() {
+      timeElement.textContent = Math.ceil(timeRemaining);
+      roundElement.textContent = `${round}/${roundsPerGame}`;
+      itPlayerElement.textContent = `P${itIndex + 1}`;
+    }
+
+    function movePlayer(player, delta) {
+      const { jump, left, right } = player.controls;
+      let dx = 0;
+      if (keys.has(left)) dx -= 1;
+      if (keys.has(right)) dx += 1;
+      const now = performance.now();
+      const speed = player.speed * (player.speedBoostUntil > now ? 1.55 : 1);
+      player.x += dx * speed * delta;
+      player.x = Math.max(player.radius, Math.min(canvas.width - player.radius, player.x));
+      if (keys.has(jump)) {
+        if (player.onGround && !player.jumpHeld) {
+          player.velocityY = -player.jumpSpeed * (player.jumpBoostUntil > now ? 1.3 : 1);
+          player.onGround = false;
+        }
+        player.jumpHeld = true;
+      } else {
+        player.jumpHeld = false;
+      }
+      const previousBottom = player.y + player.radius;
+      player.velocityY += gravity * delta;
+      player.y += player.velocityY * delta;
+      player.onGround = false;
+      platforms.forEach((platform) => {
+        if (!platform.visible) return;
+        const playerBottom = player.y + player.radius;
+        const insidePlatform = player.x + player.radius > platform.x && player.x - player.radius < platform.x + platform.width;
+        if (player.velocityY >= 0 && insidePlatform && previousBottom <= platform.y && playerBottom >= platform.y) {
+          player.y = platform.y - player.radius;
+          player.velocityY = 0;
+          player.onGround = true;
+        }
+      });
+    }
+
+    function updatePlatforms() {
+      const time = performance.now() / 1000;
+      platforms.forEach((platform) => {
+        if (platform.motion === "horizontal") platform.x = platform.startX + Math.sin(time * platform.speed) * platform.range;
+        if (platform.motion === "vertical") platform.y = platform.startY + Math.sin(time * platform.speed) * platform.range;
+        if (platform.disappearing) platform.visible = (time % platform.cycle) < platform.visibleFor;
+      });
+    }
+
+    function createPowerup() {
+      const availablePlatforms = platforms.filter((platform) => platform.visible && platform.y < 450);
+      if (!availablePlatforms.length) return;
+      const platform = availablePlatforms[Math.floor(Math.random() * availablePlatforms.length)];
+      const types = ["speed", "jump", "shield"];
+      powerups.push({
+        x: platform.x + 28 + Math.random() * Math.max(1, platform.width - 56),
+        y: platform.y - 18,
+        type: types[Math.floor(Math.random() * types.length)],
+        size: 20
+      });
+    }
+
+    function activatePowerup(player, type) {
+      const now = performance.now();
+      if (type === "speed") player.speedBoostUntil = now + 8000;
+      if (type === "jump") player.jumpBoostUntil = now + 8000;
+      if (type === "shield") player.shield = true;
+    }
+
+    function updatePowerups(delta) {
+      powerupSpawnTime += delta;
+      if (powerupSpawnTime > 5) {
+        createPowerup();
+        powerupSpawnTime = 0;
+      }
+      powerups = powerups.filter((powerup) => {
+        const collector = players.find((player) => player.active
+          && Math.hypot(player.x - powerup.x, player.y - powerup.y) < player.radius + powerup.size);
+        if (collector) {
+          activatePowerup(collector, powerup.type);
+          return false;
+        }
+        return true;
+      });
+    }
+
+    function tagPlayer() {
+      if (tagCooldown > 0) return;
+      const itPlayer = players[itIndex];
+      for (let index = 0; index < players.length; index += 1) {
+        if (index === itIndex || !players[index].active) continue;
+        const player = players[index];
+        if (Math.hypot(itPlayer.x - player.x, itPlayer.y - player.y) < itPlayer.radius + player.radius) {
+          if (player.shield) {
+            player.shield = false;
+            tagCooldown = 0.75;
+            return;
+          }
+          itIndex = index;
+          tagCooldown = 0.75;
+          updateStatus();
+          return;
+        }
+      }
+    }
+
+    function update(delta) {
+      if (gameOver || awaitingNextRound) return;
+      updatePlatforms();
+      players.filter((player) => player.active).forEach((player) => movePlayer(player, delta));
+      updatePowerups(delta);
+      tagCooldown = Math.max(0, tagCooldown - delta);
+      tagPlayer();
+      timeRemaining = Math.max(0, timeRemaining - delta);
+      updateStatus();
+      if (timeRemaining === 0) {
+        players[itIndex].active = false;
+        eliminatedPlayerIndex = itIndex;
+        const aliveIndexes = players
+          .map((player, index) => ({ player, index }))
+          .filter(({ player }) => player.active)
+          .map(({ index }) => index);
+        if (round >= roundsPerGame || aliveIndexes.length <= 1) {
+          winnerIndexes = aliveIndexes;
+          gameOver = true;
+        } else {
+          awaitingNextRound = true;
+          continueRoundButton.textContent = `Continue to round ${round + 1}`;
+          continueRoundButton.hidden = false;
+        }
+      }
+    }
+
+    function drawGrid() {
+      const background = context.createLinearGradient(0, 0, canvas.width, canvas.height);
+      background.addColorStop(0, "#ff2bd6");
+      background.addColorStop(0.22, "#ff8a2b");
+      background.addColorStop(0.42, "#d8ff3e");
+      background.addColorStop(0.62, "#00e5ff");
+      background.addColorStop(0.82, "#8f36ff");
+      background.addColorStop(1, "#ff2bd6");
+      context.fillStyle = background;
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.fillStyle = "rgba(7, 21, 35, 0.42)";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.strokeStyle = "rgba(237, 255, 253, 0.26)";
+      context.lineWidth = 1;
+      for (let x = 0; x <= canvas.width; x += 42) {
+        context.beginPath();
+        context.moveTo(x, 0);
+        context.lineTo(x, canvas.height);
+        context.stroke();
+      }
+      for (let y = 0; y <= canvas.height; y += 42) {
+        context.beginPath();
+        context.moveTo(0, y);
+        context.lineTo(canvas.width, y);
+        context.stroke();
+      }
+    }
+
+    function drawPlatforms() {
+      platforms.forEach((platform) => {
+        if (!platform.visible) return;
+        context.fillStyle = "rgba(7, 21, 35, 0.78)";
+        context.fillRect(platform.x, platform.y, platform.width, platform.height);
+        context.shadowColor = platform.color;
+        context.shadowBlur = 14;
+        context.fillStyle = platform.color;
+        context.fillRect(platform.x, platform.y, platform.width, 5);
+        if (platform.disappearing) {
+          context.setLineDash([6, 5]);
+          context.strokeStyle = platform.color;
+          context.strokeRect(platform.x, platform.y, platform.width, platform.height);
+          context.setLineDash([]);
+        }
+        context.shadowBlur = 0;
+      });
+    }
+
+    function drawPowerups() {
+      const details = {
+        speed: { color: "#ff2bd6", label: "S" },
+        jump: { color: "#d8ff3e", label: "J" },
+        shield: { color: "#00e5ff", label: "O" }
+      };
+      powerups.forEach((powerup) => {
+        const detail = details[powerup.type];
+        context.save();
+        context.translate(powerup.x, powerup.y);
+        context.rotate(Math.PI / 4);
+        context.shadowColor = detail.color;
+        context.shadowBlur = 16;
+        context.fillStyle = detail.color;
+        context.fillRect(-powerup.size / 2, -powerup.size / 2, powerup.size, powerup.size);
+        context.rotate(-Math.PI / 4);
+        context.fillStyle = "#071523";
+        context.font = "700 11px 'DM Mono'";
+        context.textAlign = "center";
+        context.fillText(detail.label, 0, 4);
+        context.restore();
+      });
+    }
+
+    function drawPlayer(player, index) {
+      const isIt = index === itIndex;
+      context.save();
+      context.translate(player.x, player.y);
+      context.shadowColor = isIt ? "#ff2bd6" : player.color;
+      context.shadowBlur = isIt ? 28 : 16;
+      context.fillStyle = isIt ? "#ff2bd6" : player.color;
+      context.beginPath();
+      context.arc(0, 0, player.radius, 0, Math.PI * 2);
+      context.fill();
+      context.fillStyle = "#071523";
+      context.font = "700 14px 'DM Mono'";
+      context.textAlign = "center";
+      context.fillText(`P${index + 1}`, 0, 5);
+      if (isIt) {
+        context.fillStyle = "#d8ff3e";
+        context.font = "700 13px 'DM Mono'";
+        context.fillText("IT!", 0, -34);
+      }
+      if (player.shield) {
+        context.strokeStyle = "#00e5ff";
+        context.lineWidth = 3;
+        context.beginPath();
+        context.arc(0, 0, player.radius + 6, 0, Math.PI * 2);
+        context.stroke();
+      }
+      if (player.speedBoostUntil > performance.now() || player.jumpBoostUntil > performance.now()) {
+        context.fillStyle = "#d8ff3e";
+        context.font = "700 11px 'DM Mono'";
+        context.fillText("BOOST", 0, 38);
+      }
+      context.restore();
+    }
+
+    function drawScoreboard() {
+      context.fillStyle = "rgba(5, 7, 20, 0.8)";
+      context.fillRect(18, 18, 210, players.length * 25 + 16);
+      context.strokeStyle = "#00e5ff";
+      context.strokeRect(18, 18, 210, players.length * 25 + 16);
+      players.forEach((player, index) => {
+        const status = player.active ? (index === itIndex ? "IT" : "SAFE") : "OUT";
+        context.fillStyle = player.active ? player.color : "rgba(237, 255, 253, 0.42)";
+        context.font = "500 13px 'DM Mono'";
+        context.textAlign = "left";
+        context.fillText(`P${index + 1}: ${status}`, 30, 43 + index * 25);
+      });
+    }
+
+    function drawEndScreen() {
+      if (!gameOver) return;
+      const winnerText = winnerIndexes.length === 1
+        ? `PLAYER ${winnerIndexes[0] + 1} WINS!`
+        : winnerIndexes.length > 1
+          ? `PLAYERS ${winnerIndexes.map((index) => index + 1).join(" + ")} SURVIVE!`
+          : "NO SURVIVORS";
+      context.fillStyle = "rgba(5, 7, 20, 0.9)";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.fillStyle = "#d8ff3e";
+      context.font = "600 52px 'Playfair Display'";
+      context.textAlign = "center";
+      context.fillText(winnerText, canvas.width / 2, canvas.height / 2 - 8);
+      context.fillStyle = "#edfffd";
+      context.font = "600 18px 'Plus Jakarta Sans'";
+      context.fillText("They survived the five-round tag challenge", canvas.width / 2, canvas.height / 2 + 32);
+      context.font = "600 15px 'Plus Jakarta Sans'";
+      context.fillText("Press Restart game for another tag match", canvas.width / 2, canvas.height / 2 + 62);
+    }
+
+    function drawRoundEndScreen() {
+      if (!awaitingNextRound) return;
+      context.fillStyle = "rgba(5, 7, 20, 0.78)";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.fillStyle = "#ff2bd6";
+      context.font = "600 46px 'Playfair Display'";
+      context.textAlign = "center";
+      context.fillText(`ROUND ${round} COMPLETE`, canvas.width / 2, canvas.height / 2 - 12);
+      context.fillStyle = "#edfffd";
+      context.font = "600 19px 'Plus Jakarta Sans'";
+      context.fillText(`Player ${eliminatedPlayerIndex + 1} was IT and is out!`, canvas.width / 2, canvas.height / 2 + 26);
+      context.font = "600 15px 'Plus Jakarta Sans'";
+      context.fillText("Use the Continue button to start the next round", canvas.width / 2, canvas.height / 2 + 55);
+    }
+
+    function draw() {
+      drawGrid();
+      drawPlatforms();
+      drawPowerups();
+      players.filter((player) => player.active).forEach((player) => drawPlayer(player, players.indexOf(player)));
+      drawScoreboard();
+      drawRoundEndScreen();
+      drawEndScreen();
+    }
+
+    function loop(timestamp) {
+      if (!previousTime) previousTime = timestamp;
+      const delta = Math.min((timestamp - previousTime) / 1000, 0.05);
+      previousTime = timestamp;
+      update(delta);
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    window.addEventListener("keydown", (event) => {
+      const key = event.key.toLowerCase();
+      if (["w", "a", "d", "i", "j", "l", "t", "f", "h", "arrowup", "arrowleft", "arrowright"].includes(key)) event.preventDefault();
+      keys.add(key);
+    });
+    window.addEventListener("keyup", (event) => keys.delete(event.key.toLowerCase()));
+    playerCountSelect.addEventListener("change", restartGame);
+    mapSelect.addEventListener("change", restartGame);
+    continueRoundButton.addEventListener("click", startRound);
+    restartButton.addEventListener("click", restartGame);
+    playerColorInputs.forEach((input, index) => {
+      input.addEventListener("input", () => {
+        playerTemplates[index].color = input.value;
+        if (players[index]) players[index].color = input.value;
+      });
+    });
+
+    restartGame();
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>

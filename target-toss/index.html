@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A charged-throw target minigame.">
+  <title>Target Toss</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Playfair+Display:wght@600&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --cream: #edfffd;
+      --night: #071523;
+      --cyan: #00e5ff;
+      --pink: #ff2bd6;
+      --lime: #d8ff3e;
+      --purple: #8f36ff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      display: grid;
+      min-height: 100vh;
+      margin: 0;
+      place-items: center;
+      color: var(--cream);
+      background:
+        repeating-linear-gradient(115deg, rgba(255, 43, 214, 0.18) 0 4px, rgba(216, 255, 62, 0.14) 4px 8px, rgba(0, 229, 255, 0.18) 8px 12px, rgba(143, 54, 255, 0.16) 12px 16px, transparent 16px 34px),
+        radial-gradient(circle at 15% 17%, rgba(255, 43, 214, 0.34), transparent 30rem),
+        var(--night);
+      font-family: "Plus Jakarta Sans", sans-serif;
+    }
+
+    main {
+      width: min(100% - 28px, 820px);
+      padding: 28px;
+    }
+
+    header, .bottom-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    header { margin-bottom: 20px; }
+
+    h1 {
+      margin: 0;
+      font-family: "Playfair Display", serif;
+      font-size: clamp(2rem, 5vw, 3.4rem);
+      letter-spacing: -0.04em;
+    }
+
+    a {
+      color: var(--cream);
+      font-family: "DM Mono", monospace;
+      font-size: 0.72rem;
+      letter-spacing: 0.05em;
+      text-decoration: none;
+      text-transform: uppercase;
+    }
+
+    a:hover { color: var(--lime); }
+
+    .scoreboard {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 16px;
+      font-family: "DM Mono", monospace;
+      font-size: 0.83rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .score {
+      min-width: 48px;
+      padding: 8px 11px;
+      color: var(--night);
+      background: var(--cream);
+      font-size: 1.1rem;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      border: 5px solid var(--cream);
+      background: #071d2c;
+      box-shadow: 0 0 0 2px var(--purple), 0 0 30px rgba(0, 229, 255, 0.65), 12px 12px 0 rgba(143, 54, 255, 0.8);
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    .bottom-bar { margin-top: 22px; }
+
+    p {
+      margin: 0;
+      color: rgba(237, 255, 253, 0.88);
+      font-size: 0.84rem;
+      line-height: 1.5;
+    }
+
+    button {
+      min-height: 42px;
+      padding: 0 16px;
+      border: 1px solid var(--cream);
+      color: var(--night);
+      background: var(--lime);
+      cursor: pointer;
+      font: 700 0.82rem "Plus Jakarta Sans", sans-serif;
+    }
+
+    button:hover { background: var(--cream); }
+
+    @media (max-width: 560px) {
+      main { padding: 19px 0 28px; }
+      header, .bottom-bar { align-items: flex-start; flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Target Toss</h1>
+      <a href="../">← Back home</a>
+    </header>
+
+    <div class="scoreboard" aria-label="Target Toss score">
+      <span>Player 1</span><span class="score" id="player-one-score">0</span>
+      <span>Player 2</span><span class="score" id="player-two-score">0</span>
+      <span>Turn</span><span class="score" id="turn">P1</span>
+    </div>
+
+    <canvas id="game" width="760" height="456" aria-label="Target Toss. Hold to charge your throw and release to launch."></canvas>
+
+    <div class="bottom-bar">
+      <p>The thrower aims with the pointer, then <strong>presses and holds</strong> to charge. The blocker uses <strong>W/S</strong> for Player 1 or <strong>arrow keys</strong> for Player 2.</p>
+      <button id="restart" type="button">Restart game</button>
+    </div>
+  </main>
+
+  <script>
+    const canvas = document.querySelector("#game");
+    const context = canvas.getContext("2d");
+    const playerOneScoreElement = document.querySelector("#player-one-score");
+    const playerTwoScoreElement = document.querySelector("#player-two-score");
+    const turnElement = document.querySelector("#turn");
+    const restartButton = document.querySelector("#restart");
+    const throwsPerPlayer = 5;
+    const target = { x: 620, y: 210, radius: 55, direction: 1, speed: 1.6 };
+    const ball = { x: 110, y: 300, dx: 0, dy: 0, radius: 13, flying: false };
+    const blocker = { x: 470, y: 228, width: 24, height: 94, speed: 5.2 };
+    const keys = new Set();
+    let playerScores = [0, 0];
+    let playerThrows = [0, 0];
+    let currentPlayer = 0;
+    let aimY = 220;
+    let charging = false;
+    let chargeStartedAt = 0;
+    let charge = 0;
+    let waitingForNextThrow = false;
+    let gameOver = false;
+    let message = "Aim, charge, and toss!";
+    let messageUntil = Infinity;
+
+    function randomizeTarget() {
+      target.y = 80 + Math.random() * (canvas.height - 160);
+      target.direction = Math.random() > 0.5 ? 1 : -1;
+    }
+
+    function resetThrow() {
+      ball.x = 110;
+      ball.y = 300;
+      ball.dx = 0;
+      ball.dy = 0;
+      ball.flying = false;
+      charging = false;
+      charge = 0;
+      waitingForNextThrow = false;
+      blocker.y = canvas.height / 2;
+      randomizeTarget();
+    }
+
+    function restartGame() {
+      playerScores = [0, 0];
+      playerThrows = [0, 0];
+      currentPlayer = 0;
+      gameOver = false;
+      updateScoreboard();
+      updateTurnMessage();
+      resetThrow();
+    }
+
+    function updateScoreboard() {
+      playerOneScoreElement.textContent = playerScores[0];
+      playerTwoScoreElement.textContent = playerScores[1];
+      turnElement.textContent = `P${currentPlayer + 1}`;
+    }
+
+    function updateTurnMessage() {
+      const blockerPlayer = currentPlayer === 0 ? 2 : 1;
+      message = `P${currentPlayer + 1} THROWING · P${blockerPlayer} BLOCKING`;
+      messageUntil = Infinity;
+    }
+
+    function releaseThrow() {
+      if (!charging || ball.flying || waitingForNextThrow || gameOver) return;
+      charging = false;
+      ball.flying = true;
+      ball.dx = 4.4 + charge * 8.2;
+      ball.dy = (aimY - ball.y) / 54 - charge * 0.7;
+      playerThrows[currentPlayer] += 1;
+    }
+
+    function resolveThrow(points, wasBlocked = false) {
+      if (points) {
+        playerScores[currentPlayer] += points;
+        updateScoreboard();
+        message = points === 3 ? "BULLSEYE! +3" : `Nice shot! +${points}`;
+      } else if (!wasBlocked) {
+        message = "Almost! Try another.";
+      }
+      messageUntil = performance.now() + 850;
+      ball.flying = false;
+      waitingForNextThrow = true;
+      window.setTimeout(() => {
+        const bothPlayersFinished = playerThrows[0] >= throwsPerPlayer && playerThrows[1] >= throwsPerPlayer;
+        if (bothPlayersFinished) {
+          gameOver = true;
+          message = playerScores[0] === playerScores[1]
+            ? "IT’S A TIE!"
+            : `PLAYER ${playerScores[0] > playerScores[1] ? 1 : 2} WINS!`;
+          return;
+        }
+        currentPlayer = currentPlayer === 0 ? 1 : 0;
+        updateScoreboard();
+        updateTurnMessage();
+        resetThrow();
+      }, 850);
+    }
+
+    function moveBlocker() {
+      if (gameOver || waitingForNextThrow) return;
+      const blockerIsPlayerTwo = currentPlayer === 0;
+      const upPressed = blockerIsPlayerTwo ? keys.has("arrowup") : keys.has("w");
+      const downPressed = blockerIsPlayerTwo ? keys.has("arrowdown") : keys.has("s");
+      if (upPressed) blocker.y -= blocker.speed;
+      if (downPressed) blocker.y += blocker.speed;
+      blocker.y = Math.max(blocker.height / 2 + 12, Math.min(canvas.height - blocker.height / 2 - 12, blocker.y));
+    }
+
+    function hitBlocker() {
+      return ball.x + ball.radius >= blocker.x - blocker.width / 2
+        && ball.x - ball.radius <= blocker.x + blocker.width / 2
+        && ball.y + ball.radius >= blocker.y - blocker.height / 2
+        && ball.y - ball.radius <= blocker.y + blocker.height / 2;
+    }
+
+    function update() {
+      moveBlocker();
+      if (!ball.flying && !gameOver) {
+        target.y += target.direction * target.speed;
+        if (target.y < target.radius + 16 || target.y > canvas.height - target.radius - 16) target.direction *= -1;
+      }
+      if (charging) charge = Math.min(1, (performance.now() - chargeStartedAt) / 950);
+      if (!ball.flying) return;
+      ball.x += ball.dx;
+      ball.y += ball.dy;
+      ball.dy += 0.12;
+      if (hitBlocker()) {
+        const blockerPlayer = currentPlayer === 0 ? 2 : 1;
+        message = `BLOCKED BY PLAYER ${blockerPlayer}!`;
+        resolveThrow(0, true);
+      } else if (ball.x >= target.x - 4) {
+        const distance = Math.abs(ball.y - target.y);
+        const points = distance < 14 ? 3 : distance < 31 ? 2 : distance < target.radius ? 1 : 0;
+        resolveThrow(points);
+      } else if (ball.y > canvas.height + ball.radius || ball.y < -ball.radius) {
+        resolveThrow(0);
+      }
+    }
+
+    function drawTarget() {
+      context.save();
+      context.translate(target.x, target.y);
+      context.shadowColor = "#ff2bd6";
+      context.shadowBlur = 24;
+      context.fillStyle = "#00e5ff";
+      context.beginPath();
+      context.arc(0, 0, target.radius, 0, Math.PI * 2);
+      context.fill();
+      context.fillStyle = "#ff2bd6";
+      context.beginPath();
+      context.arc(0, 0, 37, 0, Math.PI * 2);
+      context.fill();
+      context.fillStyle = "#d8ff3e";
+      context.beginPath();
+      context.arc(0, 0, 20, 0, Math.PI * 2);
+      context.fill();
+      context.fillStyle = "#071523";
+      context.beginPath();
+      context.arc(0, 0, 7, 0, Math.PI * 2);
+      context.fill();
+      context.restore();
+    }
+
+    function drawBall() {
+      context.save();
+      context.translate(ball.x, ball.y);
+      context.shadowColor = "#d8ff3e";
+      context.shadowBlur = 18;
+      context.fillStyle = "#d8ff3e";
+      context.beginPath();
+      context.arc(0, 0, ball.radius, 0, Math.PI * 2);
+      context.fill();
+      context.fillStyle = "#071523";
+      context.beginPath();
+      context.arc(-4, -3, 2, 0, Math.PI * 2);
+      context.arc(4, -3, 2, 0, Math.PI * 2);
+      context.fill();
+      context.restore();
+    }
+
+    function drawBlocker() {
+      const blockerIsPlayerTwo = currentPlayer === 0;
+      context.save();
+      context.translate(blocker.x, blocker.y);
+      context.shadowColor = blockerIsPlayerTwo ? "#ff2bd6" : "#00e5ff";
+      context.shadowBlur = 18;
+      context.fillStyle = blockerIsPlayerTwo ? "#ff2bd6" : "#00e5ff";
+      context.fillRect(-blocker.width / 2, -blocker.height / 2, blocker.width, blocker.height);
+      context.fillStyle = "#071523";
+      context.font = "600 11px 'DM Mono'";
+      context.textAlign = "center";
+      context.fillText(`P${blockerIsPlayerTwo ? 2 : 1}`, 0, 4);
+      context.restore();
+    }
+
+    function draw() {
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.fillStyle = "#071d2c";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.fillStyle = "rgba(0, 229, 255, 0.13)";
+      for (let y = 0; y < canvas.height; y += 38) context.fillRect(0, y, canvas.width, 1);
+      context.fillStyle = "#092b36";
+      context.fillRect(0, 342, canvas.width, 114);
+      if (!ball.flying && !gameOver) {
+        context.strokeStyle = "rgba(0, 229, 255, 0.75)";
+        context.lineWidth = 2;
+        context.setLineDash([7, 7]);
+        context.beginPath();
+        context.moveTo(ball.x, ball.y);
+        context.lineTo(430, aimY);
+        context.stroke();
+        context.setLineDash([]);
+      }
+      drawTarget();
+      drawBlocker();
+      drawBall();
+      context.fillStyle = "rgba(5, 7, 20, 0.86)";
+      context.fillRect(28, 26, 190, 35);
+      context.strokeStyle = "#00e5ff";
+      context.strokeRect(28, 26, 190, 35);
+      context.fillStyle = "#e9fbff";
+      context.font = "500 13px 'DM Mono'";
+      context.fillText("POWER", 40, 48);
+      context.fillStyle = "#ff2bd6";
+      context.fillRect(104, 37, 99 * charge, 13);
+      if (!gameOver && performance.now() <= messageUntil) {
+        context.fillStyle = "#d8ff3e";
+        context.font = "600 23px 'Playfair Display'";
+        context.textAlign = "center";
+        context.fillText(message, canvas.width / 2, 54);
+      }
+      if (gameOver) {
+        context.fillStyle = "rgba(5, 7, 20, 0.88)";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.fillStyle = "#00e5ff";
+        context.font = "600 52px 'Playfair Display'";
+        context.textAlign = "center";
+        context.fillText(message, canvas.width / 2, canvas.height / 2 - 8);
+        context.font = "600 18px 'Plus Jakarta Sans'";
+        context.fillStyle = "#e9fbff";
+        context.fillText(`Player 1: ${playerScores[0]} · Player 2: ${playerScores[1]}`, canvas.width / 2, canvas.height / 2 + 34);
+        context.font = "600 15px 'Plus Jakarta Sans'";
+        context.fillText("Press Restart game for another match", canvas.width / 2, canvas.height / 2 + 63);
+      }
+    }
+
+    function loop() {
+      update();
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    function updateAim(event) {
+      const bounds = canvas.getBoundingClientRect();
+      aimY = Math.max(25, Math.min(canvas.height - 25, (event.clientY - bounds.top) * canvas.height / bounds.height));
+    }
+
+    canvas.addEventListener("pointermove", updateAim);
+    canvas.addEventListener("pointerdown", (event) => {
+      if (ball.flying || waitingForNextThrow || gameOver) return;
+      updateAim(event);
+      charging = true;
+      chargeStartedAt = performance.now();
+    });
+    canvas.addEventListener("pointerup", releaseThrow);
+    canvas.addEventListener("pointercancel", () => { charging = false; });
+    restartButton.addEventListener("click", restartGame);
+    window.addEventListener("keydown", (event) => {
+      const key = event.key.toLowerCase();
+      if (["arrowup", "arrowdown", "w", "s"].includes(key)) event.preventDefault();
+      keys.add(key);
+    });
+    window.addEventListener("keyup", (event) => keys.delete(event.key.toLowerCase()));
+
+    restartGame();
+    loop();
+  </script>
+</body>
+</html>

@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A fast neon star-catching minigame.">
+  <title>Star Catch</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Playfair+Display:wght@600&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --cream: #edfffd;
+      --night: #071523;
+      --cyan: #00e5ff;
+      --pink: #ff2bd6;
+      --lime: #d8ff3e;
+      --purple: #8f36ff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      display: grid;
+      min-height: 100vh;
+      margin: 0;
+      place-items: center;
+      color: var(--cream);
+      background:
+        repeating-linear-gradient(115deg, rgba(255, 43, 214, 0.18) 0 4px, rgba(216, 255, 62, 0.14) 4px 8px, rgba(0, 229, 255, 0.18) 8px 12px, rgba(143, 54, 255, 0.16) 12px 16px, transparent 16px 34px),
+        radial-gradient(circle at 15% 17%, rgba(0, 229, 255, 0.34), transparent 30rem),
+        var(--night);
+      font-family: "Plus Jakarta Sans", sans-serif;
+    }
+
+    main {
+      width: min(100% - 28px, 820px);
+      padding: 28px;
+    }
+
+    header, .bottom-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    header { margin-bottom: 20px; }
+
+    h1 {
+      margin: 0;
+      font-family: "Playfair Display", serif;
+      font-size: clamp(2rem, 5vw, 3.4rem);
+      letter-spacing: -0.04em;
+    }
+
+    a {
+      color: var(--cream);
+      font-family: "DM Mono", monospace;
+      font-size: 0.72rem;
+      letter-spacing: 0.05em;
+      text-decoration: none;
+      text-transform: uppercase;
+    }
+
+    a:hover { color: var(--lime); }
+
+    .scoreboard {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 16px;
+      font-family: "DM Mono", monospace;
+      font-size: 0.83rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .score {
+      min-width: 57px;
+      padding: 8px 11px;
+      color: var(--night);
+      background: var(--cream);
+      font-size: 1.1rem;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      border: 5px solid var(--cream);
+      background: var(--night);
+      box-shadow: 0 0 0 2px var(--purple), 0 0 30px rgba(0, 229, 255, 0.65), 12px 12px 0 rgba(143, 54, 255, 0.8);
+      touch-action: none;
+    }
+
+    .bottom-bar { margin-top: 22px; }
+
+    p {
+      margin: 0;
+      color: rgba(237, 255, 253, 0.88);
+      font-size: 0.84rem;
+      line-height: 1.5;
+    }
+
+    button {
+      min-height: 42px;
+      padding: 0 16px;
+      border: 1px solid var(--cream);
+      color: var(--night);
+      background: var(--lime);
+      cursor: pointer;
+      font: 700 0.82rem "Plus Jakarta Sans", sans-serif;
+    }
+
+    button:hover { background: var(--cream); }
+
+    @media (max-width: 560px) {
+      main { padding: 19px 0 28px; }
+      header, .bottom-bar { align-items: flex-start; flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Star Catch</h1>
+      <a href="../">← Back home</a>
+    </header>
+
+    <div class="scoreboard" aria-label="Star Catch score">
+      <span>Stars</span><span class="score" id="score">0</span>
+      <span>Time</span><span class="score" id="time">30</span>
+    </div>
+
+    <canvas id="game" width="760" height="456" aria-label="Star Catch. Use arrow keys or A and D to move and catch falling stars."></canvas>
+
+    <div class="bottom-bar">
+      <p>Use <strong>arrow keys</strong> or <strong>A / D</strong> to move. Catch power-ups for 15-second boosts: magnet, double points, or slow stars.</p>
+      <button id="restart" type="button">Restart game</button>
+    </div>
+  </main>
+
+  <script>
+    const canvas = document.querySelector("#game");
+    const context = canvas.getContext("2d");
+    const scoreElement = document.querySelector("#score");
+    const timeElement = document.querySelector("#time");
+    const restartButton = document.querySelector("#restart");
+    const keys = new Set();
+    const player = { x: 380, y: 408, width: 104, height: 18, speed: 420 };
+    let stars = [];
+    let powerups = [];
+    let score = 0;
+    let timeRemaining = 30;
+    let spawnTime = 0;
+    let powerupSpawnTime = 0;
+    let previousTime = 0;
+    let gameOver = false;
+    const powerupEndsAt = { magnet: 0, double: 0, slow: 0 };
+
+    function restartGame() {
+      stars = [];
+      powerups = [];
+      score = 0;
+      timeRemaining = 30;
+      spawnTime = 0;
+      powerupSpawnTime = 0;
+      previousTime = 0;
+      gameOver = false;
+      powerupEndsAt.magnet = 0;
+      powerupEndsAt.double = 0;
+      powerupEndsAt.slow = 0;
+      scoreElement.textContent = score;
+      timeElement.textContent = timeRemaining;
+    }
+
+    function createStar() {
+      stars.push({
+        x: 24 + Math.random() * (canvas.width - 48),
+        y: -20,
+        radius: 10 + Math.random() * 5,
+        speed: 110 + Math.random() * 130,
+        color: ["#00e5ff", "#ff2bd6", "#d8ff3e", "#8f36ff"][Math.floor(Math.random() * 4)]
+      });
+    }
+
+    function createPowerup() {
+      const types = ["magnet", "double", "slow"];
+      powerups.push({
+        x: 26 + Math.random() * (canvas.width - 52),
+        y: -24,
+        size: 24,
+        speed: 125,
+        type: types[Math.floor(Math.random() * types.length)]
+      });
+    }
+
+    function activatePowerup(type) {
+      powerupEndsAt[type] = performance.now() + 15000;
+    }
+
+    function drawStar(x, y, radius, color) {
+      context.save();
+      context.translate(x, y);
+      context.shadowColor = color;
+      context.shadowBlur = 16;
+      context.fillStyle = color;
+      context.beginPath();
+      for (let point = 0; point < 10; point += 1) {
+        const angle = -Math.PI / 2 + point * Math.PI / 5;
+        const distance = point % 2 === 0 ? radius : radius * 0.42;
+        const pointX = Math.cos(angle) * distance;
+        const pointY = Math.sin(angle) * distance;
+        if (point === 0) context.moveTo(pointX, pointY);
+        else context.lineTo(pointX, pointY);
+      }
+      context.closePath();
+      context.fill();
+      context.restore();
+    }
+
+    function drawPowerup(powerup) {
+      const details = {
+        magnet: { color: "#ff2bd6", label: "M" },
+        double: { color: "#d8ff3e", label: "2X" },
+        slow: { color: "#00e5ff", label: "S" }
+      }[powerup.type];
+      context.save();
+      context.translate(powerup.x, powerup.y);
+      context.rotate(Math.PI / 4);
+      context.shadowColor = details.color;
+      context.shadowBlur = 16;
+      context.fillStyle = details.color;
+      context.fillRect(-powerup.size / 2, -powerup.size / 2, powerup.size, powerup.size);
+      context.rotate(-Math.PI / 4);
+      context.fillStyle = "#071523";
+      context.font = "700 11px 'DM Mono'";
+      context.textAlign = "center";
+      context.fillText(details.label, 0, 4);
+      context.restore();
+    }
+
+    function drawActivePowerups() {
+      const now = performance.now();
+      const active = [
+        { type: "magnet", label: "MAGNET", color: "#ff2bd6" },
+        { type: "double", label: "DOUBLE", color: "#d8ff3e" },
+        { type: "slow", label: "SLOW", color: "#00e5ff" }
+      ].filter((powerup) => powerupEndsAt[powerup.type] > now);
+      active.forEach((powerup, index) => {
+        const seconds = Math.ceil((powerupEndsAt[powerup.type] - now) / 1000);
+        context.fillStyle = powerup.color;
+        context.font = "500 12px 'DM Mono'";
+        context.textAlign = "left";
+        context.fillText(`${powerup.label} ${seconds}s`, 18, 28 + index * 20);
+      });
+    }
+
+    function update(delta) {
+      if (gameOver) return;
+      let direction = 0;
+      if (keys.has("arrowleft") || keys.has("a")) direction -= 1;
+      if (keys.has("arrowright") || keys.has("d")) direction += 1;
+      player.x += direction * player.speed * delta;
+      player.x = Math.max(player.width / 2, Math.min(canvas.width - player.width / 2, player.x));
+      spawnTime += delta;
+      powerupSpawnTime += delta;
+      if (spawnTime > 0.6) {
+        createStar();
+        spawnTime = 0;
+      }
+      if (powerupSpawnTime > 6.5) {
+        createPowerup();
+        powerupSpawnTime = 0;
+      }
+      const now = performance.now();
+      const magnetActive = powerupEndsAt.magnet > now;
+      const doubleActive = powerupEndsAt.double > now;
+      const slowActive = powerupEndsAt.slow > now;
+      stars.forEach((star) => {
+        if (magnetActive) star.x += (player.x - star.x) * 1.35 * delta;
+        star.y += star.speed * delta * (slowActive ? 0.45 : 1);
+      });
+      stars = stars.filter((star) => {
+        const caught = star.y + star.radius >= player.y - player.height / 2
+          && star.y - star.radius <= player.y + player.height / 2
+          && star.x >= player.x - player.width / 2
+          && star.x <= player.x + player.width / 2;
+        if (caught) {
+            score += doubleActive ? 2 : 1;
+          scoreElement.textContent = score;
+          return false;
+        }
+        return star.y < canvas.height + star.radius;
+      });
+      powerups.forEach((powerup) => { powerup.y += powerup.speed * delta; });
+      powerups = powerups.filter((powerup) => {
+          const caught = powerup.y + powerup.size / 2 >= player.y - player.height / 2
+            && powerup.y - powerup.size / 2 <= player.y + player.height / 2
+            && powerup.x >= player.x - player.width / 2
+            && powerup.x <= player.x + player.width / 2;
+          if (caught) {
+            activatePowerup(powerup.type);
+            return false;
+          }
+          return powerup.y < canvas.height + powerup.size;
+      });
+      timeRemaining = Math.max(0, timeRemaining - delta);
+      timeElement.textContent = Math.ceil(timeRemaining);
+      if (timeRemaining === 0) gameOver = true;
+    }
+
+    function draw() {
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.fillStyle = "#071523";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.fillStyle = "rgba(0, 229, 255, 0.12)";
+      for (let x = 20; x < canvas.width; x += 80) {
+        context.beginPath();
+        context.arc(x, 65 + (x % 140), 2, 0, Math.PI * 2);
+        context.fill();
+      }
+      context.fillStyle = "#092b36";
+      context.fillRect(0, 416, canvas.width, 40);
+      powerups.forEach(drawPowerup);
+      stars.forEach((star) => drawStar(star.x, star.y, star.radius, star.color));
+      drawActivePowerups();
+      context.save();
+      context.translate(player.x, player.y);
+      context.shadowColor = "#00e5ff";
+      context.shadowBlur = 18;
+      context.fillStyle = "#00e5ff";
+      context.fillRect(-player.width / 2, -player.height / 2, player.width, player.height);
+      context.fillStyle = "#071523";
+      context.fillRect(-player.width / 2 + 8, -2, player.width - 16, 5);
+      context.restore();
+      if (gameOver) {
+        context.fillStyle = "rgba(5, 7, 20, 0.88)";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.fillStyle = "#d8ff3e";
+        context.font = "600 52px 'Playfair Display'";
+        context.textAlign = "center";
+        context.fillText(`${score} stars caught!`, canvas.width / 2, canvas.height / 2 - 8);
+        context.fillStyle = "#edfffd";
+        context.font = "600 18px 'Plus Jakarta Sans'";
+        context.fillText("Press Restart game to catch more", canvas.width / 2, canvas.height / 2 + 34);
+      }
+    }
+
+    function loop(timestamp) {
+      if (!previousTime) previousTime = timestamp;
+      const delta = Math.min((timestamp - previousTime) / 1000, 0.05);
+      previousTime = timestamp;
+      update(delta);
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    window.addEventListener("keydown", (event) => {
+      const key = event.key.toLowerCase();
+      if (["arrowleft", "arrowright", "a", "d"].includes(key)) event.preventDefault();
+      keys.add(key);
+    });
+    window.addEventListener("keyup", (event) => keys.delete(event.key.toLowerCase()));
+    restartButton.addEventListener("click", restartGame);
+
+    restartGame();
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>

@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="An original color-matching bubble shooter minigame.">
+  <title>Bubble Pop Shooter</title>
+  <style>
+    :root { --night: #171735; --cream: #fff9e9; --pink: #ff719f; --cyan: #65e8ef; --gold: #ffdc62; --purple: #795ad1; }
+    * { box-sizing: border-box; }
+    body { display: grid; min-height: 100vh; margin: 0; place-items: center; color: var(--cream); background: radial-gradient(circle at 15% 14%, rgba(101, 232, 239, 0.3), transparent 26rem), repeating-linear-gradient(125deg, rgba(255, 113, 159, 0.16) 0 7px, transparent 7px 28px), var(--night); font-family: Arial, sans-serif; }
+    main { width: min(100% - 28px, 860px); padding: 28px; }
+    header, .bottom-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    header { margin-bottom: 18px; }
+    h1 { margin: 0; font-size: clamp(2rem, 6vw, 3.5rem); letter-spacing: -0.06em; }
+    a { color: var(--cream); font-size: 0.78rem; font-weight: 700; letter-spacing: 0.08em; text-decoration: none; text-transform: uppercase; }
+    a:hover { color: var(--gold); }
+    .scoreboard { display: flex; justify-content: center; gap: 14px; margin-bottom: 14px; font-size: 0.82rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
+    .score { display: inline-block; min-width: 52px; padding: 8px 10px; color: var(--night); background: var(--cream); font-size: 1.1rem; text-align: center; }
+    canvas { display: block; width: 100%; border: 5px solid var(--cream); background: #292251; box-shadow: 10px 10px 0 var(--purple), 0 0 28px rgba(101, 232, 239, 0.45); cursor: crosshair; touch-action: none; }
+    .bottom-bar { margin-top: 20px; }
+    p { max-width: 600px; margin: 0; color: rgba(255, 249, 233, 0.9); font-size: 0.9rem; line-height: 1.5; }
+    button, select { min-height: 42px; padding: 0 16px; border: 1px solid var(--cream); color: var(--night); background: var(--gold); cursor: pointer; font-weight: 800; }
+    button:hover { background: var(--cyan); }
+    @media (max-width: 620px) { main { padding: 19px 0 28px; } header, .bottom-bar { align-items: flex-start; flex-direction: column; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Bubble Pop Shooter</h1>
+      <a href="../">← Back home</a>
+    </header>
+    <div class="scoreboard" aria-label="Bubble Pop Shooter status">
+      <span>Score <span class="score" id="score">0</span></span>
+      <span>Level <span class="score" id="level">1</span></span>
+      <span>Goal <span class="score" id="goal">0/18</span></span>
+      <span>Misses <span class="score" id="misses">0/5</span></span>
+      <span>Next <span class="score" id="next">Pink</span></span>
+      <span>Power <span class="score" id="power">5</span></span>
+    </div>
+    <canvas id="game" width="800" height="500" aria-label="Bubble Pop Shooter. Aim with the pointer and click to shoot matching color bubbles."></canvas>
+    <div class="bottom-bar">
+      <p>Choose a level from the menu, then aim with the mouse or touch and click to launch a bubble. Match <strong>three or more</strong> of the same color to pop them. Every few shots charges a power bubble: <strong>Burst</strong> clears a 3×3 area, while <strong>Rainbow</strong> matches the best neighboring color.</p>
+      <div>
+        <select id="level-select" aria-label="Bubble Pop Shooter level">
+        </select>
+        <button id="continue-level" type="button" hidden>Continue</button>
+        <button id="restart" type="button">New game</button>
+      </div>
+    </div>
+  </main>
+  <script>
+    const canvas = document.querySelector("#game");
+    const context = canvas.getContext("2d");
+    const scoreElement = document.querySelector("#score");
+    const levelElement = document.querySelector("#level");
+    const goalElement = document.querySelector("#goal");
+    const missesElement = document.querySelector("#misses");
+    const nextElement = document.querySelector("#next");
+    const powerElement = document.querySelector("#power");
+    const levelSelect = document.querySelector("#level-select");
+    const continueLevelButton = document.querySelector("#continue-level");
+    const restartButton = document.querySelector("#restart");
+    const rows = 10;
+    const columns = 12;
+    const radius = 22;
+    const colors = [
+      { name: "Pink", value: "#ff719f" },
+      { name: "Cyan", value: "#65e8ef" },
+      { name: "Gold", value: "#ffdc62" },
+      { name: "Lime", value: "#b8e76a" },
+      { name: "Purple", value: "#b986ff" },
+      { name: "Orange", value: "#ff9a52" },
+      { name: "Blue", value: "#5d8dff" },
+      { name: "Red", value: "#ef526a" }
+    ];
+    const totalLevels = 33;
+    const levels = Object.fromEntries(Array.from({ length: totalLevels }, (_, index) => {
+      const number = index + 1;
+      const names = { 1: "Breezy", 2: "Bright", 3: "Bubble Storm" };
+      return [number, {
+        name: names[number] || `Challenge ${number}`,
+        rows: Math.min(8, 4 + Math.floor(index / 5)),
+        colorCount: Math.min(8, 3 + Math.floor(index / 5)),
+        missLimit: Math.max(2, 6 - Math.floor(index / 8)),
+        goal: 18 + index * 3
+      }];
+    }));
+    let grid = [];
+    let score = 0;
+    let misses = 0;
+    let level = 1;
+    let highestUnlocked = Math.max(1, Math.min(totalLevels, Number(localStorage.getItem("bubble-pop-highest-level")) || 1));
+    let poppedThisLevel = 0;
+    let awaitingNextLevel = false;
+    let nextColor = colors[0];
+    let nextPower;
+    let shotsToPower = 5;
+    let shot;
+    let pointer = { x: 400, y: 120 };
+    let previousTime = 0;
+    let gameOver = false;
+    let message = "";
+    let audioContext;
+
+    function buildLevelMenu() {
+      for (let currentLevel = 1; currentLevel <= totalLevels; currentLevel += 1) {
+        const option = document.createElement("option");
+        option.value = currentLevel;
+        option.textContent = `Level ${currentLevel}: ${levels[currentLevel].name}`;
+        levelSelect.append(option);
+      }
+      refreshLevelMenu();
+    }
+
+    function refreshLevelMenu() {
+      for (let currentLevel = 1; currentLevel <= totalLevels; currentLevel += 1) {
+        levelSelect.options[currentLevel - 1].disabled = currentLevel > highestUnlocked;
+      }
+    }
+
+    function prepareAudio() {
+      if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioContext.state === "suspended") audioContext.resume();
+    }
+
+    function playPop(size) {
+      if (!audioContext) return;
+      const oscillator = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      oscillator.type = "triangle";
+      oscillator.frequency.setValueAtTime(360 + Math.min(5, size) * 70, audioContext.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(180, audioContext.currentTime + 0.18);
+      gain.gain.setValueAtTime(0.1, audioContext.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.18);
+      oscillator.connect(gain);
+      gain.connect(audioContext.destination);
+      oscillator.start();
+      oscillator.stop(audioContext.currentTime + 0.18);
+    }
+
+    function randomColor() {
+      const activeColors = colors.slice(0, levels[level].colorCount);
+      return activeColors[Math.floor(Math.random() * activeColors.length)];
+    }
+
+    function position(column, row) {
+      return { x: 72 + column * 59, y: 46 + row * 47 };
+    }
+
+    function neighbors(column, row) {
+      return [[column - 1, row], [column + 1, row], [column, row - 1], [column, row + 1]]
+        .filter(([nextColumn, nextRow]) => nextColumn >= 0 && nextColumn < columns && nextRow >= 0 && nextRow < rows);
+    }
+
+    function updateStatus() {
+      scoreElement.textContent = score;
+      levelElement.textContent = level;
+      goalElement.textContent = `${poppedThisLevel}/${levels[level].goal}`;
+      missesElement.textContent = `${misses}/${levels[level].missLimit}`;
+      nextElement.textContent = nextPower === "burst" ? "Burst" : nextPower === "rainbow" ? "Rainbow" : nextColor.name;
+      powerElement.textContent = nextPower ? "Ready!" : shotsToPower;
+    }
+
+    function restartGame() {
+      level = Math.min(Number(levelSelect.value), highestUnlocked);
+      levelSelect.value = String(level);
+      score = 0;
+      startLevel();
+    }
+
+    function startLevel() {
+      grid = Array.from({ length: rows }, () => Array(columns).fill(null));
+      for (let row = 0; row < levels[level].rows; row += 1) {
+        for (let column = 0; column < columns; column += 1) grid[row][column] = randomColor();
+      }
+      misses = 0;
+      poppedThisLevel = 0;
+      nextColor = randomColor();
+      nextPower = undefined;
+      shotsToPower = 5;
+      shot = undefined;
+      gameOver = false;
+      awaitingNextLevel = false;
+      continueLevelButton.hidden = true;
+      message = "";
+      updateStatus();
+    }
+
+    function connectedGroup(column, row, color) {
+      const pending = [[column, row]];
+      const found = new Set();
+      while (pending.length) {
+        const [currentColumn, currentRow] = pending.pop();
+        const key = `${currentColumn},${currentRow}`;
+        if (found.has(key) || grid[currentRow][currentColumn] !== color) continue;
+        found.add(key);
+        neighbors(currentColumn, currentRow).forEach((neighbor) => pending.push(neighbor));
+      }
+      return [...found].map((key) => key.split(",").map(Number));
+    }
+
+    function removeFloatingBubbles() {
+      const attached = new Set();
+      const pending = [];
+      for (let column = 0; column < columns; column += 1) {
+        if (grid[0][column]) pending.push([column, 0]);
+      }
+      while (pending.length) {
+        const [column, row] = pending.pop();
+        const key = `${column},${row}`;
+        if (attached.has(key) || !grid[row][column]) continue;
+        attached.add(key);
+        neighbors(column, row).forEach((neighbor) => pending.push(neighbor));
+      }
+      let dropped = 0;
+      for (let row = 0; row < rows; row += 1) {
+        for (let column = 0; column < columns; column += 1) {
+          if (grid[row][column] && !attached.has(`${column},${row}`)) {
+            grid[row][column] = null;
+            dropped += 1;
+          }
+        }
+      }
+      score += dropped * 15;
+      return dropped;
+    }
+
+    function addRow() {
+      if (grid[rows - 1].some(Boolean)) {
+        gameOver = true;
+        message = "BUBBLES TOOK OVER!";
+        return;
+      }
+      grid.pop();
+      grid.unshift(Array.from({ length: columns }, randomColor));
+      misses = 0;
+    }
+
+    function nextBubble() {
+      nextColor = randomColor();
+      shotsToPower -= 1;
+      if (shotsToPower <= 0) {
+        nextPower = Math.random() < 0.5 ? "burst" : "rainbow";
+        shotsToPower = 5;
+      } else {
+        nextPower = undefined;
+      }
+    }
+
+    function burstBubbles(column, row) {
+      let removed = 0;
+      for (let targetRow = row - 1; targetRow <= row + 1; targetRow += 1) {
+        for (let targetColumn = column - 1; targetColumn <= column + 1; targetColumn += 1) {
+          if (targetRow >= 0 && targetRow < rows && targetColumn >= 0 && targetColumn < columns && grid[targetRow][targetColumn]) {
+            grid[targetRow][targetColumn] = null;
+            removed += 1;
+          }
+        }
+      }
+      return removed;
+    }
+
+    function bestNeighborColor(column, row) {
+      const nearbyColors = neighbors(column, row).map(([nextColumn, nextRow]) => grid[nextRow][nextColumn]).filter(Boolean);
+      if (!nearbyColors.length) return undefined;
+      return nearbyColors.reduce((best, color) => (
+        nearbyColors.filter((candidate) => candidate === color).length > nearbyColors.filter((candidate) => candidate === best).length ? color : best
+      ));
+    }
+
+    function settleShot() {
+      let closest;
+      let closestDistance = Infinity;
+      for (let row = 0; row < rows; row += 1) {
+        for (let column = 0; column < columns; column += 1) {
+          if (grid[row][column]) continue;
+          const target = position(column, row);
+          const distance = Math.hypot(shot.x - target.x, shot.y - target.y);
+          if (distance < closestDistance) {
+            closest = [column, row];
+            closestDistance = distance;
+          }
+        }
+      }
+      if (!closest) {
+        gameOver = true;
+        message = "BUBBLES TOOK OVER!";
+        return;
+      }
+      const [column, row] = closest;
+      grid[row][column] = shot.power === "rainbow" ? bestNeighborColor(column, row) || shot.color : shot.color;
+      if (shot.power === "burst") {
+        const removed = burstBubbles(column, row);
+        const dropped = removeFloatingBubbles();
+        score += removed * 15;
+        poppedThisLevel += removed + dropped;
+        playPop(Math.max(3, removed));
+        misses = 0;
+        message = `BURST! +${removed * 15}`;
+      } else {
+        const group = connectedGroup(column, row, grid[row][column]);
+        if (group.length >= 3) {
+          group.forEach(([groupColumn, groupRow]) => { grid[groupRow][groupColumn] = null; });
+          score += group.length * 10;
+          playPop(group.length);
+          const dropped = removeFloatingBubbles();
+          poppedThisLevel += group.length + dropped;
+          misses = 0;
+          message = `POP! +${group.length * 10}`;
+        } else {
+          misses += 1;
+          message = "No match!";
+          if (misses >= levels[level].missLimit) addRow();
+        }
+      }
+      if (poppedThisLevel >= levels[level].goal && !awaitingNextLevel) {
+        if (level < totalLevels && level === highestUnlocked) {
+          highestUnlocked += 1;
+          localStorage.setItem("bubble-pop-highest-level", String(highestUnlocked));
+          refreshLevelMenu();
+        }
+        awaitingNextLevel = true;
+        continueLevelButton.hidden = false;
+        continueLevelButton.textContent = level < totalLevels ? `Continue to level ${level + 1}` : "Finish game";
+        message = `LEVEL ${level} COMPLETE!`;
+      }
+      shot = undefined;
+      nextBubble();
+      updateStatus();
+    }
+
+    function launch(event) {
+      if (shot || gameOver || awaitingNextLevel) return;
+      prepareAudio();
+      const bounds = canvas.getBoundingClientRect();
+      const x = (event.clientX - bounds.left) * canvas.width / bounds.width;
+      const y = (event.clientY - bounds.top) * canvas.height / bounds.height;
+      const directionX = x - canvas.width / 2;
+      const directionY = y - 450;
+      if (directionY >= -10) return;
+      const length = Math.hypot(directionX, directionY);
+      shot = {
+        x: canvas.width / 2,
+        y: 450,
+        velocityX: directionX / length * 520,
+        velocityY: directionY / length * 520,
+        color: nextColor,
+        power: nextPower
+      };
+    }
+
+    function update(delta) {
+      if (!shot || gameOver) return;
+      shot.x += shot.velocityX * delta;
+      shot.y += shot.velocityY * delta;
+      if (shot.x - radius < 12 || shot.x + radius > canvas.width - 12) {
+        shot.x = Math.max(12 + radius, Math.min(canvas.width - 12 - radius, shot.x));
+        shot.velocityX *= -1;
+      }
+      let hit = shot.y - radius < 12;
+      for (let row = 0; row < rows && !hit; row += 1) {
+        for (let column = 0; column < columns; column += 1) {
+          if (!grid[row][column]) continue;
+          const bubble = position(column, row);
+          if (Math.hypot(shot.x - bubble.x, shot.y - bubble.y) < radius * 2 - 2) {
+            hit = true;
+            break;
+          }
+        }
+      }
+      if (hit) settleShot();
+    }
+
+    function drawBubble(x, y, color, size = radius, power) {
+      context.fillStyle = color.value;
+      context.shadowColor = color.value;
+      context.shadowBlur = 12;
+      context.beginPath();
+      context.arc(x, y, size, 0, Math.PI * 2);
+      context.fill();
+      if (power === "burst") {
+        context.fillStyle = "#fff9e9";
+        context.font = `800 ${size}px Arial`;
+        context.textAlign = "center";
+        context.fillText("*", x, y + size * 0.35);
+      }
+      if (power === "rainbow") {
+        context.strokeStyle = "#fff9e9";
+        context.lineWidth = Math.max(2, size * 0.14);
+        context.beginPath();
+        context.arc(x, y, size * 0.54, 0, Math.PI * 2);
+        context.stroke();
+      }
+      context.shadowBlur = 0;
+      context.fillStyle = "rgba(255,255,255,0.55)";
+      context.beginPath();
+      context.arc(x - size * 0.3, y - size * 0.3, size * 0.23, 0, Math.PI * 2);
+      context.fill();
+    }
+
+    function draw() {
+      const background = context.createLinearGradient(0, 0, canvas.width, canvas.height);
+      background.addColorStop(0, "#47378a");
+      background.addColorStop(1, "#201b48");
+      context.fillStyle = background;
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.strokeStyle = "rgba(255,249,233,0.28)";
+      context.lineWidth = 2;
+      context.beginPath();
+      context.moveTo(canvas.width / 2, 452);
+      context.lineTo(pointer.x, pointer.y);
+      context.stroke();
+      for (let row = 0; row < rows; row += 1) {
+        for (let column = 0; column < columns; column += 1) {
+          if (grid[row][column]) {
+            const bubble = position(column, row);
+            drawBubble(bubble.x, bubble.y, grid[row][column]);
+          }
+        }
+      }
+      context.fillStyle = "#fff9e9";
+      context.beginPath();
+      context.arc(canvas.width / 2, 463, 30, Math.PI, 0);
+      context.fill();
+      drawBubble(canvas.width / 2, 442, nextColor, 17, nextPower);
+      if (shot) drawBubble(shot.x, shot.y, shot.color, radius, shot.power);
+      if (message) {
+        context.fillStyle = "#fff9e9";
+        context.font = "800 24px Arial";
+        context.textAlign = "center";
+        context.fillText(message, canvas.width / 2, 485);
+      }
+      if (gameOver) {
+        context.fillStyle = "rgba(23,23,53,0.78)";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.fillStyle = "#ff719f";
+        context.font = "800 46px Arial";
+        context.textAlign = "center";
+        context.fillText(message, canvas.width / 2, 240);
+        context.fillStyle = "#fff9e9";
+        context.font = "700 19px Arial";
+        context.fillText("Press New game to shoot again", canvas.width / 2, 280);
+      }
+      if (awaitingNextLevel) {
+        context.fillStyle = "rgba(23,23,53,0.68)";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.fillStyle = "#ffdc62";
+        context.font = "800 42px Arial";
+        context.textAlign = "center";
+        context.fillText(`LEVEL ${level} COMPLETE!`, canvas.width / 2, 230);
+        context.fillStyle = "#fff9e9";
+        context.font = "700 19px Arial";
+        context.fillText("Use Continue to start the next level", canvas.width / 2, 270);
+      }
+    }
+
+    function loop(timestamp) {
+      if (!previousTime) previousTime = timestamp;
+      const delta = Math.min((timestamp - previousTime) / 1000, 0.05);
+      previousTime = timestamp;
+      update(delta);
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    canvas.addEventListener("pointermove", (event) => {
+      const bounds = canvas.getBoundingClientRect();
+      pointer = { x: (event.clientX - bounds.left) * canvas.width / bounds.width, y: (event.clientY - bounds.top) * canvas.height / bounds.height };
+    });
+    canvas.addEventListener("pointerdown", launch);
+    levelSelect.addEventListener("change", restartGame);
+    continueLevelButton.addEventListener("click", () => {
+      if (level >= totalLevels) {
+        awaitingNextLevel = false;
+        gameOver = true;
+        message = "ALL LEVELS CLEARED!";
+        continueLevelButton.hidden = true;
+      } else {
+        level += 1;
+        levelSelect.value = String(level);
+        startLevel();
+      }
+    });
+    restartButton.addEventListener("click", restartGame);
+    buildLevelMenu();
+    restartGame();
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
