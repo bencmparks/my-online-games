@@ -8,7 +8,7 @@ button{border:0;border-radius:.5rem;background:#e2e8f0;color:#1e293b;cursor:poin
 #shop{display:flex;flex-wrap:wrap;gap:.4rem;justify-content:center;margin:.6rem 0}#shop b{flex-basis:100%;color:#fde047}#shop button{padding:.45rem .6rem;font-size:.85rem;line-height:1.25;background:#334155;color:#e2e8f0;border:.1rem solid #64748b}#shop button:not(:disabled):hover{background:#475569}#shop button:disabled{opacity:.45;cursor:default}</style></head>
 <body><main><a href="../">← All games</a><h1>🚀 Moon Lander</h1>
 <p>Land your craft gently on a flat pad. Come in slow, level and with fuel to spare. Each level has slightly stronger gravity and smaller pads. Crash and the mission is over!</p>
-<p>Every landing earns credits. Spend them on upgrades between flights (buttons below, or keys 1-5). Upgrades are saved.</p>
+<p>Every landing earns credits. Spend them on unlimited upgrades between flights (buttons below, or keys 1-5). Upgrades are saved.</p>
 <p><strong>↑ / W</strong> thrust · <strong>←/→</strong> rotate · <strong>E / Space</strong> start and continue</p>
 <div id="shop" aria-label="Upgrade shop"></div>
 <canvas id="g" width="640" height="480" aria-label="Moon Lander game"></canvas>
@@ -18,11 +18,11 @@ button{border:0;border-radius:.5rem;background:#e2e8f0;color:#1e293b;cursor:poin
 const C=document.querySelector("#g"),x=C.getContext("2d"),W=640,H=480;
 let mode="title",L,level=1,score=0,hi=0,fuel=0,t=0,held={},terr=[],pads=[],stars=[],parts=[],msg="",gold=0,up={fuel:0,eng:0,legs:0,gyro:0,bonus:0},cred=0,lastMode="";
 try{hi=+localStorage.getItem("moonLanderHi")||0;cred=+localStorage.getItem("moonLanderCred")||0;Object.assign(up,JSON.parse(localStorage.getItem("moonLanderUp")||"{}"))}catch(e){}
-const UPS=[["fuel","⛽ Fuel Tank","+20% fuel"],["eng","🔥 Engine","+12% thrust"],["legs","🦵 Landing Legs","survive faster landings"],["gyro","🌀 Gyro","faster turns, wider tilt"],["bonus","💰 Salvage","+15% credits"]],MAXU=5;
+const UPS=[["fuel","⛽ Fuel Tank","+20% fuel"],["eng","🔥 Engine","+12% thrust"],["legs","🦵 Landing Legs","survive faster landings"],["gyro","🌀 Gyro","faster turns, wider tilt"],["bonus","💰 Salvage","+15% credits"]];
 const upCost=k=>40*(up[k]+1)*(up[k]+1),vyMax=()=>2.4+.3*up.legs,vxMax=()=>1.8+.25*up.legs,aMax=()=>.4+.05*up.gyro;
 function saveUp(){try{localStorage.setItem("moonLanderCred",cred);localStorage.setItem("moonLanderUp",JSON.stringify(up))}catch(e){}}
-function buyUp(i){const u=UPS[i];if(!u||mode==="play")return;const k=u[0];if(up[k]>=MAXU||cred<upCost(k))return;cred-=upCost(k);up[k]+=1;saveUp();renderShop()}
-function renderShop(){const s=document.querySelector("#shop");s.innerHTML=`<b>Credits: ${cred} 🪙${mode==="play"?" (shop closed while flying)":""}</b>`+UPS.map((u,i)=>{const k=u[0],mx=up[k]>=MAXU;return`<button type="button" data-u="${i}" ${mode==="play"||mx||cred<upCost(k)?"disabled":""}>${i+1}. ${u[1]} ${up[k]}/${MAXU}<br><small>${u[2]} · ${mx?"MAX":upCost(k)+" 🪙"}</small></button>`}).join("")}
+function buyUp(i){const u=UPS[i];if(!u||mode==="play")return;const k=u[0];if(cred<upCost(k))return;cred-=upCost(k);up[k]+=1;saveUp();renderShop()}
+function renderShop(){const s=document.querySelector("#shop");s.innerHTML=`<b>Credits: ${cred} 🪙${mode==="play"?" (shop closed while flying)":""}</b>`+UPS.map((u,i)=>{const k=u[0];return`<button type="button" data-u="${i}" ${mode==="play"||cred<upCost(k)?"disabled":""}>${i+1}. ${u[1]} Lv ${up[k]}<br><small>${u[2]} · ${upCost(k)} 🪙</small></button>`}).join("")}
 document.querySelector("#shop").addEventListener("click",e=>{const b=e.target.closest("[data-u]");if(b)buyUp(+b.dataset.u)});
 for(let i=0;i<80;i+=1)stars.push([Math.random()*W,Math.random()*300,Math.random()*1.6+.4]);
 function genTerrain(){
