@@ -5,17 +5,25 @@ main{width:min(100%,44rem);padding:1.5rem;border:.2rem solid #e2e8f0;border-radi
 canvas{display:block;width:100%;height:auto;margin:1rem 0;border:.2rem solid #475569;border-radius:.4rem;background:#020617;touch-action:none}
 .pad{display:flex;justify-content:center;align-items:center;gap:1.5rem;margin-top:.5rem;user-select:none;-webkit-user-select:none}.dpad{display:grid;grid-template-columns:repeat(3,3.2rem);grid-template-rows:repeat(3,3.2rem);gap:.2rem}
 button{border:0;border-radius:.5rem;background:#e2e8f0;color:#1e293b;cursor:pointer;font:inherit;font-weight:bold;touch-action:none}.dpad button{font-size:1.3rem}.a{width:4.5rem;height:4.5rem;border-radius:50%;font-size:1rem}
-</style></head>
+#shop{display:flex;flex-wrap:wrap;gap:.4rem;justify-content:center;margin:.6rem 0}#shop b{flex-basis:100%;color:#fde047}#shop button{padding:.45rem .6rem;font-size:.85rem;line-height:1.25;background:#334155;color:#e2e8f0;border:.1rem solid #64748b}#shop button:not(:disabled):hover{background:#475569}#shop button:disabled{opacity:.45;cursor:default}</style></head>
 <body><main><a href="../">← All games</a><h1>🚀 Moon Lander</h1>
 <p>Land your craft gently on a flat pad. Come in slow, level and with fuel to spare. Each level has slightly stronger gravity and smaller pads. Crash and the mission is over!</p>
+<p>Every landing earns credits. Spend them on upgrades between flights (buttons below, or keys 1-5). Upgrades are saved.</p>
 <p><strong>↑ / W</strong> thrust · <strong>←/→</strong> rotate · <strong>E / Space</strong> start and continue</p>
+<div id="shop" aria-label="Upgrade shop"></div>
 <canvas id="g" width="640" height="480" aria-label="Moon Lander game"></canvas>
 <div class="pad"><div class="dpad"><span></span><button data-k="up" type="button">▲</button><span></span><button data-k="left" type="button">◀</button><span></span><button data-k="right" type="button">▶</button><span></span><button data-k="down" type="button" disabled>·</button><span></span></div><button class="a" data-k="act" type="button">START</button></div>
 </main>
 <script>
 const C=document.querySelector("#g"),x=C.getContext("2d"),W=640,H=480;
-let mode="title",L,level=1,score=0,hi=0,fuel=0,t=0,held={},terr=[],pads=[],stars=[],parts=[],msg="",gold=0;
-try{hi=+localStorage.getItem("moonLanderHi")||0}catch(e){}
+let mode="title",L,level=1,score=0,hi=0,fuel=0,t=0,held={},terr=[],pads=[],stars=[],parts=[],msg="",gold=0,up={fuel:0,eng:0,legs:0,gyro:0,bonus:0},cred=0,lastMode="";
+try{hi=+localStorage.getItem("moonLanderHi")||0;cred=+localStorage.getItem("moonLanderCred")||0;Object.assign(up,JSON.parse(localStorage.getItem("moonLanderUp")||"{}"))}catch(e){}
+const UPS=[["fuel","⛽ Fuel Tank","+20% fuel"],["eng","🔥 Engine","+12% thrust"],["legs","🦵 Landing Legs","survive faster landings"],["gyro","🌀 Gyro","faster turns, wider tilt"],["bonus","💰 Salvage","+15% credits"]],MAXU=5;
+const upCost=k=>40*(up[k]+1)*(up[k]+1),vyMax=()=>2.4+.3*up.legs,vxMax=()=>1.8+.25*up.legs,aMax=()=>.4+.05*up.gyro;
+function saveUp(){try{localStorage.setItem("moonLanderCred",cred);localStorage.setItem("moonLanderUp",JSON.stringify(up))}catch(e){}}
+function buyUp(i){const u=UPS[i];if(!u||mode==="play")return;const k=u[0];if(up[k]>=MAXU||cred<upCost(k))return;cred-=upCost(k);up[k]+=1;saveUp();renderShop()}
+function renderShop(){const s=document.querySelector("#shop");s.innerHTML=`<b>Credits: ${cred} 🪙${mode==="play"?" (shop closed while flying)":""}</b>`+UPS.map((u,i)=>{const k=u[0],mx=up[k]>=MAXU;return`<button type="button" data-u="${i}" ${mode==="play"||mx||cred<upCost(k)?"disabled":""}>${i+1}. ${u[1]} ${up[k]}/${MAXU}<br><small>${u[2]} · ${mx?"MAX":upCost(k)+" 🪙"}</small></button>`}).join("")}
+document.querySelector("#shop").addEventListener("click",e=>{const b=e.target.closest("[data-u]");if(b)buyUp(+b.dataset.u)});
 for(let i=0;i<80;i+=1)stars.push([Math.random()*W,Math.random()*300,Math.random()*1.6+.4]);
 function genTerrain(){
  const n=64,seg=W/(n-1);terr=[];pads=[];let y=360,i=0;
@@ -31,11 +39,12 @@ function genTerrain(){
 let SEG=10;
 function groundY(px){const f=Math.max(0,Math.min(terr.length-1.001,px/SEG)),i=Math.floor(f);return terr[i]+(terr[i+1]-terr[i])*(f-i)}
 function begin(){
- SEG=genTerrain();fuel=Math.max(900,1500-level*40);parts=[];
+ SEG=genTerrain();fuel=Math.max(900,1500-level*40)*(1+.2*up.fuel);parts=[];
  L={x:60+Math.random()*60,y:60,vx:.8,vy:0,a:0,g:.012+level*.0015};mode="play";msg=""
 }
 function start(){level=1;score=0;gold=0;begin()}
 function press(k){
+ if(k[0]==="u"){buyUp(+k[1]);return}
  if(mode==="title"||mode==="over"){if(k==="act")start()}
  else if(mode==="landed"){if(k==="act"){level+=1;begin()}}
 }
@@ -43,21 +52,21 @@ function boom(px,py,c){for(let i=0;i<40;i+=1){const a=Math.random()*6.28,s=Math.
 function update(){
  t+=1;parts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.04;p.l-=1});parts=parts.filter(p=>p.l>0);
  if(mode!=="play")return;
- if(held.left)L.a-=.035;if(held.right)L.a+=.035;L.a=Math.max(-1.2,Math.min(1.2,L.a));
- if(held.up&&fuel>0){const th=.095;L.vx+=Math.sin(L.a)*th;L.vy-=Math.cos(L.a)*th;fuel-=1;
+ const rs=.035*(1+.15*up.gyro);if(held.left)L.a-=rs;if(held.right)L.a+=rs;L.a=Math.max(-1.2,Math.min(1.2,L.a));
+ if(held.up&&fuel>0){const th=.095*(1+.12*up.eng);L.vx+=Math.sin(L.a)*th;L.vy-=Math.cos(L.a)*th;fuel-=1;
   if(t%2===0)parts.push({x:L.x-Math.sin(L.a)*14,y:L.y+Math.cos(L.a)*14,vx:-Math.sin(L.a)*2+(Math.random()-.5),vy:Math.cos(L.a)*2+(Math.random()-.5),l:14,c:"#fb923c"})}
  L.vy+=L.g;L.x+=L.vx;L.y+=L.vy;
  if(L.x<10){L.x=10;L.vx=Math.abs(L.vx)*.3}if(L.x>W-10){L.x=W-10;L.vx=-Math.abs(L.vx)*.3}if(L.y<12){L.y=12;L.vy=Math.max(0,L.vy)}
  const foot=L.y+12,gy=Math.max(groundY(L.x-9),groundY(L.x+9));
  if(L.y+12>=gy){
   const pad=pads.find(p=>L.x-8>=p.x0-2&&L.x+8<=p.x1+2&&Math.abs(gy-p.y)<2);
-  const ok=pad&&Math.abs(L.vy)<2.4&&Math.abs(L.vx)<1.8&&Math.abs(L.a)<.4;
-  if(ok){const bonus=Math.round((200+fuel/2+(2.4-Math.abs(L.vy))*40)*pad.m);score+=bonus;gold=bonus;mode="landed";L.y=gy-12;L.vx=L.vy=0;msg=`+${bonus} (×${pad.m} pad)`;
+  const ok=pad&&Math.abs(L.vy)<vyMax()&&Math.abs(L.vx)<vxMax()&&Math.abs(L.a)<aMax();
+  if(ok){const bonus=Math.round((200+fuel/2+(vyMax()-Math.abs(L.vy))*40)*pad.m);score+=bonus;gold=bonus;const gain=Math.round(bonus/4*(1+.15*up.bonus));cred+=gain;saveUp();mode="landed";L.y=gy-12;L.vx=L.vy=0;msg=`+${bonus} (×${pad.m} pad) · +${gain} 🪙`;
    if(score>hi){hi=score;try{localStorage.setItem("moonLanderHi",hi)}catch(e){}}}
-  else{mode="over";boom(L.x,L.y,"#fb923c");boom(L.x,L.y,"#fff");msg=!pad?"Missed the landing pad!":Math.abs(L.a)>=.4?"Too tilted!":"Too fast!"}
+  else{mode="over";boom(L.x,L.y,"#fb923c");boom(L.x,L.y,"#fff");msg=!pad?"Missed the landing pad!":Math.abs(L.a)>=aMax()?"Too tilted!":"Too fast!"}
  }
 }
-const KEYS={ArrowUp:"up",KeyW:"up",ArrowLeft:"left",KeyA:"left",ArrowRight:"right",KeyD:"right",KeyE:"act",Space:"act",Enter:"act"};
+const KEYS={ArrowUp:"up",KeyW:"up",ArrowLeft:"left",KeyA:"left",ArrowRight:"right",KeyD:"right",KeyE:"act",Digit1:"u0",Digit2:"u1",Digit3:"u2",Digit4:"u3",Digit5:"u4",Space:"act",Enter:"act"};
 addEventListener("keydown",e=>{const k=KEYS[e.code];if(!k)return;e.preventDefault();held[k]=true;if(!e.repeat)press(k)});
 addEventListener("keyup",e=>{const k=KEYS[e.code];if(k)held[k]=false});
 addEventListener("blur",()=>{held={}});
@@ -82,14 +91,14 @@ function draw(){
  for(const p of parts){x.globalAlpha=Math.min(1,p.l/20);x.fillStyle=p.c;x.fillRect(p.x,p.y,3,3)}x.globalAlpha=1;
  if(mode!=="title"){
   text(`SCORE ${score}`,14,28,20);text(`LEVEL ${level}`,W/2,28,18,"#7dd3fc","center");text(`BEST ${hi}`,W-14,28,16,"#fde047","right");
-  const sp=Math.abs(L.vy),ok=sp<1.6;
+  const sp=Math.abs(L.vy),ok=sp<vyMax()*.67;
   text(`FUEL ${Math.max(0,Math.round(fuel/10))}%`,14,54,16,fuel<150?"#f87171":"#4ade80");
-  text(`Speed ↓ ${L.vy.toFixed(1)}`,14,76,16,ok?"#4ade80":"#f87171");text(`Drift → ${L.vx.toFixed(1)}`,14,98,16,Math.abs(L.vx)<1.1?"#4ade80":"#f87171");
-  text(`Tilt ${Math.round(L.a*57.3)}°`,14,120,16,Math.abs(L.a)<.28?"#4ade80":"#f87171")}
+  text(`Speed ↓ ${L.vy.toFixed(1)}`,14,76,16,ok?"#4ade80":"#f87171");text(`Drift → ${L.vx.toFixed(1)}`,14,98,16,Math.abs(L.vx)<vxMax()*.6?"#4ade80":"#f87171");
+  text(`Tilt ${Math.round(L.a*57.3)}°`,14,120,16,Math.abs(L.a)<aMax()*.7?"#4ade80":"#f87171")}
  if(mode==="title"){x.fillStyle="rgb(2 6 23 / 60%)";x.fillRect(0,0,W,H);text("MOON LANDER",W/2,170,56,"#e2e8f0","center");text("Land softly on the green pads",W/2,215,22,"#a7f3d0","center");if(Math.floor(t/30)%2)text("Press E or START",W/2,290,24,"#fff","center")}
  if(mode==="landed"){text("LANDED!",W/2,170,50,"#4ade80","center");text(msg,W/2,215,24,"#fde047","center");if(Math.floor(t/30)%2)text("Press E for the next level",W/2,270,22,"#fff","center")}
  if(mode==="over"){text("CRASH!",W/2,170,54,"#f87171","center");text(msg,W/2,215,24,"#fff","center");text(`Final score ${score}`,W/2,255,22,"#fde047","center");if(Math.floor(t/30)%2)text("Press E to try again",W/2,310,22,"#fff","center")}
 }
-function frame(){update();draw();requestAnimationFrame(frame)}
+function frame(){if(mode!==lastMode){lastMode=mode;renderShop()}update();draw();requestAnimationFrame(frame)}
 frame();
 </script></body></html>
