@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Hide and Seek | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#4c1d95,#0b1020)}
+main{width:min(100%,44rem);padding:1.5rem;border:.2rem solid #c084fc;border-radius:1.25rem;background:rgb(8 12 30 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.6rem 0;color:#e9d5ff;font-size:1.6rem}
+canvas{display:block;width:100%;height:auto;margin:.8rem 0;border:.2rem solid #475569;border-radius:.4rem;background:#78350f;touch-action:none}
+.modes{display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap}.modes button{padding:.6rem 1.2rem;font-size:1rem}
+.pad{display:flex;justify-content:center;align-items:center;gap:1.5rem;margin-top:.5rem;user-select:none;-webkit-user-select:none}.dpad{display:grid;grid-template-columns:repeat(3,3.2rem);grid-template-rows:repeat(3,3.2rem);gap:.2rem}
+button{border:0;border-radius:.5rem;background:#e9d5ff;color:#3b0764;cursor:pointer;font:inherit;font-weight:bold;touch-action:none}.dpad button{font-size:1.3rem}.a{width:4.5rem;height:4.5rem;border-radius:50%;font-size:1rem}
+</style></head>
+<body><main><a href="../">← All games</a><h1>🙈 Hide and Seek</h1>
+<p><strong>Seek:</strong> find every hider before time runs out. Walk up to a hiding spot and search it. <strong>Hide:</strong> sneak into a hiding spot and stay out of sight until time is up. The seeker checks spots one by one, and checked spots show a ✓, so slip into one that's already been searched!</p>
+<p><strong>WASD / arrows</strong> move · <strong>E / Space</strong> search or hide · <strong>1</strong> Seek · <strong>2</strong> Hide</p>
+<div class="modes"><button id="mSeek" type="button">🔍 Play Seek (1)</button><button id="mHide" type="button">🫣 Play Hide (2)</button></div>
+<canvas id="g" width="640" height="480" aria-label="Hide and Seek game"></canvas>
+<div class="pad"><div class="dpad"><span></span><button data-k="up" type="button">▲</button><span></span><button data-k="left" type="button">◀</button><span></span><button data-k="right" type="button">▶</button><span></span><button data-k="down" type="button">▼</button><span></span></div><button class="a" data-k="act" type="button">E</button></div>
+</main>
+<script>
+const C=document.querySelector("#g"),x=C.getContext("2d"),W=640,H=480,R=10;
+const S=[["Bed","🛏️",40,50,100,60,"#6366f1"],["Wardrobe","🚪",270,40,60,80,"#92400e"],["Couch","🛋️",470,50,110,55,"#be185d"],["Barrel","🛢️",40,200,45,45,"#a16207"],["Table","🍽️",250,200,120,60,"#b45309"],["Plant","🪴",560,210,40,50,"#15803d"],["Boxes","📦",40,360,80,55,"#ca8a04"],["Curtain","🪟",270,370,100,40,"#0e7490"],["Fridge","🧊",470,350,50,80,"#94a3b8"],["Tent","⛺",560,380,60,60,"#ea580c"]].map(([n,e,a,b,w,h,c])=>({n,e,x:a,y:b,w,h,c,chk:0,hid:0,res:""}));
+let mode="title",kind="seek",level=1,score=0,hi=0,t=0,time=0,held={},p,sk,hidAt=-1,found=0,total=0,phase="",msg="",flash=0,msgT=0;
+try{hi=+localStorage.getItem("hideSeekBest")||0}catch(e){}
+const free=(a,b)=>a>R&&a<W-R&&b>R&&b<H-R&&!S.some(s=>a>s.x-R&&a<s.x+s.w+R&&b>s.y-R&&b<s.y+s.h+R);
+const dr=(a,b,s)=>Math.hypot(Math.max(s.x-a,0,a-s.x-s.w),Math.max(s.y-b,0,b-s.y-s.h));
+const cx=s=>s.x+s.w/2,cy=s=>s.y+s.h/2;
+function nearSpot(){let b=-1,d=34;S.forEach((s,i)=>{const k=dr(p.x,p.y,s);if(k<d){d=k;b=i}});return b}
+function say(m){msg=m;msgT=90}
+function begin(k){
+ kind=k;S.forEach(s=>{s.chk=0;s.hid=0;s.res=""});p={x:320,y:310};hidAt=-1;found=0;flash=0;msg="";
+ if(k==="seek"){total=Math.min(8,2+level);time=Math.max(30,75-level*3)*60;const idx=S.map((_,i)=>i).sort(()=>Math.random()-.5).slice(0,total);idx.forEach(i=>S[i].hid=1);phase="play";say(`Find ${total} hiders!`)}
+ else{sk={x:320,y:150,tg:-1,wait:0,chase:0};time=40*60;phase="count";sk.count=5*60;say("Hide! The seeker is counting...")}
+ mode="play"}
+function act(){
+ if(mode==="title"||mode==="won"||mode==="lost"){if(mode==="lost"){level=1;score=0}begin(kind);return}
+ if(kind==="seek"){const i=nearSpot();if(i<0)return;const s=S[i];if(s.chk)return;s.chk=1;
+  if(s.hid){found+=1;score+=100+Math.floor(time/60)*2;s.res="🙂";say("Found one!");if(found>=total){mode="won";level+=1;save()}}else{s.res="✗";say("Nothing here.")}}
+ else{
+  if(hidAt>=0){const s=S[hidAt];p.x=cx(s);p.y=s.y+s.h+R+4;hidAt=-1;return}
+  const i=nearSpot();if(i<0)return;hidAt=i;p.x=cx(S[i]);p.y=cy(S[i]);if(Math.hypot(sk.x-p.x,sk.y-p.y)<40){end("The seeker saw you hide!")}else say("Hidden! Stay quiet...")}}
+function save(){if(score>hi){hi=score;try{localStorage.setItem("hideSeekBest",hi)}catch(e){}}}
+function end(m){mode="lost";msg=m;save()}
+function update(){
+ t+=1;if(msgT>0)msgT-=1;if(mode!=="play")return;
+ const sp=2.6,dx=(held.right?1:0)-(held.left?1:0),dy=(held.down?1:0)-(held.up?1:0);
+ if((dx||dy)&&hidAt<0){const l=Math.hypot(dx,dy),nx=p.x+dx/l*sp,ny=p.y+dy/l*sp;if(free(nx,p.y))p.x=nx;if(free(p.x,ny))p.y=ny}
+ time-=1;
+ if(kind==="seek"){if(time<=0)end(`Time's up! You found ${found} of ${total}.`);return}
+ if(phase==="count"){sk.count-=1;if(sk.count<=0){phase="play";say("Ready or not, here I come!")}}
+ else{
+  const spd=1.3+level*.12,seen=hidAt<0&&Math.hypot(sk.x-p.x,sk.y-p.y)<110;
+  if(seen)sk.chase=1;if(hidAt>=0)sk.chase=0;
+  if(sk.chase){const a=Math.atan2(p.y-sk.y,p.x-sk.x);sk.x+=Math.cos(a)*(spd+.5);sk.y+=Math.sin(a)*(spd+.5);if(Math.hypot(sk.x-p.x,sk.y-p.y)<20)end("The seeker caught you!")}
+  else{
+   if(sk.tg<0){let un=S.map((s,i)=>i).filter(i=>!S[i].chk);if(!un.length){S.forEach(s=>s.chk=0);un=S.map((s,i)=>i)}
+    un.sort((a,b)=>Math.hypot(cx(S[a])-sk.x,cy(S[a])-sk.y)-Math.hypot(cx(S[b])-sk.x,cy(S[b])-sk.y));sk.tg=un[Math.floor(Math.random()*Math.min(3,un.length))];sk.wait=0}
+   const s=S[sk.tg],ax=cx(s),ay=s.y+s.h+R+6,d=Math.hypot(ax-sk.x,ay-sk.y);
+   if(d>4){sk.x+=(ax-sk.x)/d*spd;sk.y+=(ay-sk.y)/d*spd}
+   else{sk.wait+=1;if(sk.wait>60){s.chk=1;if(hidAt===sk.tg)return end("The seeker found you!");sk.tg=-1}}}}
+ if(time<=0){mode="won";level+=1;score+=100*level+25;save();msg="The seeker gave up. You win!"}
+}
+const KEYS={ArrowUp:"up",KeyW:"up",ArrowDown:"down",KeyS:"down",ArrowLeft:"left",KeyA:"left",ArrowRight:"right",KeyD:"right",KeyE:"act",Space:"act",Enter:"act"};
+addEventListener("keydown",e=>{if(e.code==="Digit1"){kind="seek";mode="title";act();return}if(e.code==="Digit2"){kind="hide";mode="title";act();return}const k=KEYS[e.code];if(!k)return;e.preventDefault();held[k]=true;if(!e.repeat&&k==="act")act()});
+addEventListener("keyup",e=>{const k=KEYS[e.code];if(k)held[k]=false});
+addEventListener("blur",()=>{held={}});
+document.querySelectorAll("[data-k]").forEach(b=>{const k=b.dataset.k;b.addEventListener("pointerdown",e=>{e.preventDefault();held[k]=true;if(k==="act")act()});["pointerup","pointerleave","pointercancel"].forEach(ev=>b.addEventListener(ev,()=>{held[k]=false}))});
+document.querySelector("#mSeek").onclick=()=>{kind="seek";mode="title";level=1;score=0;act()};
+document.querySelector("#mHide").onclick=()=>{kind="hide";mode="title";level=1;score=0;act()};
+function text(s,a,b,size=18,color="#fff",align="left"){x.font=`bold ${size}px Arial,sans-serif`;x.fillStyle=color;x.textAlign=align;x.lineWidth=4;x.strokeStyle="#000";x.strokeText(s,a,b);x.fillText(s,a,b)}
+function draw(){
+ x.fillStyle="#92400e";x.fillRect(0,0,W,H);x.fillStyle="#78350f";for(let i=0;i<H;i+=30)x.fillRect(0,i,W,2);
+ S.forEach((s,i)=>{x.fillStyle=s.c;x.fillRect(s.x,s.y,s.w,s.h);x.strokeStyle="rgb(0 0 0 / 40%)";x.lineWidth=2;x.strokeRect(s.x,s.y,s.w,s.h);
+  x.font="26px Arial";x.textAlign="center";x.fillStyle="#fff";x.fillText(s.e,cx(s),cy(s)+9);
+  if(mode==="play"&&nearSpot()===i&&!(kind==="seek"&&s.chk)&&hidAt<0){x.strokeStyle="#fde047";x.lineWidth=3;x.strokeRect(s.x-3,s.y-3,s.w+6,s.h+6)}
+  if(kind==="seek"&&s.res)text(s.res,cx(s),s.y-6,22,s.res==="✗"?"#f87171":"#4ade80","center");
+  if(kind==="hide"&&s.chk&&mode==="play")text("✓",cx(s),s.y-6,20,"#4ade80","center");
+  if(kind==="hide"&&hidAt===i)text("You're here",cx(s),s.y+s.h+16,14,"#fde047","center")});
+ if(mode!=="title"){
+  if(kind==="hide"&&sk){x.fillStyle="#ef4444";x.beginPath();x.arc(sk.x,sk.y,13,0,7);x.fill();x.fillStyle="#fff";x.fillRect(sk.x-6,sk.y-4,4,5);x.fillRect(sk.x+2,sk.y-4,4,5);
+   if(phase==="count")text(`Seeker counting: ${Math.ceil(sk.count/60)}`,W/2,H-20,22,"#fde047","center");else if(sk.chase)text("❗ Spotted!",sk.x,sk.y-20,18,"#fecaca","center")}
+  if(hidAt<0){x.fillStyle="#38bdf8";x.beginPath();x.arc(p.x,p.y,R+1,0,7);x.fill();x.fillStyle="#fff";x.fillRect(p.x-5,p.y-4,4,5);x.fillRect(p.x+1,p.y-4,4,5)}
+  text(kind==="seek"?`SEEK · Lv ${level} · Found ${found}/${total}`:`HIDE · Lv ${level}`,10,24,18,"#fff");
+  text(`⏱ ${Math.max(0,Math.ceil(time/60))}s`,W/2,24,20,time<600?"#f87171":"#fde047","center");text(`SCORE ${score}  BEST ${hi}`,W-10,24,16,"#fde047","right");
+  if(msgT>0)text(msg,W/2,H-48,20,"#fff","center")}
+ if(mode==="title"){x.fillStyle="rgb(2 6 23 / 65%)";x.fillRect(0,0,W,H);text("HIDE AND SEEK",W/2,170,52,"#e9d5ff","center");text("Press 1 to Seek  ·  Press 2 to Hide",W/2,225,24,"#fde047","center");if(Math.floor(t/30)%2)text("or use the buttons above",W/2,275,20,"#fff","center")}
+ if(mode==="won"){x.fillStyle="rgb(2 6 23 / 55%)";x.fillRect(0,H/2-90,W,180);text(kind==="seek"?"All found!":"You win!",W/2,H/2-30,48,"#4ade80","center");text(msg||"",W/2,H/2+5,20,"#fff","center");if(Math.floor(t/30)%2)text("Press E for the next level",W/2,H/2+50,22,"#fff","center")}
+ if(mode==="lost"){x.fillStyle="rgb(2 6 23 / 55%)";x.fillRect(0,H/2-90,W,180);text(kind==="seek"?"Time's up!":"Caught!",W/2,H/2-30,48,"#f87171","center");text(msg,W/2,H/2+5,20,"#fff","center");text(`Score ${score}`,W/2,H/2+36,20,"#fde047","center");if(Math.floor(t/30)%2)text("Press E to try again",W/2,H/2+66,22,"#fff","center")}
+}
+function frame(){update();draw();requestAnimationFrame(frame)}
+frame();
+</script></body></html>

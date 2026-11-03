@@ -95,3 +95,4 @@ Keep a list of my games here.
 - Confetti Bomb Dash (`confetti-bomb-dash/`)
 - Bubble Pop Shooter (`bubble-pop-shooter/`)
 - Brick Breaker Blast (`brick-breaker-blast/`)
+- Hide and Seek (`hide-and-seek/`, Seek and Hide modes)
