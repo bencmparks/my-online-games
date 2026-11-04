@@ -203,6 +203,70 @@
       }
     }
 
+    button,
+    label {
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .mode-picker label {
+      padding: 0.5rem 0.75rem;
+    }
+
+    .reaction {
+      min-width: 2.75rem;
+      min-height: 2.75rem;
+    }
+
+    @media (hover: none) {
+      .cell:hover:not(:disabled) {
+        outline: 0;
+        transform: none;
+      }
+    }
+
+    @media (max-width: 36rem) {
+      body {
+        min-height: 100dvh;
+        padding: 0.5rem;
+        padding-left: max(0.5rem, env(safe-area-inset-left));
+        padding-right: max(0.5rem, env(safe-area-inset-right));
+        padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+      }
+
+      main {
+        padding: 1rem 0.5rem;
+        border-radius: 1rem;
+      }
+
+      .back-link {
+        margin-bottom: 0.75rem;
+        padding: 0.5rem 0;
+      }
+
+      .mode-picker {
+        flex-wrap: wrap;
+        margin: 0.75rem 0;
+      }
+
+      .player-guide {
+        font-size: 0.875rem;
+      }
+
+      .robot-record {
+        flex-wrap: wrap;
+        gap: 0.5rem 1rem;
+        font-size: 0.875rem;
+      }
+
+      main .reaction-panel {
+      }
+
+      main #restart {
+        min-height: 2.75rem;
+      }
+    }
+
     #restart {
       margin-top: 2rem;
       padding: 0.75rem 1.25rem;

@@ -75,11 +75,59 @@
     }
 
     .touch-controls {
-      display: grid;
-      grid-template-columns: repeat(3, 3rem);
-      justify-content: center;
-      gap: 0.35rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
       margin: 1rem 0;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    #joystick {
+      position: relative;
+      width: 8.5rem;
+      height: 8.5rem;
+      border: 2px solid #4b6382;
+      border-radius: 50%;
+      background: rgb(23 36 58 / 80%);
+      touch-action: none;
+    }
+
+    #joystick-knob {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 3.5rem;
+      height: 3.5rem;
+      margin: -1.75rem 0 0 -1.75rem;
+      border-radius: 50%;
+      background: #86efac;
+      box-shadow: 0 0.25rem 0.5rem rgb(0 0 0 / 40%);
+      pointer-events: none;
+    }
+
+    #fire-button {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 6.5rem;
+      height: 6.5rem;
+      border-radius: 50% !important;
+      border-color: #ef4444 !important;
+      background: #7f1d1d !important;
+      font-size: 2rem !important;
+      touch-action: none;
+    }
+
+    #fire-button span {
+      font-size: 0.8rem;
+    }
+
+    #fire-button:active {
+      background: #b91c1c !important;
     }
 
     .touch-controls button,
@@ -96,10 +144,6 @@
     .touch-controls button {
       min-height: 2.75rem;
       font-size: 1.25rem;
-    }
-
-    .touch-controls .spacer {
-      visibility: hidden;
     }
 
     .game-actions {
@@ -151,19 +195,12 @@
   <main>
     <a class="back-link" href="../">← All games</a>
     <h1>Zombie Apocalypse</h1>
-    <p class="instructions">Move with WASD or arrow keys. Click or tap to fire. Watch for fast runners, tough brutes, and valuable boosts.</p>
+    <p class="instructions">Move with WASD, arrow keys, or the on-screen joystick. Click or tap the field, or hold 🔥, to fire. Watch for fast runners, tough brutes, and valuable boosts.</p>
     <canvas id="game" width="720" height="480" aria-label="Zombie Apocalypse game"></canvas>
     <p id="status" aria-live="polite">The horde is approaching.</p>
-    <div class="touch-controls" aria-label="Touch movement controls">
-      <span class="spacer"></span>
-      <button type="button" data-key="ArrowUp" aria-label="Move up">↑</button>
-      <span class="spacer"></span>
-      <button type="button" data-key="ArrowLeft" aria-label="Move left">←</button>
-      <button type="button" data-key="Space" aria-label="Fire at nearest zombie">🔥</button>
-      <button type="button" data-key="ArrowRight" aria-label="Move right">→</button>
-      <span class="spacer"></span>
-      <button type="button" data-key="ArrowDown" aria-label="Move down">↓</button>
-      <span class="spacer"></span>
+    <div class="touch-controls" aria-label="Touch controls">
+      <div id="joystick" role="presentation" aria-label="Movement joystick"><div id="joystick-knob"></div></div>
+      <button type="button" id="fire-button" data-key="Space" aria-label="Fire at nearest zombie">🔥<span>FIRE</span></button>
     </div>
     <div class="game-actions">
       <button id="restart" type="button">Start new run</button>
@@ -198,6 +235,10 @@
     const coinElement = document.querySelector("#coins");
     const upgradeButtons = document.querySelectorAll("[data-upgrade]");
     const controlButtons = document.querySelectorAll("[data-key]");
+    const joystickElement = document.querySelector("#joystick");
+    const joystickKnob = document.querySelector("#joystick-knob");
+    const joystick = { x: 0, y: 0 };
+    let joystickPointer = null;
     const keys = new Set();
     const player = { x: 360, y: 240, radius: 18, health: 100, speed: 260 };
     const progress = GameProfiles.getGame("zombie-apocalypse", { coins: 0, vestLevel: 0, blasterLevel: 0, bootsLevel: 0, catLevel: 0, dogLevel: 0, protectorDogLevel: 0 });
@@ -382,7 +423,12 @@
       if (keys.has("ArrowUp") || keys.has("w")) vertical -= 1;
       if (keys.has("ArrowDown") || keys.has("s")) vertical += 1;
 
-      const distance = Math.hypot(horizontal, vertical) || 1;
+      let distance = Math.hypot(horizontal, vertical) || 1;
+      if (horizontal === 0 && vertical === 0 && (joystick.x || joystick.y)) {
+        horizontal = joystick.x;
+        vertical = joystick.y;
+        distance = 1;
+      }
       const speedMultiplier = activeBoosts.speed > 0 ? 1.5 : 1;
       player.x = clamp(player.x + (horizontal / distance) * player.speed * speedMultiplier * deltaTime, player.radius, canvas.width - player.radius);
       player.y = clamp(player.y + (vertical / distance) * player.speed * speedMultiplier * deltaTime, player.radius, canvas.height - player.radius);
@@ -796,11 +842,55 @@
     });
 
     for (const button of controlButtons) {
-      button.addEventListener("pointerdown", () => setKey(button.dataset.key, true));
+      button.addEventListener("pointerdown", (event) => {
+        event.preventDefault();
+        button.setPointerCapture(event.pointerId);
+        setKey(button.dataset.key, true);
+      });
       button.addEventListener("pointerup", () => setKey(button.dataset.key, false));
-      button.addEventListener("pointerleave", () => setKey(button.dataset.key, false));
       button.addEventListener("pointercancel", () => setKey(button.dataset.key, false));
+      button.addEventListener("contextmenu", (event) => event.preventDefault());
     }
+
+    function moveJoystick(event) {
+      const bounds = joystickElement.getBoundingClientRect();
+      const maxOffset = bounds.width / 2 - joystickKnob.offsetWidth / 4;
+      let dx = event.clientX - (bounds.left + bounds.width / 2);
+      let dy = event.clientY - (bounds.top + bounds.height / 2);
+      const length = Math.hypot(dx, dy);
+      if (length > maxOffset) {
+        dx = (dx / length) * maxOffset;
+        dy = (dy / length) * maxOffset;
+      }
+      joystickKnob.style.transform = `translate(${dx}px, ${dy}px)`;
+      const deadZone = 0.15;
+      const x = dx / maxOffset;
+      const y = dy / maxOffset;
+      const magnitude = Math.hypot(x, y);
+      joystick.x = magnitude < deadZone ? 0 : x;
+      joystick.y = magnitude < deadZone ? 0 : y;
+    }
+
+    function releaseJoystick() {
+      joystickPointer = null;
+      joystick.x = 0;
+      joystick.y = 0;
+      joystickKnob.style.transform = "";
+    }
+
+    joystickElement.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      joystickPointer = event.pointerId;
+      joystickElement.setPointerCapture(event.pointerId);
+      moveJoystick(event);
+    });
+    joystickElement.addEventListener("pointermove", (event) => {
+      if (event.pointerId === joystickPointer) {
+        moveJoystick(event);
+      }
+    });
+    joystickElement.addEventListener("pointerup", releaseJoystick);
+    joystickElement.addEventListener("pointercancel", releaseJoystick);
     for (const button of upgradeButtons) {
       button.addEventListener("click", () => buyUpgrade(button.dataset.upgrade));
     }

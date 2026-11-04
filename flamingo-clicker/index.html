@@ -385,9 +385,37 @@
       cursor: not-allowed;
     }
 
+    button {
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    @media (hover: none) {
+      .buy:hover:not(:disabled) {
+        outline: 0;
+        transform: none;
+      }
+    }
+
     @media (max-width: 44rem) {
+      body {
+        min-height: 100dvh;
+        padding: 0.5rem;
+      }
+
+      main {
+        padding: 1rem 0.75rem;
+      }
+
       .game-layout {
         grid-template-columns: 1fr;
+      }
+
+      .buy,
+      #reset-progress {
+        min-height: 2.75rem;
       }
     }
   </style>
