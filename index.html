@@ -52,6 +52,7 @@
       line-height: 1.6;
     }
 
+    .sortbar { margin: .6rem 0; } .sortbar select { padding: .4rem; border-radius: .4rem; border: 1px solid #94a3b8; font: inherit; } html.dark .sortbar { color: #e2e8f0; } html.dark .sortbar select { background: #0f172a; color: #e2e8f0; border-color: #475569; }
     .games {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
@@ -187,6 +188,7 @@
     <h1 id="greeting">Hi!</h1>
     <p class="intro">Pick a game and start playing.</p>
     <a class="game-card" href="profile/">Create or unlock a local profile to save progress in this browser.</a>
+    <p class="sortbar"><label>Sort games: <select id="sort"><option value="default">Original order</option><option value="newest">Newest first</option><option value="az">A to Z</option><option value="za">Z to A</option><option value="most">Most played</option><option value="recent">Recently played</option></select></label></p>
     <section class="games" aria-label="Games">
       <a class="game-card" href="connect-4/">
         <h2>Connect 4</h2>
@@ -316,7 +318,34 @@
       <a class="game-card" href="hide-and-seek/"><h2>Hide and Seek</h2><p>Find the hiders, or sneak into a hiding spot and outsmart the seeker.</p></a>
     </section>
   </main>
-  <div id="preview" aria-hidden="true"></div>
+  <script>
+    (function () {
+      var sel = document.getElementById('sort'), box = document.querySelector('.games');
+      var cards = Array.prototype.slice.call(box.querySelectorAll('.game-card')), orig = cards.slice();
+      function rd(k) { try { return JSON.parse(localStorage.getItem(k)) || {}; } catch (e) { return {}; } }
+      function name(a) { return a.querySelector('h2').textContent.trim().toLowerCase(); }
+      function href(a) { return a.getAttribute('href'); }
+      function apply() {
+        var m = sel.value, plays = rd('gamePlays'), last = rd('gameLast'), list = orig.slice();
+        if (m === 'newest') list.reverse();
+        else if (m === 'az') list.sort(function (a, b) { return name(a) < name(b) ? -1 : 1; });
+        else if (m === 'za') list.sort(function (a, b) { return name(a) < name(b) ? 1 : -1; });
+        else if (m === 'most') list.sort(function (a, b) { return (plays[href(b)] || 0) - (plays[href(a)] || 0); });
+        else if (m === 'recent') list.sort(function (a, b) { return (last[href(b)] || 0) - (last[href(a)] || 0); });
+        list.forEach(function (a) { box.appendChild(a); });
+        try { localStorage.setItem('gameSort', m); } catch (e) {}
+      }
+      box.addEventListener('click', function (e) {
+        var a = e.target.closest('.game-card'); if (!a) return;
+        var p = rd('gamePlays'), l = rd('gameLast'), h = href(a);
+        p[h] = (p[h] || 0) + 1; l[h] = Date.now();
+        try { localStorage.setItem('gamePlays', JSON.stringify(p)); localStorage.setItem('gameLast', JSON.stringify(l)); } catch (er) {}
+      });
+      try { sel.value = localStorage.getItem('gameSort') || 'default'; } catch (e) {}
+      if (!sel.value) sel.value = 'default';
+      sel.onchange = apply; apply();
+    })();
+  </script>  <div id="preview" aria-hidden="true"></div>
   <script>
     (function () {
       var b = document.getElementById('dark-toggle'), h = document.documentElement;
