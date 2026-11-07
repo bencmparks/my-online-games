@@ -49,7 +49,7 @@
   <script src="../shared/profile.js"></script>
   <script>
     const size = 8;
-    const gems = ["🔴", "🟡", "🟢", "🔵"];
+    const gems = ["❤️", "⭐", "🍀", "💧"];
     const boardElement = document.querySelector("#board");
     const scoreElement = document.querySelector("#score");
     const movesElement = document.querySelector("#moves");
@@ -87,7 +87,7 @@
         button.className = `gem${selected?.row === row && selected?.column === column ? " selected" : ""}`;
         const effect = anim[`${row},${column}`];
         if (effect) { button.classList.add(effect.type); for (const [name, value] of Object.entries(effect.vars)) button.style.setProperty(name, value); }
-        button.type = "button"; button.textContent = board[row][column]; button.dataset.gem = ({ "🔴": "red", "🟡": "yellow", "🟢": "green", "🔵": "blue" })[board[row][column]] || "special"; button.disabled = resolving || moves === 0;
+        button.type = "button"; button.textContent = board[row][column]; button.dataset.gem = ({ "❤️": "red", "⭐": "yellow", "🍀": "green", "💧": "blue" })[board[row][column]] || "special"; button.disabled = resolving || moves === 0;
         button.setAttribute("aria-label", `Gem at row ${row + 1}, column ${column + 1}`);
         button.addEventListener("click", () => chooseGem(row, column));
         boardElement.append(button);
