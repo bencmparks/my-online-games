@@ -11,6 +11,10 @@
     main { width: min(100%, 42rem); padding: clamp(1rem, 4vw, 2rem); border: 1px solid #818cf8; border-radius: 1.5rem; background: rgb(30 27 75 / 85%); box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 35%); text-align: center; }
     a { color: #ddd6fe; } h1 { margin: 1rem 0 0; color: #c4b5fd; font-size: clamp(2rem, 7vw, 3.5rem); }
     .stats { display: flex; justify-content: center; gap: 1rem; margin: 1rem 0; color: #fef3c7; font-weight: bold; }
+    .goals { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem; margin: 0 0 0.6rem; font-weight: bold; }
+    .goal { padding: 0.3rem 0.7rem; border: 0.12rem solid #a78bfa; border-radius: 1rem; background: #312e81; }
+    .goal.done { border-color: #4ade80; background: #14532d; animation: g-bump 0.4s; }
+    .gem[data-gem="box"] { border-radius: 0.4rem; background: linear-gradient(135deg, #b45309, #78350f); box-shadow: inset 0 0 0 0.15rem #fbbf24; cursor: not-allowed; }
     #status { min-height: 1.5rem; color: #e0e7ff; }
     .board { display: grid; grid-template-columns: repeat(8, 1fr); gap: 0.35rem; padding: 0.6rem; border: 0.25rem solid #a78bfa; border-radius: 1rem; background: #312e81; }
     .gem { aspect-ratio: 1; border: 0.12rem solid rgb(255 255 255 / 35%); border-radius: 50%; background: #4338ca; box-shadow: inset 0.25rem 0.25rem 0 rgb(255 255 255 / 35%), inset -0.25rem -0.25rem 0 rgb(0 0 0 / 25%), 0 0.15rem 0 rgb(15 23 42 / 45%); cursor: pointer; font-size: clamp(1.15rem, 5vw, 2rem); transition: transform 120ms ease, outline 120ms ease; }
@@ -34,6 +38,11 @@
     @keyframes g-pts { to { transform: translate(-50%, -250%); opacity: 0; } }
     @keyframes g-bump { 50% { transform: scale(1.5); } }
     @media (prefers-reduced-motion: reduce) { .gem, .board, .pts, #score { animation: none !important; } }
+    .levels { display: grid; grid-template-columns: repeat(auto-fill, minmax(5.2rem, 1fr)); gap: 0.5rem; margin-top: 1rem; } .levels[hidden] { display: none; }
+    .lv { padding: 0.5rem 0.2rem; border: 0.12rem solid #a78bfa; border-radius: 0.7rem; background: #312e81; color: #f8fafc; cursor: pointer; font: inherit; font-weight: bold; }
+    .lv small { display: block; font-weight: normal; color: #c7d2fe; }
+    .lv.current { border-color: #facc15; } .lv:disabled { opacity: 0.4; cursor: not-allowed; }
+    #levels-btn { margin-top: 1rem; padding: 0.7rem 1.1rem; border: 0; border-radius: 0.5rem; background: #fde68a; color: #312e81; cursor: pointer; font: inherit; font-weight: bold; }
     #new-game { margin-top: 1rem; padding: 0.7rem 1.1rem; border: 0; border-radius: 0.5rem; background: #c4b5fd; color: #312e81; cursor: pointer; font: inherit; font-weight: bold; }
   </style>
 </head>
@@ -42,14 +51,60 @@
     <a href="../">← All games</a> · <a href="../profile/">Profile</a>
     <h1>Match 3</h1>
     <p class="stats"><span>Level: <strong id="level">1</strong></span><span>Score: <strong id="score">0</strong></span><span>Moves: <strong id="moves">20</strong></span><span>Best: <strong id="best">0</strong></span></p>
-    <p id="status" aria-live="polite">Select two neighboring gems to swap them. Click a special square to use its power-up.</p>
+    <p id="goals" class="goals" aria-live="polite"></p>
+    <p id="status" aria-live="polite">Select two neighboring gems to swap them. Match 5 in a row for a 🪩 disco ball, or a 2×2 square for a 🧨 dynamite.</p>
     <div class="board" id="board" aria-label="Match 3 gem board"></div>
-    <button id="new-game" type="button">New game</button>
+    <button id="new-game" type="button">New game</button> <button id="levels-btn" type="button">Levels</button>
+    <div id="levels" class="levels" hidden></div>
   </main>
   <script src="../shared/profile.js"></script>
   <script>
     const size = 8;
-    const gems = ["❤️", "⭐", "🍀", "💧"];
+    const gems = ["❤️", "⭐", "🍀", "💧"], BOX = "📦";
+    const goalsElement = document.querySelector("#goals");
+    let goals = [], levelBusy = false;
+    const LEVEL_COUNT = 100;
+    const unlocked = () => Math.max(1, progress.unlocked || 1);
+    const levelsElement = document.querySelector("#levels");
+    function renderLevels() {
+      levelsElement.replaceChildren(...Array.from({ length: LEVEL_COUNT }, (_, index) => {
+        const number = index + 1, button = document.createElement("button");
+        button.type = "button"; button.className = `lv${number === level ? " current" : ""}`; button.disabled = number > unlocked();
+        const goalText = levelDef(number).goals.map((goal) => `${goal.box ? BOX : goal.gem}${goal.n}`).join(" ");
+        button.innerHTML = number > unlocked() ? `🔒 ${number}<small>Locked</small>` : `${number}<small>${goalText}</small>`;
+        button.addEventListener("click", () => playLevel(number));
+        return button;
+      }));
+    }
+    function playLevel(number) {
+      if (number > unlocked() || resolving) return;
+      level = number; score = 0; resolving = false; levelBusy = false; startLevel();
+      statusElement.textContent = `Level ${level}: reach the goals before you run out of moves.`;
+      levelsElement.hidden = true; render();
+    }
+    function levelDef(lv) {
+      const first = gems[(lv * 3) % 4], second = gems[(lv * 3 + 1 + (Math.floor(lv / 4) % 3)) % 4], kind = lv % 4;
+      const count = Math.min(4 + Math.ceil(lv * 0.4), 30), boxes = Math.min(3 + Math.floor(lv / 3), 14), list = [];
+      if (kind === 0) { list.push({ gem: first, n: count - 2, left: count - 2 }, { gem: second, n: count - 2, left: count - 2 }); }
+      if (kind === 1 || kind === 3) list.push({ gem: first, n: count, left: count });
+      if (kind === 2 || kind === 3) list.push({ box: true, n: boxes, left: boxes });
+      const moves = Math.min(32, 14 + Math.floor(lv / 8) + (kind === 1 ? 0 : 4) + (kind === 0 ? 2 : 0));
+      return { goals: list, moves, boxes: kind >= 2 ? boxes + 2 : 0 };
+    }
+    function startLevel() {
+      const def = levelDef(level);
+      goals = def.goals.map((goal) => ({ ...goal })); moves = def.moves; selected = null;
+      for (let row = 0; row < size; row += 1) {
+        for (let column = 0; column < size; column += 1) {
+          do { board[row][column] = randomGem(); } while (findMatches().some((match) => match.row === row && match.column === column));
+        }
+      }
+      for (let placed = 0; placed < def.boxes;) {
+        const row = Math.floor(Math.random() * 6), column = Math.floor(Math.random() * size);
+        if (board[row][column] !== BOX) { board[row][column] = BOX; placed += 1; }
+      }
+    }
+    function goalsDone() { return goals.every((goal) => goal.left <= 0); }
     const boardElement = document.querySelector("#board");
     const scoreElement = document.querySelector("#score");
     const movesElement = document.querySelector("#moves");
@@ -69,13 +124,8 @@
 
     function newGame() {
       board = Array.from({ length: size }, () => Array(size).fill(""));
-      score = 0; moves = 20; level = 1; selected = null; resolving = false;
-      for (let row = 0; row < size; row += 1) {
-        for (let column = 0; column < size; column += 1) {
-          do { board[row][column] = randomGem(); } while (findMatches().some((match) => match.row === row && match.column === column));
-        }
-      }
-      statusElement.textContent = "Match 4+ gems to create a special square.";
+      score = 0; level = 1; resolving = false; startLevel();
+      statusElement.textContent = "Reach each level goal before you run out of moves. Match next to 📦 to break it.";
       render();
     }
 
@@ -87,16 +137,19 @@
         button.className = `gem${selected?.row === row && selected?.column === column ? " selected" : ""}`;
         const effect = anim[`${row},${column}`];
         if (effect) { button.classList.add(effect.type); for (const [name, value] of Object.entries(effect.vars)) button.style.setProperty(name, value); }
-        button.type = "button"; button.textContent = board[row][column]; button.dataset.gem = ({ "❤️": "red", "⭐": "yellow", "🍀": "green", "💧": "blue" })[board[row][column]] || "special"; button.disabled = resolving || moves === 0;
+        button.type = "button"; button.textContent = board[row][column]; button.dataset.gem = ({ "❤️": "red", "⭐": "yellow", "🍀": "green", "💧": "blue", [BOX]: "box" })[board[row][column]] || "special"; button.disabled = resolving || moves === 0;
         button.setAttribute("aria-label", `Gem at row ${row + 1}, column ${column + 1}`);
         button.addEventListener("click", () => chooseGem(row, column));
         boardElement.append(button);
       }
       anim = {};
-      scoreElement.textContent = score; movesElement.textContent = moves; levelElement.textContent = level; bestElement.textContent = progress.bestScore;
+      scoreElement.textContent = score; movesElement.textContent = moves; levelElement.textContent = level;
+      goalsElement.replaceChildren(...goals.map((goal) => { const item = document.createElement("span"); item.className = `goal${goal.left <= 0 ? " done" : ""}`; item.textContent = `${goal.box ? BOX : goal.gem} ${goal.left <= 0 ? "✔" : goal.left}`; return item; }));
+      bestElement.textContent = progress.bestScore;
     }
 
     function chooseGem(row, column) {
+      if (board[row][column] === BOX || levelBusy) return;
       if (isPowerup(board[row][column])) {
         activatePowerup(row, column);
         return;
@@ -122,14 +175,8 @@
       }
       moves -= 1; selected = null;
       await resolveMatches(matches);
-      advanceLevel();
-      resolving = false;
-      if (moves === 0) {
-        if (score > progress.bestScore) progress.bestScore = score;
-        GameProfiles.saveGame("match-3", progress);
-        statusElement.textContent = `Game over! Final score: ${score}.`;
-      } else statusElement.textContent = "Great match! Keep going.";
-      render();
+      await finishTurn();
+      if (!levelBusy && moves > 0) statusElement.textContent = "Great match! Keep going.";
     }
 
     function swapValues(first, second) { [board[first.row][first.column], board[second.row][second.column]] = [board[second.row][second.column], board[first.row][first.column]]; }
@@ -138,15 +185,21 @@
       for (let row = 0; row < size; row += 1) {
         let start = 0; for (let column = 1; column <= size; column += 1) {
           if (column < size && board[row][column] === board[row][start]) continue;
-          if (column - start >= 3) for (let index = start; index < column; index += 1) found.set(`${row},${index}`, { row, column: index });
+          if (column - start >= 3 && board[row][start] !== BOX) for (let index = start; index < column; index += 1) found.set(`${row},${index}`, { row, column: index });
           start = column;
         }
       }
       for (let column = 0; column < size; column += 1) {
         let start = 0; for (let row = 1; row <= size; row += 1) {
           if (row < size && board[row][column] === board[start][column]) continue;
-          if (row - start >= 3) for (let index = start; index < row; index += 1) found.set(`${index},${column}`, { row: index, column });
+          if (row - start >= 3 && board[start][column] !== BOX) for (let index = start; index < row; index += 1) found.set(`${index},${column}`, { row: index, column });
           start = row;
+        }
+      }
+      for (let row = 0; row < size - 1; row += 1) for (let column = 0; column < size - 1; column += 1) {
+        const value = board[row][column];
+        if (value && value !== BOX && gems.includes(value) && board[row][column + 1] === value && board[row + 1][column] === value && board[row + 1][column + 1] === value) {
+          for (const [dr, dc] of [[0, 0], [0, 1], [1, 0], [1, 1]]) found.set(`${row + dr},${column + dc}`, { row: row + dr, column: column + dc });
         }
       }
       return [...found.values()];
@@ -154,11 +207,20 @@
     async function resolveMatches(matches) {
       let current = matches;
       while (current.length > 0) {
-        score += current.length * 10;
+        const powerupSize = current.length, seen = new Set(current.map((match) => `${match.row},${match.column}`));
+        for (const match of [...current]) for (const [dr, dc] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const row = match.row + dr, column = match.column + dc, key = `${row},${column}`;
+          if (board[row]?.[column] === BOX && !seen.has(key)) { seen.add(key); current.push({ row, column }); }
+        }
+        for (const match of current) {
+          const value = board[match.row][match.column];
+          for (const goal of goals) if ((goal.box && value === BOX) || (goal.gem && value === goal.gem)) goal.left -= 1;
+        }
+        score += powerupSize * 10;
         for (const match of current) cell(match.row, match.column)?.classList.add("boom");
-        floatPoints(current, `+${current.length * 10}`);
+        floatPoints(current, `+${powerupSize * 10}`);
         await wait(240);
-        const powerup = current.length >= 7 ? "🪩" : current.length >= 6 ? "✚" : current.length >= 5 ? "↕️" : current.length >= 4 ? "↔️" : null;
+        const powerup = hasLineOfFive(current) ? "🪩" : hasSquare(current) ? "🧨" : powerupSize >= 6 ? "✚" : powerupSize >= 5 ? "↕️" : powerupSize >= 4 ? "↔️" : null;
         const powerupSquare = powerup ? current[0] : null;
         for (const match of current) board[match.row][match.column] = "";
         if (powerupSquare) board[powerupSquare.row][powerupSquare.column] = powerup;
@@ -167,37 +229,54 @@
         current = findMatches();
       }
     }
-    function advanceLevel() {
-      const target = level * 250;
-      if (score >= target) {
-        level += 1; moves += 8;
-        statusElement.textContent = `Level ${level}! You earned 8 extra moves.`;
+    function hasSquare(cells) {
+      const keys = new Set(cells.map((item) => `${item.row},${item.column}`));
+      return cells.some(({ row, column }) => [[0, 1], [1, 0], [1, 1]].every(([dr, dc]) => keys.has(`${row + dr},${column + dc}`) && board[row + dr][column + dc] === board[row][column]));
+    }
+    function hasLineOfFive(cells) {
+      const keys = new Set(cells.map((cellItem) => `${cellItem.row},${cellItem.column}`));
+      return cells.some(({ row, column }) => [[0, 1], [1, 0]].some(([dr, dc]) => Array.from({ length: 5 }, (_, step) => `${row + dr * step},${column + dc * step}`).every((key) => keys.has(key)) && Array.from({ length: 5 }, (_, step) => board[row + dr * step]?.[column + dc * step]).every((value) => value === board[row][column])));
+    }
+    async function finishTurn() {
+      if (goalsDone()) {
+        levelBusy = true; score += moves * 5;
+        statusElement.textContent = `Level ${level} complete! +${moves * 5} bonus for spare moves.`; render();
+        await wait(1400);
+        progress.unlocked = Math.max(unlocked(), level + 1);
+        level += 1; startLevel(); levelBusy = false; resolving = false;
+        statusElement.textContent = `Level ${level}! New goals.`;
+      } else if (moves === 0) {
+        statusElement.textContent = `Out of moves on level ${level}! Final score: ${score}.`;
       }
+      if (score > progress.bestScore) progress.bestScore = score;
+      GameProfiles.saveGame("match-3", progress);
+      resolving = false; render();
     }
     async function activatePowerup(row, column) {
       if (resolving || moves === 0) return;
-      resolving = true;
       const powerup = board[row][column];
+      resolving = true;
       board[row][column] = "";
       const cleared = powerup === "🪩" ? getDiscoClear() : getPowerupClear(powerup, row, column);
       await resolveMatches(cleared);
-      advanceLevel();
-      resolving = false;
+      const wasLevel = level;
       statusElement.textContent = `${powerup} Power-up cleared ${cleared.length} squares!`;
-      render();
+      await finishTurn();
+      if (level === wasLevel && moves > 0) statusElement.textContent = `${powerup} Power-up cleared ${cleared.length} squares!`;
     }
-    function isPowerup(value) { return ["↔️", "↕️", "✚", "🪩"].includes(value); }
+    function isPowerup(value) { return ["↔️", "↕️", "✚", "🪩", "🧨"].includes(value); }
     function getPowerupClear(powerup, row, column) {
       const cleared = [];
+      if (powerup === "🧨") for (let currentRow = row - 2; currentRow <= row + 2; currentRow += 1) for (let currentColumn = column - 2; currentColumn <= column + 2; currentColumn += 1) if (currentRow >= 0 && currentRow < size && currentColumn >= 0 && currentColumn < size) cleared.push({ row: currentRow, column: currentColumn });
       if (powerup === "↔️" || powerup === "✚") for (let currentColumn = 0; currentColumn < size; currentColumn += 1) cleared.push({ row, column: currentColumn });
       if (powerup === "↕️" || powerup === "✚") for (let currentRow = 0; currentRow < size; currentRow += 1) cleared.push({ row: currentRow, column });
       return [...new Map(cleared.map((square) => [`${square.row},${square.column}`, square])).values()];
     }
     function getDiscoClear() {
       const counts = new Map();
-      for (const gem of board.flat()) if (gem && !isPowerup(gem)) counts.set(gem, (counts.get(gem) || 0) + 1);
-      const target = [...counts.entries()].sort((first, second) => second[1] - first[1])[0][0];
-      return board.flatMap((line, index) => line === target ? [{ row: Math.floor(index / size), column: index % size }] : []);
+      for (const gem of board.flat()) if (gems.includes(gem)) counts.set(gem, (counts.get(gem) || 0) + 1);
+      const target = [...counts.entries()].sort((first, second) => second[1] - first[1])[0]?.[0];
+      return board.flat().flatMap((value, index) => value === target ? [{ row: Math.floor(index / size), column: index % size }] : []);
     }
     function dropGems() {
       for (let column = 0; column < size; column += 1) {
@@ -210,7 +289,8 @@
         }
       }
     }
-    document.querySelector("#new-game").addEventListener("click", newGame);
+    document.querySelector("#new-game").addEventListener("click", () => { levelsElement.hidden = true; newGame(); });
+    document.querySelector("#levels-btn").addEventListener("click", () => { renderLevels(); levelsElement.hidden = !levelsElement.hidden; });
     newGame();
   </script>
 </body></html>
