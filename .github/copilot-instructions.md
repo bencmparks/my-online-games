@@ -92,3 +92,4 @@ Keep a list of my games here.
 - Bubble Pop Shooter (`bubble-pop-shooter/`)
 - Brick Breaker Blast (`brick-breaker-blast/`)
 - Hide and Seek (`hide-and-seek/`, Seek and Hide modes)
+- Life of a Thief (`life-of-a-thief/`, 2D rage-bait platformer with gravity and jumping, 1000 generated levels, moving platforms, buttons/gates, powerups, hidden traps; grab the gem, then reach the exit)
