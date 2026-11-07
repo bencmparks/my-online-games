@@ -8,6 +8,8 @@ button{border:0;border-radius:.5rem;background:#f59e0b;color:#1e293b;cursor:poin
 .p{display:grid;place-items:center;border-radius:50%;background:#451a03;color:#fde68a;font-size:clamp(1rem,5vw,1.8rem);font-weight:bold;border:.15rem solid #78350f;position:relative;padding:0;margin:0;min-height:0;cursor:default}
 .p small{position:absolute;bottom:2%;font-size:.55rem;color:#a8a29e;font-weight:normal}
 .p.st{border-radius:2rem;grid-row:1/3}.p.mine.ok{cursor:pointer;border-color:#fbbf24;box-shadow:0 0 .6rem #fbbf24}.p.hl{background:#b45309;color:#fff}
+.p{transition:transform .15s,background .2s}.p.mine.ok:hover{transform:scale(1.12)}.p.mine.ok{animation:mglow 1.4s ease-in-out infinite}.p.lift{animation:mlift .25s ease-out}.p.drop{animation:mdrop .3s ease-out;background:#b45309;color:#fff}.p.flash{animation:mflash .7s ease-out}.p.won{animation:mwin .6s ease-in-out infinite alternate}
+@keyframes mglow{50%{box-shadow:0 0 1rem #fbbf24;transform:scale(1.05)}}@keyframes mlift{50%{transform:scale(.8)}}@keyframes mdrop{0%{transform:scale(.7) translateY(-30%)}60%{transform:scale(1.25)}}@keyframes mflash{0%,40%{box-shadow:0 0 1.4rem .3rem #fde047;transform:scale(1.2);background:#d97706}}@keyframes mwin{to{transform:scale(1.1);box-shadow:0 0 1.2rem #fde047}}@media (prefers-reduced-motion:reduce){.p{animation:none!important}}
 #m{min-height:1.5rem;font-weight:bold;color:#fde68a}
 </style></head>
 <body><main><a href="../">← All games</a><h1>🏺 Mancala</h1>
@@ -37,20 +39,21 @@ function mm(s,w,d,a,b){if(d===0||end(s))return s[13]-s[6];let best=w?-1e9:1e9;
 function ai(){const m=moves(s,1);if(D===0)return m[Math.random()*m.length|0];
  if(D===1){let bi=m[0],bv=-1e9;for(const i of m){const r=mv(s,i),v=r.s[13]-s[13]+(r.extra?1.5:0)+Math.random()*.1;if(v>bv){bv=v;bi=i}}return bi}
  let bi=m[0],bv=-1e9;for(const i of m){const r=mv(s,i),v=mm(r.s,r.extra?1:0,5,-1e9,1e9)+Math.random()*.01;if(v>bv){bv=v;bi=i}}return bi}
-function draw(d=s){const b=$("#b");b.innerHTML="";const mk=(i,cls,lab)=>{const e=document.createElement("button");e.type="button";e.className="p "+cls;e.textContent=d[i];if(lab){const l=document.createElement("small");l.textContent=lab;e.append(l)}b.append(e);return e};
+function draw(d=s,fx={}){const b=$("#b");b.innerHTML="";const mk=(i,cls,lab)=>{const e=document.createElement("button");e.type="button";e.className="p "+cls+(fx[i]?" "+fx[i]:"");e.textContent=d[i];if(lab){const l=document.createElement("small");l.textContent=lab;e.append(l)}b.append(e);return e};
  mk(13,"st","CPU");const top=[12,11,10,9,8,7];top.forEach(i=>mk(i,"",""));mk(6,"st","YOU");
  for(let i=0;i<6;i++){const e=mk(i,"mine"+(!busy&&!over&&turn===0&&s[i]?" ok":""));e.style.gridRow=2;e.style.gridColumn=i+2;e.onclick=()=>play(i)}
  const st=b.children;st[0].style.gridColumn=1;st[7].style.gridColumn=8;st[7].style.gridRow="1/3"}
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-async function play(i){if(busy||over||s[i]===0||(turn===0)!==(i<6))return;busy=true;const g=gid,r=mv(s,i),d=s.slice();d[i]=0;draw(d);
- for(const p of r.path){await sleep(220);if(g!==gid)return;d[p]++;draw(d)}
+async function play(i){if(busy||over||s[i]===0||(turn===0)!==(i<6))return;busy=true;const g=gid,r=mv(s,i),d=s.slice();d[i]=0;draw(d,{[i]:"lift"});
+ for(const p of r.path){await sleep(240);if(g!==gid)return;d[p]++;draw(d,{[p]:"drop"})}
  await sleep(200);if(g!==gid)return;s=r.s;const who=turn;
+ const st=who*7+6,flash={};if(r.extra||r.cap>=0)flash[st]="flash";if(r.cap>=0)flash[r.cap]="flash",flash[12-r.cap]="flash";
  if(end(s)){busy=false;draw();return finish()}
  if(r.extra)$("#m").textContent=(who?"CPU":"You")+" get an extra turn!";else{turn=1-turn;$("#m").textContent=r.cap>=0?(who?"CPU":"You")+" captured stones!":""}
- busy=false;draw();status();if(turn===1)setTimeout(()=>{if(g===gid&&!over)play(ai())},500)}
+ busy=false;draw(s,flash);status();if(turn===1)setTimeout(()=>{if(g===gid&&!over)play(ai())},500)}
 function status(){if(!over&&!$("#m").textContent)$("#m").textContent=turn?"CPU is thinking…":"Your turn"}
 function finish(){over=true;busy=false;const r=s[6]>s[13]?"w":s[6]<s[13]?"l":"d";rec[r]++;try{localStorage.setItem("mancalaRecord",JSON.stringify(rec))}catch(e){}
- $("#m").textContent=(r==="w"?"🎉 You win ":r==="l"?"💀 CPU wins ":"🤝 Draw ")+s[6]+" – "+s[13];score();draw()}
+ $("#m").textContent=(r==="w"?"🎉 You win ":r==="l"?"💀 CPU wins ":"🤝 Draw ")+s[6]+" – "+s[13];score();draw(s,r==="w"?{6:"won"}:r==="l"?{13:"won"}:{6:"won",13:"won"})}
 function score(){$("#w").textContent=rec.w;$("#l").textContent=rec.l;$("#d").textContent=rec.d}
 function newGame(){gid++;s=[4,4,4,4,4,4,0,4,4,4,4,4,4,0];turn=0;busy=false;over=false;$("#m").textContent="Your turn";score();draw()}
 DN.forEach((n,i)=>{const b=document.createElement("button");b.textContent=n;b.dataset.d=i;b.onclick=()=>{D=i;mark();newGame()};$("#df").append(b)});

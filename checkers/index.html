@@ -9,6 +9,8 @@ button{border:0;border-radius:.5rem;background:#ef4444;color:#fff;cursor:pointer
 .q.s{background:#a16207}.q.f{box-shadow:inset 0 0 0 .2rem #facc15}
 .c{width:80%;height:80%;border-radius:50%;border:.2rem solid rgb(0 0 0 / 35%);display:grid;place-items:center;font-size:clamp(.8rem,4vw,1.4rem);box-shadow:0 .15rem .3rem rgb(0 0 0 / 60%)}
 .c.r{background:#dc2626}.c.k{background:#1f2937;border-color:#9ca3af}
+.q.f .c{animation:cpulse 1s ease-in-out infinite;cursor:pointer}.q.t::after{animation:cdot .8s ease-in-out infinite}.c{transition:transform .15s}.q.s .c{transform:scale(1.15);box-shadow:0 .4rem .6rem rgb(0 0 0 / 60%)}.c.mv{animation:cslide .22s ease-out}.c.ghost{position:absolute;animation:cghost .35s ease-in forwards;pointer-events:none}.c.king{animation:cking 2.2s ease-in-out infinite}.c.mv.king{animation:cslide .22s ease-out}.c.promo{animation:cpromo .6s ease-out}.q.last{box-shadow:inset 0 0 0 .2rem rgb(250 204 21 / 55%)}.c.win{animation:cwin .6s ease-in-out infinite alternate}
+@keyframes cpulse{50%{transform:scale(1.1);box-shadow:0 0 .6rem #facc15}}@keyframes cdot{50%{transform:scale(1.5)}}@keyframes cslide{from{transform:translate(var(--dx),var(--dy)) scale(1.2)}}@keyframes cghost{to{transform:scale(1.6) rotate(90deg);opacity:0}}@keyframes cking{50%{box-shadow:0 0 .7rem #fde047}}@keyframes cpromo{0%{transform:scale(.5) rotate(-180deg)}60%{transform:scale(1.4)}}@keyframes cwin{to{transform:translateY(-25%)}}@media (prefers-reduced-motion:reduce){.c,.q::after{animation:none!important}}
 #m{min-height:1.5rem;font-weight:bold;color:#fde68a}
 </style></head>
 <body><main><a href="../">← All games</a><h1>🔴 Checkers</h1>
@@ -21,7 +23,7 @@ button{border:0;border-radius:.5rem;background:#ef4444;color:#fff;cursor:pointer
 <script>
 const $=s=>document.querySelector(s),DN=["Easy","Medium","Hard"];
 // board: 1/2 = player man/king (move up), -1/-2 = computer man/king (move down)
-let B,turn,D=1,busy=false,over=false,sel=-1,pre=[],legal=[],quiet=0,gid=0,rec={w:0,l:0,d:0};
+let win=0,B,turn,D=1,busy=false,over=false,sel=-1,pre=[],legal=[],quiet=0,gid=0,rec={w:0,l:0,d:0};
 try{Object.assign(rec,JSON.parse(localStorage.getItem("checkersRecord")||"{}"))}catch(e){}
 function gen(b,side){const all=[],jumps=[];
  for(let f=0;f<64;f++){const pc=b[f];if(!pc||Math.sign(pc)!==side)continue;
@@ -42,11 +44,15 @@ function mm(b,side,d,a,be){const ms=gen(b,side);if(!ms.length)return side===-1?-
   if(side===-1){if(v>best)best=v;if(best>a)a=best}else{if(v<best)best=v;if(best<be)be=best}if(a>=be)break}return best}
 function ai(){const ms=legal;if(D===0)return ms[Math.random()*ms.length|0];let bm=ms[0],bv=-1e9;
  for(const m of ms){const v=(D===1?ev(apply(B,m))+m.c.length*40:mm(apply(B,m),1,4,-1e9,1e9))+Math.random()*.5;if(v>bv){bv=v;bm=m}}return bm}
-function draw(b=B,anim=-1){const bd=$("#b");bd.innerHTML="";
+function draw(b=B,anim=null){const bd=$("#b");bd.innerHTML="";
  const tg=new Set(sel>=0?legal.filter(m=>m.f===sel&&pre.every((x,k)=>m.p[k]===x)).map(m=>m.p[pre.length]):[]);
  const fr=new Set(!busy&&!over&&turn===1&&sel<0?legal.map(m=>m.f):[]);
  for(let i=0;i<64;i++){const q=document.createElement("div"),r=i/8|0,c=i%8;q.className="q"+((r+c)%2?" d":"")+(i===sel?" s":"")+(tg.has(i)?" t":"")+(fr.has(i)?" f":"");
-  if(b[i]){const p=document.createElement("div");p.className="c "+(b[i]>0?"r":"k");if(Math.abs(b[i])===2)p.textContent="♛";q.append(p)}
+  if(b[i]){const p=document.createElement("div");p.className="c "+(b[i]>0?"r":"k");if(Math.abs(b[i])===2){p.textContent="♛";p.classList.add("king")}
+   if(anim&&i===anim.to){const dr=((anim.from/8|0)-(r))*100,dc=(anim.from%8-c)*100;p.classList.add("mv");p.style.setProperty("--dx",dc+"%");p.style.setProperty("--dy",dr+"%");if(anim.promo){p.classList.remove("king");p.classList.add("promo")}}
+   if(over&&((b[i]>0&&win===1)||(b[i]<0&&win===-1)))p.classList.add("win");q.append(p)}
+  if(anim&&anim.cap===i&&anim.capPc){const g=document.createElement("div");g.className="c ghost "+(anim.capPc>0?"r":"k");q.append(g)}
+  if(anim&&(i===anim.to))q.classList.add("last");
   q.onclick=()=>click(i);bd.append(q)}}
 function click(i){if(busy||over||turn!==1)return;const cur=sel>=0?legal.filter(m=>m.f===sel&&pre.every((x,k)=>m.p[k]===x)):[];
  if(sel>=0&&cur.some(m=>m.p[pre.length]===i)){pre.push(i); const fin=cur.filter(m=>m.p.length===pre.length&&m.p[pre.length-1]===i);const more=cur.some(m=>m.p.length>pre.length&&m.p[pre.length-1]===i);
@@ -54,13 +60,13 @@ function click(i){if(busy||over||turn!==1)return;const cur=sel>=0?legal.filter(m
  if(pre.length)return;if(legal.some(m=>m.f===i)){sel=i;draw()}else{sel=-1;draw()}}
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function run(m){busy=true;const g=gid,t=B.slice(),pc=B[m.f];t[m.f]=0;sel=-1;pre=[];
- for(let k=0;k<m.p.length;k++){t[m.p[k]]=pc;if(k)t[m.p[k-1]]=0;if(m.c[k]!==undefined)t[m.c[k]]=0;draw(t);await sleep(m.c.length?260:120);if(g!==gid)return}
+ for(let k=0;k<m.p.length;k++){t[m.p[k]]=pc;if(k)t[m.p[k-1]]=0;if(m.c[k]!==undefined)t[m.c[k]]=0;draw(t,{from:k?m.p[k-1]:m.f,to:m.p[k],cap:m.c[k],capPc:m.c[k]!==undefined?B[m.c[k]]:0,promo:Math.abs(pc)===1&&k===m.p.length-1&&(pc>0?m.p[k]<8:m.p[k]>55)});await sleep(m.c.length?340:240);if(g!==gid)return}
  quiet=m.c.length||Math.abs(pc)===1?0:quiet+1;B=apply(B,m);turn=-turn;busy=false;next()}
 function next(){legal=gen(B,turn);draw();
  if(!legal.length)return finish(turn===1?"l":"w");if(quiet>=80)return finish("d");
  $("#m").textContent=turn===1?(legal[0].c.length?"Your turn — you must capture":"Your turn"):"CPU is thinking…";
  if(turn===-1){const g=gid;setTimeout(()=>{if(g===gid)run(ai())},450)}}
-function finish(r){over=true;rec[r]++;try{localStorage.setItem("checkersRecord",JSON.stringify(rec))}catch(e){}$("#m").textContent=r==="w"?"🎉 You win!":r==="l"?"💀 CPU wins!":"🤝 Draw";score();draw()}
+function finish(r){over=true;win=r==="w"?1:r==="l"?-1:0;rec[r]++;try{localStorage.setItem("checkersRecord",JSON.stringify(rec))}catch(e){}$("#m").textContent=r==="w"?"🎉 You win!":r==="l"?"💀 CPU wins!":"🤝 Draw";score();draw()}
 function score(){$("#w").textContent=rec.w;$("#l").textContent=rec.l;$("#d").textContent=rec.d}
 function newGame(){gid++;B=Array(64).fill(0);for(let i=0;i<64;i++){const r=i/8|0;if((r+i%8)%2){if(r<3)B[i]=-1;else if(r>4)B[i]=1}}turn=1;busy=over=false;sel=-1;pre=[];quiet=0;score();next()}
 DN.forEach((n,i)=>{const b=document.createElement("button");b.textContent=n;b.dataset.d=i;b.onclick=()=>{D=i;mark();newGame()};$("#df").append(b)});

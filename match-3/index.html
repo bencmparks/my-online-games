@@ -17,6 +17,23 @@
     .gem[data-gem="red"] { background: radial-gradient(circle at 30% 25%, #fecdd3, #e11d48 65%); }.gem[data-gem="yellow"] { background: radial-gradient(circle at 30% 25%, #fef3c7, #eab308 65%); }.gem[data-gem="green"] { background: radial-gradient(circle at 30% 25%, #dcfce7, #16a34a 65%); }.gem[data-gem="blue"] { background: radial-gradient(circle at 30% 25%, #dbeafe, #2563eb 65%); }
     .gem:hover:not(:disabled), .gem:focus-visible:not(:disabled) { outline: 0.18rem solid #fef3c7; outline-offset: 0.08rem; transform: scale(1.08); }
     .gem.selected { outline: 0.22rem solid #facc15; transform: scale(1.08); } .gem:disabled { cursor: wait; }
+    .gem.selected { animation: g-bounce 0.5s ease-in-out infinite; }
+    .gem[data-gem="special"] { animation: g-glow 1.1s ease-in-out infinite; background: radial-gradient(circle at 30% 25%, #fff, #a78bfa 70%); }
+    .gem.swap { animation: g-swap 0.18s ease-out; }
+    .gem.boom { animation: g-boom 0.24s ease-in forwards; }
+    .gem.fall { animation: g-fall 0.32s cubic-bezier(.3,0,.6,1.3); }
+    .board.shake { animation: g-shake 0.25s; }
+    .pts { position: fixed; pointer-events: none; z-index: 5; font-weight: bold; font-size: 1.4rem; color: #fef08a; text-shadow: 0 2px 4px #000; transform: translate(-50%, -50%); animation: g-pts 0.9s ease-out forwards; }
+    #score.bump { display: inline-block; animation: g-bump 0.3s; }
+    @keyframes g-bounce { 50% { transform: translateY(-18%) scale(1.12); } }
+    @keyframes g-glow { 50% { transform: scale(1.12); box-shadow: 0 0 1rem #fff, 0 0 2rem #a78bfa; } }
+    @keyframes g-swap { from { transform: translate(var(--dx), var(--dy)); } }
+    @keyframes g-boom { 40% { transform: scale(1.3); filter: brightness(2); } to { transform: scale(0); opacity: 0; } }
+    @keyframes g-fall { from { transform: translateY(calc(var(--n) * -112%)); } }
+    @keyframes g-shake { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+    @keyframes g-pts { to { transform: translate(-50%, -250%); opacity: 0; } }
+    @keyframes g-bump { 50% { transform: scale(1.5); } }
+    @media (prefers-reduced-motion: reduce) { .gem, .board, .pts, #score { animation: none !important; } }
     #new-game { margin-top: 1rem; padding: 0.7rem 1.1rem; border: 0; border-radius: 0.5rem; background: #c4b5fd; color: #312e81; cursor: pointer; font: inherit; font-weight: bold; }
   </style>
 </head>
@@ -40,7 +57,15 @@
     const statusElement = document.querySelector("#status");
     const progress = GameProfiles.getGame("match-3", { bestScore: 0 });
     const levelElement = document.querySelector("#level");
-    let board, score, moves, level, selected, resolving;
+    let board, score, moves, level, selected, resolving, anim = {};
+    const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    const cell = (row, column) => boardElement.children[row * size + column];
+    function floatPoints(cells, text) {
+      const box = cell(cells[0].row, cells[0].column).getBoundingClientRect(), label = document.createElement("div");
+      label.className = "pts"; label.textContent = text; label.style.left = `${box.left + box.width / 2}px`; label.style.top = `${box.top}px`;
+      document.body.append(label); setTimeout(() => label.remove(), 900);
+      scoreElement.classList.remove("bump"); void scoreElement.offsetWidth; scoreElement.classList.add("bump");
+    }
 
     function newGame() {
       board = Array.from({ length: size }, () => Array(size).fill(""));
@@ -60,11 +85,14 @@
       for (let row = 0; row < size; row += 1) for (let column = 0; column < size; column += 1) {
         const button = document.createElement("button");
         button.className = `gem${selected?.row === row && selected?.column === column ? " selected" : ""}`;
+        const effect = anim[`${row},${column}`];
+        if (effect) { button.classList.add(effect.type); for (const [name, value] of Object.entries(effect.vars)) button.style.setProperty(name, value); }
         button.type = "button"; button.textContent = board[row][column]; button.dataset.gem = ({ "🔴": "red", "🟡": "yellow", "🟢": "green", "🔵": "blue" })[board[row][column]] || "special"; button.disabled = resolving || moves === 0;
         button.setAttribute("aria-label", `Gem at row ${row + 1}, column ${column + 1}`);
         button.addEventListener("click", () => chooseGem(row, column));
         boardElement.append(button);
       }
+      anim = {};
       scoreElement.textContent = score; movesElement.textContent = moves; levelElement.textContent = level; bestElement.textContent = progress.bestScore;
     }
 
@@ -80,11 +108,17 @@
     }
 
     async function swap(first, second) {
-      resolving = true; swapValues(first, second);
+      resolving = true; selected = null; swapValues(first, second);
+      const swapAnim = () => {
+        anim[`${first.row},${first.column}`] = { type: "swap", vars: { "--dx": `${(second.column - first.column) * 110}%`, "--dy": `${(second.row - first.row) * 110}%` } };
+        anim[`${second.row},${second.column}`] = { type: "swap", vars: { "--dx": `${(first.column - second.column) * 110}%`, "--dy": `${(first.row - second.row) * 110}%` } };
+      };
+      swapAnim(); render(); await wait(190);
       const matches = findMatches();
       if (matches.length === 0) {
-        swapValues(first, second); selected = null; resolving = false;
-        statusElement.textContent = "That swap does not make a match."; render(); return;
+        swapValues(first, second); swapAnim(); resolving = false;
+        statusElement.textContent = "That swap does not make a match."; render();
+        boardElement.classList.remove("shake"); void boardElement.offsetWidth; boardElement.classList.add("shake"); return;
       }
       moves -= 1; selected = null;
       await resolveMatches(matches);
@@ -121,12 +155,15 @@
       let current = matches;
       while (current.length > 0) {
         score += current.length * 10;
+        for (const match of current) cell(match.row, match.column)?.classList.add("boom");
+        floatPoints(current, `+${current.length * 10}`);
+        await wait(240);
         const powerup = current.length >= 7 ? "🪩" : current.length >= 6 ? "✚" : current.length >= 5 ? "↕️" : current.length >= 4 ? "↔️" : null;
         const powerupSquare = powerup ? current[0] : null;
         for (const match of current) board[match.row][match.column] = "";
         if (powerupSquare) board[powerupSquare.row][powerupSquare.column] = powerup;
         dropGems(); statusElement.textContent = "Gravity drops new gems into place!"; render();
-        await new Promise((resolve) => setTimeout(resolve, 240));
+        await wait(340);
         current = findMatches();
       }
     }
@@ -164,8 +201,13 @@
     }
     function dropGems() {
       for (let column = 0; column < size; column += 1) {
-        const values = []; for (let row = size - 1; row >= 0; row -= 1) if (board[row][column]) values.push(board[row][column]);
-        for (let row = size - 1; row >= 0; row -= 1) board[row][column] = values[size - 1 - row] || randomGem();
+        const values = []; for (let row = size - 1; row >= 0; row -= 1) if (board[row][column]) values.push({ gem: board[row][column], from: row });
+        for (let row = size - 1; row >= 0; row -= 1) {
+          const item = values[size - 1 - row];
+          board[row][column] = item ? item.gem : randomGem();
+          const distance = item ? row - item.from : size - values.length;
+          if (distance > 0) anim[`${row},${column}`] = { type: "fall", vars: { "--n": distance } };
+        }
       }
     }
     document.querySelector("#new-game").addEventListener("click", newGame);

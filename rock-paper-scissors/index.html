@@ -8,6 +8,9 @@ main{width:min(100%,32rem);padding:1.25rem;border:.2rem solid #fdba74;border-rad
 .picks{display:flex;gap:.6rem;justify-content:center}.picks button{font-size:2.4rem;padding:.5rem 1rem;border:0;border-radius:.8rem;background:#f97316;cursor:pointer}.picks button:hover{background:#fb923c}
 #msg{min-height:2rem;font-size:1.3rem;font-weight:800;color:#fde047;margin:.5rem 0}
 #reset{padding:.4rem 1rem;border:0;border-radius:.5rem;background:#475569;color:#fff;cursor:pointer}
+.picks button{transition:transform .12s}.picks button:hover{transform:scale(1.15) rotate(-6deg)}.picks button:active{transform:scale(.9)}
+.arena div{transition:transform .2s}.arena .shake{animation:rshake .45s}.arena .win{animation:rwin .6s}.arena .lose{animation:rlose .6s forwards}.arena .tie{animation:rtie .5s}
+@keyframes rshake{0%,100%{transform:translateY(0) rotate(0)}20%{transform:translateY(-35px) rotate(-15deg)}40%{transform:translateY(10px) rotate(10deg)}60%{transform:translateY(-35px) rotate(-15deg)}80%{transform:translateY(10px) rotate(10deg)}}@keyframes rwin{0%{transform:scale(.5)}60%{transform:scale(1.5) rotate(10deg);filter:drop-shadow(0 0 .8rem #fde047)}100%{transform:scale(1.15)}}@keyframes rlose{to{transform:scale(.7) rotate(-20deg);opacity:.5}}@keyframes rtie{50%{transform:scale(1.2)}}#msg.pop{animation:rpop .4s}@keyframes rpop{from{transform:scale(.5);opacity:0}70%{transform:scale(1.2)}}.score span span.up{display:inline-block;animation:rpop .4s}@media (prefers-reduced-motion:reduce){.arena div,.picks button,#msg,.score span span{animation:none!important;transition:none!important}}
 </style></head>
 <body><main><a href="../">← All games</a><h1>✊ Rock Paper Scissors</h1>
 <p>Beat the CPU in a <strong>first to 3</strong> match. Rock beats scissors, scissors beat paper, paper beats rock. Keys: <strong>R</strong>, <strong>P</strong>, <strong>S</strong>.</p>
@@ -21,15 +24,21 @@ main{width:min(100%,32rem);padding:1.25rem;border:.2rem solid #fdba74;border-rad
 const E=["✊","✋","✌️"],$=s=>document.querySelector(s);
 let y=0,c=0,t=0,done=false,mw=+localStorage.getItem("rpsWins")||0;
 $("#mw").textContent=mw;
+let busy=false;
+function pulse(el,cls){el.classList.remove("shake","win","lose","tie","up","pop");void el.offsetWidth;el.classList.add(cls)}
 function play(m){
- if(done)return;const o=Math.floor(Math.random()*3);
+ if(done||busy)return;busy=true;const o=Math.floor(Math.random()*3);
+ $("#a").firstChild.textContent=$("#b").firstChild.textContent="✊";$("#msg").textContent="Rock… paper… scissors…";
+ pulse($("#a"),"shake");pulse($("#b"),"shake");
+ setTimeout(()=>{busy=false;reveal(m,o)},470)}
+function reveal(m,o){
  $("#a").firstChild.textContent=E[m];$("#b").firstChild.textContent=E[o];
- if(m===o){t++;$("#msg").textContent="Tie!"}
- else if((m+1)%3===o){c++;$("#msg").textContent="CPU wins the round"}
- else{y++;$("#msg").textContent="You win the round!"}
- $("#you").textContent=y;$("#cpu").textContent=c;$("#tie").textContent=t;
+ if(m===o){t++;$("#msg").textContent="Tie!";pulse($("#a"),"tie");pulse($("#b"),"tie")}
+ else if((m+1)%3===o){c++;$("#msg").textContent="CPU wins the round";pulse($("#a"),"lose");pulse($("#b"),"win")}
+ else{y++;$("#msg").textContent="You win the round!";pulse($("#a"),"win");pulse($("#b"),"lose")}
+ pulse($("#msg"),"pop");[["#you",y],["#cpu",c],["#tie",t]].forEach(([s,v])=>{const el=$(s);if(el.textContent!=v){el.textContent=v;pulse(el,"up")}});
  if(y>=3||c>=3){done=true;if(y>=3){mw++;localStorage.setItem("rpsWins",mw);$("#mw").textContent=mw}$("#msg").textContent=y>=3?"🏆 You win the match!":"💥 CPU wins the match!"}}
-function reset(){y=c=t=0;done=false;$("#you").textContent=$("#cpu").textContent=$("#tie").textContent=0;$("#a").firstChild.textContent=$("#b").firstChild.textContent="❔";$("#msg").textContent="Pick your move!"}
+function reset(){busy=false;y=c=t=0;done=false;$("#you").textContent=$("#cpu").textContent=$("#tie").textContent=0;$("#a").firstChild.textContent=$("#b").firstChild.textContent="❔";$("#a").className=$("#b").className="";$("#msg").textContent="Pick your move!"}
 document.querySelectorAll(".picks button").forEach(b=>b.onclick=()=>{play(+b.dataset.m);b.blur()});
 $("#reset").onclick=()=>{reset();$("#reset").blur()};
 addEventListener("keydown",e=>{const m={r:0,p:1,s:2}[e.key.toLowerCase()];if(m!==undefined)play(m)});

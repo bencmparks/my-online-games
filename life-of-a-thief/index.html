@@ -13,106 +13,136 @@ button{min-width:4rem;height:3.4rem;border:0;border-radius:.5rem;background:#fec
 .sel button{min-width:0;height:auto;padding:.4rem .8rem;font-size:1rem}
 </style></head>
 <body><main><a href="../">← All games</a><h1>🥷 Life of a Thief</h1>
-<p>Jump to the 💎, then reach the 🚪. 1000 levels of lies. <strong>A/D or ←/→</strong> run · <strong>W / ↑ / Space</strong> jump</p>
-<p>Ride moving platforms, stomp 🔴 buttons to open gates, grab 🪽 double jump, ⚡ speed and 🛡️ shield. Not every freebie is free.</p>
+<p>Jump to the 💎, then reach the 🚪. 1000 levels, each harder than the last. Beat one to unlock the next. <strong>A/D or ←/→</strong> run · <strong>W / ↑ / Space</strong> jump</p>
+<p>Ride moving platforms, stomp 🔴 buttons to open gates, grab 🪽 double jump, ⚡ speed and 🛡️ shield. Not every freebie is free, not every gem is real, and the exit has commitment issues.</p>
 <div class="stats"><span id="lv"></span><span id="bu"></span><span id="be"></span></div>
-<div class="sel"><label for="go">Level</label><input id="go" type="number" min="1" max="1000" value="1"><button id="goBtn" type="button">Go</button></div>
+<div class="sel"><label for="go">Level</label><input id="go" type="number" min="1" max="1" value="1"><button id="goBtn" type="button">Go</button></div>
 <canvas id="g" width="640" height="480" aria-label="Life of a Thief game"></canvas>
 <div class="pad"><div><button data-k="left" type="button">◀</button><button data-k="right" type="button">▶</button></div><button data-k="jump" type="button">JUMP</button></div>
 </main>
 <script>
 const C=document.querySelector("#g"),x=C.getContext("2d"),TS=32,COLS=20,ROWS=15,PW=20,PH=28,TOTAL=1000;
 const LV=document.querySelector("#lv"),BU=document.querySelector("#bu"),BE=document.querySelector("#be"),GO=document.querySelector("#go");
-const taunts=["Skill issue.","So close! (not really)","Have you tried not dying?","That was the easy part.","Ouch. Painful to watch.","The floor is a liar.","Breathe. Then fail again.","Did you really trust that?","Git gud, thief.","Almost! Do it again."];
-let lvl=0,far=0,rage=0,g,p,gem,ex,alt,decoy,hasGem,moved,fall,movers,buttons,items,keys={},jumpBuf=0,coy=0,t=0,msg="",msgT=0,state="play",last=0;
-try{lvl=Math.min(TOTAL-1,Math.max(0,(+localStorage.getItem("thiefLvl")||1)-1));far=Math.max(lvl,(+localStorage.getItem("thiefFar")||1)-1)}catch(e){}
+const taunts=["Skill issue.","So close! (not really)","Have you tried not dying?","That was the easy part.","Ouch. Painful to watch.","The floor is a liar.","Breathe. Then fail again.","Did you really trust that?","Git gud, thief.","Almost! Do it again.","My grandma plays this faster.","Maybe try the other hand?","Wow. Just wow.","Are you even trying?","Pathetic. Again."],
+ idle=["You're doing great! (lie)","Everyone else beat this in 3 seconds.","Hint: don't die.","Is your keyboard okay?","Tick tock, thief.","Nothing here is safe.","Don't look down. Or at the floor.","Sure you want that gem?"],
+ deathN=["Death #{n} on this level. Embarrassing.","{n} deaths here. Maybe quit?","Death #{n}. The level is laughing.","Attempt #{n}. It won't get easier."];
+let lvl=0,far=0,rage=0,g,p,gem,ex,alts,decoy,fakeGem,gemAlt,gemMoved,drops,hasGem,moved,fall,movers,buttons,items,keys={},jumpBuf=0,coy=0,t=0,msg="",msgT=0,state="play",last=0,shake=0,deaths={},tauntT=12,exitCd=0,jit={},surprises=[],levelT=0,wallRide=null;
+const J=(r,c)=>jit[r*COLS+c]??(jit[r*COLS+c]=rng(lvl*997+r*COLS+c)());
+try{far=Math.min(TOTAL-1,Math.max(0,(+localStorage.getItem("thiefUnlocked")||1)-1));lvl=Math.min(far,Math.max(0,(+localStorage.getItem("thiefLvl")||1)-1))}catch(e){}
 
 function rng(seed){let a=seed>>>0;return()=>{a=a+0x6D2B79F5>>>0;let k=Math.imul(a^a>>>15,1|a);k=k+Math.imul(k^k>>>7,61|k)^k;return((k^k>>>14)>>>0)/4294967296}}
 // Levels are generated from the level number; every route is built from jumps of at most 2 tiles up and 2 tiles across.
 function gen(n){
- const R=rng(n*7919+13),ri=(a,b)=>a+Math.floor(R()*(b-a+1)),d=Math.min(1,(n-1)/300);
+ const R=rng(n*7919+13),ri=(a,b)=>a+Math.floor(R()*(b-a+1)),d=(n-1)/(TOTAL-1);
  const G=Array.from({length:ROWS},(_,r)=>Array.from({length:COLS},(_,c)=>r===0||r===14||c===0||c===19?"#":"."));
  const haz=Array(COLS).fill(0),taken=Array(COLS).fill(0),movers=[],maxEnd=13;
- let col=ri(4,5);const nG=n<3?0:1+Math.floor(R()*(1+d*2.99));
+ let col=ri(4,5);const nG=n<2?0:Math.min(4,1+Math.floor(d*3.5)+ri(0,1));
  for(let i=0;i<nG&&col<=maxEnd;i++){
   let type,w;const roll=R(),r2=R();
-  if(n>6&&roll<.12+.2*d){type="b";w=ri(4,5)}else{type=r2<.3?"^":r2<.5?"t":r2<.75?"p":"h";w=type==="t"?1:ri(1,2)}
+  if(n>6&&roll<.04+.3*d){type="b";w=ri(4,5)}else{type=r2<d*.7?(R()<.5?"t":"h"):R()<.5?"^":"p";w=type==="t"?1:ri(1,2)}
   if(col+w-1>maxEnd){if(type!=="b")break;type="^";w=ri(1,2);if(col+w-1>maxEnd)break}
   for(let c=col;c<col+w;c++){haz[c]=1;if(type==="^")G[13][c]="^";else if(type==="t")G[13][c]="t";else if(type==="h")G[14][c]="h";else G[14][c]="."}
   if(type==="b"){for(let c=col-2;c<=col+w;c++)taken[c]=1;movers.push({k:"x",mid:(col-2)*TS+w*TS/2,amp:w*TS/2,w:3*TS,y:14*TS-20})}
   col+=w+ri(3,4)}
  const safe=c=>c>=1&&c<=18&&!haz[c],roomy=()=>{const o=[];for(let c=2;c<=14;c++)if(safe(c-1)&&safe(c)&&safe(c+1)&&!taken[c])o.push(c);return o};
- let hasGate=n>4&&R()<.12+.45*d,btn=0,gc=ri(15,16);
+ let hasGate=n>4&&R()<.03+.55*d,btn=0,gc=ri(15,16);
  if(hasGate){const cand=[];for(let c=2;c<=13;c++)if(safe(c)&&!taken[c])cand.push(c);if(cand.length){btn=cand[ri(0,cand.length-1)];taken[btn]=1}else hasGate=false}
  const maxC=hasGate?gc-1:17;let lift=0;
- if(n>8&&R()<.25+.2*d){const cand=[];for(let c=3;c+6<=maxC;c++)if([c-1,c,c+1,c+2].every(k=>safe(k)&&!taken[k]))cand.push(c);if(cand.length)lift=cand[ri(0,cand.length-1)]}
+ if(n>8&&R()<.03+.45*d){const cand=[];for(let c=3;c+6<=maxC;c++)if([c-1,c,c+1,c+2].every(k=>safe(k)&&!taken[k]))cand.push(c);if(cand.length)lift=cand[ri(0,cand.length-1)]}
  if(lift){for(let c=lift+3;c<=lift+6;c++)G[7][c]="#";G[6][lift+4]="G";for(let c=lift;c<=lift+2;c++)taken[c]=1;movers.push({k:"y",x:lift*TS,w:3*TS})}
  else{
-  const w=ri(2,3);let s=-1;
+  const w=d>.5?2:ri(2,3);let s=-1;
   for(let k=0;k<30&&s<0;k++){const a=ri(2,maxC-w+1);if(safe(a-1)||safe(a+w))s=a}
   if(s<0)s=2;
-  const put=(a,wd,row)=>{for(let c=a;c<a+wd;c++)G[row][c]="#"};
-  put(s,w,12);let lastP={s,w,row:12};const steps=ri(1,2+(d>.3?1:0)+(d>.7?1:0));
-  for(let i=1;i<steps;i++){const row=12-2*i,w2=ri(2,3),gap=ri(0,1);let ns=lastP.s+lastP.w+gap;if(ns+w2-1>maxC){ns=lastP.s-gap-w2;if(ns<1)break}put(ns,w2,row);lastP={s:ns,w:w2,row}}
+  const put=(a,wd,row,ch="#")=>{for(let c=a;c<a+wd;c++)G[row][c]=ch};
+  put(s,w,12);let lastP={s,w,row:12};const steps=Math.min(4,1+Math.floor(d*3.2)+ri(0,1)),pf=.03+.6*d;
+  for(let i=1;i<steps;i++){const row=12-2*i,w2=d>.5?2:ri(2,3),gap=ri(0,1);let ns=lastP.s+lastP.w+gap;if(ns+w2-1>maxC){ns=lastP.s-gap-w2;if(ns<1)break}put(ns,w2,row,R()<pf?"F":"#");lastP={s:ns,w:w2,row}}
   G[lastP.row-1][lastP.s+(lastP.w>>1)]="G"}
+ if(n>4&&R()<.03+.5*d){const cand=[];for(let c=2;c+5<=14;c++)if(Array.from({length:6},(_,k)=>c+k).every(k=>safe(k)&&!taken[k]))cand.push(c);if(cand.length){const c=cand[ri(0,cand.length-1)];for(let k=c;k<c+6;k++)taken[k]=1;movers.push({k:"s",s:c*TS,w:24,y:13*TS+14,h:18})}}
+ if(n>1&&R()<.04+.5*d){const cand=[];for(let c=4;c<=13;c++)if([c-1,c,c+1].every(k=>safe(k)&&!taken[k]))cand.push(c);if(cand.length){const c=cand[ri(0,cand.length-1)];for(let k=c-1;k<=c+1;k++)taken[k]=1;movers.push({k:"w",sub:"v",x:c*TS,y0:8*TS,w:TS,h:6*TS,ph:R()*6.28})}}
+ if(n>3&&R()<.04+.5*d){const cand=[];for(let c=2;c+7<=17;c++)if(Array.from({length:8},(_,k)=>c+k).every(k=>safe(k)&&!taken[k]))cand.push(c);if(cand.length){const c=cand[ri(0,cand.length-1)];for(let k=c;k<c+8;k++)taken[k]=1;movers.push({k:"w",sub:"h",x0:c*TS,y:12*TS,w:TS,h:2*TS,ph:R()*6.28})}}
  G[13][ri(17,18)]="E";G[13][1]="P";
  if(hasGate){for(let r=1;r<=13;r++)G[r][gc]="X";G[13][btn]="b"}
- if(n>5&&!taken[2]&&R()<.2+.2*d){G[13][2]="e";taken[2]=1}
  const place=ch=>{const o=roomy();if(!o.length)return;const c=o[ri(0,o.length-1)];G[13][c]=ch;taken[c]=1};
- if(n>15&&R()<.15+.2*d)place("D");
- for(let i=ri(0,2);i>0;i--)place("JSH"[ri(0,2)]);
- if(n>10&&R()<.3+.3*d)place("x");
- return{map:G.map(r=>r.join("")).join("\n"),movers}}
+ for(let i=n>3?ri(0,Math.floor(d*3.5)):0;i>0;i--)place("e");
+ if(n>2&&R()<.05+.6*d)place("Y");
+ if(n>4&&R()<.03+.5*d)place("Z");
+ if(n>3&&R()<.03+.5*d)place("D");
+ for(let i=ri(0,d>.6?1:2);i>0;i--)place("JSH"[ri(0,2)]);
+ if(n>2&&R()<.05+.55*d)place("x");
+ if(n>3&&R()<.04+.5*d)place("R");
+ for(let i=n>2?ri(0,Math.ceil(d*3)):0;i>0;i--){const o=roomy();if(o.length){const c=o[ri(0,o.length-1)];G[1][c]="v";taken[c]=1}}
+ const surprises=[];if(n>10)for(let i=Math.floor(d*5);i>0;i--)surprises.push({t:4+(surprises.length)*6+R()*4,x:ri(2,17)*TS+16});
+ return{map:G.map(r=>r.join("")).join("\n"),movers,surprises}}
 
 const solid=(c,r)=>c<0||c>=COLS||r<0?true:r>=ROWS?false:"#FhX".includes(g[r][c]);
 const ov=(ax,ay,aw,ah,bx,by,bw,bh)=>ax<bx+bw&&ax+aw>bx&&ay<by+bh&&ay+ah>by;
-const moverPos=m=>m.k==="x"?[m.mid+m.amp*Math.sin(m.lt*.9),m.y]:[m.x,336+112*Math.sin(m.lt*.7+Math.PI/2)];
-function load(i){const L=gen(i+1),rows=L.map.split("\n");hasGem=false;moved=false;fall={};decoy=null;alt=null;buttons=[];items=[];
+const moverPos=m=>m.k==="w"?(m.sub==="v"?[m.x,m.y0-64-64*Math.sin(m.lt*.9+m.ph)]:[m.x0+112+112*Math.sin(m.lt*1.1+m.ph),m.y]):m.k==="s"?[m.s+80+80*Math.sin(m.lt*1.8),m.y]:m.k==="x"?[m.mid+m.amp*Math.sin(m.lt*.9),m.y]:[m.x,336+112*Math.sin(m.lt*.7+Math.PI/2)];
+function load(i){const L=gen(i+1),rows=L.map.split("\n");hasGem=false;moved=0;fall={};decoy=null;alts=[];buttons=[];items=[];drops=[];fakeGem=null;gemAlt=null;gemMoved=false;jit={};surprises=L.surprises.map(s=>({...s,done:false}));levelT=0;
  g=rows.map((row,r)=>[...row].map((ch,c)=>{const cx=c*TS,cy=r*TS;
-  if(ch==="P")p={x:cx+6,y:cy+4,vx:0,vy:0,ground:false,ride:null,dj:false,extra:0,speedT:0,shield:false,inv:0};
-  else if(ch==="G")gem={x:cx+16,y:cy+16};else if(ch==="E")ex={x:cx+16,y:cy+16};else if(ch==="e")alt={x:cx+16,y:cy+16};else if(ch==="D")decoy={x:cx+16,y:cy+16};
-  else if(ch==="b")buttons.push({c,r,done:false});else if("JSHx".includes(ch))items.push({c,r,t:ch,got:false});
+  if(ch==="P")p={x:cx+6,y:cy+4,vx:0,vy:0,ground:false,ride:null,dj:false,extra:0,speedT:0,revT:0,shield:false,inv:0};
+  else if(ch==="G")gem={x:cx+16,y:cy+16};else if(ch==="E")ex={x:cx+16,y:cy+16};else if(ch==="e")alts.push({x:cx+16,y:cy+16});else if(ch==="D")decoy={x:cx+16,y:cy+16};
+  else if(ch==="Y")fakeGem={x:cx+16,y:cy+16};else if(ch==="Z")gemAlt={x:cx+16,y:cy+16};else if(ch==="v")drops.push({x:cx+16,y:cy,vy:0,st:0});
+  else if(ch==="b")buttons.push({c,r,done:false});else if("JSHxR".includes(ch))items.push({c,r,t:ch,got:false});
   return"#F^thX".includes(ch)?ch:"."}));
- movers=L.movers.map(m=>{const o={...m,lt:0,dx:0,dy:0};[o.x,o.y]=moverPos(o);return o});
- lvl=i;far=Math.max(far,i);try{localStorage.setItem("thiefLvl",i+1);localStorage.setItem("thiefFar",far+1)}catch(e){}
+ movers=L.movers.map(m=>{const o={...m,lt:0,dx:0,dy:0};if(o.k!=="s")[o.x,o.y]=moverPos(o);else{o.x=o.s;o.dx=0}return o});
+ lvl=i;try{localStorage.setItem("thiefLvl",i+1)}catch(e){}
  GO.value=i+1;hud()}
-function hud(){LV.textContent=`Level ${lvl+1}/${TOTAL}`;BU.textContent=`Rage: ${rage}`;BE.textContent=`Furthest: ${far+1}`}
+function hud(){LV.textContent=`Level ${lvl+1}/${TOTAL}`;BU.textContent=`Rage: ${rage}`;BE.textContent=`Unlocked: ${far+1}`;GO.max=far+1}
 function say(m,s=1.8){msg=m;msgT=s}
-function bust(why){rage++;load(lvl);say(why||taunts[Math.random()*taunts.length|0])}
+function bust(why){rage++;const k=deaths[lvl]=(deaths[lvl]||0)+1;load(lvl);shake=.35;tauntT=12;
+ say(k>=3&&Math.random()<.5?deathN[Math.random()*deathN.length|0].replace("{n}",k):why||taunts[Math.random()*taunts.length|0],2.2)}
+function hurt(){if(p.inv>0)return false;if(p.shield){p.shield=false;p.inv=1;say("Shield broke!");return false}return true}
 function moveAxis(dx,dy){p.x+=dx;p.y+=dy;if(dy)p.ground=false;
  for(let r=Math.floor(p.y/TS);r<=Math.floor((p.y+PH-.01)/TS);r++)for(let c=Math.floor(p.x/TS);c<=Math.floor((p.x+PW-.01)/TS);c++)if(solid(c,r)){
   if(dx>0)p.x=c*TS-PW;else if(dx<0)p.x=(c+1)*TS;
   if(dy>0){p.y=r*TS-PH;p.vy=0;p.ground=true}else if(dy<0){p.y=(r+1)*TS;p.vy=0}
+  if(dx)p.vx=0}
+ for(const m of movers)if(m.k==="w"&&(dx||dy)&&ov(p.x,p.y,PW,PH,m.x,m.y,m.w,m.h)){
+  if(dx>0)p.x=m.x-PW;else if(dx<0)p.x=m.x+m.w;
+  if(dy>0){p.y=m.y-PH;p.vy=0;p.ground=true;wallRide=m}else if(dy<0){p.y=m.y+m.h;p.vy=0}
   if(dx)p.vx=0}}
 function update(dt){t+=dt;if(msgT>0)msgT-=dt;if(state!=="play")return;
- for(const m of movers){m.lt+=dt;const[nx,ny]=moverPos(m);m.dx=nx-m.x;m.dy=ny-m.y;m.x=nx;m.y=ny}
+ for(const m of movers){m.lt+=dt;const[nx,ny]=moverPos(m);m.dx=nx-m.x;m.dy=ny-m.y;m.x=nx;m.y=ny;
+  if(m.k==="w"&&p.ride!==m&&ov(p.x,p.y,PW,PH,m.x,m.y,m.w,m.h)){
+   const sx=(p.x+PW/2<m.x+m.w/2?-1:1),sy=(p.y+PH/2<m.y+m.h/2?-1:1);
+   if(Math.abs(m.dx)>=Math.abs(m.dy))moveAxis(sx>0?m.x+m.w-p.x:m.x-PW-p.x,0);else moveAxis(0,sy>0?m.y+m.h-p.y:m.y-PH-p.y);
+   if(ov(p.x,p.y,PW,PH,m.x,m.y,m.w,m.h))return bust("Crushed by a moving wall!")}}
  if(p.ride){moveAxis(p.ride.dx,0);moveAxis(0,p.ride.dy)}
- if(p.speedT>0)p.speedT-=dt;if(p.inv>0)p.inv-=dt;
- p.vx=((keys.right?1:0)-(keys.left?1:0))*(p.speedT>0?250:170);
+ if(p.speedT>0)p.speedT-=dt;if(p.revT>0)p.revT-=dt;if(p.inv>0)p.inv-=dt;if(exitCd>0)exitCd-=dt;if(shake>0)shake-=dt;if((tauntT-=dt)<0){tauntT=14;if(msgT<=0)say(idle[Math.random()*idle.length|0],2.2)}
+ p.vx=((keys.right?1:0)-(keys.left?1:0))*(p.revT>0?-1:1)*(p.speedT>0?250:170);
  p.vy=Math.min(p.vy+1800*dt,900);jumpBuf-=dt;coy=p.ground?.09:coy-dt;if(p.ground)p.extra=p.dj?1:0;
  if(jumpBuf>0){if(coy>0){p.vy=-640;jumpBuf=0;coy=0}else if(p.extra>0){p.vy=-600;p.extra--;jumpBuf=0}}
- moveAxis(p.vx*dt,0);const oldFeet=p.y+PH;moveAxis(0,p.vy*dt);
- let landed=null;
- if(p.vy>=0)for(const m of movers)if(p.x+PW>m.x&&p.x<m.x+m.w&&p.y+PH>=m.y-1&&oldFeet<=m.y+6){p.y=m.y-PH;p.vy=0;p.ground=true;landed=m}
+ wallRide=null;moveAxis(p.vx*dt,0);const oldFeet=p.y+PH;moveAxis(0,p.vy*dt);
+ let landed=wallRide;
+ if(p.vy>=0)for(const m of movers)if(m.k!=="s"&&m.k!=="w"&&p.x+PW>m.x&&p.x<m.x+m.w&&p.y+PH>=m.y-1&&oldFeet<=m.y+6){p.y=m.y-PH;p.vy=0;p.ground=true;landed=m}
  p.ride=landed;
  if(p.ground)for(let c=Math.floor(p.x/TS);c<=Math.floor((p.x+PW-.01)/TS);c++){const r=Math.floor((p.y+PH+1)/TS);if(g[r]&&g[r][c]==="F"&&!fall[r+","+c])fall[r+","+c]=0}
- for(const k in fall){fall[k]+=dt;if(fall[k]>.35){const[r,c]=k.split(",").map(Number);g[r][c]=".";delete fall[k]}}
+ for(const k in fall){fall[k]+=dt;if(fall[k]>.2+.4*J(...k.split(",").map(Number))){const[r,c]=k.split(",").map(Number);g[r][c]=".";delete fall[k]}}
  const cx=p.x+PW/2;
  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const ch=g[r][c];
-  if(ch==="t"&&Math.abs(cx-(c*TS+16))<60&&Math.abs(p.y-r*TS)<80)g[r][c]="^";
-  if(ch==="h"&&Math.abs(cx-(c*TS+16))<75&&Math.abs(p.y-r*TS)<100){g[r][c]=".";say("The floor is gone!",1)}
-  if(ch==="^"&&ov(p.x,p.y,PW,PH,c*TS+6,r*TS+14,TS-12,TS-14)&&p.inv<=0){if(p.shield){p.shield=false;p.inv=1;say("Shield broke!")}else return bust()}}
+  if(ch==="t"&&Math.abs(cx-(c*TS+16))<30+60*J(r,c)&&Math.abs(p.y-r*TS)<80&&J(r,c)>.15)g[r][c]="^";
+  if(ch==="h"&&Math.abs(cx-(c*TS+16))<40+60*J(r,c)&&Math.abs(p.y-r*TS)<100&&J(r,c)>.15){g[r][c]=".";say("The floor is gone!",1)}
+  if(ch==="^"&&ov(p.x,p.y,PW,PH,c*TS+6,r*TS+14,TS-12,TS-14)&&hurt())return bust()}
+ for(const m of movers)if(m.k==="s"&&ov(p.x,p.y,PW,PH,m.x,m.y,m.w,m.h)&&hurt())return bust("Run over by a sliding spike!");
+ levelT+=dt;for(const s of surprises)if(!s.done&&levelT>=s.t){s.done=true;drops.push({x:s.x,y:TS,vy:0,st:1});say("Surprise!",1.2)}
+ for(const d of drops){if(d.st===0&&Math.abs(cx-d.x)<46){d.st=1;say("Look up!",1)}
+  if(d.st===1){d.vy+=1500*dt;d.y+=d.vy*dt;if(d.y>=14*TS-22){d.y=14*TS-22;d.st=2}}
+  if(d.st&&ov(p.x,p.y,PW,PH,d.x-8,d.y,16,22)&&hurt())return bust("Crushed by a ceiling spike!")}
  if(p.y>ROWS*TS+40)return bust("Fell into the void.");
- for(const b of buttons)if(!b.done&&ov(p.x,p.y,PW,PH,b.c*TS+4,b.r*TS+22,24,10)){b.done=true;for(const row of g)row.forEach((ch,c)=>{if(ch==="X")row[c]="."});say("Click! A gate opened.")}
+ for(const b of buttons)if(!b.done&&ov(p.x,p.y,PW,PH,b.c*TS+4,b.r*TS+22,24,10)){b.done=true;for(const row of g)row.forEach((ch,c)=>{if(ch==="X")row[c]="."});say("Click! A gate opened. And... uh oh.");for(const d of drops)if(!d.st)d.st=1;for(const row of g)row.forEach((ch,c)=>{if(ch==="t")row[c]="^"})}
  for(const it of items)if(!it.got&&ov(p.x,p.y,PW,PH,it.c*TS+4,it.r*TS+4,24,24)){it.got=true;
   if(it.t==="x")return bust("Free powerup? Nothing is free.");
+  if(it.t==="R"){p.revT=6;say("🙃 Controls reversed!");continue}
   if(it.t==="J"){p.dj=true;say("Double jump unlocked!")}else if(it.t==="S"){p.speedT=10;say("Speed boost!")}else{p.shield=true;say("Shield up!")}}
+ if(fakeGem&&!hasGem&&ov(p.x,p.y,PW,PH,fakeGem.x-12,fakeGem.y-12,24,24))return bust("Fake gem! Did you really think it was that easy?");
+ if(!hasGem&&gemAlt&&!gemMoved&&Math.hypot(cx-gem.x,p.y+PH/2-gem.y)<90){gemMoved=true;gem=gemAlt;say("The gem ran away!")}
  if(!hasGem&&ov(p.x,p.y,PW,PH,gem.x-12,gem.y-12,24,24)){hasGem=true;say("Got the gem! Now go. (good luck)")}
  if(hasGem){
-  if(alt&&!moved&&Math.hypot(cx-ex.x,p.y+PH/2-ex.y)<110){moved=true;ex=alt;say("The exit moved. Lol.")}
+  if(moved<alts.length&&exitCd<=0&&Math.hypot(cx-ex.x,p.y+PH/2-ex.y)<110){ex=alts[moved++];exitCd=1;say(["The exit moved. Lol.","Nope, it moved again!","Catch me if you can!"][Math.min(moved-1,2)])}
   if(decoy&&Math.hypot(cx-decoy.x,p.y+PH/2-decoy.y)<22)return bust("That was the FAKE door!");
-  if(Math.hypot(cx-ex.x,p.y+PH/2-ex.y)<22){if(lvl+1>=TOTAL){state="won"}else{load(lvl+1);say("Level cleared. It gets worse.")}}}}
-function draw(){x.fillStyle="#111827";x.fillRect(0,0,640,480);
+  if(Math.hypot(cx-ex.x,p.y+PH/2-ex.y)<22){far=Math.max(far,Math.min(TOTAL-1,lvl+1));try{localStorage.setItem("thiefUnlocked",far+1)}catch(e){}if(lvl+1>=TOTAL){state="won"}else{load(lvl+1);say("Level cleared. It gets worse.")}}}}
+function draw(){x.setTransform(1,0,0,1,0,0);x.fillStyle="#111827";x.fillRect(0,0,640,480);if(shake>0)x.translate((Math.random()-.5)*12,(Math.random()-.5)*12);
  const em=(e,a,b,s=24)=>{x.font=s+"px serif";x.textAlign="center";x.textBaseline="middle";x.fillText(e,a,b)};
  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const ch=g[r][c],a=c*TS,b=r*TS;
   if(ch==="#"||ch==="F"||ch==="h"){x.fillStyle=ch==="F"&&fall[r+","+c]!==undefined&&Math.floor(t*30)%2?"#64748b":"#475569";x.fillRect(a,b,TS,TS);x.fillStyle="#64748b";x.fillRect(a,b,TS,4)}
@@ -120,14 +150,15 @@ function draw(){x.fillStyle="#111827";x.fillRect(0,0,640,480);
   else if(ch==="^"){x.fillStyle="#e5e7eb";x.beginPath();for(let i=0;i<2;i++){x.moveTo(a+i*16,b+TS);x.lineTo(a+i*16+8,b+14);x.lineTo(a+i*16+16,b+TS)}x.fill()}}
  if(state==="won")return win();
  for(const b of buttons){x.fillStyle=b.done?"#22c55e":"#ef4444";x.fillRect(b.c*TS+6,b.r*TS+26,20,6)}
- for(const m of movers){x.fillStyle="#f59e0b";x.fillRect(m.x,m.y,m.w,8);x.fillStyle="#fde68a";x.fillRect(m.x,m.y,m.w,3)}
+ for(const m of movers){if(m.k==="s"){x.fillStyle="#e5e7eb";x.beginPath();x.moveTo(m.x,m.y+m.h);x.lineTo(m.x+m.w/2,m.y);x.lineTo(m.x+m.w,m.y+m.h);x.fill();continue}if(m.k==="w"){x.fillStyle="#7f1d1d";x.fillRect(m.x,m.y,m.w,m.h);x.fillStyle="#ef4444";x.fillRect(m.x,m.y,m.w,3);x.fillRect(m.x,m.y+m.h-3,m.w,3);continue}x.fillStyle="#f59e0b";x.fillRect(m.x,m.y,m.w,8);x.fillStyle="#fde68a";x.fillRect(m.x,m.y,m.w,3)}
+ for(const d of drops)if(d.st){x.fillStyle="#e5e7eb";x.beginPath();x.moveTo(d.x-8,d.y);x.lineTo(d.x+8,d.y);x.lineTo(d.x,d.y+22);x.fill()}
  for(const it of items)if(!it.got)em(it.t==="J"?"🪽":it.t==="S"?"⚡":it.t==="H"?"🛡️":["🪽","⚡","🛡️"][it.c%3],it.c*TS+16,it.r*TS+16+Math.sin(t*4+it.c)*2,22);
  if(decoy){x.globalAlpha=hasGem?1:.4;em("🚪",decoy.x,decoy.y);x.globalAlpha=1}
  x.globalAlpha=hasGem?1:.4;em("🚪",ex.x,ex.y);x.globalAlpha=1;
- if(!hasGem)em("💎",gem.x,gem.y+Math.sin(t*4)*2);
+ if(!hasGem){em("💎",gem.x,gem.y+Math.sin(t*4)*2);if(fakeGem)em("💎",fakeGem.x,fakeGem.y+Math.sin(t*4+1)*2)}
  if(p.inv<=0||Math.floor(t*20)%2){em("🥷",p.x+PW/2,p.y+PH/2,26);if(p.shield)em("🛡️",p.x+PW/2+10,p.y+4,12)}
  if(hasGem)em("💎",p.x+PW,p.y,12);
- x.textAlign="left";x.font="14px Arial";x.fillStyle="#fde68a";x.fillText([p.dj?"🪽 Double jump":"",p.speedT>0?`⚡ ${Math.ceil(p.speedT)}s`:""].filter(Boolean).join("  "),40,40);
+ x.textAlign="left";x.font="14px Arial";x.fillStyle="#fde68a";x.fillText([p.dj?"🪽 Double jump":"",p.speedT>0?`⚡ ${Math.ceil(p.speedT)}s`:"",p.revT>0?`🙃 reversed ${Math.ceil(p.revT)}s`:""].filter(Boolean).join("  "),40,40);
  if(msgT>0){x.fillStyle="rgb(0 0 0 / 70%)";x.fillRect(100,50,440,46);x.fillStyle="#fde68a";x.font="bold 19px Arial";x.textAlign="center";x.fillText(msg,320,73)}}
 function win(){x.fillStyle="rgb(0 0 0 / 80%)";x.fillRect(0,0,640,480);x.textAlign="center";x.fillStyle="#fde68a";x.font="bold 34px Arial";x.fillText("💎 Legendary Thief! 💎",320,190);
  x.font="20px Arial";x.fillStyle="#e5e7eb";x.fillText(`All ${TOTAL} levels beaten. Total rage: ${rage}.`,320,240);x.fillText("Press Enter or tap to play again",320,285)}
@@ -139,7 +170,7 @@ function release(k){if(k==="jump"&&p&&p.vy<-220)p.vy=-220;keys[k]=false}
 addEventListener("keydown",e=>{if(e.target.tagName==="INPUT"){if(e.key==="Enter")goTo();return}if(K[e.code]){press(K[e.code]);e.preventDefault()}if(e.code==="Enter"&&state==="won")restart()});
 addEventListener("keyup",e=>{if(e.target.tagName!=="INPUT"&&K[e.code])release(K[e.code])});
 C.addEventListener("pointerdown",()=>{if(state==="won")restart()});
-function goTo(){const n=Math.min(TOTAL,Math.max(1,Math.floor(+GO.value)||1));state="play";load(n-1);GO.blur()}
+function goTo(){const n=Math.min(TOTAL,Math.max(1,Math.floor(+GO.value)||1));GO.blur();if(n-1>far){GO.value=lvl+1;say(`Level ${n} is locked. Beat level ${far+1} first!`,2.5);return}state="play";load(n-1)}
 document.querySelector("#goBtn").onclick=goTo;
 document.querySelectorAll("[data-k]").forEach(b=>{const k=b.dataset.k;b.onpointerdown=e=>{e.preventDefault();press(k)};b.onpointerup=b.onpointerleave=b.onpointercancel=()=>release(k)});
 load(lvl);say("Jump to the gem, then reach the exit.",2.5);requestAnimationFrame(frame);

@@ -5,7 +5,8 @@ main{width:min(100%,30rem);padding:1.5rem;border:.2rem solid #f472b6;border-radi
 button{border:0;border-radius:.5rem;background:#f472b6;color:#1e293b;cursor:pointer;font:inherit;font-weight:bold;padding:.6rem 1rem;margin:.15rem;touch-action:manipulation}button.on{outline:.2rem solid #fff}
 .bar{display:flex;justify-content:space-around;margin:.6rem 0;font-weight:bold}
 #grid{display:grid;gap:.4rem;padding:.5rem;background:#334155;border-radius:.6rem;margin:.6rem 0;touch-action:none}
-#grid div{aspect-ratio:1;display:grid;place-items:center;border-radius:.4rem;background:#f472b6;color:#1e293b;font-weight:bold;font-size:clamp(1.2rem,8vw,2.2rem);cursor:pointer;user-select:none}#grid div.e{background:transparent;cursor:default}
+#grid div{aspect-ratio:1;display:grid;place-items:center;border-radius:.4rem;background:#f472b6;color:#1e293b;font-weight:bold;font-size:clamp(1.2rem,8vw,2.2rem);cursor:pointer;user-select:none;transition:transform .1s,filter .1s}#grid div:not(.e):hover{filter:brightness(1.15);transform:scale(1.04)}#grid div.mv{animation:sslide .16s ease-out}#grid div.ok{animation:swin .7s ease-in-out}#grid div.e{background:transparent;cursor:default}
+@keyframes sslide{from{transform:translate(var(--dx),var(--dy))}}@keyframes swin{30%{transform:scale(1.2) rotate(-6deg);background:#86efac}60%{transform:scale(1.2) rotate(6deg)}}#st.pop{animation:spop .5s}@keyframes spop{from{transform:scale(.3);opacity:0}70%{transform:scale(1.25)}}@media (prefers-reduced-motion:reduce){#grid div,#st{animation:none!important}}
 #st{min-height:1.5rem;font-weight:bold;color:#86efac}
 </style></head>
 <body><main><a href="../">← All games</a><h1>🧩 Slide Puzzle</h1>
@@ -18,7 +19,8 @@ button{border:0;border-radius:.5rem;background:#f472b6;color:#1e293b;cursor:poin
 const $=q=>document.querySelector(q);
 let n=3,a,moves,t0,timer,solved,best={};
 try{best=JSON.parse(localStorage.getItem("slidePuzzleBest"))||{}}catch(e){}
-function slideAt(i){const e=a.indexOf(0),r=i/n|0,c=i%n,er=e/n|0,ec=e%n;if(Math.abs(r-er)+Math.abs(c-ec)!==1)return false;[a[i],a[e]]=[a[e],a[i]];return true}
+function slideAt(i){const e=a.indexOf(0),r=i/n|0,c=i%n,er=e/n|0,ec=e%n;if(Math.abs(r-er)+Math.abs(c-ec)!==1)return false;[a[i],a[e]]=[a[e],a[i]];lastMv={to:e,dx:(c-ec)*100,dy:(r-er)*100};return true}
+let lastMv=null;
 function shuffle(){
  a=[...Array(n*n).keys()].map(i=>(i+1)%(n*n));let last=-1;
  for(let k=0;k<n*n*30;k++){const e=a.indexOf(0),r=e/n|0,c=e%n,o=[];
@@ -34,11 +36,13 @@ function tryMove(i){
  if(!t0){t0=Date.now();timer=setInterval(tick,250)}
  moves++;
  if(isSolved()){solved=true;clearInterval(timer);tick();const nw=!best[n]||moves<best[n];if(nw){best[n]=moves;try{localStorage.setItem("slidePuzzleBest",JSON.stringify(best))}catch(e){}}$("#st").textContent="🎉 Solved in "+moves+" moves!"+(nw?" New best!":"")}
- draw()
+ draw(lastMv);lastMv=null;if(solved)winAnim()
 }
-function draw(){
+function winAnim(){document.querySelectorAll("#grid div:not(.e)").forEach((d,i)=>{d.style.animationDelay=i*50+"ms";d.classList.add("ok")});const s=$("#st");s.classList.remove("pop");void s.offsetWidth;s.classList.add("pop")}
+function draw(mv){
  const g=$("#grid");g.style.gridTemplateColumns=`repeat(${n},1fr)`;
  g.innerHTML=a.map((v,i)=>`<div data-i="${i}" class="${v?"":"e"}">${v||""}</div>`).join("");
+ if(mv){const d=g.children[mv.to];d.classList.add("mv");d.style.setProperty("--dx",mv.dx+"%");d.style.setProperty("--dy",mv.dy+"%")}
  $("#m").textContent=moves;$("#t").textContent=t0?Math.floor((Date.now()-t0)/1000):0;$("#b").textContent=best[n]||"–";
  document.querySelectorAll("#sz button").forEach(b=>b.classList.toggle("on",+b.dataset.n===n))
 }

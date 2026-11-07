@@ -26,7 +26,6 @@ Keep a list of my games here.
 - Meteor Dodge (`meteor-dodge/`)
 - Quick Calc (`quick-calc/`)
 - Frog Leap (`frog-leap/`)
-- Giraffe Maze (`giraffe-maze/`)
 - Sky Ace (`sky-ace/`)
 - Mole Smash (`mole-smash/`)
 - Color Echo (`color-echo/`)
