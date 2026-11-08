@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Fighter Merge | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#1a0b0b;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#991b1b,#1a0b0b)}
+main{width:min(100%,30rem);padding:1.5rem;border:.2rem solid #f87171;border-radius:1.25rem;background:rgb(26 11 11 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.6rem 0;color:#fecaca;font-size:1.6rem}
+.bar{display:flex;justify-content:space-between;gap:.5rem;font-weight:bold;color:#fde68a;margin:.5rem 0}
+#grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;margin:1rem 0}
+.slot{aspect-ratio:1;border:.15rem solid #7f1d1d;border-radius:.6rem;background:#2b1313;font-size:2rem;color:#fff;cursor:pointer;display:grid;place-items:center;position:relative;touch-action:manipulation;padding:0}
+.slot small{position:absolute;right:.3rem;bottom:.15rem;font-size:.7rem;color:#fde68a}
+.slot.sel{border-color:#fde047;box-shadow:0 0 .8rem #fde047}.slot.pop{animation:pop .3s}
+@keyframes pop{50%{transform:scale(1.2)}}
+.arena{display:flex;align-items:center;gap:.6rem;margin:.6rem 0;font-weight:bold}
+.hp{flex:1;height:1rem;border-radius:.5rem;background:#450a0a;overflow:hidden}.hp i{display:block;height:100%;width:100%;transition:width .12s}
+button.b{border:0;border-radius:.5rem;color:#1a0b0b;cursor:pointer;font:inherit;font-weight:bold;padding:.7rem 1rem;margin:.2rem;touch-action:manipulation}
+button.b:disabled{opacity:.5;cursor:default}
+#m{min-height:1.5rem;font-weight:bold}
+</style></head>
+<body><main><a href="../">← All games</a><h1>🥊 Fighter Merge</h1>
+<p>Recruit fighters, <strong>tap two of the same level</strong> to merge them into a stronger one, then send your team to fight the waves. Tap a fighter then an empty slot to move it.</p>
+<div class="bar"><span id="co">🪙 0</span><span id="wv">Wave 1</span><span id="bs">Best wave 1</span></div>
+<div class="arena"><span>You</span><div class="hp"><i id="h1" style="background:#4ade80"></i></div><div class="hp"><i id="h2" style="background:#f87171"></i></div><span id="en">👹</span></div>
+<div id="m">Recruit and merge!</div>
+<div id="grid"></div>
+<button class="b" id="buy" type="button" style="background:#fbbf24"></button><button class="b" id="fight" type="button" style="background:#f87171">⚔️ Fight!</button>
+</main>
+<script>
+const FACE=["👶","🧒","🧑","🥷","🤺","🧙","🦸","🥋","🐉","👑","🔥","⭐"],N=12,G=document.querySelector("#grid"),$=s=>document.querySelector(s);
+let st={coins:30,wave:1,best:1,bought:0,g:Array(N).fill(0)},sel=-1,busy=false,popI=-1;
+try{const s=JSON.parse(localStorage.getItem("fighterMerge"));if(s&&s.g&&s.g.length===N)st=s}catch(e){}
+const save=()=>{try{localStorage.setItem("fighterMerge",JSON.stringify(st))}catch(e){}},
+ cost=()=>10+st.bought*4,pw=l=>Math.pow(3,l-1),team=()=>st.g.reduce((a,l)=>a+(l?pw(l):0),0),foe=w=>Math.round(2.5*Math.pow(1.5,w-1));
+function render(){
+ G.innerHTML="";st.g.forEach((l,i)=>{const b=document.createElement("button");b.className="slot"+(i===sel?" sel":"")+(i===popI?" pop":"");b.setAttribute("aria-label",l?"Fighter level "+l:"Empty slot");b.innerHTML=l?FACE[Math.min(l-1,FACE.length-1)]+"<small>Lv"+l+"</small>":"";b.onclick=()=>tapSlot(i);G.append(b)});
+ $("#co").textContent="🪙 "+st.coins;$("#wv").textContent="Wave "+st.wave;$("#bs").textContent="Best wave "+st.best;
+ $("#buy").textContent="Recruit 🪙"+cost();$("#buy").disabled=busy;$("#fight").disabled=busy||!team();
+ $("#h1").style.width=$("#h2").style.width="100%";$("#en").textContent=st.wave%5===0?"🐲":"👹";
+ if(!busy)$("#m").textContent=`Team power ${team()} vs enemy ${foe(st.wave)}`}
+function tapSlot(i){
+ if(busy)return;popI=-1;
+ if(sel<0){if(st.g[i])sel=i}
+ else if(sel===i)sel=-1;
+ else{const a=st.g[sel],b=st.g[i];
+  if(a&&a===b&&a<FACE.length){st.g[i]=a+1;st.g[sel]=0;popI=i}
+  else{st.g[i]=a;st.g[sel]=b}
+  sel=-1;save()}
+ render()}
+$("#buy").onclick=()=>{const e=st.g.indexOf(0);if(e<0){$("#m").textContent="No room! Merge fighters first.";return}if(st.coins<cost()){$("#m").textContent="Not enough coins.";return}
+ st.coins-=cost();st.bought++;st.g[e]=1;popI=e;sel=-1;save();render()};
+$("#fight").onclick=async()=>{
+ busy=true;sel=-1;render();const t=team(),f=foe(st.wave);$("#m").textContent="Fighting…";
+ const steps=12,w=t>=f;
+ for(let i=1;i<=steps;i++){const k=i/steps;
+  $("#h2").style.width=(w?100*(1-k):100-k*Math.min(60,t/f*60))+"%";
+  $("#h1").style.width=(w?100-k*Math.min(60,f/t*60):100*(1-k))+"%";
+  await new Promise(r=>setTimeout(r,130))}
+ if(t>=f){const win=8+st.wave*5;st.coins+=win;$("#h2").style.width="0%";$("#m").textContent=`Victory! +🪙${win}`;st.wave++;st.best=Math.max(st.best,st.wave)}
+ else{$("#h1").style.width="0%";st.coins+=3;$("#m").textContent="Defeated! +🪙3. Merge up and try again."}
+ save();busy=false;$("#buy").disabled=false;$("#fight").disabled=false;$("#co").textContent="🪙 "+st.coins;$("#wv").textContent="Wave "+st.wave;$("#bs").textContent="Best wave "+st.best};
+render();
+</script></body></html>
