@@ -91,5 +91,5 @@ Keep a list of my games here.
 - Bubble Pop Shooter (`bubble-pop-shooter/`)
 - Brick Breaker Blast (`brick-breaker-blast/`)
 - Hide and Seek (`hide-and-seek/`, Seek and Hide modes, first-person 3D maze of 20 rooms with random layouts, mouse look, top view optional)
-- Freeze Tag 3D (`freeze-tag/`, first-person 3D freeze tag with Runner mode (dodge freezers, thaw teammates) and Freezer mode (freeze all runners), 30 runners vs 10 freezers on a 2500px map, 5 maps: Arena, Maze, Castle, City, Forest, dash, instant thaw on touch, kit boxes: speed, thaw bomb, barrier, rope, freeze wave)
+- Freeze Tag 3D (`freeze-tag/`, first-person 3D freeze tag with Runner mode (dodge freezers, thaw teammates) and Freezer mode (freeze all runners), 30 runners vs 10 freezers on a 2500px map, 5 maps: Arena, Maze, Castle, City, Forest, dash, instant thaw on touch, 16 kit types in boxes: runner kits (speed, thaw bomb, barrier, ghost, shield, teleport, phoenix, mine) and freezer kits (rope, freeze wave, magnet, snowball, turbo, stun blast, web trap))
 - Life of a Thief (`life-of-a-thief/`, 2D rage-bait platformer with gravity and jumping, 1000 generated levels, moving platforms, buttons/gates, powerups, hidden traps; grab the gem, then reach the exit)
