@@ -90,5 +90,6 @@ Keep a list of my games here.
 - Ping Pong Pop (`ping-pong-pop/`)
 - Bubble Pop Shooter (`bubble-pop-shooter/`)
 - Brick Breaker Blast (`brick-breaker-blast/`)
-- Hide and Seek (`hide-and-seek/`, Seek and Hide modes)
+- Hide and Seek (`hide-and-seek/`, Seek and Hide modes, first-person 3D maze of 20 rooms with random layouts, mouse look, top view optional)
+- Freeze Tag 3D (`freeze-tag/`, first-person 3D freeze tag with Runner mode (dodge freezers, thaw teammates) and Freezer mode (freeze all runners), 30 runners vs 10 freezers on a 2500px map, 5 maps: Arena, Maze, Castle, City, Forest, dash, instant thaw on touch, kit boxes: speed, thaw bomb, barrier, rope, freeze wave)
 - Life of a Thief (`life-of-a-thief/`, 2D rage-bait platformer with gravity and jumping, 1000 generated levels, moving platforms, buttons/gates, powerups, hidden traps; grab the gem, then reach the exit)

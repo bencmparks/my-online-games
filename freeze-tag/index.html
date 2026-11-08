@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Freeze Tag 3D | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#06141f;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#0e7490,#06141f)}
+main{width:min(100%,44rem);padding:1.5rem;border:.2rem solid #67e8f9;border-radius:1.25rem;background:rgb(6 20 31 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.6rem 0;color:#cffafe;font-size:1.6rem}
+canvas{display:block;width:100%;height:auto;margin:.8rem 0;border:.2rem solid #475569;border-radius:.4rem;background:#0ea5e9;touch-action:none}
+.modes{display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap}.modes button{padding:.6rem 1.2rem;font-size:1rem}
+.pad{display:flex;justify-content:center;align-items:center;gap:1.5rem;margin-top:.5rem;user-select:none;-webkit-user-select:none}.dpad{display:grid;grid-template-columns:repeat(3,3.2rem);grid-template-rows:repeat(3,3.2rem);gap:.2rem}
+button{border:0;border-radius:.5rem;background:#cffafe;color:#083344;cursor:pointer;font:inherit;font-weight:bold;touch-action:none}.dpad button{font-size:1.3rem}.a{width:4.5rem;height:4.5rem;border-radius:50%;font-size:1rem}
+</style></head>
+<body><main><a href="../">← All games</a><h1>🥶 Freeze Tag 3D</h1>
+<p>You are one of 30 runners being hunted by 10 red freezers on a huge map. Get touched and you freeze solid! Touch a frozen teammate to thaw them instantly, and they'll do the same for you. Survive until the timer ends, and don't let everyone get frozen at once.</p>
+<p><strong>Freezer mode:</strong> you are a freezer with 9 AI partners. Chase down all 30 runners and have every one frozen at the same time before the clock runs out, while the runners keep thawing each other.</p>
+<p><strong>Kits:</strong> grab 🎁 boxes. Runners get Speed, Thaw Bomb (explosion that unfreezes) or Barrier (a wall freezers can't cross). Freezers get Speed, Rope (shoots forward and drags a runner to you) or Freeze Wave. The AI uses them too.</p>
+<p><strong>Maps:</strong> Arena, Maze, Castle, City and Forest. Auto cycles one per level, or pick one with the map button (M).</p>
+<p><strong>W/S or ↑/↓</strong> run · <strong>A/D or ←/→</strong> turn, or click the game and move the mouse (Esc to release) · <strong>Space / E</strong> dash · <strong>Q / F</strong> use kit · <strong>Enter</strong> start</p>
+<div class="modes"><button id="mRun" type="button">🏃 Play Runner (1)</button><button id="mFrz" type="button">🥶 Play Freezer (2)</button><button id="mMap" type="button">🗺 Map: Auto (M)</button></div>
+<canvas id="g" width="640" height="480" aria-label="Freeze Tag 3D game"></canvas>
+<div class="pad"><div class="dpad"><span></span><button data-k="up" type="button">▲</button><span></span><button data-k="left" type="button">◀</button><span></span><button data-k="right" type="button">▶</button><span></span><button data-k="down" type="button">▼</button><span></span></div><button class="a" data-k="act" type="button">DASH</button><button class="a" data-k="kit" type="button">KIT</button></div>
+</main>
+<script>
+const C=document.querySelector("#g"),x=C.getContext("2d"),W=640,H=480,AR=2500,PR=10,CS=50,NG=AR/CS,BS=125,BW=Math.ceil(AR/BS),NR=30,NF=10;
+const KEYS={ArrowUp:"up",KeyW:"up",ArrowDown:"down",KeyS:"down",ArrowLeft:"left",KeyA:"left",ArrowRight:"right",KeyD:"right",KeyE:"act",Space:"act",Enter:"act",KeyQ:"kit",KeyF:"kit"};
+const MAPS=[{n:"Arena",f0:"#14532d",f1:"#22c55e",wc:"#38bdf8"},{n:"Maze",f0:"#1e293b",f1:"#475569",wc:"#15803d"},{n:"Castle",f0:"#365314",f1:"#84cc16",wc:"#94a3b8"},{n:"City",f0:"#111827",f1:"#4b5563",wc:"#475569"},{n:"Forest",f0:"#052e16",f1:"#16a34a",wc:"#166534"}];
+let role="runner",mode="title",level=1,score=0,hi=0,t=0,time=0,held={},P,mates=[],chasers=[],rects=[],pieces=[],bk=[],blocked=null,boxes=[],pj=[],fx=[],walls=[],mapSel=-1,mapI=0,msg="",msgT=0,dash=0,dashCd=0,camA=0;
+try{hi=+localStorage.getItem("freezeTagBest")||0}catch(e){}
+const rnd=(a,b)=>a+Math.random()*(b-a),ri=(a,b)=>Math.floor(rnd(a,b+1));
+function free(a,b,r,w){if(!(a>r&&a<AR-r&&b>r&&b<AR-r))return false;
+ const g0=Math.max(0,(a-r)/BS|0),g1=Math.min(BW-1,(a+r)/BS|0),h0=Math.max(0,(b-r)/BS|0),h1=Math.min(BW-1,(b+r)/BS|0);
+ for(let i=g0;i<=g1;i++)for(let j=h0;j<=h1;j++){const L=bk[i+j*BW];if(L)for(const q of L)if(a>q.x0-r&&a<q.x1+r&&b>q.y0-r&&b<q.y1+r)return false}
+ if(w)for(const q of walls)if(a>q.x0-r&&a<q.x1+r&&b>q.y0-r&&b<q.y1+r)return false
+ return true}
+function los(a,b,c,d){const n=Math.ceil(Math.hypot(c-a,d-b)/8);for(let i=1;i<n;i++){if(!free(a+(c-a)*i/n,b+(d-b)*i/n,3))return false}return true}
+function add(x0,y0,x1,y1,h,c,solid=true){
+ if(solid)rects.push({x0,y0,x1,y1});
+ const w=x1-x0,l=y1-y0,hor=w>=l,n=Math.max(1,Math.ceil((hor?w:l)/100));
+ for(let i=0;i<n;i++){const a=hor?x0+w*i/n:x0,b=hor?x0+w*(i+1)/n:x1,e=hor?y0:y0+l*i/n,f=hor?y1:y0+l*(i+1)/n;pieces.push({x0:a,y0:e,x1:b,y1:f,h,c,cx:(a+b)/2,cy:(e+f)/2})}}
+function tree(px,py,s){add(px-s,py-s,px+s,py+s,ri(100,160),["#166534","#15803d","#14532d"][ri(0,2)])}
+const BUILD=[
+ function(){const cols=["#f97316","#a855f7","#ec4899","#eab308","#14b8a6"];
+  for(let i=0;i<7;i++)for(let j=0;j<7;j++){const s=rnd(18,34),px=250+i*333+rnd(-60,60),py=250+j*333+rnd(-60,60);add(px-s,py-s,px+s,py+s,90,cols[(i+j)%5])}},
+ function(){const N=10,Z=250,rw=[],bw=[];
+  for(let r=0;r<N;r++){rw.push(Array(N).fill(1));bw.push(Array(N).fill(1))}
+  const seen=Array.from({length:N},()=>Array(N).fill(0)),st=[[0,0]];seen[0][0]=1;
+  while(st.length){const[c,r]=st[st.length-1],nb=[];
+   if(c>0&&!seen[r][c-1])nb.push([c-1,r,0]);if(c<N-1&&!seen[r][c+1])nb.push([c+1,r,1]);if(r>0&&!seen[r-1][c])nb.push([c,r-1,2]);if(r<N-1&&!seen[r+1][c])nb.push([c,r+1,3]);
+   if(!nb.length){st.pop();continue}
+   const[a,b,d]=nb[ri(0,nb.length-1)];seen[b][a]=1;
+   if(d===0)rw[r][c-1]=0;else if(d===1)rw[r][c]=0;else if(d===2)bw[r-1][c]=0;else bw[r][c]=0;st.push([a,b])}
+  for(let k=0;k<35;k++){const r=ri(0,N-2),c=ri(0,N-2);if(Math.random()<.5)rw[r][c]=0;else bw[r][c]=0}
+  for(let r=0;r<N;r++)for(let c=0;c<N;c++){
+   if(c<N-1&&rw[r][c])add((c+1)*Z-8,r*Z-8,(c+1)*Z+8,(r+1)*Z+8,90,"#16a34a");
+   if(r<N-1&&bw[r][c])add(c*Z-8,(r+1)*Z-8,(c+1)*Z+8,(r+1)*Z+8,90,"#15803d")}},
+ function(){const S="#9ca3af",D="#64748b",a=400,b=2100,m=1250,t=20;
+  const hw=(y,x0,x1,h,g)=>{add(x0,y-t,m-g,y+t,h,S);add(m+g,y-t,x1,y+t,h,S)};
+  const vw=(X,y0,y1,h,g)=>{add(X-t,y0,X+t,m-g,h,S);add(X-t,m+g,X+t,y1,h,S)};
+  hw(a,a,b,130,80);hw(b,a,b,130,80);vw(a,a,b,130,80);vw(b,a,b,130,80);
+  for(const px of[a,b])for(const py of[a,b])add(px-60,py-60,px+60,py+60,200,D);
+  hw(1000,1000,1500,150,60);hw(1500,1000,1500,150,60);vw(1000,1000,1500,150,60);vw(1500,1000,1500,150,60);
+  for(const px of[1000,1500])for(const py of[1000,1500])add(px-35,py-35,px+35,py+35,200,D);
+  for(let k=0;k<14;k++){const px=rnd(480,2020),py=rnd(480,2020);if(Math.abs(px-m)<130||Math.abs(py-m)<130||(px>900&&px<1600&&py>900&&py<1600)){k--;continue}add(px-16,py-16,px+16,py+16,45,"#a16207")}
+  for(let k=0;k<70;k++){const px=rnd(40,AR-40),py=rnd(40,AR-40);if(px>a-110&&px<b+110&&py>a-110&&py<b+110){k--;continue}tree(px,py,rnd(12,20))}},
+ function(){const cols=["#64748b","#94a3b8","#7c3aed","#0ea5e9","#f59e0b","#ef4444","#10b981"];
+  for(let i=0;i<5;i++)for(let j=0;j<5;j++){if(Math.random()<.12)continue;const x0=200+i*450,y0=200+j*450;add(x0,y0,x0+300,y0+300,ri(80,230),cols[ri(0,6)])}},
+ function(){for(let i=0;i<170;i++)tree(rnd(60,AR-60),rnd(60,AR-60),rnd(12,20));
+  for(let i=0;i<14;i++){const s=rnd(30,50),px=rnd(80,AR-80),py=rnd(80,AR-80);add(px-s,py-s,px+s,py+s,50,"#78716c")}}];
+function spot(avoid,md){for(let k=0;k<600;k++){const a=rnd(40,AR-40),b=rnd(40,AR-40),m=md*(1-k/600);if(free(a,b,24)&&avoid.every(o=>Math.hypot(o.x-a,o.y-b)>m))return[a,b]}return[AR/2,AR/2]}
+const say=m=>{msg=m;msgT=100};
+function actors(){return role==="runner"?[P,...mates]:mates}
+function setup(){
+ mapI=mapSel>=0?mapSel:(level-1)%MAPS.length;
+ rects=[];pieces=[];BUILD[mapI]();bk=[];
+ for(const q of rects)for(let i=Math.max(0,q.x0/BS|0);i<=Math.min(BW-1,q.x1/BS|0);i++)for(let j=Math.max(0,q.y0/BS|0);j<=Math.min(BW-1,q.y1/BS|0);j++)(bk[i+j*BW]||(bk[i+j*BW]=[])).push(q);
+ const wc=MAPS[mapI].wc;
+ for(let k=0;k<AR/100;k++){add(k*100,-16,k*100+100,0,110,wc,false);add(k*100,AR,k*100+100,AR+16,110,wc,false);add(-16,k*100,0,k*100+100,110,wc,false);add(AR,k*100,AR+16,k*100+100,110,wc,false)}
+ blocked=new Uint8Array(NG*NG);for(let i=0;i<NG;i++)for(let j=0;j<NG;j++)blocked[i+j*NG]=free(i*CS+CS/2,j*CS+CS/2,PR+4)?0:1;
+ const fr=role==="freezer",placed=[];
+ const mk=(md,extra)=>{const[a,b]=spot(placed,md),o={x:a,y:b,a:rnd(0,6.28),fz:0,th:0,path:null,pt:0,...extra};placed.push(o);return o};
+ P=mk(0,{fr});
+ const cn=fr?NF-1:NF;
+ chasers=[];for(let i=0;i<cn;i++)chasers.push(mk(fr?250:500,{pause:60,fr:true}));
+ const rn=fr?NR:NR-1;
+ mates=[];for(let i=0;i<rn;i++)mates.push(mk(fr?300:90,{c:`hsl(${i*37%360} 70% 52%)`,wx:0,wy:0,wt:0,fg:null,ft:0}));
+ boxes=[];for(let i=0;i<18;i++){const[a,b]=spot(placed,0);boxes.push({x:a,y:b,on:true,t:0})}pj=[];fx=[];walls=[];
+ time=(fr?Math.max(150,300-level*10):Math.min(240,150+level*10))*60;dash=0;dashCd=0;msg="";msgT=0}
+function begin(){setup();mode="play";say(`Level ${level} · ${MAPS[mapI].n}: `+(role==="freezer"?`freeze all ${mates.length} runners!`:"don't get frozen!"))}
+function pick(r){role=r;level=1;score=0;begin()}
+function end(win,m){mode=win?"won":"lost";msg=m;if(win){level+=1}if(score>hi){hi=score;try{localStorage.setItem("freezeTagBest",hi)}catch(e){}}}
+function step(o,ang,spd){const bw=o.fr&&walls.length&&free(o.x,o.y,PR,true);for(const d of[0,.5,-.5,1,-1,1.6,-1.6]){const a=ang+d,nx=o.x+Math.cos(a)*spd,ny=o.y+Math.sin(a)*spd;if(free(nx,ny,PR,bw)){o.x=nx;o.y=ny;return}if(free(nx,o.y,PR,bw)){o.x=nx;return}if(free(o.x,ny,PR,bw)){o.y=ny;return}}}
+const toward=(o,tx,ty,spd)=>step(o,Math.atan2(ty-o.y,tx-o.x),spd);
+const DX=[1,-1,0,0,1,1,-1,-1],DY=[0,0,1,-1,1,-1,1,-1],pv=new Int32Array(NG*NG),qu=new Int32Array(NG*NG);
+function route(sx,sy,gx,gy){
+ const cl=v=>Math.max(0,Math.min(NG-1,v/CS|0));const s=cl(sx)+cl(sy)*NG;let g=cl(gx)+cl(gy)*NG;
+ if(blocked[g]){let best=-1,bd=1e9;for(let dy=-3;dy<=3;dy++)for(let dx=-3;dx<=3;dx++){const cx=cl(gx)+dx,cy=cl(gy)+dy;if(cx<0||cy<0||cx>=NG||cy>=NG||blocked[cx+cy*NG])continue;const d=dx*dx+dy*dy;if(d<bd){bd=d;best=cx+cy*NG}}if(best<0)return[];g=best}
+ pv.fill(-1);pv[s]=s;let h=0,tl=0;qu[tl++]=s;
+ while(h<tl){const u=qu[h++];if(u===g)break;const ux=u%NG,uy=u/NG|0;
+  for(let k=0;k<8;k++){const vx=ux+DX[k],vy=uy+DY[k];if(vx<0||vy<0||vx>=NG||vy>=NG)continue;const v=vx+vy*NG;if(pv[v]>=0||blocked[v])continue;
+   if(k>3&&(blocked[ux+vy*NG]||blocked[vx+uy*NG]))continue;pv[v]=u;qu[tl++]=v}}
+ if(pv[g]<0)return[];const p=[];for(let u=g;u!==s;u=pv[u])p.push([(u%NG)*CS+CS/2,(u/NG|0)*CS+CS/2]);return p.reverse()}
+function go(o,tx,ty,spd){
+ const d=Math.hypot(tx-o.x,ty-o.y);
+ if(d<30||(d<150&&los(o.x,o.y,tx,ty))){o.path=null;toward(o,tx,ty,spd);return}
+ if(!o.path||(o.pt|0)<=0||Math.hypot(tx-o.gx,ty-o.gy)>80){o.path=route(o.x,o.y,tx,ty);o.gx=tx;o.gy=ty;o.pt=25+(Math.random()*10|0)}
+ o.pt--;while(o.path.length&&Math.hypot(o.path[0][0]-o.x,o.path[0][1]-o.y)<18)o.path.shift();
+ const w=o.path[0];if(w)toward(o,w[0],w[1],spd);else toward(o,tx,ty,spd)}
+function act(){if(mode!=="play"){if(mode==="lost"){level=1;score=0}begin();return}if(dashCd<=0&&!P.fz){dash=18;dashCd=150}}
+const sb=o=>o.sp>0?1.6:1,POOL=[["speed","bomb","wall"],["speed","rope","wave"]];
+const KITS={speed:"⚡ Speed",bomb:"💣 Thaw Bomb",wall:"🧱 Barrier",rope:"🪢 Rope",wave:"🌀 Freeze Wave"};
+function boom(px,py,r,type,by){fx.push({x:px,y:py,r,t:30});for(const o of actors()){if(Math.hypot(o.x-px,o.y-py)>=r)continue;
+ if(type==="thaw"&&o.fz){o.fz=0;o.th=0;if(by===P)score+=25;if(o===P)say("🔥 You were thawed!")}
+ else if(type==="freeze"&&!o.fz&&o!==by){o.fz=1;o.th=0;if(by===P)score+=20}}}
+function useKit(o,a,dist=230){const k=o.kit;if(!k||o.fz)return;o.kit=null;
+ if(k==="speed"){o.sp=240;if(o===P)say("⚡ Speed boost!")}
+ else if(k==="bomb")pj.push({k:"bomb",x:o.x,y:o.y,a,d:0,max:dist,by:o});
+ else if(k==="rope")pj.push({k:"rope",x:o.x,y:o.y,a,d:0,max:450,by:o});
+ else if(k==="wall"){const wx=o.x+Math.cos(a)*60,wy=o.y+Math.sin(a)*60,h=Math.abs(Math.cos(a))>Math.abs(Math.sin(a));walls.push({x0:h?wx-7:wx-45,x1:h?wx+7:wx+45,y0:h?wy-45:wy-7,y1:h?wy+45:wy+7,t:900});if(o===P)say("🧱 Barrier up! Freezers can't pass")}
+ else if(k==="wave"){boom(o.x,o.y,110,"freeze",o);if(o===P)say("🌀 Freeze wave!")}}
+function pull(o){const b=o.pl.by;if(--o.pl.t<=0||Math.hypot(b.x-o.x,b.y-o.y)<18){o.pl=null;return}toward(o,b.x,b.y,5)}
+function nearBox(o,r){let b=null,bd=r;for(const q of boxes){if(!q.on)continue;const d=Math.hypot(q.x-o.x,q.y-o.y);if(d<bd){bd=d;b=q}}return b}
+function update(){
+ t+=1;if(msgT>0)msgT-=1;if(mode==="title"){camA+=.004;return}if(mode!=="play")return;
+ time-=1;if(time%60===0)score+=1;
+ const dx=(held.right?1:0)-(held.left?1:0),dy=(held.down?1:0)-(held.up?1:0);
+ if(P.fz)P.pl=null;
+ if(P.pl)pull(P);
+ else if(!P.fz){P.a+=dx*.05;const sp=(dash>0?5:2.6)*sb(P);if(dy){step(P,P.a+(dy>0?Math.PI:0),sp)}else if(dash>0)step(P,P.a,sp)}
+ if(dash>0)dash-=1;if(dashCd>0)dashCd-=1;
+ const all=actors();for(const o of[P,...mates,...chasers])if(o.sp>0)o.sp-=1;
+ const rs=role==="freezer"?.9:1,threats=role==="freezer"?[...chasers,P]:chasers;
+ for(const m of mates){if(m.fz){m.pl=null;continue}if(m.pl){pull(m);continue}
+  let ch=null,cd=1e9;for(const c of threats){const d=Math.hypot(c.x-m.x,c.y-m.y);if(d<cd){cd=d;ch=c}}
+  if(ch&&cd<220){
+   if(m.kit==="speed"&&cd<180)useKit(m,0);else if(m.kit==="wall"&&cd<130)useKit(m,Math.atan2(ch.y-m.y,ch.x-m.x));
+   if(!m.fg||m.ft--<=0||Math.hypot(m.fg[0]-m.x,m.fg[1]-m.y)<20){let best=null,bs=cd+40;m.fl=true;
+    for(let k=0;k<12;k++){const a=k*Math.PI/6,px=m.x+Math.cos(a)*160,py=m.y+Math.sin(a)*160;if(!free(px,py,PR)||!los(m.x,m.y,px,py))continue;const s=Math.hypot(px-ch.x,py-ch.y);if(s>bs){bs=s;best=[px,py]}}
+    if(best)m.ft=6;else{m.fl=false;bs=-1e9;for(let k=0;k<6;k++){const[a,b]=spot([],0),s=Math.hypot(a-ch.x,b-ch.y)-.4*Math.hypot(a-m.x,b-m.y);if(s>bs){bs=s;best=[a,b]}}m.ft=45}
+    m.fg=best}
+   if(m.fl)toward(m,m.fg[0],m.fg[1],2.4*rs*sb(m));else go(m,m.fg[0],m.fg[1],2.4*rs*sb(m))}
+  else{m.fg=null;let f=null,fd=900;for(const o of all){if(!o.fz||o===m)continue;const d=Math.hypot(o.x-m.x,o.y-m.y);if(d<fd&&threats.every(h=>Math.hypot(h.x-o.x,h.y-o.y)>(role==="freezer"?420:250))){fd=d;f=o}}
+   if(f){if(m.kit==="bomb"&&fd<220&&los(m.x,m.y,f.x,f.y))useKit(m,Math.atan2(f.y-m.y,f.x-m.x),fd);go(m,f.x,f.y,2.3*rs*sb(m))}
+   else{const bx=m.kit?null:nearBox(m,500);
+    if(bx)go(m,bx.x,bx.y,2*rs*sb(m));
+    else{if(m.wt--<=0||Math.hypot(m.wx-m.x,m.wy-m.y)<40){const[a,b]=spot([],0);m.wx=a;m.wy=b;m.wt=400}go(m,m.wx,m.wy,1.4*rs*sb(m))}}}}
+ const cs=role==="freezer"?Math.min(2.5,2.1+level*.03):Math.min(2.2,1.3+level*.1);
+ for(const o of all)o.cl=0;
+ for(const c of chasers){if(c.pause>0){c.pause-=1;continue}
+  let tg=null,td=1e9,ts=1e9;for(const o of all){if(o.fz)continue;const d=Math.hypot(o.x-c.x,o.y-c.y),s=d+o.cl*300;if(s<ts){ts=s;td=d;tg=o}}
+  if(!tg)continue;tg.cl+=1;
+  if(c.kit){const ang=Math.atan2(tg.y-c.y,tg.x-c.x);
+   if(c.kit==="speed"&&td<260)useKit(c,0);else if(c.kit==="rope"&&td>70&&td<400&&los(c.x,c.y,tg.x,tg.y))useKit(c,ang);
+   else if(c.kit==="wave"&&all.filter(o=>!o.fz&&Math.hypot(o.x-c.x,o.y-c.y)<100).length>=2)useKit(c,0)}
+  const bx=!c.kit&&td>250?nearBox(c,300):null;
+  if(bx)go(c,bx.x,bx.y,cs*sb(c));else go(c,tg.x,tg.y,cs*sb(c));
+  if(td<22){tg.fz=1;tg.th=0;c.pause=90;if(tg===P)say("❄️ You're frozen! A teammate can thaw you by touching you");else if(role==="runner"&&Math.hypot(tg.x-P.x,tg.y-P.y)<400)say("❄️ A teammate got frozen! Go touch them!")}}
+ if(role==="freezer")for(const o of all)if(!o.fz&&Math.hypot(o.x-P.x,o.y-P.y)<24){o.fz=1;o.th=0;score+=20;say("❄️ Froze one! +20")}
+ for(const b of boxes){if(!b.on){if(--b.t<=0){const[a,e]=spot([],0);b.x=a;b.y=e;b.on=true}continue}
+  for(const o of[P,...mates,...chasers]){if(o.fz||o.kit||Math.hypot(o.x-b.x,o.y-b.y)>24)continue;
+   o.kit=POOL[o.fr?1:0][ri(0,2)];b.on=false;b.t=900;if(o===P)say(`🎁 Got ${KITS[o.kit]}! Press Q`);break}}
+ for(const p of pj){const sp=p.k==="rope"?10:6,nx=p.x+Math.cos(p.a)*sp,ny=p.y+Math.sin(p.a)*sp;p.d+=sp;
+  if(p.k==="rope")for(const o of all){if(o.fz||o===p.by||Math.hypot(o.x-nx,o.y-ny)>16)continue;o.pl={by:p.by,t:70};p.dead=true;if(o===P)say("🪢 Roped! You're being pulled in");break}
+  if(p.dead)continue;
+  if(!free(nx,ny,2)||p.d>=p.max){if(p.k==="bomb")boom(p.x,p.y,90,"thaw",p.by);p.dead=true}else{p.x=nx;p.y=ny}}
+ pj=pj.filter(p=>!p.dead);fx=fx.filter(f=>--f.t>0);walls=walls.filter(w=>--w.t>0);
+ for(const f of all){if(!f.fz)continue;for(const u of all)if(!u.fz&&Math.hypot(u.x-f.x,u.y-f.y)<28){f.fz=0;f.th=0;score+=25;if(f===P)say("🔥 You were thawed!");else if(role==="runner"&&Math.hypot(f.x-P.x,f.y-P.y)<400)say("🔥 Teammate thawed! +25");break}}
+ if(all.every(o=>o.fz)){if(role==="freezer"){score+=100*level+Math.floor(time/60)*3;return end(true,"All runners frozen!")}return end(false,"Everyone froze solid!")}
+ if(time<=0){if(role==="freezer")return end(false,"Time's up. Some runners got away.");score+=100*level;end(true,"Time's up. You survived!")}
+}
+addEventListener("keydown",e=>{if(e.code==="Digit1"){pick("runner");return}if(e.code==="Digit2"){pick("freezer");return}if(e.code==="KeyM"){cycleMap();return}const k=KEYS[e.code];if(!k)return;e.preventDefault();held[k]=true;if(!e.repeat&&k==="act")act();if(!e.repeat&&k==="kit"&&mode==="play")useKit(P,P.a)});
+addEventListener("keyup",e=>{const k=KEYS[e.code];if(k)held[k]=false});
+addEventListener("blur",()=>{held={}});
+C.addEventListener("click",()=>{if(mode==="play"&&C.requestPointerLock)C.requestPointerLock()});
+addEventListener("mousemove",e=>{if(document.pointerLockElement===C&&mode==="play"&&!P.fz)P.a+=e.movementX*.003});
+document.querySelectorAll("[data-k]").forEach(b=>{const k=b.dataset.k;b.addEventListener("pointerdown",e=>{e.preventDefault();held[k]=true;if(k==="act")act();if(k==="kit"&&mode==="play")useKit(P,P.a)});["pointerup","pointerleave","pointercancel"].forEach(ev=>b.addEventListener(ev,()=>{held[k]=false}))});
+function text(s,a,b,size=18,color="#fff",align="left"){x.font=`bold ${size}px Arial,sans-serif`;x.fillStyle=color;x.textAlign=align;x.lineWidth=4;x.strokeStyle="#000";x.strokeText(s,a,b);x.fillText(s,a,b)}
+const shade=(h,m)=>{const n=parseInt(h.slice(1),16);return`rgb(${Math.min(255,(n>>16)*m)|0} ${Math.min(255,((n>>8)&255)*m)|0} ${Math.min(255,(n&255)*m)|0})`};
+function draw3d(){
+ const c=mode==="title"?{x:P.x,y:P.y,a:camA}:P,ca=Math.cos(c.a),sa=Math.sin(c.a),F=300,EY=28,HZ=H/2,N=2,FAR=1000,MP=MAPS[mapI];
+ const tr=(a,b,z)=>{const dx=a-c.x,dy=b-c.y;return[-sa*dx+ca*dy,z-EY,ca*dx+sa*dy]};
+ const pr=q=>[W/2+q[0]/q[2]*F,HZ-q[1]/q[2]*F];
+ const clip=pts=>{const o=[];for(let i=0;i<pts.length;i++){const a=pts[i],b=pts[(i+1)%pts.length],ia=a[2]>=N,ib=b[2]>=N;if(ia)o.push(a);if(ia!==ib){const k=(N-a[2])/(b[2]-a[2]);o.push([a[0]+(b[0]-a[0])*k,a[1]+(b[1]-a[1])*k,N])}}return o};
+ const poly=(pts,fill,stroke,lw)=>{const q=clip(pts.map(v=>tr(v[0],v[1],v[2])));if(q.length<3)return;x.beginPath();q.map(pr).forEach((v,i)=>i?x.lineTo(v[0],v[1]):x.moveTo(v[0],v[1]));x.closePath();x.fillStyle=fill;x.fill();if(stroke){x.strokeStyle=stroke;x.lineWidth=lw||1;x.stroke()}};
+ const box=(X0,Y0,X1,Y1,h,col,m)=>{const ln="rgb(0 0 0 / 30%)";
+  if(c.x<X0)poly([[X0,Y0,0],[X0,Y1,0],[X0,Y1,h],[X0,Y0,h]],shade(col,.75*m),ln);
+  if(c.x>X1)poly([[X1,Y0,0],[X1,Y1,0],[X1,Y1,h],[X1,Y0,h]],shade(col,.75*m),ln);
+  if(c.y<Y0)poly([[X0,Y0,0],[X1,Y0,0],[X1,Y0,h],[X0,Y0,h]],shade(col,.95*m),ln);
+  if(c.y>Y1)poly([[X0,Y1,0],[X1,Y1,0],[X1,Y1,h],[X0,Y1,h]],shade(col,.95*m),ln);
+  if(EY>h)poly([[X0,Y0,h],[X1,Y0,h],[X1,Y1,h],[X0,Y1,h]],shade(col,1.15*m),ln)};
+ const fog=d=>Math.max(.4,1.1-d/1000);
+ const sk=x.createLinearGradient(0,0,0,HZ);sk.addColorStop(0,"#0369a1");sk.addColorStop(1,"#bae6fd");x.fillStyle=sk;x.fillRect(0,0,W,HZ);
+ const fl=x.createLinearGradient(0,HZ,0,H);fl.addColorStop(0,MP.f0);fl.addColorStop(1,MP.f1);x.fillStyle=fl;x.fillRect(0,HZ,W,H-HZ);
+ for(let i=0;i<AR/100;i++)for(let j=0;j<AR/100;j++)if((i+j)%2){const a=i*100,b=j*100;if(Math.hypot(a+50-c.x,b+50-c.y)<FAR)poly([[a,b,0],[a+100,b,0],[a+100,b+100,0],[a,b+100,0]],"rgb(255 255 255 / 9%)")}
+ const items=[];
+ const em=(px,py,z0,ch,sz,col)=>{const d=Math.hypot(px-c.x,py-c.y);if(d>FAR)return;items.push({d,f(){const b=tr(px,py,z0);if(b[2]<N)return;const q=pr(b),s=sz*F/b[2];x.font=`${Math.max(6,s|0)}px Arial`;x.textAlign="center";x.fillStyle=col||"#fff";x.fillText(ch,q[0],q[1])}})};
+ const rope=(a,b)=>{const n=Math.floor(Math.hypot(b.x-a.x,b.y-a.y)/30);for(let i=1;i<=n;i++)em(a.x+(b.x-a.x)*i/n,a.y+(b.y-a.y)*i/n,22,"●",12,"#a16207")};
+ for(const b of boxes)if(b.on)em(b.x,b.y,30+Math.sin(t/12)*5,"🎁",40);
+ for(const p of pj){em(p.x,p.y,22,p.k==="bomb"?"💣":"🪢",30);if(p.k==="rope")rope(p.by,p)}
+ for(const f of fx)em(f.x,f.y,30,"💥",f.r*(1.3-f.t/40));
+ for(const o of actors())if(o.pl)rope(o.pl.by,o);
+ for(const w of walls){const d=Math.hypot((w.x0+w.x1)/2-c.x,(w.y0+w.y1)/2-c.y);if(d<FAR)items.push({d,f(){box(w.x0,w.y0,w.x1,w.y1,70,"#22d3ee",fog(d))}})}
+ for(const q of pieces){const d=Math.hypot(q.cx-c.x,q.cy-c.y);if(d>FAR+100)continue;items.push({d,f(){box(q.x0,q.y0,q.x1,q.y1,q.h,q.c,fog(d))}})}
+ const who=(o,body,label)=>{const d=Math.hypot(o.x-c.x,o.y-c.y);if(d>FAR)return;items.push({d,f(){const b=tr(o.x,o.y,0);if(b[2]<N)return;const z=F/b[2],P2=pr(b),w=26*z;
+  x.fillStyle="rgb(0 0 0 / 30%)";x.beginPath();x.ellipse(P2[0],P2[1],w*.8,w*.22,0,0,7);x.fill();
+  x.fillStyle=o.fz?"#bae6fd":body;x.fillRect(P2[0]-w/2,P2[1]-52*z,w,52*z);x.fillStyle=o.fz?"#e0f2fe":"#fde68a";x.beginPath();x.arc(P2[0],P2[1]-62*z,11*z,0,7);x.fill();
+  x.fillStyle="#000";x.fillRect(P2[0]-6*z,P2[1]-65*z,4*z,5*z);x.fillRect(P2[0]+2*z,P2[1]-65*z,4*z,5*z);
+  if(o.fz){x.fillStyle="rgb(125 211 252 / 55%)";x.fillRect(P2[0]-w*.8,P2[1]-78*z,w*1.6,80*z);x.strokeStyle="#e0f2fe";x.lineWidth=2;x.strokeRect(P2[0]-w*.8,P2[1]-78*z,w*1.6,80*z);x.font=`${Math.max(10,24*z)|0}px Arial`;x.textAlign="center";x.fillStyle="#fff";x.fillText("❄️",P2[0],P2[1]-92*z);
+   if(o.th>0){x.fillStyle="#fde047";x.fillRect(P2[0]-20*z,P2[1]-112*z,40*z*o.th/50,5*z)}}
+  else if(label){x.font=`bold ${Math.max(10,22*z)|0}px Arial`;x.textAlign="center";x.fillStyle="#fecaca";x.fillText(label,P2[0],P2[1]-82*z)}}})};
+ mates.forEach(m=>who(m,m.c,""));chasers.forEach(o=>who(o,"#dc2626",role==="freezer"?"😈 Partner":"😈 IT"));
+ items.sort((a,b)=>b.d-a.d).forEach(i=>i.f());
+ if(mode!=="title"){
+  const k=170/AR,mx=W-170-8,my=H-170-8;x.fillStyle="rgb(0 0 0 / 55%)";x.fillRect(mx-3,my-3,176,176);x.fillStyle="#94a3b8";rects.forEach(q=>x.fillRect(mx+q.x0*k,my+q.y0*k,Math.max(1,(q.x1-q.x0)*k),Math.max(1,(q.y1-q.y0)*k)));
+  const dot=(o,col,r)=>{x.fillStyle=col;x.beginPath();x.arc(mx+o.x*k,my+o.y*k,r,0,7);x.fill()};
+  x.fillStyle="#22d3ee";walls.forEach(w=>x.fillRect(mx+w.x0*k,my+w.y0*k,Math.max(2,(w.x1-w.x0)*k),Math.max(2,(w.y1-w.y0)*k)));boxes.forEach(b=>{if(b.on)dot(b,"#fde047",1.5)});
+  mates.forEach(m=>dot(m,m.fz?"#7dd3fc":"#4ade80",2));chasers.forEach(o=>dot(o,"#ef4444",2.5));dot(P,"#fff",3);x.strokeStyle="#fff";x.beginPath();x.moveTo(mx+P.x*k,my+P.y*k);x.lineTo(mx+P.x*k+ca*9,my+P.y*k+sa*9);x.stroke();
+  if(P.fz){x.fillStyle="rgb(125 211 252 / 35%)";x.fillRect(0,0,W,H);text("❄️ FROZEN! A teammate must thaw you",W/2,H/2,24,"#e0f2fe","center")}}
+}
+function draw(){
+ draw3d();
+ if(mode!=="title"){
+  const al=actors(),free2=al.filter(o=>!o.fz).length;
+  text(role==="freezer"?`LV ${level} · ${MAPS[mapI].n} · Frozen ${al.length-free2}/${al.length}`:`LV ${level} · ${MAPS[mapI].n} · Free ${free2}/${al.length}`,10,24,17,"#fff");text(`⏱ ${Math.max(0,Math.ceil(time/60))}s`,W/2+90,24,20,time<600?"#f87171":"#fde047","center");text(`SCORE ${score}  BEST ${hi}`,W-10,24,15,"#fde047","right");
+  x.fillStyle="rgb(0 0 0 / 55%)";x.fillRect(10,H-24,120,12);x.fillStyle=dashCd>0?"#f97316":"#4ade80";x.fillRect(10,H-24,120*(dashCd>0?1-dashCd/150:1),12);text("DASH",138,H-13,14,"#fff");text(P.kit?`KIT: ${KITS[P.kit]} (Q)`:"KIT: none - grab a 🎁",10,H-34,15,P.kit?"#fde047":"#cbd5e1");
+  if(msgT>0)text(msg,W/2,H-60,20,"#fff","center")}
+ if(mode==="title"){x.fillStyle="rgb(2 6 23 / 55%)";x.fillRect(0,0,W,H);text("FREEZE TAG 3D",W/2,170,50,"#cffafe","center");text("1: Runner (don't get frozen) · 2: Freezer (freeze them all)",W/2,225,19,"#fde047","center");if(Math.floor(t/30)%2)text("Press 1 or 2, or use the buttons above",W/2,275,20,"#fff","center")}
+ if(mode==="won"){x.fillStyle="rgb(2 6 23 / 55%)";x.fillRect(0,H/2-90,W,180);text(role==="freezer"?"All frozen!":"You survived!",W/2,H/2-30,46,"#4ade80","center");text(msg,W/2,H/2+5,20,"#fff","center");if(Math.floor(t/30)%2)text("Press Enter for the next level",W/2,H/2+50,22,"#fff","center")}
+ if(mode==="lost"){x.fillStyle="rgb(2 6 23 / 55%)";x.fillRect(0,H/2-90,W,180);text(role==="freezer"?"They got away!":"Frozen!",W/2,H/2-30,44,"#7dd3fc","center");text(msg,W/2,H/2+5,20,"#fff","center");text(`Score ${score}`,W/2,H/2+36,20,"#fde047","center");if(Math.floor(t/30)%2)text("Press Enter to try again",W/2,H/2+66,22,"#fff","center")}
+}
+function cycleMap(){mapSel=mapSel>=MAPS.length-1?-1:mapSel+1;document.querySelector("#mMap").textContent=`🗺 Map: ${mapSel<0?"Auto":MAPS[mapSel].n} (M)`;if(mode==="title")setup();else pick(role)}
+document.querySelector("#mRun").onclick=()=>pick("runner");document.querySelector("#mFrz").onclick=()=>pick("freezer");document.querySelector("#mMap").onclick=cycleMap;
+function frame(){update();draw();requestAnimationFrame(frame)}
+setup();frame();
+</script></body></html>

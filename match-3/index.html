@@ -52,7 +52,7 @@
     <h1>Match 3</h1>
     <p class="stats"><span>Level: <strong id="level">1</strong></span><span>Score: <strong id="score">0</strong></span><span>Moves: <strong id="moves">20</strong></span><span>Best: <strong id="best">0</strong></span></p>
     <p id="goals" class="goals" aria-live="polite"></p>
-    <p id="status" aria-live="polite">Select two neighboring gems to swap them. Match 5 in a row for a 🪩 disco ball, or a 2×2 square for a 🧨 dynamite.</p>
+    <p id="status" aria-live="polite">Select two neighboring gems to swap them. Double-click a power-up, or swap it with a neighbor, to set it off. Match 5 in a row for a 🪩 disco ball, or a 2×2 square for a 🧨 dynamite.</p>
     <div class="board" id="board" aria-label="Match 3 gem board"></div>
     <button id="new-game" type="button">New game</button> <button id="levels-btn" type="button">Levels</button>
     <div id="levels" class="levels" hidden></div>
@@ -62,7 +62,7 @@
     const size = 8;
     const gems = ["❤️", "⭐", "🍀", "💧"], BOX = "📦";
     const goalsElement = document.querySelector("#goals");
-    let goals = [], levelBusy = false;
+    let goals = [], levelBusy = false, lastTap = null;
     const LEVEL_COUNT = 100;
     const unlocked = () => Math.max(1, progress.unlocked || 1);
     const levelsElement = document.querySelector("#levels");
@@ -84,11 +84,11 @@
     }
     function levelDef(lv) {
       const first = gems[(lv * 3) % 4], second = gems[(lv * 3 + 1 + (Math.floor(lv / 4) % 3)) % 4], kind = lv % 4;
-      const count = Math.min(4 + Math.ceil(lv * 0.4), 30), boxes = Math.min(3 + Math.floor(lv / 3), 14), list = [];
-      if (kind === 0) { list.push({ gem: first, n: count - 2, left: count - 2 }, { gem: second, n: count - 2, left: count - 2 }); }
+      const count = Math.min(5 + Math.ceil(lv * 0.45), 45), pair = Math.ceil(count * 0.7), boxes = Math.min(3 + Math.floor(lv / 2), 18), list = [];
+      if (kind === 0) list.push({ gem: first, n: pair, left: pair }, { gem: second, n: pair, left: pair });
       if (kind === 1 || kind === 3) list.push({ gem: first, n: count, left: count });
       if (kind === 2 || kind === 3) list.push({ box: true, n: boxes, left: boxes });
-      const moves = Math.min(32, 14 + Math.floor(lv / 8) + (kind === 1 ? 0 : 4) + (kind === 0 ? 2 : 0));
+      const moves = 15 + Math.floor(lv / 12) + [3, 0, 4, 5][kind];
       return { goals: list, moves, boxes: kind >= 2 ? boxes + 2 : 0 };
     }
     function startLevel() {
@@ -150,11 +150,13 @@
 
     function chooseGem(row, column) {
       if (board[row][column] === BOX || levelBusy) return;
-      if (isPowerup(board[row][column])) {
-        activatePowerup(row, column);
-        return;
+      const tapped = lastTap; lastTap = { row, column, time: Date.now() };
+      if (isPowerup(board[row][column]) && tapped && tapped.row === row && tapped.column === column && lastTap.time - tapped.time < 450) {
+        lastTap = null; selected = null; activatePowerup(row, column); return;
       }
-      if (!selected) { selected = { row, column }; render(); return; }
+      if (selected && Math.abs(selected.row - row) + Math.abs(selected.column - column) === 1 && (isPowerup(board[row][column]) || isPowerup(board[selected.row][selected.column]))) {
+        movePowerup(selected, { row, column }); return;
+      }      if (!selected) { selected = { row, column }; render(); return; }
       if (selected.row === row && selected.column === column) { selected = null; render(); return; }
       if (Math.abs(selected.row - row) + Math.abs(selected.column - column) !== 1) { selected = { row, column }; render(); return; }
       swap(selected, { row, column });
@@ -212,13 +214,24 @@
           const row = match.row + dr, column = match.column + dc, key = `${row},${column}`;
           if (board[row]?.[column] === BOX && !seen.has(key)) { seen.add(key); current.push({ row, column }); }
         }
+        let chainCount = 0;
+        for (const match of current) {
+          const value = board[match.row][match.column];
+          if (!isPowerup(value)) continue;
+          const blast = value === "🪩" ? getDiscoClear() : getPowerupClear(value, match.row, match.column);
+          for (const extra of blast) {
+            const key = `${extra.row},${extra.column}`;
+            if (!seen.has(key)) { seen.add(key); current.push(extra); chainCount += 1; }
+          }
+        }
         for (const match of current) {
           const value = board[match.row][match.column];
           for (const goal of goals) if ((goal.box && value === BOX) || (goal.gem && value === goal.gem)) goal.left -= 1;
         }
-        score += powerupSize * 10;
+        score += (powerupSize + chainCount) * 10;
+        if (chainCount) statusElement.textContent = "💥 Chain reaction!";
         for (const match of current) cell(match.row, match.column)?.classList.add("boom");
-        floatPoints(current, `+${powerupSize * 10}`);
+        floatPoints(current, `+${(powerupSize + chainCount) * 10}`);
         await wait(240);
         const powerup = hasLineOfFive(current) ? "🪩" : hasSquare(current) ? "🧨" : powerupSize >= 6 ? "✚" : powerupSize >= 5 ? "↕️" : powerupSize >= 4 ? "↔️" : null;
         const powerupSquare = powerup ? current[0] : null;
@@ -252,8 +265,17 @@
       GameProfiles.saveGame("match-3", progress);
       resolving = false; render();
     }
-    async function activatePowerup(row, column) {
+    async function movePowerup(first, second) {
       if (resolving || moves === 0) return;
+      resolving = true; selected = null; moves -= 1; swapValues(first, second);
+      anim[`${first.row},${first.column}`] = { type: "swap", vars: { "--dx": `${(second.column - first.column) * 110}%`, "--dy": `${(second.row - first.row) * 110}%` } };
+      anim[`${second.row},${second.column}`] = { type: "swap", vars: { "--dx": `${(first.column - second.column) * 110}%`, "--dy": `${(first.row - second.row) * 110}%` } };
+      render(); await wait(190);
+      const spot = isPowerup(board[second.row][second.column]) ? second : first;
+      resolving = false; await activatePowerup(spot.row, spot.column, true);
+    }
+    async function activatePowerup(row, column, force) {
+      if (resolving || (moves === 0 && !force)) return;
       const powerup = board[row][column];
       resolving = true;
       board[row][column] = "";
