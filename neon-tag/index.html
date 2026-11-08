@@ -153,6 +153,40 @@
       line-height: 1.55;
     }
 
+    .touchpads {
+      display: none;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    .touchpad {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      padding: 8px;
+      border: 2px solid var(--pad-color, var(--cyan));
+    }
+
+    .touchpad span { align-self: center; color: var(--pad-color, var(--cyan)); font: 700 0.8rem "DM Mono", monospace; }
+
+    .touchpad button {
+      width: 56px;
+      min-height: 56px;
+      padding: 0;
+      font-size: 1.3rem;
+      touch-action: none;
+      background: var(--pad-color, var(--lime));
+    }
+
+    @media (pointer: coarse) {
+      .touchpads { display: grid; }
+      canvas { width: auto; max-width: 100%; max-height: 58vh; margin: 0 auto; touch-action: none; }
+    }
+
     @media (max-width: 560px) {
       main { padding: 19px 0 28px; }
       header, .bottom-bar { flex-direction: column; }
@@ -173,6 +207,8 @@
     </div>
 
     <canvas id="game" width="840" height="500" aria-label="Neon Tag. Two to four players use shared keyboard controls to avoid being IT."></canvas>
+
+    <div class="touchpads" id="touchpads"></div>
 
     <div class="bottom-bar">
       <p id="controls">Choose 2–4 players. Run, jump across platforms, and spend the least time as IT to win.</p>
@@ -408,8 +444,33 @@
       awaitingNextRound = false;
       eliminatedPlayerIndex = null;
       continueRoundButton.hidden = true;
+      buildTouchPads();
       startRound();
       controlsElement.textContent = players.map((player, index) => `P${index + 1}: ${player.label}`).join(" · ") + ". Pick up S for speed, J for high jumps, or O for a tag shield. Be IT when the round ends and you are out!";
+    }
+
+    function buildTouchPads() {
+      const box = document.querySelector("#touchpads");
+      box.replaceChildren();
+      players.forEach((player, index) => {
+        const pad = document.createElement("div");
+        pad.className = "touchpad";
+        pad.style.setProperty("--pad-color", player.color);
+        const label = document.createElement("span");
+        label.textContent = `P${index + 1}`;
+        pad.append(label);
+        [["◀", player.controls.left], ["▲", player.controls.jump], ["▶", player.controls.right]].forEach(([glyph, key]) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.textContent = glyph;
+          button.setAttribute("aria-label", `P${index + 1} ${glyph}`);
+          button.addEventListener("pointerdown", (event) => { event.preventDefault(); keys.add(key); });
+          ["pointerup", "pointercancel", "pointerleave"].forEach((name) => button.addEventListener(name, () => keys.delete(key)));
+          button.addEventListener("contextmenu", (event) => event.preventDefault());
+          pad.append(button);
+        });
+        box.append(pad);
+      });
     }
 
     function updateStatus() {
@@ -731,7 +792,10 @@
     playerColorInputs.forEach((input, index) => {
       input.addEventListener("input", () => {
         playerTemplates[index].color = input.value;
-        if (players[index]) players[index].color = input.value;
+        if (players[index]) {
+          players[index].color = input.value;
+          document.querySelectorAll(".touchpad")[index]?.style.setProperty("--pad-color", input.value);
+        }
       });
     });
 

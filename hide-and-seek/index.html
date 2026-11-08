@@ -9,7 +9,7 @@ button{border:0;border-radius:.5rem;background:#e9d5ff;color:#3b0764;cursor:poin
 </style></head>
 <body><main><a href="../">← All games</a><h1>🙈 Hide and Seek</h1>
 <p>A maze of 20 rooms, a new layout every round. <strong>Seek:</strong> find every hider before time runs out. Walk up to a hiding spot in a room and search it. <strong>Hide:</strong> sneak into a hiding spot and stay out of sight until time is up. The seeker walks the maze checking spots one by one, and checked spots show a ✓, so slip into one that's already been searched!</p>
-<p><strong>3D view:</strong> W/S or ↑/↓ walk, A/D or ←/→ turn, or click the game and move the mouse to look around (Esc to release). <strong>Top view:</strong> WASD / arrows move. <strong>V</strong> switches view · <strong>E / Space</strong> search or hide · <strong>1</strong> Seek · <strong>2</strong> Hide</p>
+<p><strong>3D view:</strong> W/S or ↑/↓ walk, A/D or ←/→ turn, click the game and move the mouse to look around (Esc to release), or drag on the 3D view on a touchscreen. <strong>Top view:</strong> WASD / arrows move. <strong>V</strong> switches view · <strong>E / Space</strong> search or hide · <strong>1</strong> Seek · <strong>2</strong> Hide</p>
 <div class="modes"><button id="mSeek" type="button">🔍 Play Seek (1)</button><button id="mHide" type="button">🫣 Play Hide (2)</button><button id="mView" type="button">🗺️ Top view (V)</button></div>
 <canvas id="g" width="640" height="480" aria-label="Hide and Seek game"></canvas>
 <div class="pad"><div class="dpad"><span></span><button data-k="up" type="button">▲</button><span></span><button data-k="left" type="button">◀</button><span></span><button data-k="right" type="button">▶</button><span></span><button data-k="down" type="button">▼</button><span></span></div><button class="a" data-k="act" type="button">E</button></div>
@@ -87,7 +87,8 @@ function toggle3d(){v3=!v3;document.querySelector("#mView").textContent=v3?"🗺
 addEventListener("keydown",e=>{if(e.code==="KeyV"){toggle3d();return}if(e.code==="Digit1"){kind="seek";mode="title";act();return}if(e.code==="Digit2"){kind="hide";mode="title";act();return}const k=KEYS[e.code];if(!k)return;e.preventDefault();held[k]=true;if(!e.repeat&&k==="act")act()});
 addEventListener("keyup",e=>{const k=KEYS[e.code];if(k)held[k]=false});
 addEventListener("blur",()=>{held={}});
-C.addEventListener("click",()=>{if(v3&&mode==="play"&&C.requestPointerLock)C.requestPointerLock()});
+let lastTouch=false,dragX=null;C.addEventListener("click",()=>{if(!lastTouch&&v3&&mode==="play"&&C.requestPointerLock)C.requestPointerLock()});
+C.addEventListener("pointerdown",e=>{lastTouch=e.pointerType!=="mouse";if(lastTouch){dragX=e.clientX;C.setPointerCapture(e.pointerId)}});C.addEventListener("pointermove",e=>{if(dragX!==null&&e.pointerType!=="mouse"){if(v3&&mode==="play")p.a+=(e.clientX-dragX)*.008;dragX=e.clientX}});["pointerup","pointercancel"].forEach(n=>C.addEventListener(n,()=>{dragX=null}));
 addEventListener("mousemove",e=>{if(document.pointerLockElement===C&&v3&&mode==="play")p.a+=e.movementX*.003});
 document.querySelectorAll("[data-k]").forEach(b=>{const k=b.dataset.k;b.addEventListener("pointerdown",e=>{e.preventDefault();held[k]=true;if(k==="act")act()});["pointerup","pointerleave","pointercancel"].forEach(ev=>b.addEventListener(ev,()=>{held[k]=false}))});
 document.querySelector("#mView").onclick=toggle3d;
@@ -155,9 +156,9 @@ function draw(){
   text(kind==="seek"?`SEEK · Lv ${level} · Found ${found}/${total}`:`HIDE · Lv ${level}`,10,24,18,"#fff");
   text(`⏱ ${Math.max(0,Math.ceil(time/60))}s`,W/2,24,20,time<600?"#f87171":"#fde047","center");text(`SCORE ${score}  BEST ${hi}`,W-10,24,16,"#fde047","right");
   if(msgT>0)text(msg,W/2,H-48,20,"#fff","center")}
- if(mode==="title"){x.fillStyle="rgb(2 6 23 / 65%)";x.fillRect(0,0,W,H);text("HIDE AND SEEK",W/2,170,52,"#e9d5ff","center");text("Press 1 to Seek  ·  Press 2 to Hide",W/2,225,24,"#fde047","center");if(Math.floor(t/30)%2)text("or use the buttons above",W/2,275,20,"#fff","center")}
- if(mode==="won"){x.fillStyle="rgb(2 6 23 / 55%)";x.fillRect(0,H/2-90,W,180);text(kind==="seek"?"All found!":"You win!",W/2,H/2-30,48,"#4ade80","center");text(msg||"",W/2,H/2+5,20,"#fff","center");if(Math.floor(t/30)%2)text("Press E for the next level",W/2,H/2+50,22,"#fff","center")}
- if(mode==="lost"){x.fillStyle="rgb(2 6 23 / 55%)";x.fillRect(0,H/2-90,W,180);text(kind==="seek"?"Time's up!":"Caught!",W/2,H/2-30,48,"#f87171","center");text(msg,W/2,H/2+5,20,"#fff","center");text(`Score ${score}`,W/2,H/2+36,20,"#fde047","center");if(Math.floor(t/30)%2)text("Press E to try again",W/2,H/2+66,22,"#fff","center")}
+ if(mode==="title"){x.fillStyle="rgb(2 6 23 / 65%)";x.fillRect(0,0,W,H);text("HIDE AND SEEK",W/2,170,52,"#e9d5ff","center");text("Press 1 / 2 or tap a mode",W/2,225,24,"#fde047","center");if(Math.floor(t/30)%2)text("or use the buttons above",W/2,275,20,"#fff","center")}
+ if(mode==="won"){x.fillStyle="rgb(2 6 23 / 55%)";x.fillRect(0,H/2-90,W,180);text(kind==="seek"?"All found!":"You win!",W/2,H/2-30,48,"#4ade80","center");text(msg||"",W/2,H/2+5,20,"#fff","center");if(Math.floor(t/30)%2)text("Press / tap E for the next level",W/2,H/2+50,22,"#fff","center")}
+ if(mode==="lost"){x.fillStyle="rgb(2 6 23 / 55%)";x.fillRect(0,H/2-90,W,180);text(kind==="seek"?"Time's up!":"Caught!",W/2,H/2-30,48,"#f87171","center");text(msg,W/2,H/2+5,20,"#fff","center");text(`Score ${score}`,W/2,H/2+36,20,"#fde047","center");if(Math.floor(t/30)%2)text("Press / tap E to try again",W/2,H/2+66,22,"#fff","center")}
 }
 function frame(){update();draw();requestAnimationFrame(frame)}
 document.querySelector("#mView").textContent="🗺️ Top view (V)";

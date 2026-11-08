@@ -2,14 +2,14 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tank Duel | My Online Games</title><style>
 :root{color-scheme:dark;font-family:Arial,sans-serif;background:#1a2e05;color:#ecfccb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:linear-gradient(145deg,#1a2e05,#365314)}
 main{width:min(100%,42rem);padding:1.5rem;border:.2rem solid #a3e635;border-radius:1.25rem;background:rgb(26 46 5 / 92%);text-align:center}a{color:#bef264}h1{margin:.6rem 0;color:#fef08a}
-canvas{display:block;width:100%;height:auto;margin:1rem 0;border:.2rem solid #84cc16;border-radius:.6rem;background:#4d7c0f}button{padding:.65rem 1rem;border:0;border-radius:.5rem;background:#fef08a;color:#1a2e05;cursor:pointer;font:inherit;font-weight:bold}#status{min-height:1.5rem;color:#fef08a;font-weight:bold}.p1{color:#93c5fd}.p2{color:#fca5a5}
+canvas{display:block;width:100%;height:auto;margin:1rem 0;border:.2rem solid #84cc16;border-radius:.6rem;background:#4d7c0f}button{padding:.65rem 1rem;border:0;border-radius:.5rem;background:#fef08a;color:#1a2e05;cursor:pointer;font:inherit;font-weight:bold}#status{min-height:1.5rem;color:#fef08a;font-weight:bold}#touch{display:none;flex-wrap:wrap;justify-content:center;gap:.6rem;margin:.5rem 0}#touch .tp{display:grid;grid-template-columns:repeat(4,3.2rem);gap:.25rem;padding:.3rem;border-radius:.6rem;background:rgb(0 0 0 / 25%)}#touch .tp b{grid-column:1/-1;font-size:.85rem}#touch button{padding:0;height:3.2rem;font-size:1.2rem;touch-action:none;-webkit-user-select:none;user-select:none}#touch button.on{background:#a3e635}@media (pointer:coarse){#touch{display:flex}}.p1{color:#93c5fd}.p2{color:#fca5a5}
 </style></head>
 <body><main><a href="../">← All games</a><h1>🪖 Tank Duel</h1><p>Inspired by the Atari classic Combat. Drive around the walls and shoot your rival; bullets bounce! Each tank has 5 lives: a bullet costs 1, a bomb 2 and a fireball 3. Last tank standing wins. Use <strong>Edit board</strong> to draw your own walls. You can also play on 2 devices: one hosts, the other joins and uses the Player 1 keys.</p>
 <p><span class="p1">P1 (blue): A/D turn, W/S drive, Space fire, E bomb, R fireball, Q laser</span><br><span class="p2">P2 (red): ←/→ turn, ↑/↓ drive, Enter fire, / bomb, . fireball, , laser (or the robot)</span></p>
 <p>You get 3 fireballs a match. Bombs explode after 2 seconds (3 out at a time). The laser is an instant beam that smashes every wall in its path and does 2 damage to a tank it hits (1.5 second recharge).</p>
 <p><label>Opponent <select id="opp"><option value="two">2 players</option><option value="bot">Face the robot</option></select></label></p>
 <p><span class="p1">P1: <strong id="s1"></strong></span> · <span class="p2">P2: <strong id="s2"></strong></span></p>
-<canvas id="game" width="600" height="400" aria-label="Tank Duel game"></canvas><button id="start" type="button">New match</button> <button id="edit" type="button">Edit board</button> <button id="clear" type="button">Clear board</button> <button id="def" type="button">Default board</button><p id="status" aria-live="polite">Fight!</p><div id="online"></div></main><script src="../online.js"></script>
+<canvas id="game" width="600" height="400" aria-label="Tank Duel game"></canvas><div id="touch" aria-label="Touch controls"></div><button id="start" type="button">New match</button> <button id="edit" type="button">Edit board</button> <button id="clear" type="button">Clear board</button> <button id="def" type="button">Default board</button><p id="status" aria-live="polite">Fight!</p><div id="online"></div></main><script src="../online.js"></script>
 <script>
 const canvas=document.querySelector("#game"),oppEl=document.querySelector("#opp"),ctx=canvas.getContext("2d"),statusEl=document.querySelector("#status"),W=600,H=400,R=14;
 const walls=[];let cells,editing=false,paint=null;const CW=20,CX=30,CY=20,HP=5,BALLS=3;
@@ -88,5 +88,14 @@ document.addEventListener("keydown",e=>{if(["Space","Enter","ArrowUp","ArrowDown
 document.addEventListener("keyup",e=>{keys[e.code]=false});window.addEventListener("blur",()=>Object.keys(keys).forEach(k=>keys[k]=false));
 oppEl.addEventListener("change",()=>{oppEl.blur();newMatch()});
 document.querySelector("#start").addEventListener("click",e=>{newMatch();e.target.blur()});
+const touchEl=document.querySelector("#touch");
+[["P1 (blue)","p1"],["P2 (red)","p2"]].forEach(([label,cls],p)=>{const pad=document.createElement("div");pad.className="tp";pad.dataset.p=p;pad.innerHTML=`<b class="${cls}">${label}</b>`;
+[["l","◀"],["f","▲"],["b","▼"],["r","▶"],["s","🔫"],["bm","💣"],["fb","🔥"],["wr","⚡"]].forEach(([k,ic])=>{const b=document.createElement("button");b.type="button";b.textContent=ic;b.setAttribute("aria-label",k);
+const code=CTRL[p][k];let rel=0;
+b.addEventListener("pointerdown",e=>{e.preventDefault();clearTimeout(rel);keys[code]=true;b.classList.add("on");try{b.setPointerCapture(e.pointerId)}catch{}});
+["pointerup","pointercancel","lostpointercapture"].forEach(n=>b.addEventListener(n,()=>{b.classList.remove("on");clearTimeout(rel);rel=setTimeout(()=>{keys[code]=false},60)}));
+b.addEventListener("contextmenu",e=>e.preventDefault());pad.appendChild(b)});touchEl.appendChild(pad)});
+function syncTouch(){touchEl.children[1].style.display=oppEl.value==="bot"||net.role?"none":""}
+oppEl.addEventListener("change",syncTouch);setInterval(syncTouch,500);syncTouch();
 loadCells();newMatch();loop();
 </script></body></html>

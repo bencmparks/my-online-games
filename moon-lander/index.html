@@ -71,6 +71,8 @@ addEventListener("keydown",e=>{const k=KEYS[e.code];if(!k)return;e.preventDefaul
 addEventListener("keyup",e=>{const k=KEYS[e.code];if(k)held[k]=false});
 addEventListener("blur",()=>{held={}});
 document.querySelectorAll("[data-k]").forEach(b=>{const k=b.dataset.k;b.addEventListener("pointerdown",e=>{e.preventDefault();held[k]=true;press(k)});["pointerup","pointerleave","pointercancel"].forEach(ev=>b.addEventListener(ev,()=>{held[k]=false}))});
+C.addEventListener("pointerdown",e=>{e.preventDefault();if(mode!=="play")press("act")});
+document.querySelectorAll(".pad").forEach(p=>p.addEventListener("contextmenu",e=>e.preventDefault()));
 function text(s,a,b,size=18,color="#fff",align="left"){x.font=`bold ${size}px Arial,sans-serif`;x.fillStyle=color;x.textAlign=align;x.lineWidth=4;x.strokeStyle="#000";x.strokeText(s,a,b);x.fillText(s,a,b)}
 function drawLander(){
  x.save();x.translate(L.x,L.y);x.rotate(L.a);
@@ -95,7 +97,7 @@ function draw(){
   text(`FUEL ${Math.max(0,Math.round(fuel/10))}%`,14,54,16,fuel<150?"#f87171":"#4ade80");
   text(`Speed ↓ ${L.vy.toFixed(1)}`,14,76,16,ok?"#4ade80":"#f87171");text(`Drift → ${L.vx.toFixed(1)}`,14,98,16,Math.abs(L.vx)<vxMax()*.6?"#4ade80":"#f87171");
   text(`Tilt ${Math.round(L.a*57.3)}°`,14,120,16,Math.abs(L.a)<aMax()*.7?"#4ade80":"#f87171")}
- if(mode==="title"){x.fillStyle="rgb(2 6 23 / 60%)";x.fillRect(0,0,W,H);text("MOON LANDER",W/2,170,56,"#e2e8f0","center");text("Land softly on the green pads",W/2,215,22,"#a7f3d0","center");if(Math.floor(t/30)%2)text("Press E or START",W/2,290,24,"#fff","center")}
+ if(mode==="title"){x.fillStyle="rgb(2 6 23 / 60%)";x.fillRect(0,0,W,H);text("MOON LANDER",W/2,170,56,"#e2e8f0","center");text("Land softly on the green pads",W/2,215,22,"#a7f3d0","center");if(Math.floor(t/30)%2)text("Press E, tap or START",W/2,290,24,"#fff","center")}
  if(mode==="landed"){text("LANDED!",W/2,170,50,"#4ade80","center");text(msg,W/2,215,24,"#fde047","center");if(Math.floor(t/30)%2)text("Press E for the next level",W/2,270,22,"#fff","center")}
  if(mode==="over"){text("CRASH!",W/2,170,54,"#f87171","center");text(msg,W/2,215,24,"#fff","center");text(`Final score ${score}`,W/2,255,22,"#fde047","center");if(Math.floor(t/30)%2)text("Press E to try again",W/2,310,22,"#fff","center")}
 }

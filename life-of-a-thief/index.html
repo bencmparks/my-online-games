@@ -218,6 +218,6 @@ addEventListener("keyup",e=>{if(e.target.tagName!=="INPUT"&&K[e.code])release(K[
 C.addEventListener("pointerdown",()=>{if(state==="won")restart()});
 function goTo(){const n=Math.min(TOTAL,Math.max(1,Math.floor(+GO.value)||1));GO.blur();if(n-1>far){GO.value=lvl+1;say(`Level ${n} is locked. Beat level ${far+1} first!`,2.5);return}state="play";load(n-1)}
 document.querySelector("#goBtn").onclick=goTo;
-document.querySelectorAll("[data-k]").forEach(b=>{const k=b.dataset.k;b.onpointerdown=e=>{e.preventDefault();press(k)};b.onpointerup=b.onpointerleave=b.onpointercancel=()=>release(k)});
+document.querySelectorAll("[data-k]").forEach(b=>{const k=b.dataset.k;b.onpointerdown=e=>{e.preventDefault();press(k)};b.onpointerup=b.onpointerleave=b.onpointercancel=()=>release(k);b.oncontextmenu=e=>e.preventDefault()});
 load(lvl);say("Jump to the gem, then reach the exit.",2.5);requestAnimationFrame(frame);
 </script></body></html>

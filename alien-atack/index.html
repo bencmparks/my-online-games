@@ -116,6 +116,13 @@
 
     button:hover { background: var(--cream); }
 
+    .pad { display: none; }
+    .pad button { min-width: 72px; min-height: 64px; font-size: 1.6rem; touch-action: none; -webkit-user-select: none; user-select: none; }
+    @media (pointer: coarse) {
+      .pad { display: flex; justify-content: space-between; gap: 12px; margin-top: 14px; }
+      .pad .fire { flex: 1; }
+      .desk { display: none; }
+    }
     @media (max-width: 560px) {
       main { padding: 19px 0 28px; }
       header, .bottom-bar { align-items: flex-start; flex-direction: column; }
@@ -137,8 +144,14 @@
 
     <canvas id="game" width="800" height="500" aria-label="Alien Atack. Use arrow keys or A and D to move, and Space to fire."></canvas>
 
+    <div class="pad" aria-label="Touch controls">
+      <button type="button" data-key="arrowleft">◀</button>
+      <button type="button" class="fire" data-key=" ">FIRE</button>
+      <button type="button" data-key="arrowright">▶</button>
+    </div>
+
     <div class="bottom-bar">
-      <p>Move with <strong>arrow keys</strong> or <strong>A / D</strong>. Hold <strong>Space</strong> to fire your ship’s blaster at the alien spaceships.</p>
+      <p class="desk">Move with <strong>arrow keys</strong> or <strong>A / D</strong>. Hold <strong>Space</strong> to fire your ship’s blaster at the alien spaceships.</p>
       <button id="restart" type="button">Restart game</button>
     </div>
   </main>
@@ -338,6 +351,13 @@
     });
     window.addEventListener("keyup", (event) => keys.delete(event.key.toLowerCase()));
     restartButton.addEventListener("click", restartGame);
+    document.querySelectorAll(".pad button").forEach((button) => {
+      const key = button.dataset.key;
+      button.addEventListener("pointerdown", (event) => { event.preventDefault(); try { button.setPointerCapture(event.pointerId); } catch (error) {} keys.add(key); });
+      ["pointerup", "pointercancel", "lostpointercapture"].forEach((name) => button.addEventListener(name, () => keys.delete(key)));
+      button.addEventListener("contextmenu", (event) => event.preventDefault());
+    });
+    canvas.addEventListener("pointerdown", () => { if (gameOver) restartGame(); });
 
     restartGame();
     requestAnimationFrame(loop);

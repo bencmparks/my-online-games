@@ -17,7 +17,7 @@
     a:hover { color: var(--gold); }
     .scoreboard { display: flex; justify-content: center; gap: 14px; margin-bottom: 14px; font-size: 0.82rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
     .score { display: inline-block; min-width: 52px; padding: 8px 10px; color: var(--night); background: var(--cream); font-size: 1.1rem; text-align: center; }
-    canvas { display: block; width: 100%; border: 5px solid var(--cream); background: #292251; box-shadow: 10px 10px 0 var(--purple), 0 0 28px rgba(101, 232, 239, 0.45); cursor: none; touch-action: none; }
+    canvas { display: block; width: 100%; border: 5px solid var(--cream); background: #292251; box-shadow: 10px 10px 0 var(--purple), 0 0 28px rgba(101, 232, 239, 0.45); cursor: none; touch-action: none; -webkit-user-select: none; user-select: none; }
     .bottom-bar { margin-top: 20px; }
     p { max-width: 610px; margin: 0; color: rgba(255, 249, 233, 0.9); font-size: 0.9rem; line-height: 1.5; }
     button { min-height: 42px; padding: 0 16px; border: 1px solid var(--cream); color: var(--night); background: var(--gold); cursor: pointer; font-weight: 800; }
@@ -231,12 +231,13 @@
       requestAnimationFrame(loop);
     }
 
-    canvas.addEventListener("pointermove", (event) => {
+    function movePaddle(event) {
       const bounds = canvas.getBoundingClientRect();
       const x = (event.clientX - bounds.left) * canvas.width / bounds.width;
       paddle.x = Math.max(12, Math.min(canvas.width - paddle.width - 12, x - paddle.width / 2));
-    });
-    canvas.addEventListener("pointerdown", launch);
+    }
+    canvas.addEventListener("pointermove", movePaddle);
+    canvas.addEventListener("pointerdown", (event) => { event.preventDefault(); movePaddle(event); launch(); });
     window.addEventListener("keydown", (event) => {
       const key = event.key.toLowerCase();
       if (["arrowleft", "arrowright", " "].includes(key)) event.preventDefault();

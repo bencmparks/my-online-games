@@ -3,7 +3,8 @@
 :root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#78350f,#0b1020 70%)}
 main{width:min(100%,52rem);padding:1.25rem;border:.2rem solid #fcd34d;border-radius:1.25rem;background:rgb(8 12 30 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.5rem 0;color:#fde68a;font-size:1.6rem}
 canvas{display:block;width:100%;height:auto;margin:.8rem auto;border:.2rem solid #475569;border-radius:.4rem;touch-action:none}
-.row{display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap}.row button{padding:.7rem 1.4rem;border:0;border-radius:.6rem;background:#b45309;color:#fff;font-weight:700;font-size:1rem;cursor:pointer}
+.row{display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap}.row button{padding:.7rem 1.4rem;border:0;border-radius:.6rem;background:#b45309;color:#fff;font-weight:700;font-size:1rem;cursor:pointer;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+@media (pointer:coarse){.row button{min-height:4.5rem;flex:1 1 0}#go{touch-action:manipulation}}
 </style></head>
 <body><main><a href="../">← All games</a><h1>🏇 Horse Derby</h1>
 <p>Race 3 CPU horses to the finish! <strong>Alternate</strong> the <strong>← / →</strong> keys (or <strong>A / D</strong>, or the buttons) to gallop — pressing the same side twice slows you down. Wait for the countdown!</p>
@@ -43,6 +44,6 @@ function draw(){
 h=names.map(n=>({n,x:20,v:0,fin:0}));upd();
 function loop(ts){const dt=Math.min(.05,(ts-last)/1000);last=ts;step(dt);draw();requestAnimationFrame(loop)}
 addEventListener("keydown",e=>{if(e.repeat)return;if(e.code==="ArrowLeft"||e.code==="KeyA"){e.preventDefault();press(1)}if(e.code==="ArrowRight"||e.code==="KeyD"){e.preventDefault();press(2)}if(e.code==="Space"||e.code==="Enter"){if(st==="idle"||st==="done"){e.preventDefault();start()}}});
-$("#L").onpointerdown=()=>press(1);$("#R").onpointerdown=()=>press(2);$("#go").onclick=start;
+$("#L").onpointerdown=e=>{e.preventDefault();press(1)};$("#R").onpointerdown=e=>{e.preventDefault();press(2)};$("#go").onclick=start;
 requestAnimationFrame(loop);
 </script></body></html>

@@ -3,14 +3,14 @@
 :root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#1d4ed8,#0b1020)}
 main{width:min(100%,40rem);padding:1.5rem;border:.2rem solid #93c5fd;border-radius:1.25rem;background:rgb(8 12 30 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.6rem 0;color:#93c5fd;letter-spacing:.05em;font-size:1.6rem}
 canvas{display:block;width:100%;max-width:30rem;height:auto;margin:1rem auto;border:.2rem solid #475569;border-radius:.4rem;background:#f8fafc;touch-action:none}
-.pad{display:flex;justify-content:center;gap:1.5rem;user-select:none;-webkit-user-select:none}
+.pad{display:flex;justify-content:center;gap:.8rem;user-select:none;-webkit-user-select:none}
 button{border:0;border-radius:.5rem;background:#93c5fd;color:#1e293b;cursor:pointer;font:inherit;font-weight:bold;touch-action:none;width:7rem;height:4rem;font-size:1.4rem}
 </style></head>
 <body><main><a href="../">← All games</a><h1>⛷️ Ski Rush</h1>
 <p>Race down the mountain! Dodge trees and rocks, grab coins, and ski between the red gates for bonus points. You go faster the further you ski. Crash three times and the run is over.</p>
 <p><strong>←/→</strong> or <strong>A/D</strong> steer · <strong>↓</strong> tuck for speed · drag on the game or use the buttons · <strong>E / Space</strong> start</p>
 <canvas id="g" width="480" height="640" aria-label="Ski Rush game"></canvas>
-<div class="pad"><button data-k="left" type="button">◀</button><button data-k="right" type="button">▶</button></div>
+<div class="pad"><button data-k="left" type="button">◀</button><button data-k="down" type="button">▼</button><button data-k="right" type="button">▶</button></div>
 </main>
 <script>
 const C=document.querySelector("#g"),x=C.getContext("2d"),W=480,H=640,SY=170;

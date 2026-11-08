@@ -5,7 +5,7 @@ main{width:min(100%,52rem);padding:1.5rem;border:.2rem solid #fdba74;border-radi
 canvas{display:block;width:100%;max-width:50rem;height:auto;margin:1rem auto;border:.2rem solid #475569;border-radius:.4rem;background:#bae6fd;touch-action:none}
 </style></head>
 <body><main><a href="../">← All games</a><h1>💥 Cannon Blast</h1>
-<p>Aim the cannon and smash the crate towers to pop every grumpy green monster and hit every bullseye! 💣 TNT blows up and chains, 🌀 portals teleport your ball, and yellow pads bounce things. Pick a cannonball (keys 1–5): Blast, Heavy (smashes, no blast), Bouncy (bounces then explodes), Splitter (splits at the top of its arc) or Mega (huge blast, costs 2 shots). You only get a few shots per level — save shots for more stars (★★★).</p>
+<p>Aim the cannon and smash the crate towers to pop every grumpy green monster and hit every bullseye! 💣 TNT blows up and chains, 🌀 portals teleport your ball, and yellow pads bounce things. Pick a cannonball (tap the buttons below or keys 1–5): Blast, Heavy (smashes, no blast), Bouncy (bounces then explodes), Splitter (splits at the top of its arc) or Mega (huge blast, costs 2 shots). You only get a few shots per level — save shots for more stars (★★★).</p>
 <p><strong>Drag</strong> on the game to aim (further = more power) and let go to fire · <strong>↑/↓</strong> angle · <strong>←/→</strong> power · <strong>Space</strong> fire · <strong>R</strong> restart · <strong>Esc</strong> menu</p>
 <canvas id="g" width="800" height="480" aria-label="Cannon Blast game"></canvas>
 </main>
@@ -209,7 +209,7 @@ function fire(a,p){
  bodies.push(ball);shots-=ty.cost;phase="sim";simT=0;calm=0;winT=0;puff(m[0],m[1],"#fde68a",10)}
 function aimAt(p){const dx=p.x-PX,dy=PY-p.y;ang=Math.max(5,Math.min(80,Math.atan2(dy,Math.max(dx,1))*180/Math.PI));pow=Math.max(.15,Math.min(1,Math.hypot(dx,dy)/200))}
 function pos(e){const b=C.getBoundingClientRect();return{x:(e.clientX-b.left)/b.width*W,y:(e.clientY-b.top)/b.height*H}}
-const hit=(b,p)=>p.x>=b.x&&p.x<=b.x+b.w&&p.y>=b.y&&p.y<=b.y+b.h;
+let hitPad=0;const hit=(b,p)=>p.x>=b.x&&p.x<=b.x+b.w&&p.y>=b.y-hitPad&&p.y<=b.y+b.h+hitPad;
 let page=0;
 function unlocked(i){return i===0||stars[i-1]>0}
 function tiles(){const r=[];for(let j=0;j<10;j+=1){const i=page*10+j;if(i<LN)r.push({x:60+(j%5)*140,y:180+Math.floor(j/5)*120,w:120,h:105,i})}return r}
@@ -220,8 +220,8 @@ function buttons(){
  if(phase==="aim"||phase==="sim")return[...BT.map((t,k)=>({x:20+k*104,y:440,w:98,h:34,s:`${t.k} ${t.n}`,bt:k,f:()=>{if(phase==="aim")btype=k}})),{x:612,y:8,w:90,h:30,s:"Restart",f:()=>load(lvl)},{x:708,y:8,w:84,h:30,s:"Menu",f:()=>{phase="menu"}}];
  return[]}
 C.addEventListener("pointerdown",e=>{
- e.preventDefault();const p=pos(e);
- for(const b of buttons())if(hit(b,p)){b.f();return}
+ e.preventDefault();const p=pos(e);hitPad=e.pointerType==="touch"?Math.max(0,(44-C.getBoundingClientRect().height*34/H)/2*H/C.getBoundingClientRect().height):0;
+ for(const b of buttons())if(hit(b,p)){hitPad=0;b.f();return}hitPad=0
  if(phase==="menu"){for(const b of pager())if(hit(b,p)){b.f();return}for(const t of tiles())if(hit(t,p)&&unlocked(t.i))load(t.i);return}
  if(phase==="aim"){drag=p;aimAt(p);C.setPointerCapture(e.pointerId)}});
 C.addEventListener("pointermove",e=>{mouse=pos(e);if(drag&&phase==="aim"){drag=mouse;aimAt(mouse)}});

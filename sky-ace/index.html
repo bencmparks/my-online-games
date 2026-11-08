@@ -21,8 +21,8 @@
     #fly { min-height: 3rem; font-size: 1.1rem; background: #4ade80; }
     #split2p { min-height: 3rem; font-size: 1.1rem; background: #7dd3fc; }
     #splitHelp { margin: .4rem 0; font-size: .85rem; color: #cbd5e1; }
-    #touch { display: grid; grid-template-columns: repeat(3, 3.2rem) 1rem repeat(2, 5rem); gap: .35rem; justify-content: center; margin: .5rem 0; }
-    #touch button { min-height: 3rem; padding: 0; user-select: none; touch-action: none; }
+    #touch { display: grid; grid-template-columns: repeat(3, minmax(0, 3.2rem)) .5rem repeat(2, minmax(0, 5rem)); gap: .35rem; justify-content: center; margin: .5rem 0; }
+    #touch button { min-height: 3rem; padding: 0; user-select: none; -webkit-user-select: none; touch-action: none; }
     #touch .up { grid-column: 2; } #touch .left { grid-column: 1; grid-row: 2; } #touch .down { grid-column: 2; grid-row: 2; } #touch .right { grid-column: 3; grid-row: 2; }
     #touch .fire { grid-column: 5; grid-row: 1 / span 2; background: #fca5a5; } #touch .bomb { grid-column: 6; grid-row: 1 / span 2; background: #fdba74; }
     #status { min-height: 1.5rem; color: #fde68a; font-weight: bold; }
@@ -45,7 +45,7 @@
       <button class="up" data-key="up">↑</button><button class="left" data-key="left">←</button><button class="down" data-key="down">↓</button><button class="right" data-key="right">→</button>
       <button class="fire" data-key="fire">Shoot</button><button class="bomb" data-key="bomb">Missile</button>
     </div>
-    <p id="status" aria-live="polite">Pick a plane, then take off (or team up with a friend below)! Move and turn: arrows or W A S D (or a gamepad stick; A/RT shoot, B/LT missile) · Shoot: left click or Space · Missile: right click, B or X. 2 Players (split screen): P2 uses I J K L, Right Shift to shoot and Enter for missiles.</p>
+    <p id="status" aria-live="polite">Pick a plane, then take off (or team up with a friend below)! Move and turn: arrows or W A S D (or a gamepad stick; A/RT shoot, B/LT missile) · Shoot: left click, Space or the Shoot button · Missile: right click, B or X. 2 Players (split screen): P2 uses I J K L, Right Shift to shoot and Enter for missiles.</p>
     <section id="hangar">
       <h3>Choose a level</h3>
       <div id="pager"><button id="pagePrev" type="button">◀</button> <span id="pageLabel"></span> <button id="pageNext" type="button">▶</button> <button id="pageCur" type="button">Go to my level</button> <button id="ownerBtn" type="button" title="Owner code">🔑</button></div>

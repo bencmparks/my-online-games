@@ -2,10 +2,10 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pinball | My Online Games</title><style>
 :root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#0e7490,#020617 70%)}
 main{width:min(100%,32rem);padding:1.25rem;border:.2rem solid #22d3ee;box-shadow:0 0 25px #22d3ee66;border-radius:1.25rem;background:rgb(8 12 30 / 94%);text-align:center}a{color:#67e8f9}h1{margin:.5rem 0;color:#a5f3fc}
-canvas{width:100%;max-width:26rem;border-radius:.7rem;background:#020617;touch-action:none}
+canvas{-webkit-user-select:none;user-select:none;width:100%;max-width:26rem;border-radius:.7rem;background:#020617;touch-action:none}
 </style></head>
 <body><main><a href="../">← All games</a><h1>🪐 Cosmic Pinball</h1>
-<p>A one-way gate keeps the ball out of the launch lane once it is in play. Hold Space to charge the plunger, release to launch. Left/Right arrows (or Z and /) flip. On touch, tap the left or right half. 3 balls!</p>
+<p>A one-way gate keeps the ball out of the launch lane once it is in play. Hold Space to charge the plunger, release to launch. Left/Right arrows (or Z and /) flip. On touch, tap the left or right half to flip; press and hold the launch lane (bottom right) to charge the plunger and release to launch. 3 balls!</p>
 <canvas id="c" width="400" height="620"></canvas></main>
 <script>
 const cv=document.getElementById("c"),x=cv.getContext("2d");
@@ -21,8 +21,8 @@ addEventListener("keydown",e=>{if(e.code==="ArrowLeft"||e.code==="KeyZ")keys.l=t
 addEventListener("keyup",e=>{if(e.code==="ArrowLeft"||e.code==="KeyZ")keys.l=false;if(e.code==="ArrowRight"||e.code==="Slash")keys.r=false;if(e.code==="Space"&&charging){charging=false;launch()}});
 const ptr={};
 function pt(e){const r=cv.getBoundingClientRect();return[(e.clientX-r.left)/r.width*400,(e.clientY-r.top)/r.height*620]}
-cv.addEventListener("pointerdown",e=>{if(over){reset();return}const[px,py]=pt(e);if(!launched&&px>300&&py>400){launch();return}ptr[e.pointerId]=px<200?"l":"r";sync()});
-const up=e=>{delete ptr[e.pointerId];sync()};cv.addEventListener("pointerup",up);cv.addEventListener("pointercancel",up);
+cv.addEventListener("pointerdown",e=>{if(over){reset();return}const[px,py]=pt(e);if(!launched&&px>300&&py>400){charging=true;plunge=e.pointerId;try{cv.setPointerCapture(e.pointerId)}catch(_){}return}ptr[e.pointerId]=px<200?"l":"r";sync()});
+let plunge=null;const up=e=>{if(e.pointerId===plunge){plunge=null;if(charging){charging=false;launch()}return}delete ptr[e.pointerId];sync()};cv.addEventListener("pointerup",up);cv.addEventListener("pointercancel",up);
 let kl=0,kr=0;function sync(){kl=Object.values(ptr).includes("l");kr=Object.values(ptr).includes("r")}
 function flipTip(f){const ang=f.s>0?f.a:Math.PI-f.a;return[f.px+Math.cos(ang)*FLEN,f.py+Math.sin(ang)*FLEN]}
 function seg(ax,ay,bx,by,sv,e){const dx=bx-ax,dy=by-ay,l2=dx*dx+dy*dy;let u=((ball.x-ax)*dx+(ball.y-ay)*dy)/l2;u=Math.max(0,Math.min(1,u));const cx=ax+dx*u,cy=ay+dy*u;let nx=ball.x-cx,ny=ball.y-cy,d=Math.hypot(nx,ny);if(d>=8||d===0)return false;nx/=d;ny/=d;ball.x=cx+nx*8;ball.y=cy+ny*8;

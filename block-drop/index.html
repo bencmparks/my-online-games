@@ -66,8 +66,9 @@ function draw(){
   x.fillStyle="rgb(2 6 23 / 80%)";x.fillRect(BX,BY,CW*S,CH*S);
   if(mode==="title")text("BLOCK DROP",W/2,200,40,"#22d3ee","center");
   else{text("GAME OVER",W/2,190,38,"#f87171","center");text(`Score ${score}`,W/2,235,24,"#fff","center")}
-  if(Math.floor(t/30)%2)text("Press E or DROP",W/2,290,22,"#fff","center")}
+  if(Math.floor(t/30)%2)text("Press E or tap DROP",W/2,290,22,"#fff","center")}
 }
+C.addEventListener("pointerdown",()=>{if(mode!=="play")start()});
 function frame(){update();draw();requestAnimationFrame(frame)}
 frame();
 </script></body></html>

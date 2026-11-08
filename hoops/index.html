@@ -83,8 +83,8 @@ function draw(){
   x.fillStyle="rgb(2 6 23 / 62%)";x.fillRect(0,0,W,H);
   if(mode==="title")text("HOOPS",W/2,170,56,"#f97316","center");
   else{text("TIME'S UP!",W/2,150,50,"#f87171","center");text(`Score ${score}  ·  ${baskets} baskets`,W/2,200,26,"#fff","center");if(newBest)text("NEW BEST!",W/2,238,24,"#fde047","center")}
-  text("Drag back from the ball, or click to shoot",W/2,290,18,"#cbd5e1","center");
-  if(Math.floor(t/30)%2)text("Press E or click to "+(mode==="title"?"start":"play again"),W/2,350,24,"#fff","center")}
+  text("Drag back from the ball, or tap to shoot",W/2,290,18,"#cbd5e1","center");
+  if(Math.floor(t/30)%2)text("Press E or tap to "+(mode==="title"?"start":"play again"),W/2,350,24,"#fff","center")}
 }
 newBall();
 function frame(){update();draw();requestAnimationFrame(frame)}

@@ -117,6 +117,23 @@
 
     button:hover { background: var(--cream); }
 
+    .blocker-pad {
+      display: none;
+      justify-content: center;
+      gap: 14px;
+      margin-top: 14px;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    .blocker-pad button { width: 40%; max-width: 200px; min-height: 60px; font-size: 1.4rem; touch-action: none; }
+
+    @media (pointer: coarse) {
+      .blocker-pad { display: flex; }
+      canvas { -webkit-user-select: none; user-select: none; }
+    }
+
     @media (max-width: 560px) {
       main { padding: 19px 0 28px; }
       header, .bottom-bar { align-items: flex-start; flex-direction: column; }
@@ -138,8 +155,13 @@
 
     <canvas id="game" width="760" height="456" aria-label="Target Toss. Hold to charge your throw and release to launch."></canvas>
 
+    <div class="blocker-pad" aria-label="Blocker controls">
+      <button type="button" data-dir="-1" aria-label="Blocker up">▲ Block up</button>
+      <button type="button" data-dir="1" aria-label="Blocker down">▼ Block down</button>
+    </div>
+
     <div class="bottom-bar">
-      <p>The thrower aims with the pointer, then <strong>presses and holds</strong> to charge. The blocker uses <strong>W/S</strong> for Player 1 or <strong>arrow keys</strong> for Player 2.</p>
+      <p>The thrower aims with the pointer, then <strong>presses and holds</strong> to charge. The blocker uses <strong>W/S</strong> for Player 1 or <strong>arrow keys</strong> for Player 2 (on touch screens, the ▲/▼ buttons).</p>
       <button id="restart" type="button">Restart game</button>
     </div>
   </main>
@@ -156,6 +178,7 @@
     const ball = { x: 110, y: 300, dx: 0, dy: 0, radius: 13, flying: false };
     const blocker = { x: 470, y: 228, width: 24, height: 94, speed: 5.2 };
     const keys = new Set();
+    const touchBlock = new Set();
     let playerScores = [0, 0];
     let playerThrows = [0, 0];
     let currentPlayer = 0;
@@ -249,8 +272,8 @@
       const blockerIsPlayerTwo = currentPlayer === 0;
       const upPressed = blockerIsPlayerTwo ? keys.has("arrowup") : keys.has("w");
       const downPressed = blockerIsPlayerTwo ? keys.has("arrowdown") : keys.has("s");
-      if (upPressed) blocker.y -= blocker.speed;
-      if (downPressed) blocker.y += blocker.speed;
+      if (upPressed || touchBlock.has(-1)) blocker.y -= blocker.speed;
+      if (downPressed || touchBlock.has(1)) blocker.y += blocker.speed;
       blocker.y = Math.max(blocker.height / 2 + 12, Math.min(canvas.height - blocker.height / 2 - 12, blocker.y));
     }
 
@@ -413,6 +436,12 @@
     canvas.addEventListener("pointerup", releaseThrow);
     canvas.addEventListener("pointercancel", () => { charging = false; });
     restartButton.addEventListener("click", restartGame);
+    document.querySelectorAll(".blocker-pad button").forEach((button) => {
+      const dir = Number(button.dataset.dir);
+      button.addEventListener("pointerdown", (event) => { event.preventDefault(); touchBlock.add(dir); });
+      ["pointerup", "pointercancel", "pointerleave"].forEach((name) => button.addEventListener(name, () => touchBlock.delete(dir)));
+      button.addEventListener("contextmenu", (event) => event.preventDefault());
+    });
     window.addEventListener("keydown", (event) => {
       const key = event.key.toLowerCase();
       if (["arrowup", "arrowdown", "w", "s"].includes(key)) event.preventDefault();

@@ -173,10 +173,10 @@
       <span>Checkpoint</span><span class="score" id="checkpoint">L1</span>
     </div>
 
-    <canvas id="game" width="800" height="500" aria-label="Waveway Surfers. Use left and right arrows or A and D to change wave lanes, and W, up arrow, or Space to jump."></canvas>
+    <canvas id="game" width="800" height="500" aria-label="Waveway Surfers. Use left and right arrows or A and D to change wave lanes, and W, up arrow, or Space to jump. On a touchscreen, tap the left/right side or swipe to change lanes, and tap the middle or swipe up to jump."></canvas>
 
     <div class="bottom-bar">
-      <p>Use <strong>A / D</strong> or <strong>left / right arrows</strong> to switch wave lanes. Use <strong>W</strong>, <strong>Space</strong>, or <strong>up arrow</strong> to jump driftwood and dodge reef rocks. Gold T doubles your speed; pink + restores a life.</p>
+      <p>Use <strong>A / D</strong> or <strong>left / right arrows</strong> to switch wave lanes. Use <strong>W</strong>, <strong>Space</strong>, or <strong>up arrow</strong> to jump driftwood and dodge reef rocks. Touch: tap left/right sides or swipe to change lanes; tap the middle or swipe up to jump. Gold T doubles your speed; pink + restores a life.</p>
       <div>
         <select id="style-select" aria-label="Waveway Surfers style">
           <option value="classic" selected>Classic Surf</option>
@@ -855,7 +855,7 @@
         context.font = "600 18px 'Plus Jakarta Sans'";
         context.fillText(`Distance: ${Math.floor(distance)}`, canvas.width / 2, canvas.height / 2 + 30);
         context.font = "600 15px 'Plus Jakarta Sans'";
-        context.fillText(checkpointLevel > 1 ? `Press Restart surf to resume at level ${checkpointLevel}` : "Press Restart surf to ride again", canvas.width / 2, canvas.height / 2 + 60);
+        context.fillText(checkpointLevel > 1 ? `Tap Restart surf to resume at level ${checkpointLevel}` : "Tap Restart surf to ride again", canvas.width / 2, canvas.height / 2 + 60);
       }
     }
 
@@ -875,6 +875,29 @@
       if (key === "d" || key === "arrowright") switchLane(1);
       if (key === "w" || key === "arrowup" || key === " ") jump();
     });
+    let swipeStart = null;
+    canvas.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      swipeStart = { x: event.clientX, y: event.clientY };
+    });
+    canvas.addEventListener("pointerup", (event) => {
+      if (!swipeStart) return;
+      const dx = event.clientX - swipeStart.x;
+      const dy = event.clientY - swipeStart.y;
+      swipeStart = null;
+      if (Math.abs(dx) < 24 && Math.abs(dy) < 24) {
+        const rect = canvas.getBoundingClientRect();
+        const fraction = (event.clientX - rect.left) / rect.width;
+        if (fraction < 0.35) switchLane(-1);
+        else if (fraction > 0.65) switchLane(1);
+        else jump();
+      } else if (Math.abs(dy) > Math.abs(dx)) {
+        if (dy < 0) jump();
+      } else {
+        switchLane(dx < 0 ? -1 : 1);
+      }
+    });
+    canvas.addEventListener("pointercancel", () => { swipeStart = null; });
     continueLevelButton.addEventListener("click", () => {
       awaitingNextLevel = false;
       level += 1;

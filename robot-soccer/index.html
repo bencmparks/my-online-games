@@ -224,6 +224,15 @@
       background: var(--red);
     }
 
+    .touch-pads { display: none; }
+    .dpad { display: grid; grid-template-columns: repeat(3, 56px); grid-template-rows: repeat(3, 56px); gap: 4px; -webkit-user-select: none; user-select: none; }
+    .dpad button { min-height: 0; padding: 0; font-size: 1.4rem; touch-action: none; -webkit-user-select: none; user-select: none; }
+    .dpad button.on { background: var(--gold); }
+    @media (pointer: coarse) {
+      .touch-pads { display: flex; justify-content: space-between; margin-top: 14px; }
+      .touch-pads.single { justify-content: center; }
+      .touch-pads.single .dpad[data-p="2"] { display: none; }
+    }
     @media (max-width: 560px) {
       .game { padding: 19px 0 28px; }
       header, .bottom-bar { align-items: flex-start; flex-direction: column; }
@@ -245,6 +254,8 @@
     </div>
 
     <canvas id="pitch" width="760" height="456" aria-label="Robot soccer game. Use arrow keys or WASD to play."></canvas>
+
+    <div class="touch-pads single" id="touch-pads" aria-label="Touch controls"></div>
 
     <div class="bottom-bar">
       <p class="instructions" id="instructions">Move with <strong>arrow keys</strong> or <strong>WASD</strong>. First to 5 goals wins.</p>
@@ -740,6 +751,23 @@
       keys.add(key);
     });
     window.addEventListener("keyup", (event) => keys.delete(event.key.toLowerCase()));
+    const touchPads = document.querySelector("#touch-pads");
+    [["1", ["w", "a", "s", "d"]], ["2", ["arrowup", "arrowleft", "arrowdown", "arrowright"]]].forEach(([id, [up, left, down, right]]) => {
+      const pad = document.createElement("div");
+      pad.className = "dpad";
+      pad.dataset.p = id;
+      [[up, "▲", "1 / 2"], [left, "◀", "2 / 1"], [down, "▼", "3 / 2"], [right, "▶", "2 / 3"]].forEach(([key, icon, area]) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = icon;
+        button.style.gridArea = area;
+        button.addEventListener("pointerdown", (event) => { event.preventDefault(); try { button.setPointerCapture(event.pointerId); } catch (error) {} keys.add(key); button.classList.add("on"); });
+        ["pointerup", "pointercancel", "lostpointercapture"].forEach((name) => button.addEventListener(name, () => { keys.delete(key); button.classList.remove("on"); }));
+        button.addEventListener("contextmenu", (event) => event.preventDefault());
+        pad.appendChild(button);
+      });
+      touchPads.appendChild(pad);
+    });
     restartButton.addEventListener("click", resetMatch);
     modeToggleButton.addEventListener("click", toggleTwoPlayerMode);
     robotSkillSelect.addEventListener("change", updateRobotSkill);
@@ -771,6 +799,7 @@
       opponentHairLabel.textContent = twoPlayerMode ? "Player 2" : "Robot";
       modeToggleButton.textContent = twoPlayerMode ? "2 players: on" : "2 players: off";
       robotSkillSelect.disabled = twoPlayerMode;
+      touchPads.classList.toggle("single", !twoPlayerMode);
       instructions.innerHTML = twoPlayerMode
         ? "<strong>Player 1:</strong> WASD &nbsp; <strong>Player 2:</strong> arrow keys. First to 5 wins."
         : "Move with <strong>arrow keys</strong> or <strong>WASD</strong>. First to 5 goals wins.";

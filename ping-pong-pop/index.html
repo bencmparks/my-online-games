@@ -151,8 +151,8 @@
       pinkLabel.style.color = paddles.pink.color;
       cyanLabel.style.color = paddles.cyan.color;
       controlsElement.textContent = robotMode
-        ? `${names.pink}: W / S. ${names.cyan} controls the right paddle. The first player to seven points wins.`
-        : `${names.pink}: W / S. ${names.cyan}: Up / Down arrows. The first player to seven points wins.`;
+        ? `${names.pink}: W / S. ${names.cyan} controls the right paddle. Drag on each half of the court (or use keys). The first player to seven points wins.`
+        : `${names.pink}: W / S. ${names.cyan}: Up / Down arrows. Drag on each half of the court (or use keys). The first player to seven points wins.`;
     }
 
     function updateMode() {
@@ -269,6 +269,18 @@
       requestAnimationFrame(loop);
     }
 
+    function dragPaddle(event) {
+      if (event.pointerType === "mouse" && !event.buttons) return;
+      event.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const px = (event.clientX - rect.left) * canvas.width / rect.width;
+      const py = (event.clientY - rect.top) * canvas.height / rect.height;
+      const paddle = px < canvas.width / 2 ? paddles.pink : paddles.cyan;
+      if (paddle === paddles.cyan && robotMode) return;
+      paddle.y = Math.max(12, Math.min(canvas.height - paddle.height - 12, py - paddle.height / 2));
+    }
+    canvas.addEventListener("pointerdown", (event) => { prepareAudio(); dragPaddle(event); });
+    canvas.addEventListener("pointermove", dragPaddle);
     window.addEventListener("keydown", (event) => {
       const key = event.key.toLowerCase();
       prepareAudio();

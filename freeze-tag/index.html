@@ -14,7 +14,7 @@ button{border:0;border-radius:.5rem;background:#cffafe;color:#083344;cursor:poin
 <p><strong>Coins:</strong> runners earn a runner coin every time they unfreeze someone, and freezers earn a freezer coin every time they freeze someone. Spend coins to BUY a kit once and you own it forever. Pick any kit you own at the start of each round and use it for free, as often as you like. Speed is always free. You start with 3 coins.</p>
 <p><strong>Kits:</strong> Runners can pick Speed, Thaw Bomb (explosion that unfreezes), Barrier (a wall freezers can't cross), Ghost, Shield, Teleport, Phoenix (thaws everyone) or Mine, Smoke Screen, Medic, Decoy, Lightning Zap or Fort, Beacon, Tar Pit, Flash, Evade, Armor, Clones, Shockwave, Rally, Aegis or Time Stop. Freezers can pick Speed, Rope (drags a runner to you), Freeze Wave, Magnet, Snowball, Turbo, Stun Blast, Web Trap, Cage, Blink, Goo Trap, Time Warp or Pounce. The AI uses them too.</p>
 <p><strong>Maps:</strong> Arena, Maze, Castle, City and Forest. Auto cycles one per level, or pick one with the map button (M).</p>
-<p><strong>W/S or ↑/↓</strong> run · <strong>A/D or ←/→</strong> turn, or click the game and move the mouse (Esc to release) · <strong>Space / E</strong> dash · <strong>Q / F</strong> use kit · <strong>Enter</strong> start</p>
+<p><strong>W/S or ↑/↓</strong> run · <strong>A/D or ←/→</strong> turn, click the game and move the mouse (Esc to release), or drag on the view with a finger · <strong>Space / E</strong> dash · <strong>Q / F</strong> use kit · <strong>Enter</strong> start</p>
 <div class="modes"><button id="mRun" type="button">🏃 Play Runner (1)</button><button id="mFrz" type="button">🥶 Play Freezer (2)</button><button id="mMap" type="button">🗺 Map: Auto (M)</button></div>
 <div id="kitPick" hidden><h2>Pick your kit for this round</h2><p id="kitInfo" style="margin:.2rem 0;font-size:.85rem"></p><div class="kits" id="kitList"></div></div>
 <canvas id="g" width="640" height="480" aria-label="Freeze Tag 3D game"></canvas>
@@ -270,7 +270,8 @@ function update(){
 addEventListener("keydown",e=>{if(mode==="pick"&&e.code!=="Digit1"&&e.code!=="Digit2"&&e.code!=="KeyM")return;if(e.code==="Digit1"){pick("runner");return}if(e.code==="Digit2"){pick("freezer");return}if(e.code==="KeyM"){cycleMap();return}const k=KEYS[e.code];if(!k)return;e.preventDefault();held[k]=true;if(!e.repeat&&k==="act")act();if(!e.repeat&&k==="kit"&&mode==="play")useKit(P,P.a)});
 addEventListener("keyup",e=>{const k=KEYS[e.code];if(k)held[k]=false});
 addEventListener("blur",()=>{held={}});
-C.addEventListener("click",()=>{if(mode==="play"&&C.requestPointerLock)C.requestPointerLock()});
+let lastTouch=false,dragX=null;C.addEventListener("click",()=>{if(!lastTouch&&mode==="play"&&C.requestPointerLock)C.requestPointerLock()});
+C.addEventListener("pointerdown",e=>{lastTouch=e.pointerType!=="mouse";if(lastTouch){dragX=e.clientX;C.setPointerCapture(e.pointerId)}});C.addEventListener("pointermove",e=>{if(dragX!==null&&e.pointerType!=="mouse"){if(mode==="play")P.a+=(e.clientX-dragX)*.008;dragX=e.clientX}});["pointerup","pointercancel"].forEach(n=>C.addEventListener(n,()=>{dragX=null}));
 addEventListener("mousemove",e=>{if(document.pointerLockElement===C&&mode==="play")P.a+=e.movementX*.003});
 document.querySelectorAll("[data-k]").forEach(b=>{const k=b.dataset.k;b.addEventListener("pointerdown",e=>{e.preventDefault();held[k]=true;if(k==="act")act();if(k==="kit"&&mode==="play")useKit(P,P.a)});["pointerup","pointerleave","pointercancel"].forEach(ev=>b.addEventListener(ev,()=>{held[k]=false}))});
 function text(s,a,b,size=18,color="#fff",align="left"){x.font=`bold ${size}px Arial,sans-serif`;x.fillStyle=color;x.textAlign=align;x.lineWidth=4;x.strokeStyle="#000";x.strokeText(s,a,b);x.fillText(s,a,b)}

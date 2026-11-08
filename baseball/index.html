@@ -6,9 +6,9 @@ canvas{display:block;width:100%;max-width:50rem;height:auto;margin:.8rem auto;bo
 .row{display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap}.row button{padding:.6rem 1.4rem;border:0;border-radius:.6rem;background:#f97316;color:#fff;font-weight:700;font-size:1rem;cursor:pointer}
 </style></head>
 <body><main><a href="../">← All games</a><h1>⚾ Baseball</h1>
-<p>Step up to bat! <strong>Move the mouse</strong> (or <strong>arrow keys</strong>) to line the bat circle up with the ball, then <strong>click</strong> or press <strong>Space</strong> to swing just as it reaches the plate. Good timing and aim mean bigger hits. With a runner on, press <strong>S</strong> (or the Steal Base button) as the pitch is thrown to try to steal — but get caught and it's an out. Each inning you bat, then play defence: move your fielder (mouse or arrows) onto the red target to catch the CPU's hits. 3 innings — outscore the CPU!</p>
+<p>Step up to bat! <strong>Move the mouse</strong> (or <strong>arrow keys</strong>, or <strong>drag your finger</strong>) to line the bat circle up with the ball, then <strong>click</strong> (or <strong>lift your finger</strong>) or press <strong>Space</strong> to swing just as it reaches the plate. Good timing and aim mean bigger hits. With a runner on, press <strong>S</strong> (or the Steal Base button) as the pitch is thrown to try to steal — but get caught and it's an out. Each inning you bat, then play defence: move your fielder (mouse or arrows) onto the red target to catch the CPU's hits. 3 innings — outscore the CPU!</p>
 <canvas id="c" width="800" height="500" aria-label="Baseball game"></canvas>
-<div class="row"><button id="swing">🏏 Swing!</button><button id="steal">🏃 Steal Base</button><button id="mode">Mode: Easy</button><button id="eye">🦅 Eagle Eye: Off</button></div>
+<div class="row"><button id="swing" style="min-height:48px">🏏 Swing!</button><button id="steal">🏃 Steal Base</button><button id="mode">Mode: Easy</button><button id="eye">🦅 Eagle Eye: Off</button></div>
 </main>
 <script>
 const C=document.querySelector("#c"),x=C.getContext("2d"),W=800,H=500,KEY="baseballBest",INN=3;
@@ -190,7 +190,8 @@ let last=performance.now();
 function loop(ts){const dt=Math.min(.05,(ts-last)/1000);last=ts;update(dt);draw();requestAnimationFrame(loop)}
 function pos(e){const r=C.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*W,y:(e.clientY-r.top)/r.height*H}}
 C.addEventListener("pointermove",e=>{const p=pos(e);bat.x=p.x;bat.y=p.y;fl.tx=p.x;fl.ty=p.y});
-C.addEventListener("pointerdown",e=>{e.preventDefault();const p=pos(e);bat.x=p.x;bat.y=p.y;fl.tx=p.x;fl.ty=p.y;swing()});
+C.addEventListener("pointerdown",e=>{e.preventDefault();const p=pos(e);bat.x=p.x;bat.y=p.y;fl.tx=p.x;fl.ty=p.y;if(e.pointerType==="mouse")swing();else{try{C.setPointerCapture(e.pointerId)}catch(_){}}});
+C.addEventListener("pointerup",e=>{if(e.pointerType!=="mouse"){const p=pos(e);bat.x=p.x;bat.y=p.y;fl.tx=p.x;fl.ty=p.y;swing()}});
 document.querySelector("#swing").onclick=swing;
 const stealB=document.querySelector("#steal");stealB.onclick=()=>{steal();stealB.blur()};
 const eyeB=document.querySelector("#eye");

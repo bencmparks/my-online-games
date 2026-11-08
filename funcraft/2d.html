@@ -6,7 +6,12 @@
   <title>Funcraft 2D | My Online Games</title>
   <style>
     html, body { margin: 0; height: 100%; overflow: hidden; background: #000; font-family: Arial, sans-serif; color: #fff; }
-    canvas { display: block; width: 100vw; height: 100vh; cursor: crosshair; }
+    canvas { display: block; width: 100vw; height: 100vh; cursor: crosshair; touch-action: none; }
+    #tc { display: none; }
+    #tc button { position: fixed; bottom: 70px; width: 56px; height: 56px; border: 2px solid rgba(255,255,255,.6); border-radius: 14px; background: rgba(15,23,42,.6); color: #fff; font: bold 22px Arial; touch-action: none; -webkit-user-select: none; user-select: none; }
+    #tc button.on { background: rgba(250,204,21,.8); color: #111; }
+    #tc .wide { width: auto; padding: 0 10px; font-size: 14px; }
+    @media (pointer: coarse) { #tc { display: block; } #help { display: none; } }
     #hud { position: fixed; top: 8px; left: 8px; right: 8px; display: flex; justify-content: space-between; pointer-events: none; text-shadow: 0 1px 3px #000; }
     #hud a { pointer-events: auto; color: #fef3c7; }
     #status { position: fixed; top: 44px; left: 50%; transform: translateX(-50%); padding: 4px 14px; border-radius: 8px; background: rgba(0,0,0,.55); font-weight: bold; pointer-events: none; }
@@ -19,6 +24,10 @@
   <div id="hud"><div id="info"></div><a href="hub.html">← Funcraft gateways</a></div>
   <div id="status"></div>
   <div id="help">A/D move · W/Space jump · hold left click mine/attack · right click place · 1-9, 0 or wheel pick block · C craft planks from wood</div>
+  <div id="tc" aria-label="Touch controls">
+    <button type="button" data-k="a" style="left:8px">◀</button><button type="button" data-k="d" style="left:72px">▶</button>
+    <button type="button" data-k=" " style="right:8px">⤒</button><button type="button" id="tmode" class="wide" style="right:72px">⛏ Mine</button><button type="button" id="tcraft" class="wide" style="right:170px">Craft</button>
+  </div>
   <script src="../shared/profile.js"></script>
   <script>
     const modes = {
@@ -306,8 +315,9 @@
       ctx.fillStyle = "#fcd9b6"; ctx.fillRect(px - w / 2 + 1, py, w - 2, h * .26);
       ctx.fillStyle = "#111"; ctx.fillRect(px + (e.vx < -.5 || e.face === -1 ? -w / 4 : w / 8), py + h * .09, 4, 4);
     }
+    function hotbarLayout() { const sz = Math.min(44, Math.floor((canvas.width - 8) / hotbar.length) - 4), total = hotbar.length * (sz + 4); return { sz, x0: (canvas.width - total) / 2, y0: canvas.height - sz - 10 }; }
     function drawHotbar() {
-      const sz = 44, total = hotbar.length * (sz + 4), x0 = (canvas.width - total) / 2, y0 = canvas.height - sz - 10;
+      const { sz, x0, y0 } = hotbarLayout(); const total = hotbar.length * (sz + 4);
       hotbar.forEach((t, i) => {
         const x = x0 + i * (sz + 4);
         ctx.fillStyle = i === selected ? "rgba(255,255,255,.35)" : "rgba(0,0,0,.5)"; ctx.fillRect(x, y0, sz, sz);
@@ -328,6 +338,20 @@
     canvas.addEventListener("mousedown", (e) => { if (e.button === 0) mouse.down = true; else if (e.button === 2) mouse.right = true; });
     addEventListener("mouseup", (e) => { if (e.button === 0) mouse.down = false; });
     canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+    let touchPlace = false, touchId = null;
+    canvas.addEventListener("pointerdown", (e) => {
+      if (e.pointerType === "mouse") return; e.preventDefault();
+      const h = hotbarLayout();
+      if (e.clientY >= h.y0 - 6) { const i = Math.floor((e.clientX - h.x0) / (h.sz + 4)); if (i >= 0 && i < hotbar.length) selected = i; return; }
+      if (touchId !== null) return;
+      touchId = e.pointerId; try { canvas.setPointerCapture(e.pointerId); } catch {}
+      mouse.x = e.clientX; mouse.y = e.clientY; if (touchPlace) mouse.right = true; else mouse.down = true;
+    });
+    canvas.addEventListener("pointermove", (e) => { if (e.pointerId === touchId) { mouse.x = e.clientX; mouse.y = e.clientY; } });
+    ["pointerup", "pointercancel"].forEach((n) => canvas.addEventListener(n, (e) => { if (e.pointerId === touchId) { touchId = null; mouse.down = false; } }));
+    document.querySelectorAll("#tc [data-k]").forEach((b) => { const k = b.dataset.k; b.addEventListener("pointerdown", (e) => { e.preventDefault(); keys[k] = true; b.classList.add("on"); }); ["pointerup", "pointercancel", "pointerleave"].forEach((n) => b.addEventListener(n, () => { keys[k] = false; b.classList.remove("on"); })); });
+    document.querySelector("#tmode").addEventListener("click", (e) => { touchPlace = !touchPlace; e.target.textContent = touchPlace ? "🧱 Place" : "⛏ Mine"; });
+    document.querySelector("#tcraft").addEventListener("click", () => craft());
     canvas.addEventListener("wheel", (e) => { selected = (selected + (e.deltaY > 0 ? 1 : 9)) % 10; e.preventDefault(); }, { passive: false });
     addEventListener("beforeunload", persist);
     setInterval(persist, 10000);

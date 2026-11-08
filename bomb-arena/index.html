@@ -8,7 +8,7 @@ canvas{display:block;width:100%;height:auto;margin:1rem 0;border:.2rem solid #c0
 <p><span class="p1">P1 (blue): W A S D move, Space bomb</span><br><span class="p2">P2 (red): arrow keys move, Enter bomb (or the robot)</span></p>
 <p><label>Opponent <select id="opp"><option value="two">2 players</option><option value="bot">Face the robot</option></select></label></p>
 <p><span class="p1">P1: <strong id="s1">0</strong></span> · <span class="p2">P2: <strong id="s2">0</strong></span></p>
-<canvas id="game" width="600" height="440" aria-label="Bomb Arena game"></canvas><button id="start" type="button">New match</button><p id="status" aria-live="polite"></p><div id="online"></div></main><script src="../online.js"></script>
+<canvas id="game" width="600" height="440" aria-label="Bomb Arena game"></canvas><div id="pad"><div class="dp"><span></span><button data-k="u">▲</button><span></span><button data-k="l">◀</button><span></span><button data-k="r">▶</button><span></span><button data-k="d">▼</button><span></span></div><button id="bombBtn" data-k="b">💣</button></div><button id="start" type="button">New match</button><p id="status" aria-live="polite"></p><div id="online"></div></main><script src="../online.js"></script>
 <script>
 const canvas=document.querySelector("#game"),oppEl=document.querySelector("#opp"),ctx=canvas.getContext("2d"),statusEl=document.querySelector("#status"),GW=15,GH=11,T=40,FUSE=2.2,RANGE=3,MAXB=2;
 const CTRL=[{u:"KeyW",d:"KeyS",l:"KeyA",r:"KeyD",b:"Space"},{u:"ArrowUp",d:"ArrowDown",l:"ArrowLeft",r:"ArrowRight",b:"Enter"}];
@@ -60,6 +60,7 @@ setInterval(()=>{if(net.role==="guest"){const c=CTRL[0];online.send({t:"in",k:MA
 let last=0;function loop(now){update(Math.min(.05,(now-last)/1000||0));last=now;if(net.role==="host"){net.n+=1;if(net.n%2===0)online.send(snap())}draw();requestAnimationFrame(loop)}
 document.addEventListener("keydown",e=>{if(["Space","Enter","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code))e.preventDefault();keys[e.code]=true});
 document.addEventListener("keyup",e=>{keys[e.code]=false});window.addEventListener("blur",()=>Object.keys(keys).forEach(k=>keys[k]=false));
+document.querySelectorAll("#pad [data-k]").forEach(b=>{const k=CTRL[0][b.dataset.k],on=e=>{e.preventDefault();keys[k]=true},off=()=>{keys[k]=false};b.addEventListener("pointerdown",on);["pointerup","pointercancel","pointerleave"].forEach(n=>b.addEventListener(n,off));b.addEventListener("contextmenu",e=>e.preventDefault())});
 oppEl.addEventListener("change",()=>{oppEl.blur();newMatch()});
 document.querySelector("#start").addEventListener("click",e=>{newMatch();e.target.blur()});
 newMatch();requestAnimationFrame(loop);

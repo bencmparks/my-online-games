@@ -5,7 +5,7 @@ main{width:min(100%,36rem);padding:1.5rem;border:.2rem solid #facc15;border-radi
 canvas{display:block;width:100%;max-width:26rem;height:auto;margin:1rem auto;border:.2rem solid #475569;border-radius:.4rem;background:#111827;touch-action:none}
 .bar{display:flex;justify-content:center;gap:.6rem;flex-wrap:wrap;margin:.5rem 0}
 button{border:0;border-radius:.5rem;background:#facc15;color:#1e293b;cursor:pointer;font:inherit;font-weight:bold;padding:.6rem 1rem}
-#info{font-weight:bold;color:#fde68a;min-height:1.4rem}
+button{touch-action:manipulation;-webkit-user-select:none;user-select:none}#info{font-weight:bold;color:#fde68a;min-height:1.4rem}
 </style></head>
 <body><main><a href="../">← All games</a><h1>💡 Lights Out</h1>
 <p>Turn every light off! Pressing a tile flips it and the four tiles next to it. Every puzzle can be solved.</p>
@@ -48,7 +48,7 @@ function draw(){
   if(flash&&flash.r===r&&flash.c===c&&flash.t>0){x.strokeStyle="#fff";x.lineWidth=4;x.beginPath();x.roundRect(px,py,S-10,S-10,12);x.stroke()}
  }
  if(flash){flash.t-=1;if(flash.t<=0)flash=null}
- if(won){x.fillStyle="rgb(2 6 23 / 60%)";x.fillRect(0,130,400,140);x.textAlign="center";x.fillStyle="#86efac";x.font="bold 44px Arial";x.fillText("ALL DARK!",200,200);x.font="bold 20px Arial";x.fillStyle="#fff";x.fillText("Press N for a new puzzle",200,240)}
+ if(won){x.fillStyle="rgb(2 6 23 / 60%)";x.fillRect(0,130,400,140);x.textAlign="center";x.fillStyle="#86efac";x.font="bold 44px Arial";x.fillText("ALL DARK!",200,200);x.font="bold 20px Arial";x.fillStyle="#fff";x.fillText("Tap New puzzle to play again",200,240)}
 }
 function frame(){draw();requestAnimationFrame(frame)}
 fresh();frame();

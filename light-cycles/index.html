@@ -2,12 +2,14 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Light Cycles | My Online Games</title><style>
 :root{color-scheme:dark;font-family:Arial,sans-serif;background:#020617;color:#e0f2fe}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:linear-gradient(145deg,#020617,#0c4a6e)}
 main{width:min(100%,42rem);padding:1.5rem;border:.2rem solid #22d3ee;border-radius:1.25rem;background:rgb(2 6 23 / 92%);text-align:center}a{color:#67e8f9}h1{margin:.6rem 0;color:#22d3ee}
-canvas{display:block;width:100%;height:auto;margin:1rem 0;border:.2rem solid #0891b2;border-radius:.6rem;background:#020617}button{padding:.65rem 1rem;border:0;border-radius:.5rem;background:#22d3ee;color:#020617;cursor:pointer;font:inherit;font-weight:bold}#status{min-height:1.5rem;color:#fef08a;font-weight:bold}.p1{color:#22d3ee}.p2{color:#fb923c}
+canvas{display:block;width:100%;height:auto;margin:1rem 0;border:.2rem solid #0891b2;border-radius:.6rem;background:#020617;touch-action:none}button{padding:.65rem 1rem;border:0;border-radius:.5rem;background:#22d3ee;color:#020617;cursor:pointer;font:inherit;font-weight:bold}#status{min-height:1.5rem;color:#fef08a;font-weight:bold}.p1{color:#22d3ee}.p2{color:#fb923c}
+.tp{display:none;justify-content:center;gap:1.5rem;margin:.6rem 0;user-select:none;-webkit-user-select:none;touch-action:none}.tp .dp{display:grid;grid-template-columns:repeat(3,3.2rem);grid-template-rows:repeat(3,3.2rem);gap:.2rem;padding:.3rem;border-radius:.6rem}.tp .dp b{font-size:.7rem;grid-column:1/4;text-align:center}.tp button{padding:0;font-size:1.3rem;touch-action:none}.tp .a button{background:#22d3ee}.tp .b button{background:#fb923c}@media (pointer:coarse){.tp{display:flex}}
 </style></head>
 <body><main><a href="../">← All games</a><h1>🏍️ Light Cycles</h1><p>Inspired by the arcade classic Tron. Leave a glowing trail and make your rival crash into it. First to 3 rounds wins. You can also play on 2 devices below.</p>
 <p><span class="p1">P1 (cyan): W A S D</span> · <span class="p2">P2 (orange): arrow keys</span></p>
 <p><span class="p1">P1: <strong id="s1">0</strong></span> · <span class="p2">P2: <strong id="s2">0</strong></span></p>
-<canvas id="game" width="600" height="400" aria-label="Light Cycles game"></canvas><button id="start" type="button">Start round</button><p id="status" aria-live="polite">Press Space or Start to begin.</p><div id="online"></div></main>
+<canvas id="game" width="600" height="400" aria-label="Light Cycles game"></canvas><div class="tp" id="tp"><div class="dp a"><b class="p1">P1</b><span></span><button data-p="0" data-d="0,-1" type="button">▲</button><span></span><button data-p="0" data-d="-1,0" type="button">◀</button><span></span><button data-p="0" data-d="1,0" type="button">▶</button><span></span><button data-p="0" data-d="0,1" type="button">▼</button><span></span></div><div class="dp b" id="tp2"><b class="p2">P2</b><span></span><button data-p="1" data-d="0,-1" type="button">▲</button><span></span><button data-p="1" data-d="-1,0" type="button">◀</button><span></span><button data-p="1" data-d="1,0" type="button">▶</button><span></span><button data-p="1" data-d="0,1" type="button">▼</button><span></span></div></div>
+<button id="start" type="button">Start round</button><p id="status" aria-live="polite">Press Space or Start to begin.</p><div id="online"></div></main>
 <script src="../online.js"></script>
 <script>
 const canvas=document.querySelector("#game"),ctx=canvas.getContext("2d"),statusEl=document.querySelector("#status"),CS=10,CW=60,CH=40;
@@ -34,14 +36,19 @@ if(e.code==="Space"){e.preventDefault();if(role==="guest")net.send({t:"start"});
 const d=DIRS[k];if(!d)return;
 if(role==="guest"){e.preventDefault();net.send({t:"d",d});return}
 if(state!=="play")return;e.preventDefault();const i=role==="host"?0:k.startsWith("Arrow")?1:0,p=pl[i];if(d[0]!==-p.d[0]||d[1]!==-p.d[1])p.n=d});
-const startBtn=document.querySelector("#start");
+function steer(d,i){if(role==="guest"){net.send({t:"d",d});return}if(state!=="play")return;const p=pl[role==="host"?0:i];if(d[0]!==-p.d[0]||d[1]!==-p.d[1])p.n=d}
+document.querySelectorAll("#tp button").forEach(b=>b.addEventListener("pointerdown",e=>{e.preventDefault();steer(b.dataset.d.split(",").map(Number),+b.dataset.p)}));
+let sw=null;
+canvas.addEventListener("pointerdown",e=>{if(e.pointerType==="mouse")return;e.preventDefault();sw={x:e.clientX,y:e.clientY};if(state!=="play"){if(role==="guest")net.send({t:"start"});else begin()}});
+canvas.addEventListener("pointermove",e=>{if(!sw)return;const dx=e.clientX-sw.x,dy=e.clientY-sw.y;if(Math.max(Math.abs(dx),Math.abs(dy))<24)return;steer(Math.abs(dx)>Math.abs(dy)?[Math.sign(dx),0]:[0,Math.sign(dy)],0);sw={x:e.clientX,y:e.clientY}});
+["pointerup","pointercancel"].forEach(ev=>canvas.addEventListener(ev,()=>{sw=null}));const startBtn=document.querySelector("#start");
 startBtn.addEventListener("click",()=>role==="guest"?net.send({t:"start"}):begin());
 net=Online.panel(document.querySelector("#online"),"light-cycles",{
-onStart(r){role=r;clearInterval(timer);score=[0,0];state="ready";grid=Array.from({length:CH},()=>Array(CW).fill(0));pl=[];show();draw();
+onStart(r){role=r;document.querySelector("#tp2").style.display=r?"none":"";clearInterval(timer);score=[0,0];state="ready";grid=Array.from({length:CH},()=>Array(CW).fill(0));pl=[];show();draw();
 statusEl.textContent=r==="host"?"Online: you are Player 1 (cyan). Press Space or Start.":"Online: you are Player 2 (orange). Waiting for the host to start.";
 startBtn.textContent=r==="host"?"Start round":"Ask host to start";snap()},
 onMessage(m){if(role==="host"){if(m.t==="start")begin();else if(m.t==="d"&&state==="play"&&Array.isArray(m.d)){const p=pl[1],d=m.d;if(d[0]!==-p.d[0]||d[1]!==-p.d[1])p.n=d}}
 else if(role==="guest"&&m.t==="s")applySnap(m)},
-onEnd(){role=null;clearInterval(timer);state="ready";score=[0,0];show();grid=Array.from({length:CH},()=>Array(CW).fill(0));pl=[];draw();startBtn.textContent="Start round";statusEl.textContent="Online game ended. Press Space or Start to play locally."}});
+onEnd(){role=null;document.querySelector("#tp2").style.display="";clearInterval(timer);state="ready";score=[0,0];show();grid=Array.from({length:CH},()=>Array(CW).fill(0));pl=[];draw();startBtn.textContent="Start round";statusEl.textContent="Online game ended. Press Space or Start to play locally."}});
 grid=Array.from({length:CH},()=>Array(CW).fill(0));pl=[];draw();
 </script></body></html>

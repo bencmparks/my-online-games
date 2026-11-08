@@ -137,7 +137,7 @@
     <canvas id="game" width="760" height="456" aria-label="Star Catch. Use arrow keys or A and D to move and catch falling stars."></canvas>
 
     <div class="bottom-bar">
-      <p>Use <strong>arrow keys</strong> or <strong>A / D</strong> to move. Catch power-ups for 15-second boosts: magnet, double points, or slow stars.</p>
+      <p>Use <strong>arrow keys</strong> or <strong>A / D</strong> (or drag on the screen) to move. Catch power-ups for 15-second boosts: magnet, double points, or slow stars.</p>
       <button id="restart" type="button">Restart game</button>
     </div>
   </main>
@@ -345,7 +345,7 @@
         context.fillText(`${score} stars caught!`, canvas.width / 2, canvas.height / 2 - 8);
         context.fillStyle = "#edfffd";
         context.font = "600 18px 'Plus Jakarta Sans'";
-        context.fillText("Press Restart game to catch more", canvas.width / 2, canvas.height / 2 + 34);
+        context.fillText("Tap Restart game to catch more", canvas.width / 2, canvas.height / 2 + 34);
       }
     }
 
@@ -358,6 +358,16 @@
       requestAnimationFrame(loop);
     }
 
+    function dragPlayer(event) {
+      if (event.pointerType === "mouse" && !event.buttons) return;
+      event.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const px = (event.clientX - rect.left) * canvas.width / rect.width;
+      player.x = Math.max(player.width / 2, Math.min(canvas.width - player.width / 2, px));
+    }
+    canvas.addEventListener("pointerdown", dragPlayer);
+    canvas.addEventListener("pointermove", dragPlayer);
+    canvas.addEventListener("pointerdown", () => { if (gameOver) restartGame(); });
     window.addEventListener("keydown", (event) => {
       const key = event.key.toLowerCase();
       if (["arrowleft", "arrowright", "a", "d"].includes(key)) event.preventDefault();

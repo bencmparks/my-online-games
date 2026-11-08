@@ -228,7 +228,7 @@ else if(mode==="title"&&e.code==="KeyL")cycleLaps();
  else if(mode==="edit"&&e.code==="Escape")editPress("left")
 });
 C.addEventListener("pointerdown",e=>{
- if(mode==="title"){const r=C.getBoundingClientRect();const cy=(e.clientY-r.top)/r.height*H;if(cy>436){e.preventDefault();cycleDiff()}else if(cy>148&&cy<180){e.preventDefault();cycleLaps()}return}
+ if(mode==="title"){const r=C.getBoundingClientRect();const cy=(e.clientY-r.top)/r.height*H;if(cy>436){e.preventDefault();cycleDiff()}else if(cy>148&&cy<180){e.preventDefault();cycleLaps()}else if(cy>400&&cy<428&&sel>=TRACKS.length&&confirm("Delete this custom track?")){const i=sel-TRACKS.length;maps.splice(i,1);TR.splice(sel,1);storeMaps();sel=Math.min(sel,TR.length-1)}return}
  if(mode!=="edit")return;e.preventDefault();
  const r=C.getBoundingClientRect(),a=(e.clientX-r.left)*W/r.width,b=(e.clientY-r.top)*H/r.height;
  if(edPts.length>=4&&Math.hypot(a-edPts[0][0],b-edPts[0][1])<18){editPress("act");return}
@@ -339,9 +339,9 @@ function drawTitle(){
  text(`Track ${sel+1}/${TR.length}`,W-105,250,14,"#e5e7eb","center");
  const bb=best[bkey(TR[sel].def.id)];
  text(bb!==undefined?`Best: ${(bb/60).toFixed(1)}s`:"No best time yet",W/2,362,18,"#e5e7eb","center");
- text("C / ↓: build a custom track"+(sel>=TRACKS.length?"  ·  X: delete this one":""),W/2,414,14,"#a7f3d0","center");
+ text("C / ↓: build a custom track"+(sel>=TRACKS.length?"  ·  X / tap: delete this one":""),W/2,414,14,"#a7f3d0","center");
  text(`Difficulty: ${DIFFS[diff]}  (M or tap here)`,W/2,456,18,DCOL[diff],"center");
- if(Math.floor(t/30)%2)text("Press E or ITEM to race",W/2,420,22,"#fff","center")
+ if(Math.floor(t/30)%2)text("Press E or tap ITEM to race",W/2,420,22,"#fff","center")
 }
 function drawDone(){
  x.fillStyle="rgb(2 6 23 / 85%)";x.fillRect(0,0,W,H);

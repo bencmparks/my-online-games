@@ -13,7 +13,7 @@ button{border:0;border-radius:.5rem;background:#4ade80;color:#1e293b;cursor:poin
 <div class="pad"><button data-k="up" type="button">AIM ▲</button><button data-k="act" type="button">HOLD: FIRE</button><button data-k="down" type="button">AIM ▼</button></div>
 </main>
 <script>
-const C=document.querySelector("#g"),x=C.getContext("2d"),W=640,H=480,GY=430,BX=60,BY=300,G=.18;
+const TOUCH=matchMedia("(pointer:coarse)").matches;const C=document.querySelector("#g"),x=C.getContext("2d"),W=640,H=480,GY=430,BX=60,BY=300,G=.18;
 const D=[{n:"Easy",s:1.4,w:.4,m:.6},{n:"Medium",s:1,w:1,m:1},{n:"Hard",s:.7,w:1.6,m:1.5}];
 let mode="title",di=1,ang=.35,pw=0,pdir=1,charging=false,arrow=null,left=10,score=0,hi=[0,0,0],wind=0,tg=[],stuck=[],msg="",msgT=0,t=0,wait=0,held={},newBest=false,bank=0,up=[0,0,0,0];
 const UP=[{n:"Power Bow",c:60,m:5},{n:"Steady Aim",c:60,m:5},{n:"Big Targets",c:80,m:5},{n:"Extra Arrows",c:120,m:4}],UX=330,UY=185,UH=40;
@@ -61,7 +61,7 @@ addEventListener("blur",()=>{held={};release()});
 document.querySelectorAll("[data-k]").forEach(b=>{const k=b.dataset.k;b.addEventListener("pointerdown",e=>{e.preventDefault();held[k]=true;press(k)});["pointerup","pointerleave","pointercancel"].forEach(ev=>b.addEventListener(ev,()=>{if(held[k]&&k==="act")release();held[k]=false}))});
 function pos(e){const r=C.getBoundingClientRect();return[(e.clientX-r.left)*W/r.width,(e.clientY-r.top)*H/r.height]}
 C.addEventListener("pointermove",e=>{if(mode==="play"&&!arrow){const p=pos(e);setAim(p[0],p[1])}});
-C.addEventListener("pointerdown",e=>{e.preventDefault();const p=pos(e);if(mode==="title"&&p[0]>=UX&&p[0]<=UX+290&&p[1]>=UY&&p[1]<UY+UP.length*UH){buy(Math.floor((p[1]-UY)/UH));return}if(mode==="play"){setAim(p[0],p[1]);startCharge()}else press("act")});
+C.addEventListener("pointerdown",e=>{e.preventDefault();const p=pos(e);if(mode==="title"&&p[0]>=UX&&p[0]<=UX+290&&p[1]>=UY&&p[1]<UY+UP.length*UH){buy(Math.floor((p[1]-UY)/UH));return}if(mode==="title"&&p[0]<UX-10&&p[1]>=225-26&&p[1]<225+3*36-26){di=Math.floor((p[1]-199)/36);save();return}if(mode==="play"){setAim(p[0],p[1]);startCharge()}else press("act")});
 addEventListener("pointerup",()=>release());
 function text(s,a,b,size=18,color="#fff",align="left"){x.font=`bold ${size}px Arial,sans-serif`;x.fillStyle=color;x.textAlign=align;x.lineWidth=4;x.strokeStyle="#000";x.strokeText(s,a,b);x.fillText(s,a,b)}
 function shaft(px,py,an,len){x.save();x.translate(px,py);x.rotate(an);x.strokeStyle="#92400e";x.lineWidth=3;x.beginPath();x.moveTo(-len,0);x.lineTo(0,0);x.stroke();x.fillStyle="#d1d5db";x.beginPath();x.moveTo(0,-4);x.lineTo(9,0);x.lineTo(0,4);x.fill();x.fillStyle="#ef4444";x.fillRect(-len,-3,8,2);x.fillRect(-len,1,8,2);x.restore()}
@@ -91,11 +91,11 @@ function draw(){
   x.fillStyle="rgb(2 6 23 / 62%)";x.fillRect(0,0,W,H);
   if(mode==="title")text("ARCHERY",W/2,150,56,"#4ade80","center");
   else{text("ROUND OVER",W/2,130,46,"#f87171","center");text(`Score ${score}`,W/2,180,30,"#fff","center");if(newBest)text("NEW BEST!",W/2,215,24,"#fde047","center")}
-  if(mode==="title"){D.forEach((d,i)=>text((i===di?"▶ ":"")+d.n,165,225+i*36,i===di?30:22,i===di?"#fde047":"#cbd5e1","center"));text("↑ / ↓ difficulty",165,345,16,"#cbd5e1","center");
+  if(mode==="title"){D.forEach((d,i)=>text((i===di?"▶ ":"")+d.n,165,225+i*36,i===di?30:22,i===di?"#fde047":"#cbd5e1","center"));text(TOUCH?"tap difficulty":"↑ / ↓ difficulty",165,345,16,"#cbd5e1","center");
    text(`UPGRADES  🪙 ${bank}`,UX+145,UY-10,18,"#fde047","center");
    UP.forEach((u,i)=>{const mx=up[i]>=u.m,ok=!mx&&bank>=ucost(i),y=UY+i*UH;x.fillStyle=ok?"rgb(74 222 128 / 35%)":"rgb(255 255 255 / 12%)";x.fillRect(UX,y,290,UH-6);x.strokeStyle=ok?"#4ade80":"#64748b";x.lineWidth=2;x.strokeRect(UX,y,290,UH-6);
     text(`${i+1}. ${u.n}  Lv ${up[i]}/${u.m}`,UX+8,y+22,15,"#fff");text(mx?"MAX":`${ucost(i)}`,UX+282,y+22,15,ok?"#86efac":"#fca5a5","right")})}
-  if(Math.floor(t/30)%2)text(mode==="title"?"Press E or click to start":"Press E or click for title",W/2,400,24,"#fff","center")}
+  if(Math.floor(t/30)%2)text(mode==="title"?(TOUCH?"Tap to start":"Press E or click to start"):(TOUCH?"Tap for title":"Press E or click for title"),W/2,400,24,"#fff","center")}
 }
 function frame(){update();draw();requestAnimationFrame(frame)}
 frame();
