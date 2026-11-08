@@ -70,23 +70,24 @@ $("#fight").onclick=async()=>{
   go=(u,tg,dir,j)=>{u.style.left=Math.max(2,Math.min(88,tg._l+dir*(8+Math.floor(j/3)*5)))+"%";u.style.top=Math.max(8,Math.min(86,tg._t+((j%3)-1)*10))+"%"},
   home=u=>{u.style.left=u._l+"%";u.style.top=u._t+"%"};
  await sleep(600);
- const atk=w?A:E,ranged=w?T:[],dir=w?-1:1,
+ let cur=null,fighting=true;
+ (async()=>{while(fighting){T.forEach((u,j)=>{if(u.classList.contains("dead"))return;const tg=w?cur:E[Math.floor(Math.random()*E.length)];if(tg)throwAt(u,tg,AMMO[-thr[j]-1])});await sleep(380)}})();
+ const atk=w?A:E,dir=w?-1:1,
   order=w?[...E].sort((x,y)=>x._l-y._l):[...A].sort((x,y)=>y._l-x._l).concat([...T].sort((x,y)=>y._l-x._l)),n=order.length,
   rate=Math.min(60,(w?f/t:t/f)*60);
  for(let k=0;k<n;k++){
-  const tg=order[k];
+  const tg=cur=order[k];
   atk.forEach((u,j)=>go(u,tg,dir,j));
   await sleep(450);
   for(let h=0;h<2;h++){
    atk.forEach(u=>u.classList.add("l1"));
-   ranged.forEach(u=>throwAt(u,tg,AMMO[-thr[T.indexOf(u)]-1]));
    await sleep(150);atk.forEach(u=>u.classList.remove("l1"));
    fx(tg,h?"💥":"💢");await sleep(150)}
   tg.classList.add("dead");
   const done=(k+1)/n;
   $(w?"#h2":"#h1").style.width=100*(1-done)+"%";$(w?"#h1":"#h2").style.width=(100-done*rate)+"%";
   await sleep(250)}
- atk.forEach(home);await sleep(500); if(w){const win=8+st.wave*5;st.coins+=win;$("#m").textContent=`Victory! +🪙${win}`;st.wave++;st.best=Math.max(st.best,st.wave)}
+ fighting=false;atk.forEach(home);await sleep(500); if(w){const win=8+st.wave*5;st.coins+=win;$("#m").textContent=`Victory! +🪙${win}`;st.wave++;st.best=Math.max(st.best,st.wave)}
  else{st.coins+=3;$("#m").textContent="Defeated! +🪙3. Merge up and try again."}
  save();busy=false;$("#buy").disabled=$("#buyT").disabled=false;$("#fight").disabled=false;$("#co").textContent="🪙 "+st.coins;$("#wv").textContent="Wave "+st.wave;$("#bs").textContent="Best wave "+st.best;
  await sleep(1800);if(!busy)F.hidden=true};
