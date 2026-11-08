@@ -38,7 +38,7 @@ const FACE=["👶","🧒","🧑","🥷","🤺","🧙","🦸","🥋","🐉","👑
 let st={coins:30,wave:1,best:1,bought:0,g:Array(N).fill(0)},sel=-1,busy=false,popI=-1;
 try{const s=JSON.parse(localStorage.getItem("fighterMerge"));if(s&&s.g&&s.g.length===N)st=s}catch(e){}
 const save=()=>{try{localStorage.setItem("fighterMerge",JSON.stringify(st))}catch(e){}},
- cost=()=>10+st.bought*4,costT=()=>16+(st.boughtT||0)*4,pw=l=>Math.pow(3,Math.abs(l)-1),team=()=>st.g.reduce((a,l)=>a+(l?pw(l):0),0),foe=w=>Math.max(1,Math.round(1.25*Math.pow(1.5,w-1)));
+ cost=()=>10+st.bought*5,costT=()=>16+(st.boughtT||0)*5,pw=l=>Math.pow(3,Math.abs(l)-1),team=()=>st.g.reduce((a,l)=>a+(l?pw(l):0),0),foe=w=>Math.max(1,Math.round(1.25*Math.pow(1.5,w-1)));
 function render(){
  G.innerHTML="";st.g.forEach((l,i)=>{const b=document.createElement("button");b.className="slot"+(i===sel?" sel":"")+(i===popI?" pop":"");b.setAttribute("aria-label",l?(l<0?"Thrower":"Fighter")+" level "+Math.abs(l):"Empty slot");b.innerHTML=l?face(l)+"<small>"+(l<0?AMMO[-l-1]:"")+"Lv"+Math.abs(l)+"</small>":"";b.onclick=()=>tapSlot(i);G.append(b)});
  $("#co").textContent="🪙 "+st.coins;$("#wv").textContent="Wave "+st.wave;$("#bs").textContent="Best wave "+st.best;
