@@ -14,7 +14,7 @@ button.b{border:0;border-radius:.5rem;color:#1a0b0b;cursor:pointer;font:inherit;
 button.b:disabled{opacity:.5;cursor:default}
 #m{min-height:1.5rem;font-weight:bold}
 #field{position:relative;height:11rem;margin:.5rem 0;border-radius:.6rem;background:linear-gradient(#3b1d1d,#1f0d0d);overflow:hidden}
-.u{position:absolute;font-size:1.7rem;line-height:1;transition:transform .15s,opacity .4s,filter .4s,left .4s ease-in-out,top .4s ease-in-out;will-change:transform}
+.u{position:absolute;font-size:1.7rem;line-height:1;transition:transform .15s,opacity .4s,filter .4s,left .9s ease-in-out,top .9s ease-in-out;will-change:transform}
 .u.enemy{transform:scaleX(-1)}
 .proj{position:absolute;font-size:1.2rem;transition:left .35s linear,top .35s ease-out;pointer-events:none;z-index:2}
 button.b+button.b{margin-left:.2rem}
@@ -71,7 +71,9 @@ $("#fight").onclick=async()=>{
   home=u=>{u.style.left=u._l+"%";u.style.top=u._t+"%"};
  await sleep(600);
  let fighting=true;const alive=l=>l.filter(u=>!u.classList.contains("dead")),pick=l=>l[Math.floor(Math.random()*l.length)];
- (async()=>{while(fighting){const le=alive(E);T.forEach((u,j)=>{if(u.classList.contains("dead")||!le.length)return;throwAt(u,pick(le),AMMO[-thr[j]-1])});await sleep(380)}})();
+ (async()=>{let tick=0;while(fighting){const le=alive(E);T.forEach((u,j)=>{if(u.classList.contains("dead")||!le.length)return;throwAt(u,pick(le),AMMO[-thr[j]-1])});
+  if(tick++%4===0){const mine=alive([...A,...T]);if(mine.length)le.forEach((e,j)=>{if(j%2)throwAt(e,pick(mine),"🔥")})}
+  await sleep(76)}})();
  const win=w,loser=w?[...E].sort((x,y)=>x._l-y._l):[...A].sort((x,y)=>y._l-x._l).concat([...T].sort((x,y)=>y._l-x._l)),n=loser.length,
   R=Math.min(14,Math.max(6,n+3)),rate=Math.min(60,(w?f/t:t/f)*60);let dead=0;
  for(let r=1;r<=R;r++){
@@ -79,7 +81,7 @@ $("#fight").onclick=async()=>{
   la.forEach((u,j)=>{const e=le[j%le.length];if(e)pairs.push([u,e])});
   le.forEach((e,j)=>{const u=mineT[j%mineT.length];if(u)pairs.push([e,u])});
   la.forEach((u,j)=>{const e=le[j%le.length];if(!e)return;u.style.left=Math.max(2,e._l-8-Math.floor(j/3)*4)+"%";u.style.top=Math.max(8,Math.min(86,e._t+((j%3)-1)*8))+"%"});
-  await sleep(430);
+  await sleep(950);
   [...la,...le].forEach(u=>u.classList.add("l1"));
   pairs.forEach(([u,v])=>{if(Math.random()<.7)fx(v,u.classList.contains("enemy")?"💢":"💥")});
   await sleep(160);[...la,...le].forEach(u=>u.classList.remove("l1"));
