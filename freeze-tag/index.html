@@ -9,7 +9,7 @@ button{border:0;border-radius:.5rem;background:#cffafe;color:#083344;cursor:poin
 #kitPick{margin:.6rem 0;padding:.6rem;border:.15rem solid #fde047;border-radius:.6rem;background:rgb(0 0 0 / 35%)}#kitPick h2{margin:.2rem 0;font-size:1.1rem;color:#fde047}.kits{display:grid;grid-template-columns:repeat(auto-fill,minmax(10rem,1fr));gap:.4rem}.kits button{padding:.4rem;font-size:.8rem;text-align:left;touch-action:manipulation}.kits small{display:block;font-weight:normal;opacity:.85}
 </style></head>
 <body><main><a href="../">← All games</a><h1>🥶 Freeze Tag 3D</h1>
-<p>You are one of 30 runners being hunted by 10 red freezers on a huge map. Get touched and you freeze solid! Touch a frozen teammate to thaw them instantly, and they'll do the same for you. Survive until the timer ends, and don't let everyone get frozen at once.</p>
+<p>You are one of 20 runners being hunted by 10 red freezers on a huge map. Get touched and you freeze solid! Touch a frozen teammate to thaw them instantly, and they'll do the same for you. Survive until the timer ends, and don't let everyone get frozen at once.</p>
 <p><strong>Freezer mode:</strong> you are a freezer with 9 AI partners. Chase down all 15 runners and have every one frozen at the same time before the clock runs out, while the runners keep thawing each other.</p>
 <p><strong>Coins:</strong> runners earn a runner coin every time they unfreeze someone, and freezers earn a freezer coin every time they freeze someone. Spend coins to BUY a kit once and you own it forever. Pick any kit you own at the start of each round and use it for free (with a short cooldown). Speed is always free. You start with 3 coins.</p>
 <p><strong>Kits:</strong> Runners can pick Speed, Thaw Bomb (explosion that unfreezes), Barrier (a wall freezers can't cross), Ghost, Shield, Teleport, Phoenix (thaws everyone) or Mine, Smoke Screen, Medic, Decoy, Lightning Zap or Fort, Beacon, Tar Pit, Flash, Evade, Armor, Clones, Shockwave, Rally, Aegis or Time Stop. Freezers can pick Speed, Rope (drags a runner to you), Freeze Wave, Magnet, Snowball, Turbo, Stun Blast, Web Trap, Cage, Blink, Goo Trap, Time Warp or Pounce. The AI uses them too.</p>
@@ -82,7 +82,7 @@ function setup(){
  P=mk(0,{fr});
  const cn=fr?NF-1:NF;
  chasers=[];for(let i=0;i<cn;i++)chasers.push(mk(fr?250:500,{pause:60,fr:true}));
- const rn=fr?15:NR-1;
+ const rn=fr?15:19;
  mates=[];for(let i=0;i<rn;i++)mates.push(mk(fr?300:90,{c:`hsl(${i*37%360} 70% 52%)`,wx:0,wy:0,wt:0,fg:null,ft:0}));
  boxes=[];for(const o of[...chasers,...mates]){const pl=POOL[o.fr?1:0];o.kit=pl[ri(0,pl.length-1)]}pj=[];fx=[];walls=[];traps=[];decoys=[];
  time=(fr?Math.max(150,300-level*10):Math.min(240,150+level*10))*60;dash=0;dashCd=0;msg="";msgT=0}
@@ -112,19 +112,20 @@ function go(o,tx,ty,spd){
  if(!o.path||(o.pt|0)<=0||Math.hypot(tx-o.gx,ty-o.gy)>80){o.path=route(o.x,o.y,tx,ty);o.gx=tx;o.gy=ty;o.pt=25+(Math.random()*10|0)}
  o.pt--;while(o.path.length&&Math.hypot(o.path[0][0]-o.x,o.path[0][1]-o.y)<18)o.path.shift();
  const w=o.path[0];if(w)toward(o,w[0],w[1],spd);else toward(o,tx,ty,spd)}
-function act(){if(mode==="pick")return;if(mode!=="play"){if(mode==="lost"){level=1;score=0}begin();return}if(dashCd<=0&&!P.fz){dash=18;dashCd=150}}
+function act(){if(mode==="pick")return;if(mode!=="play"){if(mode==="lost"){level=1;score=0}begin();return}if(dashCd<=0){dash=18;dashCd=150}}
 const sb=o=>(o.tb>0?2.4:o.sp>0?1.6:1)*(o.sl>0?.5:1),POOL=[["speed","bomb","wall","ghost","shield","teleport","phoenix","mine","smoke","medic","decoy","zap","fort","beacon","tar","flash","evade","armor","clones","shockwave","rally","aegis","timestop"],["speed","rope","wave","magnet","snow","turbo","stun","web","cage","blink","goo","timewarp","pounce"]];
 function freeze(o){if(o.fz||o.gh>0)return false;if(o.sh>0){o.sh--;return false}o.fz=1;o.th=0;return true}
 const KITS={speed:"⚡ Speed",bomb:"💣 Thaw Bomb",wall:"🧱 Barrier",rope:"🪢 Rope",wave:"🌀 Freeze Wave",ghost:"👻 Ghost",shield:"🛡 Shield",teleport:"🔀 Teleport",phoenix:"🔥 Phoenix (thaw all)",mine:"🧨 Mine",magnet:"🧲 Magnet",snow:"❄ Snowball",turbo:"🚀 Turbo",stun:"📢 Stun Blast",web:"🕸 Web Trap",smoke:"💨 Smoke Screen",medic:"⛑ Medic",decoy:"🧍 Decoy",zap:"🌩 Lightning Zap",fort:"🏰 Fort",cage:"🔒 Cage",blink:"✨ Blink",goo:"🟢 Goo Trap",timewarp:"⏳ Time Warp",pounce:"🐆 Pounce",beacon:"📡 Beacon",tar:"🛢 Tar Pit",flash:"📸 Flash",evade:"🌀 Evade",armor:"🥋 Armor",clones:"👥 Clones",shockwave:"💥 Shockwave",rally:"📣 Rally",aegis:"🏅 Aegis",timestop:"⏱ Time Stop"};
 const KCOST={speed:1,bomb:2,wall:1,ghost:2,shield:2,teleport:2,phoenix:3,mine:1,smoke:2,medic:2,decoy:1,zap:2,fort:2,beacon:2,tar:2,flash:2,evade:1,armor:3,clones:2,shockwave:2,rally:2,aegis:3,timestop:3,rope:2,wave:2,magnet:2,snow:1,turbo:1,stun:2,web:1,cage:3,blink:1,goo:1,timewarp:3,pounce:3};
 const KAI={tar:200,flash:150,armor:200,clones:250,shockwave:100,rally:150,aegis:200,timestop:110};
 const KDESC={speed:"Run 1.6x faster for 4s",bomb:"Throw a bomb that unfreezes nearby",wall:"Wall freezers can't cross",ghost:"Untouchable for 5s",shield:"Blocks 1 freeze",teleport:"Jump far away",phoenix:"Thaw every frozen runner",mine:"Stuns the freezer who steps on it",smoke:"Cloud: invisible inside",medic:"Thaw the 3 nearest frozen",decoy:"Freezers chase a fake runner",zap:"Stun nearest freezer",fort:"Walls all around you",beacon:"Thaw all frozen within 300px",tar:"Slow freezers within 250px",flash:"Stun freezers within 220px",evade:"Quick dash forward",armor:"Blocks 3 freezes",clones:"4 decoys around you",shockwave:"Knock freezers back",rally:"Speed up all runners",aegis:"Shield nearby runners",timestop:"Stun every freezer 2s",rope:"Shoot and drag a runner to you",wave:"Freeze runners within 110px",magnet:"Pull runners near you",snow:"Snowball freezes on hit",turbo:"Sprint 2.4x for 1.5s",stun:"Stun runners within 200px",web:"Trap that stuns a runner",cage:"Wall in the nearest runner",blink:"Quick jump forward",goo:"Goo slows runners",timewarp:"Slow all runners 5s",pounce:"Leap onto the nearest runner"};
+for(const k in KCOST)KCOST[k]*=4;
 const earn=(n=1)=>{coins+=n;saveKits()};
 function boom(px,py,r,type,by){fx.push({x:px,y:py,r,t:30});for(const o of actors()){if(Math.hypot(o.x-px,o.y-py)>=r)continue;
  if(type==="thaw"&&o.fz){o.fz=0;o.th=0;if(by===P){score+=25;earn()}if(o===P)say("🔥 You were thawed!")}
  else if(type==="freeze"&&o!==by){if(freeze(o)&&by===P){score+=20;earn()}}}}
 function useKit(o,a,dist=230){const k=o.kit;if(!k||(o.fz&&o!==P))return;
- if(o===P){if(P.cd>0){say(`${KITS[k]} cooling down ${Math.ceil(P.cd/60)}s`);return}P.cd=KCOST[k]*200}else{o.kit=null;o.kk=k;o.kc=720}
+ if(o===P){if(P.cd>0){say(`${KITS[k]} cooling down ${Math.ceil(P.cd/60)}s`);return}P.cd=KCOST[k]*50}else{o.kit=null;o.kk=k;o.kc=720}
  const thr=[...chasers,...(P.fr&&o!==P?[P]:[])];
  if(k==="speed"){o.sp=240;if(o===P)say("⚡ Speed boost!")}
  else if(k==="bomb")pj.push({k:"bomb",x:o.x,y:o.y,a,d:0,max:dist,by:o});
@@ -177,7 +178,7 @@ function update(){
  if(P.fz)P.pl=null;
  if(P.pl)pull(P);
  else if(P.stun>0){P.stun--}
- else if(P.fz)P.a+=dx*.05;
+ else if(P.fz){P.a+=dx*.05;if(dash>0)step(P,P.a,5)}
  else if(!P.fz){P.a+=dx*.05;const sp=(dash>0?5:2.6)*sb(P);if(dy){step(P,P.a+(dy>0?Math.PI:0),sp)}else if(dash>0)step(P,P.a,sp)}
  if(dash>0)dash-=1;if(dashCd>0)dashCd-=1;
  const all=actors();for(const o of[P,...mates,...chasers]){if(o.sp>0)o.sp-=1;if(o.tb>0)o.tb-=1;if(o.gh>0)o.gh-=1;if(o.sl>0)o.sl-=1;if(o.cd>0)o.cd--;if(o.kc>0&&--o.kc<=0)o.kit=o.kk}
