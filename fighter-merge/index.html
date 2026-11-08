@@ -14,9 +14,9 @@ button.b{border:0;border-radius:.5rem;color:#1a0b0b;cursor:pointer;font:inherit;
 button.b:disabled{opacity:.5;cursor:default}
 #m{min-height:1.5rem;font-weight:bold}
 #field{position:relative;height:11rem;margin:.5rem 0;border-radius:.6rem;background:linear-gradient(#3b1d1d,#1f0d0d);overflow:hidden}
-.u{position:absolute;font-size:1.7rem;line-height:1;transition:transform .15s,opacity .4s,filter .4s,left .9s ease-in-out,top .9s ease-in-out;will-change:transform}
+.u{position:absolute;font-size:1.7rem;line-height:1;transition:transform .25s,opacity .6s,filter .6s,left 1.5s ease-in-out,top 1.5s ease-in-out;will-change:transform}
 .u.enemy{transform:scaleX(-1)}
-.proj{position:absolute;font-size:1.2rem;transition:left .35s linear,top .35s ease-out;pointer-events:none;z-index:2}
+.proj{position:absolute;font-size:1.2rem;transition:left .55s linear,top .55s ease-out;pointer-events:none;z-index:2}
 button.b+button.b{margin-left:.2rem}
 .u.l1{transform:translateX(1.6rem)}.u.enemy.l1{transform:scaleX(-1) translateX(1.6rem)}
 .u.dead{opacity:0;filter:grayscale(1);transform:rotate(80deg) translateY(.8rem)}
@@ -66,14 +66,14 @@ $("#fight").onclick=async()=>{
   e._l=side?80-c*14:base+c*14;e._t=50+(r-(rows-1)/2)*18;e.style.left=e._l+"%";e.style.top=e._t+"%";e.style.marginTop="-.85rem";F.append(e);return e};
  const A=mine.map((l,i)=>mk(face(l),0,i,mine.length)),T=thr.map((l,i)=>mk(face(l),0,i,thr.length,4)),E=Array.from({length:ne},(_,i)=>mk(boss&&i===0?"🐲":"👹",1,i,ne));
  const fx=(el,ch)=>{const d=document.createElement("span");d.className="fx";d.textContent=ch;d.style.left=el.offsetLeft+"px";d.style.top=el.offsetTop+"px";F.append(d);setTimeout(()=>d.remove(),500)};
- const throwAt=(from,to,ch)=>{const p=document.createElement("span");p.className="proj";p.textContent=ch;p.style.left=from.offsetLeft+"px";p.style.top=from.offsetTop+"px";F.append(p);requestAnimationFrame(()=>requestAnimationFrame(()=>{p.style.left=to.offsetLeft+"px";p.style.top=to.offsetTop+"px"}));setTimeout(()=>p.remove(),400)},
+ const throwAt=(from,to,ch)=>{const p=document.createElement("span");p.className="proj";p.textContent=ch;p.style.left=from.offsetLeft+"px";p.style.top=from.offsetTop+"px";F.append(p);requestAnimationFrame(()=>requestAnimationFrame(()=>{p.style.left=to.offsetLeft+"px";p.style.top=to.offsetTop+"px"}));setTimeout(()=>p.remove(),600)},
   go=(u,tg,dir,j)=>{u.style.left=Math.max(2,Math.min(88,tg._l+dir*(8+Math.floor(j/3)*5)))+"%";u.style.top=Math.max(8,Math.min(86,tg._t+((j%3)-1)*10))+"%"},
   home=u=>{u.style.left=u._l+"%";u.style.top=u._t+"%"};
- await sleep(600);
+ await sleep(900);
  let fighting=true;const alive=l=>l.filter(u=>!u.classList.contains("dead")),pick=l=>l[Math.floor(Math.random()*l.length)];
  (async()=>{let tick=0;while(fighting){const le=alive(E);T.forEach((u,j)=>{if(u.classList.contains("dead")||!le.length)return;throwAt(u,pick(le),AMMO[-thr[j]-1])});
   if(tick++%16===0){const mine=alive([...A,...T]);if(mine.length)le.forEach((e,j)=>{if(j%2)throwAt(e,pick(mine),"🔥")})}
-  await sleep(76)}})();
+  await sleep(120)}})();
  const win=w,loser=w?[...E].sort((x,y)=>x._l-y._l):[...A].sort((x,y)=>y._l-x._l).concat([...T].sort((x,y)=>y._l-x._l)),n=loser.length,
   R=Math.min(14,Math.max(6,n+3)),rate=Math.min(60,(w?f/t:t/f)*60);let dead=0;
  for(let r=1;r<=R;r++){
@@ -81,13 +81,13 @@ $("#fight").onclick=async()=>{
   la.forEach((u,j)=>{const e=le[j%le.length];if(e)pairs.push([u,e])});
   le.forEach((e,j)=>{const u=mineT[j%mineT.length];if(u)pairs.push([e,u])});
   la.forEach((u,j)=>{const e=le[j%le.length];if(!e)return;u.style.left=Math.max(2,e._l-8-Math.floor(j/3)*4)+"%";u.style.top=Math.max(8,Math.min(86,e._t+((j%3)-1)*8))+"%"});
-  await sleep(950);
+  await sleep(1550);
   [...la,...le].forEach(u=>u.classList.add("l1"));
   pairs.forEach(([u,v])=>{if(Math.random()<.7)fx(v,u.classList.contains("enemy")?"💢":"💥")});
-  await sleep(160);[...la,...le].forEach(u=>u.classList.remove("l1"));
+  await sleep(260);[...la,...le].forEach(u=>u.classList.remove("l1"));
   const want=Math.ceil(n*r/R);while(dead<want){loser[dead++].classList.add("dead")}
   const done=r/R;$(w?"#h2":"#h1").style.width=100*(1-done)+"%";$(w?"#h1":"#h2").style.width=(100-done*rate)+"%";
-  await sleep(180)} fighting=false;[...A,...E].forEach(home);await sleep(500); if(w){const win=8+st.wave*5;st.coins+=win;$("#m").textContent=`Victory! +🪙${win}`;st.wave++;st.best=Math.max(st.best,st.wave)}
+  await sleep(280)} fighting=false;[...A,...E].forEach(home);await sleep(500); if(w){const win=8+st.wave*5;st.coins+=win;$("#m").textContent=`Victory! +🪙${win}`;st.wave++;st.best=Math.max(st.best,st.wave)}
  else{const c=Math.ceil(costT()/4);st.coins+=c;$("#m").textContent=`Defeated! +🪙${c}. Merge up and try again.`}
  save();busy=false;$("#buy").disabled=$("#buyT").disabled=false;$("#fight").disabled=false;$("#co").textContent="🪙 "+st.coins;$("#wv").textContent="Wave "+st.wave;$("#bs").textContent="Best wave "+st.best;
  await sleep(1800);if(!busy)F.hidden=true};
