@@ -10,7 +10,7 @@ button{border:0;border-radius:.5rem;background:#cffafe;color:#083344;cursor:poin
 <body><main><a href="../">← All games</a><h1>🥶 Freeze Tag 3D</h1>
 <p>You are one of 30 runners being hunted by 10 red freezers on a huge map. Get touched and you freeze solid! Touch a frozen teammate to thaw them instantly, and they'll do the same for you. Survive until the timer ends, and don't let everyone get frozen at once.</p>
 <p><strong>Freezer mode:</strong> you are a freezer with 9 AI partners. Chase down all 15 runners and have every one frozen at the same time before the clock runs out, while the runners keep thawing each other.</p>
-<p><strong>Kits:</strong> grab 🎁 boxes. Runners get Speed, Thaw Bomb (explosion that unfreezes), Barrier (a wall freezers can't cross), Ghost, Shield, Teleport, Phoenix (thaws everyone) or Mine. Freezers get Speed, Rope (drags a runner to you), Freeze Wave, Magnet, Snowball, Turbo, Stun Blast or Web Trap. The AI uses them too.</p>
+<p><strong>Kits:</strong> grab 🎁 boxes. Runners get Speed, Thaw Bomb (explosion that unfreezes), Barrier (a wall freezers can't cross), Ghost, Shield, Teleport, Phoenix (thaws everyone) or Mine, Smoke Screen, Medic, Decoy, Lightning Zap or Fort. Freezers get Speed, Rope (drags a runner to you), Freeze Wave, Magnet, Snowball, Turbo, Stun Blast, Web Trap, Cage, Blink, Goo Trap, Time Warp or Pounce. The AI uses them too.</p>
 <p><strong>Maps:</strong> Arena, Maze, Castle, City and Forest. Auto cycles one per level, or pick one with the map button (M).</p>
 <p><strong>W/S or ↑/↓</strong> run · <strong>A/D or ←/→</strong> turn, or click the game and move the mouse (Esc to release) · <strong>Space / E</strong> dash · <strong>Q / F</strong> use kit · <strong>Enter</strong> start</p>
 <div class="modes"><button id="mRun" type="button">🏃 Play Runner (1)</button><button id="mFrz" type="button">🥶 Play Freezer (2)</button><button id="mMap" type="button">🗺 Map: Auto (M)</button></div>
@@ -21,13 +21,13 @@ button{border:0;border-radius:.5rem;background:#cffafe;color:#083344;cursor:poin
 const C=document.querySelector("#g"),x=C.getContext("2d"),W=640,H=480,AR=2500,PR=10,CS=50,NG=AR/CS,BS=125,BW=Math.ceil(AR/BS),NR=30,NF=10;
 const KEYS={ArrowUp:"up",KeyW:"up",ArrowDown:"down",KeyS:"down",ArrowLeft:"left",KeyA:"left",ArrowRight:"right",KeyD:"right",KeyE:"act",Space:"act",Enter:"act",KeyQ:"kit",KeyF:"kit"};
 const MAPS=[{n:"Arena",f0:"#14532d",f1:"#22c55e",wc:"#38bdf8"},{n:"Maze",f0:"#1e293b",f1:"#475569",wc:"#15803d"},{n:"Castle",f0:"#365314",f1:"#84cc16",wc:"#94a3b8"},{n:"City",f0:"#111827",f1:"#4b5563",wc:"#475569"},{n:"Forest",f0:"#052e16",f1:"#16a34a",wc:"#166534"}];
-let role="runner",mode="title",level=1,score=0,hi=0,t=0,time=0,held={},P,mates=[],chasers=[],rects=[],pieces=[],bk=[],blocked=null,boxes=[],pj=[],fx=[],walls=[],traps=[],mapSel=-1,mapI=0,msg="",msgT=0,dash=0,dashCd=0,camA=0;
+let role="runner",mode="title",level=1,score=0,hi=0,t=0,time=0,held={},P,mates=[],chasers=[],rects=[],pieces=[],bk=[],blocked=null,boxes=[],pj=[],fx=[],walls=[],traps=[],decoys=[],mapSel=-1,mapI=0,msg="",msgT=0,dash=0,dashCd=0,camA=0;
 try{hi=+localStorage.getItem("freezeTagBest")||0}catch(e){}
 const rnd=(a,b)=>a+Math.random()*(b-a),ri=(a,b)=>Math.floor(rnd(a,b+1));
 function free(a,b,r,w){if(!(a>r&&a<AR-r&&b>r&&b<AR-r))return false;
  const g0=Math.max(0,(a-r)/BS|0),g1=Math.min(BW-1,(a+r)/BS|0),h0=Math.max(0,(b-r)/BS|0),h1=Math.min(BW-1,(b+r)/BS|0);
  for(let i=g0;i<=g1;i++)for(let j=h0;j<=h1;j++){const L=bk[i+j*BW];if(L)for(const q of L)if(a>q.x0-r&&a<q.x1+r&&b>q.y0-r&&b<q.y1+r)return false}
- if(w)for(const q of walls)if(a>q.x0-r&&a<q.x1+r&&b>q.y0-r&&b<q.y1+r)return false
+ if(w)for(const q of walls)if(q.s===w&&a>q.x0-r&&a<q.x1+r&&b>q.y0-r&&b<q.y1+r)return false
  return true}
 function los(a,b,c,d){const n=Math.ceil(Math.hypot(c-a,d-b)/8);for(let i=1;i<n;i++){if(!free(a+(c-a)*i/n,b+(d-b)*i/n,3))return false}return true}
 function add(x0,y0,x1,y1,h,c,solid=true){
@@ -80,12 +80,12 @@ function setup(){
  chasers=[];for(let i=0;i<cn;i++)chasers.push(mk(fr?250:500,{pause:60,fr:true}));
  const rn=fr?15:NR-1;
  mates=[];for(let i=0;i<rn;i++)mates.push(mk(fr?300:90,{c:`hsl(${i*37%360} 70% 52%)`,wx:0,wy:0,wt:0,fg:null,ft:0}));
- boxes=[];for(let i=0;i<18;i++){const[a,b]=spot(placed,0);boxes.push({x:a,y:b,on:true,t:0})}pj=[];fx=[];walls=[];traps=[];
+ boxes=[];for(let i=0;i<18;i++){const[a,b]=spot(placed,0);boxes.push({x:a,y:b,on:true,t:0})}pj=[];fx=[];walls=[];traps=[];decoys=[];
  time=(fr?Math.max(150,300-level*10):Math.min(240,150+level*10))*60;dash=0;dashCd=0;msg="";msgT=0}
 function begin(){setup();mode="play";say(`Level ${level} · ${MAPS[mapI].n}: `+(role==="freezer"?`freeze all ${mates.length} runners!`:"don't get frozen!"))}
 function pick(r){role=r;level=1;score=0;begin()}
 function end(win,m){mode=win?"won":"lost";msg=m;if(win){level+=1}if(score>hi){hi=score;try{localStorage.setItem("freezeTagBest",hi)}catch(e){}}}
-function step(o,ang,spd){const bw=o.fr&&walls.length&&free(o.x,o.y,PR,true);for(const d of[0,.5,-.5,1,-1,1.6,-1.6]){const a=ang+d,nx=o.x+Math.cos(a)*spd,ny=o.y+Math.sin(a)*spd;if(free(nx,ny,PR,bw)){o.x=nx;o.y=ny;return}if(free(nx,o.y,PR,bw)){o.x=nx;return}if(free(o.x,ny,PR,bw)){o.y=ny;return}}}
+function step(o,ang,spd){const sd=o.fr?1:2,bw=walls.length&&free(o.x,o.y,PR,sd)?sd:0;for(const d of[0,.5,-.5,1,-1,1.6,-1.6]){const a=ang+d,nx=o.x+Math.cos(a)*spd,ny=o.y+Math.sin(a)*spd;if(free(nx,ny,PR,bw)){o.x=nx;o.y=ny;return}if(free(nx,o.y,PR,bw)){o.x=nx;return}if(free(o.x,ny,PR,bw)){o.y=ny;return}}}
 const toward=(o,tx,ty,spd)=>step(o,Math.atan2(ty-o.y,tx-o.x),spd);
 const DX=[1,-1,0,0,1,1,-1,-1],DY=[0,0,1,-1,1,-1,1,-1],pv=new Int32Array(NG*NG),qu=new Int32Array(NG*NG);
 function route(sx,sy,gx,gy){
@@ -103,9 +103,9 @@ function go(o,tx,ty,spd){
  o.pt--;while(o.path.length&&Math.hypot(o.path[0][0]-o.x,o.path[0][1]-o.y)<18)o.path.shift();
  const w=o.path[0];if(w)toward(o,w[0],w[1],spd);else toward(o,tx,ty,spd)}
 function act(){if(mode!=="play"){if(mode==="lost"){level=1;score=0}begin();return}if(dashCd<=0&&!P.fz){dash=18;dashCd=150}}
-const sb=o=>o.tb>0?2.4:o.sp>0?1.6:1,POOL=[["speed","bomb","wall","ghost","shield","teleport","phoenix","mine"],["speed","rope","wave","magnet","snow","turbo","stun","web"]];
+const sb=o=>(o.tb>0?2.4:o.sp>0?1.6:1)*(o.sl>0?.5:1),POOL=[["speed","bomb","wall","ghost","shield","teleport","phoenix","mine","smoke","medic","decoy","zap","fort"],["speed","rope","wave","magnet","snow","turbo","stun","web","cage","blink","goo","timewarp","pounce"]];
 function freeze(o){if(o.fz||o.gh>0)return false;if(o.sh){o.sh=false;return false}o.fz=1;o.th=0;return true}
-const KITS={speed:"⚡ Speed",bomb:"💣 Thaw Bomb",wall:"🧱 Barrier",rope:"🪢 Rope",wave:"🌀 Freeze Wave",ghost:"👻 Ghost",shield:"🛡 Shield",teleport:"🔀 Teleport",phoenix:"🔥 Phoenix (thaw all)",mine:"🧨 Mine",magnet:"🧲 Magnet",snow:"❄ Snowball",turbo:"🚀 Turbo",stun:"📢 Stun Blast",web:"🕸 Web Trap"};
+const KITS={speed:"⚡ Speed",bomb:"💣 Thaw Bomb",wall:"🧱 Barrier",rope:"🪢 Rope",wave:"🌀 Freeze Wave",ghost:"👻 Ghost",shield:"🛡 Shield",teleport:"🔀 Teleport",phoenix:"🔥 Phoenix (thaw all)",mine:"🧨 Mine",magnet:"🧲 Magnet",snow:"❄ Snowball",turbo:"🚀 Turbo",stun:"📢 Stun Blast",web:"🕸 Web Trap",smoke:"💨 Smoke Screen",medic:"⛑ Medic",decoy:"🧍 Decoy",zap:"🌩 Lightning Zap",fort:"🏰 Fort",cage:"🔒 Cage",blink:"✨ Blink",goo:"🟢 Goo Trap",timewarp:"⏳ Time Warp",pounce:"🐆 Pounce"};
 function boom(px,py,r,type,by){fx.push({x:px,y:py,r,t:30});for(const o of actors()){if(Math.hypot(o.x-px,o.y-py)>=r)continue;
  if(type==="thaw"&&o.fz){o.fz=0;o.th=0;if(by===P)score+=25;if(o===P)say("🔥 You were thawed!")}
  else if(type==="freeze"&&o!==by){if(freeze(o)&&by===P)score+=20}}}
@@ -113,7 +113,7 @@ function useKit(o,a,dist=230){const k=o.kit;if(!k||(o.fz&&o!==P))return;o.kit=nu
  if(k==="speed"){o.sp=240;if(o===P)say("⚡ Speed boost!")}
  else if(k==="bomb")pj.push({k:"bomb",x:o.x,y:o.y,a,d:0,max:dist,by:o});
  else if(k==="rope")pj.push({k:"rope",x:o.x,y:o.y,a,d:0,max:450,by:o});
- else if(k==="wall"){const wx=o.x+Math.cos(a)*60,wy=o.y+Math.sin(a)*60,h=Math.abs(Math.cos(a))>Math.abs(Math.sin(a));walls.push({x0:h?wx-7:wx-45,x1:h?wx+7:wx+45,y0:h?wy-45:wy-7,y1:h?wy+45:wy+7,t:900});if(o===P)say("🧱 Barrier up! Freezers can't pass")}
+ else if(k==="wall"){const wx=o.x+Math.cos(a)*60,wy=o.y+Math.sin(a)*60,h=Math.abs(Math.cos(a))>Math.abs(Math.sin(a));walls.push({x0:h?wx-7:wx-45,x1:h?wx+7:wx+45,y0:h?wy-45:wy-7,y1:h?wy+45:wy+7,t:900,s:1});if(o===P)say("🧱 Barrier up! Freezers can't pass")}
  else if(k==="wave"){boom(o.x,o.y,110,"freeze",o);if(o===P)say("🌀 Freeze wave!")}
  else if(k==="ghost"){o.gh=300;if(o===P)say("👻 Ghost! Freezers can't touch you")}
  else if(k==="shield"){o.sh=true;if(o===P)say("🛡 Shield ready: blocks one freeze")}
@@ -124,12 +124,24 @@ function useKit(o,a,dist=230){const k=o.kit;if(!k||(o.fz&&o!==P))return;o.kit=nu
  else if(k==="snow")pj.push({k:"snow",x:o.x,y:o.y,a,d:0,max:350,by:o});
  else if(k==="turbo"){o.tb=90;if(o===P)say("🚀 Turbo!")}
  else if(k==="stun"){for(const q of actors())if(!q.fz&&Math.hypot(q.x-o.x,q.y-o.y)<200)q.stun=180;fx.push({x:o.x,y:o.y,r:70,t:20});if(o===P)say("📢 Stun blast!")}
- else if(k==="web"){traps.push({x:o.x+Math.cos(a)*60,y:o.y+Math.sin(a)*60,t:1800,k:"web"});if(o===P)say("🕸 Web set: stuns runners")}}
+ else if(k==="web"){traps.push({x:o.x+Math.cos(a)*60,y:o.y+Math.sin(a)*60,t:1800,k:"web"});if(o===P)say("🕸 Web set: stuns runners")}
+ else if(k==="smoke"){traps.push({x:o.x,y:o.y,t:420,k:"smoke"});if(o===P)say("💨 Smoke screen: invisible inside")}
+ else if(k==="medic"){const fz=actors().filter(q=>q.fz).sort((p,q)=>Math.hypot(p.x-o.x,p.y-o.y)-Math.hypot(q.x-o.x,q.y-o.y)).slice(0,3);for(const q of fz){q.fz=0;q.th=0;if(o===P)score+=25}if(o===P)say(`⛑ Medic! Thawed ${fz.length}`)}
+ else if(k==="decoy"){decoys.push({x:o.x+Math.cos(a)*80,y:o.y+Math.sin(a)*80,t:600});if(o===P)say("🧍 Decoy placed: freezers chase it")}
+ else if(k==="zap"){let z=null,zd=400;for(const q of[...chasers,...(P.fr?[P]:[])]){const d=Math.hypot(q.x-o.x,q.y-o.y);if(q!==o&&d<zd){zd=d;z=q}}if(z){z.stun=240;fx.push({x:z.x,y:z.y,r:60,t:20})}if(o===P)say(z?"🌩 Zap! Freezer stunned":"🌩 Nothing in range")}
+ else if(k==="fort"){for(const[wx,wy,h]of[[o.x-45,o.y,1],[o.x+45,o.y,1],[o.x,o.y-45,0],[o.x,o.y+45,0]])walls.push({x0:h?wx-7:wx-50,x1:h?wx+7:wx+50,y0:h?wy-50:wy-7,y1:h?wy+50:wy+7,t:600,s:1});if(o===P)say("🏰 Fort! Freezers can't enter")}
+ else if(k==="cage"){let z=null,zd=350;for(const q of actors()){const d=Math.hypot(q.x-o.x,q.y-o.y);if(q!==o&&!q.fz&&d<zd){zd=d;z=q}}
+  if(z)for(const[wx,wy,h]of[[z.x-45,z.y,1],[z.x+45,z.y,1],[z.x,z.y-45,0],[z.x,z.y+45,0]])walls.push({x0:h?wx-7:wx-50,x1:h?wx+7:wx+50,y0:h?wy-50:wy-7,y1:h?wy+50:wy+7,t:600,s:2});if(o===P)say(z?"🔒 Runner caged!":"🔒 Nobody in range")}
+ else if(k==="blink"){let d=0;while(d<250&&free(o.x+Math.cos(a)*6,o.y+Math.sin(a)*6,PR)){o.x+=Math.cos(a)*6;o.y+=Math.sin(a)*6;d+=6}o.path=null;if(o===P)say("✨ Blink!")}
+ else if(k==="goo"){traps.push({x:o.x+Math.cos(a)*60,y:o.y+Math.sin(a)*60,t:900,k:"goo"});if(o===P)say("🟢 Goo set: slows runners")}
+ else if(k==="timewarp"){for(const q of actors())q.sl=300;if(o===P)say("⏳ Time warp! Runners slowed")}
+ else if(k==="pounce"){let z=null,zd=500;for(const q of actors()){const d=Math.hypot(q.x-o.x,q.y-o.y);if(q!==o&&!q.fz&&d<zd){zd=d;z=q}}
+  if(z){const nx=z.x+(o.x-z.x)/zd*18,ny=z.y+(o.y-z.y)/zd*18;if(free(nx,ny,PR)){o.x=nx;o.y=ny;o.path=null}}if(o===P)say(z?"🐆 Pounce!":"🐆 Nobody in range")}}
 function pull(o){const b=o.pl.by;if(--o.pl.t<=0||Math.hypot(b.x-o.x,b.y-o.y)<18){o.pl=null;return}toward(o,b.x,b.y,5)}
 function aimPt(){const k=P.kit;if(!k)return null;
- if(k==="wall"||k==="web")return[P.x+Math.cos(P.a)*60,P.y+Math.sin(P.a)*60];
- const mx=k==="bomb"?230:k==="rope"?450:k==="snow"?350:0;if(!mx)return null;
- const hit=k!=="bomb",tg=actors().filter(o=>o!==P&&!o.fz);let d=0,px=P.x,py=P.y;
+ if(k==="wall"||k==="web"||k==="goo")return[P.x+Math.cos(P.a)*60,P.y+Math.sin(P.a)*60];
+ const mx=k==="bomb"?230:k==="rope"?450:k==="snow"?350:k==="blink"?250:0;if(!mx)return null;
+ const hit=k==="rope"||k==="snow",tg=actors().filter(o=>o!==P&&!o.fz);let d=0,px=P.x,py=P.y;
  while(d<mx){const nx=P.x+Math.cos(P.a)*(d+6),ny=P.y+Math.sin(P.a)*(d+6);if(!free(nx,ny,2))break;px=nx;py=ny;d+=6;if(hit&&tg.some(o=>Math.hypot(o.x-nx,o.y-ny)<16))break}
  return[px,py]}
 function nearBox(o,r){let b=null,bd=r;for(const q of boxes){if(!q.on)continue;const d=Math.hypot(q.x-o.x,q.y-o.y);if(d<bd){bd=d;b=q}}return b}
@@ -143,14 +155,15 @@ function update(){
  else if(P.fz)P.a+=dx*.05;
  else if(!P.fz){P.a+=dx*.05;const sp=(dash>0?5:2.6)*sb(P);if(dy){step(P,P.a+(dy>0?Math.PI:0),sp)}else if(dash>0)step(P,P.a,sp)}
  if(dash>0)dash-=1;if(dashCd>0)dashCd-=1;
- const all=actors();for(const o of[P,...mates,...chasers]){if(o.sp>0)o.sp-=1;if(o.tb>0)o.tb-=1;if(o.gh>0)o.gh-=1}
+ const all=actors();for(const o of[P,...mates,...chasers]){if(o.sp>0)o.sp-=1;if(o.tb>0)o.tb-=1;if(o.gh>0)o.gh-=1;if(o.sl>0)o.sl-=1}
  const rs=role==="freezer"?.9:1,threats=role==="freezer"?[...chasers,P]:chasers;
  for(const m of mates){if(m.fz){m.pl=null;continue}if(m.stun>0){m.stun--;continue}if(m.pl){pull(m);continue}
-  if(m.kit==="phoenix"&&all.filter(o=>o.fz).length>=3)useKit(m,0);
+  if(m.kit==="phoenix"&&all.filter(o=>o.fz).length>=3||m.kit==="medic"&&all.some(o=>o.fz))useKit(m,0);
   let ch=null,cd=1e9;for(const c of threats){const d=Math.hypot(c.x-m.x,c.y-m.y);if(d<cd){cd=d;ch=c}}
   if(ch&&cd<220){
    if(m.kit==="speed"&&cd<180)useKit(m,0);else if(m.kit==="wall"&&cd<130)useKit(m,Math.atan2(ch.y-m.y,ch.x-m.x));
-   else if(m.kit==="ghost"&&cd<150||m.kit==="shield"&&cd<200||m.kit==="teleport"&&cd<70||m.kit==="mine"&&cd<160)useKit(m,0);
+   else if(m.kit==="ghost"&&cd<150||m.kit==="shield"&&cd<200||m.kit==="teleport"&&cd<70||m.kit==="mine"&&cd<160||m.kit==="smoke"&&cd<160||m.kit==="fort"&&cd<110||m.kit==="zap"&&cd<300)useKit(m,0);
+   else if(m.kit==="decoy"&&cd<250)useKit(m,Math.atan2(ch.y-m.y,ch.x-m.x));
    if(!m.fg||m.ft--<=0||Math.hypot(m.fg[0]-m.x,m.fg[1]-m.y)<20){let best=null,bs=cd+40;m.fl=true;
     for(let k=0;k<12;k++){const a=k*Math.PI/6,px=m.x+Math.cos(a)*160,py=m.y+Math.sin(a)*160;if(!free(px,py,PR)||!los(m.x,m.y,px,py))continue;const s=Math.hypot(px-ch.x,py-ch.y);if(s>bs){bs=s;best=[px,py]}}
     if(best)m.ft=6;else{m.fl=false;bs=-1e9;for(let k=0;k<6;k++){const[a,b]=spot([],0),s=Math.hypot(a-ch.x,b-ch.y)-.4*Math.hypot(a-m.x,b-m.y);if(s>bs){bs=s;best=[a,b]}}m.ft=45}
@@ -166,9 +179,13 @@ function update(){
  for(const c of chasers){if(c.stun>0){c.stun--;continue}if(c.pause>0){c.pause-=1;continue}
   let tg=null,td=1e9,ts=1e9;for(const o of all){if(o.fz||o.gh>0)continue;const d=Math.hypot(o.x-c.x,o.y-c.y),s=d+o.cl*300;if(s<ts){ts=s;td=d;tg=o}}
   if(!tg)continue;tg.cl+=1;
+  {let dq=null,dd=350;for(const q of decoys){const d=Math.hypot(q.x-c.x,q.y-c.y);if(d<dd){dd=d;dq=q}}
+   if(dq&&dd<td){go(c,dq.x,dq.y,cs*sb(c));if(dd<22){dq.t=0;c.pause=120}continue}}
   if(c.kit){const ang=Math.atan2(tg.y-c.y,tg.x-c.x);
    if(c.kit==="speed"&&td<260)useKit(c,0);else if((c.kit==="rope"&&td>70&&td<400||c.kit==="snow"&&td>50&&td<350)&&los(c.x,c.y,tg.x,tg.y))useKit(c,ang);
-   else if(c.kit==="turbo"&&td>60&&td<350)useKit(c,0);else if(c.kit==="web"&&td<200)useKit(c,ang);
+   else if(c.kit==="turbo"&&td>60&&td<350)useKit(c,0);else if((c.kit==="web"||c.kit==="goo")&&td<220)useKit(c,ang);
+   else if(c.kit==="cage"&&td<300||c.kit==="timewarp"&&td<250||c.kit==="pounce"&&td>60&&td<450)useKit(c,0);
+   else if(c.kit==="blink"&&td>100&&td<300&&los(c.x,c.y,tg.x,tg.y))useKit(c,ang);
    else if((c.kit==="magnet"&&td>100&&td<250||c.kit==="stun"&&td<200)&&all.filter(o=>!o.fz&&Math.hypot(o.x-c.x,o.y-c.y)<250).length>=2)useKit(c,0);
    else if(c.kit==="wave"&&all.filter(o=>!o.fz&&Math.hypot(o.x-c.x,o.y-c.y)<100).length>=2)useKit(c,0)}
   const bx=!c.kit&&td>250?nearBox(c,300):null;
@@ -177,10 +194,12 @@ function update(){
  if(role==="freezer")for(const o of all)if(!o.fz&&Math.hypot(o.x-P.x,o.y-P.y)<24&&freeze(o)){score+=20;say("❄️ Froze one! +20")}
  for(const b of boxes){if(!b.on){if(--b.t<=0){const[a,e]=spot([],0);b.x=a;b.y=e;b.on=true}continue}
   for(const o of[P,...mates,...chasers]){if(o.fz||o.kit||Math.hypot(o.x-b.x,o.y-b.y)>24)continue;
-   o.kit=POOL[o.fr?1:0][ri(0,7)];b.on=false;b.t=900;if(o===P)say(`🎁 Got ${KITS[o.kit]}! Press Q`);break}}
- for(const tr of traps){const vs=tr.k==="mine"?[...chasers,...(P.fr?[P]:[])]:all.filter(o=>!o.fz);
+   const pl=POOL[o.fr?1:0];o.kit=pl[ri(0,pl.length-1)];b.on=false;b.t=900;if(o===P)say(`🎁 Got ${KITS[o.kit]}! Press Q`);break}}
+ for(const tr of traps){
+  if(tr.k==="goo"||tr.k==="smoke"){for(const o of all)if(!o.fz&&Math.hypot(o.x-tr.x,o.y-tr.y)<90){if(tr.k==="goo")o.sl=5;else o.gh=Math.max(o.gh|0,5)}continue}
+  const vs=tr.k==="mine"?[...chasers,...(P.fr?[P]:[])]:all.filter(o=>!o.fz);
   for(const o of vs)if(!o.fz&&Math.hypot(o.x-tr.x,o.y-tr.y)<24){o.stun=tr.k==="mine"?240:180;tr.t=0;if(o===P)say("💫 Stunned!");break}}
- traps=traps.filter(q=>--q.t>0);
+ traps=traps.filter(q=>--q.t>0);decoys=decoys.filter(q=>--q.t>0);
  for(const p of pj){const sp=p.k==="bomb"?6:p.k==="rope"?10:9,nx=p.x+Math.cos(p.a)*sp,ny=p.y+Math.sin(p.a)*sp;p.d+=sp;
   if(p.k!=="bomb")for(const o of all){if(o.fz||o===p.by||o.gh>0||Math.hypot(o.x-nx,o.y-ny)>16)continue;if(p.k==="rope"){o.pl={by:p.by,t:70};if(o===P)say("🪢 Roped! You're being pulled in")}else if(freeze(o)&&p.by===P)score+=20;p.dead=true;break}
   if(p.dead)continue;
@@ -219,11 +238,12 @@ function draw3d(){
  const rope=(a,b)=>{const n=Math.floor(Math.hypot(b.x-a.x,b.y-a.y)/30);for(let i=1;i<=n;i++)em(a.x+(b.x-a.x)*i/n,a.y+(b.y-a.y)*i/n,22,"●",12,"#a16207")};
  for(const b of boxes)if(b.on)em(b.x,b.y,30+Math.sin(t/12)*5,"🎁",40);
  const ap=mode==="play"?aimPt():null;if(ap)em(ap[0],ap[1],6,"🎯",30);
- for(const q of traps)em(q.x,q.y,6,q.k==="mine"?"🧨":"🕸",28);
+ for(const q of traps)em(q.x,q.y,6,{mine:"🧨",web:"🕸",goo:"🟢",smoke:"💨"}[q.k],q.k==="goo"||q.k==="smoke"?70:28);
+ for(const q of decoys)em(q.x,q.y,0,"🧍",52);
  for(const p of pj){em(p.x,p.y,22,p.k==="bomb"?"💣":p.k==="snow"?"❄️":"🪢",30);if(p.k==="rope")rope(p.by,p)}
  for(const f of fx)em(f.x,f.y,30,"💥",f.r*(1.3-f.t/40));
  for(const o of actors())if(o.pl)rope(o.pl.by,o);
- for(const w of walls){const d=Math.hypot((w.x0+w.x1)/2-c.x,(w.y0+w.y1)/2-c.y);if(d<FAR)items.push({d,f(){box(w.x0,w.y0,w.x1,w.y1,70,"#22d3ee",fog(d))}})}
+ for(const w of walls){const d=Math.hypot((w.x0+w.x1)/2-c.x,(w.y0+w.y1)/2-c.y);if(d<FAR)items.push({d,f(){box(w.x0,w.y0,w.x1,w.y1,70,w.s===2?"#f87171":"#22d3ee",fog(d))}})}
  for(const q of pieces){const d=Math.hypot(q.cx-c.x,q.cy-c.y);if(d>FAR+100)continue;items.push({d,f(){box(q.x0,q.y0,q.x1,q.y1,q.h,q.c,fog(d))}})}
  const who=(o,body,label)=>{const d=Math.hypot(o.x-c.x,o.y-c.y);if(d>FAR)return;items.push({d,f(){const b=tr(o.x,o.y,0);if(b[2]<N)return;const z=F/b[2],P2=pr(b),w=26*z;
   x.globalAlpha=o.gh>0?.3:1;x.fillStyle="rgb(0 0 0 / 30%)";x.beginPath();x.ellipse(P2[0],P2[1],w*.8,w*.22,0,0,7);x.fill();
