@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cup Shuffle | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#1e1b4b;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#7c2d12,#1e1b4b)}
+main{width:min(100%,32rem);padding:1.5rem;border:.2rem solid #fbbf24;border-radius:1.25rem;background:rgb(30 27 75 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.6rem 0;color:#fde68a;font-size:1.6rem}
+#t{position:relative;height:11rem;margin:1rem 0}
+.cup{position:absolute;top:2.5rem;width:5.5rem;height:6.5rem;border:0;padding:0;cursor:pointer;background:linear-gradient(#ef4444,#991b1b);clip-path:polygon(10% 0,90% 0,100% 100%,0 100%);transition:left var(--sp,.5s) ease,transform .35s;touch-action:manipulation;font-size:2rem}
+.cup.up{transform:translateY(-3rem)}
+.ball{position:absolute;top:8.2rem;width:2rem;height:2rem;border-radius:50%;background:#fde047;transition:left var(--sp,.5s) ease,opacity .2s}
+.bar{display:flex;justify-content:center;gap:1rem;font-weight:bold;color:#fde68a}
+button.go{border:0;border-radius:.5rem;background:#fbbf24;color:#1e1b4b;cursor:pointer;font:inherit;font-weight:bold;padding:.6rem 1.2rem}
+#m{min-height:1.6rem;font-weight:bold}
+</style></head>
+<body><main><a href="../">← All games</a><h1>🥤 Cup Shuffle</h1>
+<p>Watch where the ball goes, follow the cups as they swap, then pick the one hiding the ball. Each round gets faster!</p>
+<div class="bar"><span id="lv">Round 1</span><span id="bs">Best 0</span></div>
+<div id="t"></div><div id="m">Press Start</div><button class="go" id="st" type="button">Start</button>
+</main>
+<script>
+const T=document.querySelector("#t"),M=document.querySelector("#m"),B=document.querySelector("#st");
+let pos=[0,1,2],cups=[],ball,round=1,best=0,state="idle",hid;
+try{best=+localStorage.getItem("cupShuffleBest")||0}catch(e){}
+const bs=()=>document.querySelector("#bs").textContent="Best "+best,lx=s=>`calc(${s*33.3}% + ${(33.3-17)/2}%)`;
+bs();
+function build(){T.innerHTML="";cups=[0,1,2].map(i=>{const c=document.createElement("button");c.className="cup";c.setAttribute("aria-label","Cup "+(i+1));c.onclick=()=>pick(i);T.append(c);return c});ball=document.createElement("div");ball.className="ball";T.append(ball);place()}
+function place(){cups.forEach((c,i)=>c.style.left=lx(pos[i]));ball.style.left=`calc(${pos[hid]*33.3}% + ${(33.3-6)/2}%)`}
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+async function play(){
+ state="busy";B.hidden=true;document.querySelector("#lv").textContent="Round "+round;pos=[0,1,2];hid=Math.floor(Math.random()*3);
+ const sp=Math.max(.18,.55-round*.04);T.style.setProperty("--sp",sp+"s");build();
+ M.textContent="Remember the ball…";cups[hid].classList.add("up");await wait(1100);cups[hid].classList.remove("up");await wait(450);
+ ball.style.opacity=0;M.textContent="Shuffling…";
+ for(let i=0,n=4+round*2;i<n;i++){const a=Math.floor(Math.random()*3);let b;do b=Math.floor(Math.random()*3);while(b===a);[pos[a],pos[b]]=[pos[b],pos[a]];place();await wait(sp*1000+60)}
+ M.textContent="Which cup hides the ball?";state="pick"}
+async function pick(i){
+ if(state!=="pick")return;state="busy";ball.style.opacity=1;cups[hid].classList.add("up");
+ if(i===hid){M.textContent="Correct! 🎉";round++;if(round-1>best){best=round-1;try{localStorage.setItem("cupShuffleBest",best)}catch(e){}bs()}await wait(1300);play()}
+ else{cups[i].classList.add("up");M.textContent=`Wrong! You made it through ${round-1} round${round===2?"":"s"}.`;round=1;B.textContent="Play again";B.hidden=false;state="idle"}}
+B.onclick=play;build();
+</script></body></html>
