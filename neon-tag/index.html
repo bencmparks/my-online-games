@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="A local two to four player neon tag game.">
-  <title>Neon Tag</title>
+  <meta name="description" content="A local two to four player gravity tag game with up to five robots.">
+  <title>graviTAGs</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Playfair+Display:wght@600&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
@@ -196,17 +196,17 @@
 <body>
   <main>
     <header>
-      <h1>Neon Tag</h1>
+      <h1>graviTAGs</h1>
       <a href="../">← Back home</a>
     </header>
 
-    <div class="scoreboard" aria-label="Neon Tag game status">
+    <div class="scoreboard" aria-label="graviTAGs game status">
       <span>Time</span><span class="score" id="time">35</span>
       <span>Round</span><span class="score" id="round">1</span>
       <span>It</span><span class="score" id="it-player">P1</span>
     </div>
 
-    <canvas id="game" width="840" height="500" aria-label="Neon Tag. Two to four players use shared keyboard controls to avoid being IT."></canvas>
+    <canvas id="game" width="840" height="500" aria-label="graviTAGs. Two to four players use shared keyboard controls to avoid being IT."></canvas>
 
     <div class="touchpads" id="touchpads"></div>
 
@@ -218,6 +218,16 @@
             <option value="2" selected>2 players</option>
             <option value="3">3 players</option>
             <option value="4">4 players</option>
+          </select>
+        </label>
+        <label for="robot-count">Robots
+          <select id="robot-count">
+            <option value="0" selected>No robots</option>
+            <option value="1">1 robot</option>
+            <option value="2">2 robots</option>
+            <option value="3">3 robots</option>
+            <option value="4">4 robots</option>
+            <option value="5">5 robots</option>
           </select>
         </label>
         <label for="map-select">Map
@@ -258,6 +268,7 @@
     const controlsElement = document.querySelector("#controls");
     const playerCountSelect = document.querySelector("#player-count");
     const mapSelect = document.querySelector("#map-select");
+    const robotCountSelect = document.querySelector("#robot-count");
     const continueRoundButton = document.querySelector("#continue-round");
     const restartButton = document.querySelector("#restart");
     const playerColorInputs = [
@@ -333,6 +344,7 @@
       { color: "#d8ff3e", controls: { jump: "i", left: "j", right: "l" }, label: "J/L MOVE · I JUMP" },
       { color: "#8f36ff", controls: { jump: "t", left: "f", right: "h" }, label: "F/H MOVE · T JUMP" }
     ];
+    const spawnPoints = [[130, 140], [710, 140], [130, 330], [710, 330], [420, 100], [420, 420], [280, 230], [560, 230], [420, 300]];
     let players = [];
     let powerups = [];
     let powerupSpawnTime = 0;
@@ -348,18 +360,19 @@
 
     function buildPlayers() {
       const playerCount = Number(playerCountSelect.value);
-      const startPositions = [
-        [170, 150],
-        [670, 350],
-        [670, 150],
-        [170, 350]
-      ];
-      players = playerTemplates.slice(0, playerCount).map((template, index) => ({
+      const robotCount = Number(robotCountSelect.value);
+      const robotColors = ["#ff8a2b", "#9ca3af", "#34d399", "#f87171", "#60a5fa"];
+      const robots = Array.from({ length: robotCount }, (_, index) => ({
+        color: robotColors[index], bot: true, name: `R${index + 1}`, label: ""
+      }));
+      const humans = playerTemplates.slice(0, playerCount).map((template, index) => ({ ...template, name: `P${index + 1}` }));
+      const startPositions = spawnPoints;
+      players = [...humans, ...robots].map((template, index) => ({
         ...template,
+        speed: template.bot ? 175 : 190,
         x: startPositions[index][0],
         y: startPositions[index][1],
         radius: 22,
-        speed: 190,
         jumpSpeed: 610,
         velocityY: 0,
         onGround: false,
@@ -410,12 +423,7 @@
         gameOver = true;
         return;
       }
-      const startPositions = [
-        [130, 140],
-        [710, 140],
-        [130, 330],
-        [710, 330]
-      ];
+      const startPositions = spawnPoints;
       round += 1;
       timeRemaining = secondsPerRound;
       tagCooldown = 1;
@@ -446,13 +454,14 @@
       continueRoundButton.hidden = true;
       buildTouchPads();
       startRound();
-      controlsElement.textContent = players.map((player, index) => `P${index + 1}: ${player.label}`).join(" · ") + ". Pick up S for speed, J for high jumps, or O for a tag shield. Be IT when the round ends and you are out!";
+      controlsElement.textContent = players.filter((player) => !player.bot).map((player) => `${player.name}: ${player.label}`).join(" · ") + (players.some((player) => player.bot) ? ` · ${players.filter((player) => player.bot).length} robot(s) play too` : "") + ". Pick up S for speed, J for high jumps, or O for a tag shield. Be IT when the round ends and you are out!";
     }
 
     function buildTouchPads() {
       const box = document.querySelector("#touchpads");
       box.replaceChildren();
       players.forEach((player, index) => {
+        if (player.bot) return;
         const pad = document.createElement("div");
         pad.className = "touchpad";
         pad.style.setProperty("--pad-color", player.color);
@@ -476,19 +485,61 @@
     function updateStatus() {
       timeElement.textContent = Math.ceil(timeRemaining);
       roundElement.textContent = `${round}/${roundsPerGame}`;
-      itPlayerElement.textContent = `P${itIndex + 1}`;
+      itPlayerElement.textContent = players[itIndex].name;
+    }
+
+    function botInput(bot) {
+      const it = players[itIndex];
+      const others = players.filter((player) => player.active && player !== bot);
+      let dir = 0;
+      let jump = false;
+      if (bot === it) {
+        let target = null;
+        let best = Infinity;
+        others.forEach((player) => {
+          const distance = Math.hypot(player.x - bot.x, player.y - bot.y) + (player.shield ? 160 : 0);
+          if (distance < best) { best = distance; target = player; }
+        });
+        if (target) {
+          const dx = target.x - bot.x;
+          const dy = target.y - bot.y;
+          dir = Math.abs(dx) < 8 ? 0 : Math.sign(dx);
+          jump = dy < -30 && Math.abs(dx) < 240;
+        }
+      } else {
+        const dx = bot.x - it.x;
+        const distance = Math.hypot(dx, bot.y - it.y);
+        if (distance < 300) {
+          dir = dx >= 0 ? 1 : -1;
+          if ((bot.x < 60 && dir < 0) || (bot.x > canvas.width - 60 && dir > 0)) dir = -dir;
+          jump = distance < 150;
+        } else {
+          const prize = powerups.reduce((nearest, powerup) => (!nearest || Math.hypot(powerup.x - bot.x, powerup.y - bot.y) < Math.hypot(nearest.x - bot.x, nearest.y - bot.y) ? powerup : nearest), null);
+          bot.wanderTimer = (bot.wanderTimer || 0) - 1;
+          if (bot.wanderTimer <= 0) { bot.wanderX = 60 + Math.random() * 720; bot.wanderTimer = 120 + Math.random() * 120; }
+          const goalX = prize ? prize.x : bot.wanderX;
+          dir = Math.abs(goalX - bot.x) < 12 ? 0 : Math.sign(goalX - bot.x);
+          jump = prize ? prize.y < bot.y - 30 && Math.abs(prize.x - bot.x) < 160 : false;
+        }
+      }
+      if (bot.onGround && Math.random() < 0.012) jump = true;
+      return { left: dir < 0, right: dir > 0, jump };
     }
 
     function movePlayer(player, delta) {
-      const { jump, left, right } = player.controls;
+      const input = player.bot ? botInput(player) : {
+        left: keys.has(player.controls.left),
+        right: keys.has(player.controls.right),
+        jump: keys.has(player.controls.jump)
+      };
       let dx = 0;
-      if (keys.has(left)) dx -= 1;
-      if (keys.has(right)) dx += 1;
+      if (input.left) dx -= 1;
+      if (input.right) dx += 1;
       const now = performance.now();
       const speed = player.speed * (player.speedBoostUntil > now ? 1.55 : 1);
       player.x += dx * speed * delta;
       player.x = Math.max(player.radius, Math.min(canvas.width - player.radius, player.x));
-      if (keys.has(jump)) {
+      if (input.jump) {
         if (player.onGround && !player.jumpHeld) {
           player.velocityY = -player.jumpSpeed * (player.jumpBoostUntil > now ? 1.3 : 1);
           player.onGround = false;
@@ -690,7 +741,7 @@
       context.fillStyle = "#071523";
       context.font = "700 14px 'DM Mono'";
       context.textAlign = "center";
-      context.fillText(`P${index + 1}`, 0, 5);
+      context.fillText(player.name, 0, 5);
       if (isIt) {
         context.fillStyle = "#d8ff3e";
         context.font = "700 13px 'DM Mono'";
@@ -721,16 +772,16 @@
         context.fillStyle = player.active ? player.color : "rgba(237, 255, 253, 0.42)";
         context.font = "500 13px 'DM Mono'";
         context.textAlign = "left";
-        context.fillText(`P${index + 1}: ${status}`, 30, 43 + index * 25);
+        context.fillText(`${player.name}: ${status}`, 30, 43 + index * 25);
       });
     }
 
     function drawEndScreen() {
       if (!gameOver) return;
       const winnerText = winnerIndexes.length === 1
-        ? `PLAYER ${winnerIndexes[0] + 1} WINS!`
+        ? `${players[winnerIndexes[0]].name} WINS!`
         : winnerIndexes.length > 1
-          ? `PLAYERS ${winnerIndexes.map((index) => index + 1).join(" + ")} SURVIVE!`
+          ? `${winnerIndexes.map((index) => players[index].name).join(" + ")} SURVIVE!`
           : "NO SURVIVORS";
       context.fillStyle = "rgba(5, 7, 20, 0.9)";
       context.fillRect(0, 0, canvas.width, canvas.height);
@@ -755,7 +806,7 @@
       context.fillText(`ROUND ${round} COMPLETE`, canvas.width / 2, canvas.height / 2 - 12);
       context.fillStyle = "#edfffd";
       context.font = "600 19px 'Plus Jakarta Sans'";
-      context.fillText(`Player ${eliminatedPlayerIndex + 1} was IT and is out!`, canvas.width / 2, canvas.height / 2 + 26);
+      context.fillText(`${players[eliminatedPlayerIndex].name} was IT and is out!`, canvas.width / 2, canvas.height / 2 + 26);
       context.font = "600 15px 'Plus Jakarta Sans'";
       context.fillText("Use the Continue button to start the next round", canvas.width / 2, canvas.height / 2 + 55);
     }
@@ -787,6 +838,7 @@
     window.addEventListener("keyup", (event) => keys.delete(event.key.toLowerCase()));
     playerCountSelect.addEventListener("change", restartGame);
     mapSelect.addEventListener("change", restartGame);
+    robotCountSelect.addEventListener("change", restartGame);
     continueRoundButton.addEventListener("click", startRound);
     restartButton.addEventListener("click", restartGame);
     playerColorInputs.forEach((input, index) => {
