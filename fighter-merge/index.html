@@ -72,7 +72,7 @@ $("#fight").onclick=async()=>{
  await sleep(900);
  let fighting=true;const alive=l=>l.filter(u=>!u.classList.contains("dead")),pick=l=>l[Math.floor(Math.random()*l.length)];
  (async()=>{let tick=0;while(fighting){const le=alive(E);T.forEach((u,j)=>{if(u.classList.contains("dead")||!le.length)return;throwAt(u,pick(le),AMMO[-thr[j]-1])});
-  if(tick++%16===0){const mine=alive([...A,...T]);if(mine.length)le.forEach((e,j)=>{if(j%2)throwAt(e,pick(mine),"🔥")})}
+  if(tick++%32===0){const mine=alive([...A,...T]);if(mine.length)le.forEach((e,j)=>{if(j%2)throwAt(e,pick(mine),"🔥")})}
   await sleep(120)}})();
  const win=w,loser=w?[...E].sort((x,y)=>x._l-y._l):[...A].sort((x,y)=>y._l-x._l).concat([...T].sort((x,y)=>y._l-x._l)),n=loser.length,
   R=Math.min(14,Math.max(6,n+3)),rate=Math.min(60,(w?f/t:t/f)*60);let dead=0;
