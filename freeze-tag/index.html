@@ -9,7 +9,7 @@ button{border:0;border-radius:.5rem;background:#cffafe;color:#083344;cursor:poin
 #kitPick{margin:.6rem 0;padding:.6rem;border:.15rem solid #fde047;border-radius:.6rem;background:rgb(0 0 0 / 35%)}#kitPick h2{margin:.2rem 0;font-size:1.1rem;color:#fde047}.kits{display:grid;grid-template-columns:repeat(auto-fill,minmax(10rem,1fr));gap:.4rem}.kits button{padding:.4rem;font-size:.8rem;text-align:left;touch-action:manipulation}.kits small{display:block;font-weight:normal;opacity:.85}
 </style></head>
 <body><main><a href="../">← All games</a><h1>🥶 Freeze Tag 3D</h1>
-<p>You are one of 20 runners being hunted by 10 red freezers on a huge map. Get touched and you freeze solid! Touch a frozen teammate to thaw them instantly, and they'll do the same for you. Survive until the timer ends, and don't let everyone get frozen at once.</p>
+<p>You are one of 20 runners being hunted by 10 red freezers on a huge map. Get touched and you freeze solid! Touch a frozen teammate to thaw them instantly (thawed runners get a 3s speed boost), and they'll do the same for you. Survive until the timer ends, and don't let everyone get frozen at once.</p>
 <p><strong>Freezer mode:</strong> you are a freezer with 9 AI partners. Chase down all 15 runners and have every one frozen at the same time before the clock runs out, while the runners keep thawing each other.</p>
 <p><strong>Coins:</strong> runners earn a runner coin every time they unfreeze someone, and freezers earn a freezer coin every time they freeze someone. Spend coins to BUY a kit once and you own it forever. Pick any kit you own at the start of each round and use it for free (with a short cooldown). Speed is always free. You start with 3 coins.</p>
 <p><strong>Kits:</strong> Runners can pick Speed, Thaw Bomb (explosion that unfreezes), Barrier (a wall freezers can't cross), Ghost, Shield, Teleport, Phoenix (thaws everyone) or Mine, Smoke Screen, Medic, Decoy, Lightning Zap or Fort, Beacon, Tar Pit, Flash, Evade, Armor, Clones, Shockwave, Rally, Aegis or Time Stop. Freezers can pick Speed, Rope (drags a runner to you), Freeze Wave, Magnet, Snowball, Turbo, Stun Blast, Web Trap, Cage, Blink, Goo Trap, Time Warp or Pounce. The AI uses them too.</p>
@@ -122,7 +122,7 @@ const KDESC={speed:"Run 1.6x faster for 4s",bomb:"Throw a bomb that unfreezes ne
 for(const k in KCOST)KCOST[k]*=4;
 const earn=(n=1)=>{coins+=n;saveKits()};
 function boom(px,py,r,type,by){fx.push({x:px,y:py,r,t:30});for(const o of actors()){if(Math.hypot(o.x-px,o.y-py)>=r)continue;
- if(type==="thaw"&&o.fz){o.fz=0;o.th=0;if(by===P){score+=25;earn()}if(o===P)say("🔥 You were thawed!")}
+ if(type==="thaw"&&o.fz){o.fz=0;o.th=0;o.sp=Math.max(o.sp||0,180);if(by===P){score+=25;earn()}if(o===P)say("🔥 You were thawed!")}
  else if(type==="freeze"&&o!==by){if(freeze(o)&&by===P){score+=20;earn()}}}}
 function useKit(o,a,dist=230){const k=o.kit;if(!k||(o.fz&&o!==P))return;
  if(o===P){if(P.cd>0){say(`${KITS[k]} cooling down ${Math.ceil(P.cd/60)}s`);return}P.cd=KCOST[k]*50}else{o.kit=null;o.kk=k;o.kc=720}
@@ -135,7 +135,7 @@ function useKit(o,a,dist=230){const k=o.kit;if(!k||(o.fz&&o!==P))return;
  else if(k==="ghost"){o.gh=300;if(o===P)say("👻 Ghost! Freezers can't touch you")}
  else if(k==="shield"){o.sh=1;if(o===P)say("🛡 Shield ready: blocks one freeze")}
  else if(k==="teleport"){const[a,b]=spot([o],600);o.x=a;o.y=b;o.path=null;if(o===P)say("🔀 Teleported!")}
- else if(k==="phoenix"){let n=0;for(const q of actors())if(q.fz){q.fz=0;q.th=0;n++;if(o===P){score+=25;earn()}}if(o===P)say(`🔥 Phoenix! Thawed ${n}`)}
+ else if(k==="phoenix"){let n=0;for(const q of actors())if(q.fz){q.fz=0;q.th=0;q.sp=Math.max(q.sp||0,180);n++;if(o===P){score+=25;earn()}}if(o===P)say(`🔥 Phoenix! Thawed ${n}`)}
  else if(k==="mine"){traps.push({x:o.x,y:o.y,t:1800,k:"mine"});if(o===P)say("🧨 Mine planted: stuns freezers")}
  else if(k==="magnet"){for(const q of actors())if(!q.fz&&q.gh<=0&&Math.hypot(q.x-o.x,q.y-o.y)<260)q.pl={by:o,t:60};if(o===P)say("🧲 Magnet!")}
  else if(k==="snow")pj.push({k:"snow",x:o.x,y:o.y,a,d:0,max:350,by:o});
@@ -143,7 +143,7 @@ function useKit(o,a,dist=230){const k=o.kit;if(!k||(o.fz&&o!==P))return;
  else if(k==="stun"){for(const q of actors())if(!q.fz&&Math.hypot(q.x-o.x,q.y-o.y)<200)q.stun=180;fx.push({x:o.x,y:o.y,r:70,t:20});if(o===P)say("📢 Stun blast!")}
  else if(k==="web"){traps.push({x:o.x+Math.cos(a)*60,y:o.y+Math.sin(a)*60,t:1800,k:"web"});if(o===P)say("🕸 Web set: stuns runners")}
  else if(k==="smoke"){traps.push({x:o.x,y:o.y,t:420,k:"smoke"});if(o===P)say("💨 Smoke screen: invisible inside")}
- else if(k==="medic"){const fz=actors().filter(q=>q.fz).sort((p,q)=>Math.hypot(p.x-o.x,p.y-o.y)-Math.hypot(q.x-o.x,q.y-o.y)).slice(0,3);for(const q of fz){q.fz=0;q.th=0;if(o===P){score+=25;earn()}}if(o===P)say(`⛑ Medic! Thawed ${fz.length}`)}
+ else if(k==="medic"){const fz=actors().filter(q=>q.fz).sort((p,q)=>Math.hypot(p.x-o.x,p.y-o.y)-Math.hypot(q.x-o.x,q.y-o.y)).slice(0,3);for(const q of fz){q.fz=0;q.th=0;q.sp=Math.max(q.sp||0,180);if(o===P){score+=25;earn()}}if(o===P)say(`⛑ Medic! Thawed ${fz.length}`)}
  else if(k==="decoy"){decoys.push({x:o.x+Math.cos(a)*80,y:o.y+Math.sin(a)*80,t:600});if(o===P)say("🧍 Decoy placed: freezers chase it")}
  else if(k==="zap"){let z=null,zd=400;for(const q of[...chasers,...(P.fr?[P]:[])]){const d=Math.hypot(q.x-o.x,q.y-o.y);if(q!==o&&d<zd){zd=d;z=q}}if(z){z.stun=240;fx.push({x:z.x,y:z.y,r:60,t:20})}if(o===P)say(z?"🌩 Zap! Freezer stunned":"🌩 Nothing in range")}
  else if(k==="fort"){for(const[wx,wy,h]of[[o.x-45,o.y,1],[o.x+45,o.y,1],[o.x,o.y-45,0],[o.x,o.y+45,0]])walls.push({x0:h?wx-7:wx-50,x1:h?wx+7:wx+50,y0:h?wy-50:wy-7,y1:h?wy+50:wy+7,t:600,s:1});if(o===P)say("🏰 Fort! Freezers can't enter")}
@@ -154,7 +154,7 @@ function useKit(o,a,dist=230){const k=o.kit;if(!k||(o.fz&&o!==P))return;
  else if(k==="timewarp"){for(const q of actors())q.sl=300;if(o===P)say("⏳ Time warp! Runners slowed")}
  else if(k==="pounce"){let z=null,zd=500;for(const q of actors()){const d=Math.hypot(q.x-o.x,q.y-o.y);if(q!==o&&!q.fz&&d<zd){zd=d;z=q}}
   if(z){const nx=z.x+(o.x-z.x)/zd*18,ny=z.y+(o.y-z.y)/zd*18;if(free(nx,ny,PR)){o.x=nx;o.y=ny;o.path=null}}if(o===P)say(z?"🐆 Pounce!":"🐆 Nobody in range")}
- else if(k==="beacon"){let n=0;for(const q of actors())if(q.fz&&Math.hypot(q.x-o.x,q.y-o.y)<300){q.fz=0;q.th=0;n++;if(o===P){score+=25;earn()}}fx.push({x:o.x,y:o.y,r:90,t:25});if(o===P)say(`📡 Beacon! Thawed ${n}`)}
+ else if(k==="beacon"){let n=0;for(const q of actors())if(q.fz&&Math.hypot(q.x-o.x,q.y-o.y)<300){q.fz=0;q.th=0;q.sp=Math.max(q.sp||0,180);n++;if(o===P){score+=25;earn()}}fx.push({x:o.x,y:o.y,r:90,t:25});if(o===P)say(`📡 Beacon! Thawed ${n}`)}
  else if(k==="tar"){for(const h of thr)if(Math.hypot(h.x-o.x,h.y-o.y)<250)h.sl=300;if(o===P)say("🛢 Tar pit: freezers slowed")}
  else if(k==="flash"){for(const h of thr)if(Math.hypot(h.x-o.x,h.y-o.y)<220)h.stun=120;fx.push({x:o.x,y:o.y,r:80,t:20});if(o===P)say("📸 Flash!")}
  else if(k==="armor"){o.sh=3;if(o===P)say("🥋 Armor: blocks 3 freezes")}
@@ -232,7 +232,7 @@ function update(){
   if(p.dead)continue;
   if(!free(nx,ny,2)||p.d>=p.max){if(p.k==="bomb")boom(p.x,p.y,90,"thaw",p.by);p.dead=true}else{p.x=nx;p.y=ny}}
  pj=pj.filter(p=>!p.dead);fx=fx.filter(f=>--f.t>0);walls=walls.filter(w=>--w.t>0);
- for(const f of all){if(!f.fz)continue;for(const u of all)if(!u.fz&&Math.hypot(u.x-f.x,u.y-f.y)<28){f.fz=0;f.th=0;score+=25;if(u===P)earn();if(f===P)say("🔥 You were thawed!");else if(role==="runner"&&Math.hypot(f.x-P.x,f.y-P.y)<400)say("🔥 Teammate thawed! +25");break}}
+ for(const f of all){if(!f.fz)continue;for(const u of all)if(!u.fz&&Math.hypot(u.x-f.x,u.y-f.y)<28){f.fz=0;f.th=0;f.sp=Math.max(f.sp||0,180);score+=25;if(u===P)earn();if(f===P)say("🔥 You were thawed!");else if(role==="runner"&&Math.hypot(f.x-P.x,f.y-P.y)<400)say("🔥 Teammate thawed! +25");break}}
  if(all.every(o=>o.fz)){if(role==="freezer"){score+=100*level+Math.floor(time/60)*3;return end(true,"All runners frozen!")}return end(false,"Everyone froze solid!")}
  if(time<=0){if(role==="freezer")return end(false,"Time's up. Some runners got away.");score+=100*level;end(true,"Time's up. You survived!")}
 }
