@@ -84,7 +84,7 @@ Keep a list of my games here.
 - Frizby Flick (`frizby-flick/`)
 - Target Toss (`target-toss/`)
 - Star Catch (`star-catch/`)
-- graviTAGs (`neon-tag/`, formerly Neon Tag; 2-4 local players plus 0-5 robots)
+- graviTAGs (`neon-tag/`, formerly Neon Tag; 1-4 local players plus 0-5 robots (1 player needs at least 1 robot))
 - Alien Atack (`alien-atack/`)
 - Waveway Surfers (`waveway-surfers/`)
 - Ping Pong Pop (`ping-pong-pop/`)

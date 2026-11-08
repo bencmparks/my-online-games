@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="A local two to four player gravity tag game with up to five robots.">
+  <meta name="description" content="A local one to four player gravity tag game with up to five robots.">
   <title>graviTAGs</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -206,7 +206,7 @@
       <span>It</span><span class="score" id="it-player">P1</span>
     </div>
 
-    <canvas id="game" width="840" height="500" aria-label="graviTAGs. Two to four players use shared keyboard controls to avoid being IT."></canvas>
+    <canvas id="game" width="840" height="500" aria-label="graviTAGs. One to four players use shared keyboard controls to avoid being IT."></canvas>
 
     <div class="touchpads" id="touchpads"></div>
 
@@ -215,6 +215,7 @@
       <div class="game-controls">
         <label for="player-count">Players
           <select id="player-count">
+            <option value="1">1 player (with robots)</option>
             <option value="2" selected>2 players</option>
             <option value="3">3 players</option>
             <option value="4">4 players</option>
@@ -836,9 +837,15 @@
       keys.add(key);
     });
     window.addEventListener("keyup", (event) => keys.delete(event.key.toLowerCase()));
-    playerCountSelect.addEventListener("change", restartGame);
+    playerCountSelect.addEventListener("change", () => {
+      if (playerCountSelect.value === "1" && robotCountSelect.value === "0") robotCountSelect.value = "1";
+      restartGame();
+    });
     mapSelect.addEventListener("change", restartGame);
-    robotCountSelect.addEventListener("change", restartGame);
+    robotCountSelect.addEventListener("change", () => {
+      if (robotCountSelect.value === "0" && playerCountSelect.value === "1") playerCountSelect.value = "2";
+      restartGame();
+    });
     continueRoundButton.addEventListener("click", startRound);
     restartButton.addEventListener("click", restartGame);
     playerColorInputs.forEach((input, index) => {
