@@ -113,12 +113,13 @@ function go(o,tx,ty,spd){
  o.pt--;while(o.path.length&&Math.hypot(o.path[0][0]-o.x,o.path[0][1]-o.y)<18)o.path.shift();
  const w=o.path[0];if(w)toward(o,w[0],w[1],spd);else toward(o,tx,ty,spd)}
 function act(){if(mode==="pick")return;if(mode!=="play"){if(mode==="lost"){level=1;score=0}begin();return}if(dashCd<=0){dash=18;dashCd=150}}
-const sb=o=>1.3*(o.tb>0?2.4:o.sp>0?1.6:1)*(o.sl>0?.5:1),POOL=[["speed","bomb","wall","ghost","shield","teleport","phoenix","mine","smoke","medic","decoy","zap","fort","beacon","tar","flash","evade","armor","clones","shockwave","rally","aegis","timestop"],["speed","rope","wave","magnet","snow","turbo","stun","web","cage","blink","goo","timewarp","pounce"]];
+const sb=o=>1.3*(o.tb>0?2.4:o.sp>0?1.6:1)*(o.sl>0?.5:1),POOL=[["speed","bomb","wall","ghost","shield","teleport","phoenix","mine","smoke","medic","decoy","zap","fort","beacon","tar","flash","evade","armor","clones","shockwave","rally","aegis","timestop","cloak","lifeline","bubble","minefield","mirage","quake","launch","bunker","hero","gust"],["speed","rope","wave","magnet","snow","turbo","stun","web","cage","blink","goo","timewarp","pounce","tremor","frostbomb","lunge","webfield","goofield","fear","vortex","lasso","net","volley","rage","ambush","breaker","demolish","sniper","nova","dive","stasis","chains","ring"]];
 function freeze(o){if(o.fz||o.gh>0)return false;if(o.sh>0){o.sh--;return false}o.fz=1;o.th=0;return true}
-const KITS={speed:"⚡ Speed",bomb:"💣 Thaw Bomb",wall:"🧱 Barrier",rope:"🪢 Rope",wave:"🌀 Freeze Wave",ghost:"👻 Ghost",shield:"🛡 Shield",teleport:"🔀 Teleport",phoenix:"🔥 Phoenix (thaw all)",mine:"🧨 Mine",magnet:"🧲 Magnet",snow:"❄ Snowball",turbo:"🚀 Turbo",stun:"📢 Stun Blast",web:"🕸 Web Trap",smoke:"💨 Smoke Screen",medic:"⛑ Medic",decoy:"🧍 Decoy",zap:"🌩 Lightning Zap",fort:"🏰 Fort",cage:"🔒 Cage",blink:"✨ Blink",goo:"🟢 Goo Trap",timewarp:"⏳ Time Warp",pounce:"🐆 Pounce",beacon:"📡 Beacon",tar:"🛢 Tar Pit",flash:"📸 Flash",evade:"🌀 Evade",armor:"🥋 Armor",clones:"👥 Clones",shockwave:"💥 Shockwave",rally:"📣 Rally",aegis:"🏅 Aegis",timestop:"⏱ Time Stop"};
-const KCOST={speed:1,bomb:2,wall:1,ghost:2,shield:2,teleport:2,phoenix:3,mine:1,smoke:2,medic:2,decoy:1,zap:2,fort:2,beacon:2,tar:2,flash:2,evade:1,armor:3,clones:2,shockwave:2,rally:2,aegis:3,timestop:3,rope:2,wave:2,magnet:2,snow:1,turbo:1,stun:2,web:1,cage:3,blink:1,goo:1,timewarp:3,pounce:3};
-const KAI={tar:200,flash:150,armor:200,clones:250,shockwave:100,rally:150,aegis:200,timestop:110};
-const KDESC={speed:"Run 1.6x faster for 4s",bomb:"Throw a bomb that unfreezes nearby",wall:"Wall freezers can't cross",ghost:"Untouchable for 5s",shield:"Blocks 1 freeze",teleport:"Jump far away",phoenix:"Thaw every frozen runner",mine:"Stuns the freezer who steps on it",smoke:"Cloud: invisible inside",medic:"Thaw the 3 nearest frozen",decoy:"Freezers chase a fake runner",zap:"Stun nearest freezer",fort:"Walls all around you",beacon:"Thaw all frozen within 300px",tar:"Slow freezers within 250px",flash:"Stun freezers within 220px",evade:"Quick dash forward",armor:"Blocks 3 freezes",clones:"4 decoys around you",shockwave:"Knock freezers back",rally:"Speed up all runners",aegis:"Shield nearby runners",timestop:"Stun every freezer 2s",rope:"Shoot and drag a runner to you",wave:"Freeze runners within 110px",magnet:"Pull runners near you",snow:"Snowball freezes on hit",turbo:"Sprint 2.4x for 1.5s",stun:"Stun runners within 200px",web:"Trap that stuns a runner",cage:"Wall in the nearest runner",blink:"Quick jump forward",goo:"Goo slows runners",timewarp:"Slow all runners 5s",pounce:"Leap onto the nearest runner"};
+const KITS={speed:"⚡ Speed",bomb:"💣 Thaw Bomb",wall:"🧱 Barrier",rope:"🪢 Rope",wave:"🌀 Freeze Wave",ghost:"👻 Ghost",shield:"🛡 Shield",teleport:"🔀 Teleport",phoenix:"🔥 Phoenix (thaw all)",mine:"🧨 Mine",magnet:"🧲 Magnet",snow:"❄ Snowball",turbo:"🚀 Turbo",stun:"📢 Stun Blast",web:"🕸 Web Trap",smoke:"💨 Smoke Screen",medic:"⛑ Medic",decoy:"🧍 Decoy",zap:"🌩 Lightning Zap",fort:"🏰 Fort",cage:"🔒 Cage",blink:"✨ Blink",goo:"🟢 Goo Trap",timewarp:"⏳ Time Warp",pounce:"🐆 Pounce",beacon:"📡 Beacon",tar:"🛢 Tar Pit",flash:"📸 Flash",evade:"🌀 Evade",armor:"🥋 Armor",clones:"👥 Clones",shockwave:"💥 Shockwave",rally:"📣 Rally",aegis:"🏅 Aegis",timestop:"⏱ Time Stop",cloak:"🥷 Cloak",lifeline:"💗 Lifeline",bubble:"🫧 Bubble",minefield:"💥 Minefield",mirage:"🎭 Mirage",quake:"🌋 Quake",launch:"🛫 Launch",bunker:"🏯 Bunker",hero:"🦸 Hero",gust:"🌬 Gust",tremor:"🫨 Tremor",frostbomb:"🧊 Frost Bomb",lunge:"🗡 Lunge",webfield:"🕷 Web Field",goofield:"🟩 Goo Field",fear:"😱 Fear",vortex:"🌪 Vortex",lasso:"🤠 Lasso",net:"🥅 Net",volley:"🎯 Snow Volley",rage:"😡 Rage",ambush:"🥷 Ambush",breaker:"🔨 Breaker",demolish:"🚧 Demolish",sniper:"🔭 Sniper",nova:"🌟 Frost Nova",dive:"🦅 Dive",stasis:"🗿 Stasis",chains:"⛓ Chains",ring:"⭕ Snare Ring"};
+const KCOST={speed:1,bomb:2,wall:1,ghost:2,shield:2,teleport:2,phoenix:3,mine:1,smoke:2,medic:2,decoy:1,zap:2,fort:2,beacon:2,tar:2,flash:2,evade:1,armor:3,clones:2,shockwave:2,rally:2,aegis:3,timestop:3,rope:2,wave:2,magnet:2,snow:1,turbo:1,stun:2,web:1,cage:3,blink:1,goo:1,timewarp:3,pounce:3,cloak:2,lifeline:3,bubble:2,minefield:2,mirage:2,quake:2,launch:2,bunker:3,hero:3,gust:2,tremor:2,frostbomb:2,lunge:1,webfield:2,goofield:2,fear:2,vortex:3,lasso:2,net:3,volley:2,rage:2,ambush:3,breaker:2,demolish:1,sniper:2,nova:3,dive:2,stasis:3,chains:2,ring:3};
+const KAI={tar:200,flash:150,armor:200,clones:250,shockwave:100,rally:150,aegis:200,timestop:110,cloak:150,bubble:160,minefield:200,mirage:250,quake:300,bunker:110,hero:200,gust:130};
+const KFAI={tremor:[0,200],frostbomb:[0,200],lunge:[40,220],webfield:[0,220],goofield:[0,200],fear:[0,220],vortex:[0,350],ambush:[200,800],breaker:[0,250],demolish:[0,200],nova:[0,150],dive:[80,700],stasis:[0,200],chains:[0,250],ring:[0,200],rage:[100,350]};
+const KDESC={speed:"Run 1.6x faster for 4s",bomb:"Throw a bomb that unfreezes nearby",wall:"Wall freezers can't cross",ghost:"Untouchable for 5s",shield:"Blocks 1 freeze",teleport:"Jump far away",phoenix:"Thaw every frozen runner",mine:"Stuns the freezer who steps on it",smoke:"Cloud: invisible inside",medic:"Thaw the 3 nearest frozen",decoy:"Freezers chase a fake runner",zap:"Stun nearest freezer",fort:"Walls all around you",beacon:"Thaw all frozen within 300px",tar:"Slow freezers within 250px",flash:"Stun freezers within 220px",evade:"Quick dash forward",armor:"Blocks 3 freezes",clones:"4 decoys around you",shockwave:"Knock freezers back",rally:"Speed up all runners",aegis:"Shield nearby runners",timestop:"Stun every freezer 2s",rope:"Shoot and drag a runner to you",wave:"Freeze runners within 110px",magnet:"Pull runners near you",snow:"Snowball freezes on hit",turbo:"Sprint 2.4x for 1.5s",stun:"Stun runners within 200px",web:"Trap that stuns a runner",cage:"Wall in the nearest runner",blink:"Quick jump forward",goo:"Goo slows runners",timewarp:"Slow all runners 5s",pounce:"Leap onto the nearest runner",cloak:"Invisible and fast for 3s",lifeline:"Thaw 2 nearest, shielded",bubble:"Runners near you untouchable 2.5s",minefield:"Plant 5 mines around you",mirage:"8 decoys around you",quake:"Stun freezers within 400px",launch:"Long jump forward",bunker:"Big long-lasting fort",hero:"All runners fast and shielded",gust:"Blow freezers far away",tremor:"Stun runners within 350px",frostbomb:"Freeze runners at the aim spot",lunge:"Short super-fast dash",webfield:"3 webs in a row",goofield:"Goo patch around you",fear:"Runners nearby slowed and stunned",vortex:"Pull in runners within 500px",lasso:"Long rope, 700px range",net:"3 ropes at once",volley:"3 snowballs at once",rage:"Sprint 2.4x for 4s",ambush:"Teleport next to a runner",breaker:"Strip shields and ghosts, slow runners",demolish:"Destroy all barriers",sniper:"Long-range snowball",nova:"Freeze runners within 170px",dive:"Long-range pounce",stasis:"Stun the 3 nearest runners",chains:"Slow the 5 nearest runners",ring:"Ring of 6 webs"};
 for(const k in KCOST)KCOST[k]*=4;
 const earn=(n=1)=>{coins+=n;saveKits()};
 function boom(px,py,r,type,by){fx.push({x:px,y:py,r,t:30});for(const o of actors()){if(Math.hypot(o.x-px,o.y-py)>=r)continue;
@@ -149,10 +150,10 @@ function useKit(o,a,dist=230){const k=o.kit;if(!k||(o.fz&&o!==P))return;
  else if(k==="fort"){for(const[wx,wy,h]of[[o.x-45,o.y,1],[o.x+45,o.y,1],[o.x,o.y-45,0],[o.x,o.y+45,0]])walls.push({x0:h?wx-7:wx-50,x1:h?wx+7:wx+50,y0:h?wy-50:wy-7,y1:h?wy+50:wy+7,t:600,s:1});if(o===P)say("🏰 Fort! Freezers can't enter")}
  else if(k==="cage"){let z=null,zd=350;for(const q of actors()){const d=Math.hypot(q.x-o.x,q.y-o.y);if(q!==o&&!q.fz&&d<zd){zd=d;z=q}}
   if(z)for(const[wx,wy,h]of[[z.x-45,z.y,1],[z.x+45,z.y,1],[z.x,z.y-45,0],[z.x,z.y+45,0]])walls.push({x0:h?wx-7:wx-50,x1:h?wx+7:wx+50,y0:h?wy-50:wy-7,y1:h?wy+50:wy+7,t:600,s:2});if(o===P)say(z?"🔒 Runner caged!":"🔒 Nobody in range")}
- else if(k==="blink"||k==="evade"){let d=0;while(d<250&&free(o.x+Math.cos(a)*6,o.y+Math.sin(a)*6,PR)){o.x+=Math.cos(a)*6;o.y+=Math.sin(a)*6;d+=6}o.path=null;if(o===P)say("✨ Blink!")}
+ else if(k==="blink"||k==="evade"||k==="launch"){let d=0;while(d<(k==="launch"?600:250)&&free(o.x+Math.cos(a)*6,o.y+Math.sin(a)*6,PR)){o.x+=Math.cos(a)*6;o.y+=Math.sin(a)*6;d+=6}o.path=null;if(o===P)say("✨ Blink!")}
  else if(k==="goo"){traps.push({x:o.x+Math.cos(a)*60,y:o.y+Math.sin(a)*60,t:900,k:"goo"});if(o===P)say("🟢 Goo set: slows runners")}
  else if(k==="timewarp"){for(const q of actors())q.sl=300;if(o===P)say("⏳ Time warp! Runners slowed")}
- else if(k==="pounce"){let z=null,zd=500;for(const q of actors()){const d=Math.hypot(q.x-o.x,q.y-o.y);if(q!==o&&!q.fz&&d<zd){zd=d;z=q}}
+ else if(k==="pounce"||k==="dive"){let z=null,zd=k==="dive"?900:500;for(const q of actors()){const d=Math.hypot(q.x-o.x,q.y-o.y);if(q!==o&&!q.fz&&d<zd){zd=d;z=q}}
   if(z){const nx=z.x+(o.x-z.x)/zd*18,ny=z.y+(o.y-z.y)/zd*18;if(free(nx,ny,PR)){o.x=nx;o.y=ny;o.path=null}}if(o===P)say(z?"🐆 Pounce!":"🐆 Nobody in range")}
  else if(k==="beacon"){let n=0;for(const q of actors())if(q.fz&&Math.hypot(q.x-o.x,q.y-o.y)<300){q.fz=0;q.th=0;q.sp=Math.max(q.sp||0,180);n++;if(o===P){score+=25;earn()}}fx.push({x:o.x,y:o.y,r:90,t:25});if(o===P)say(`📡 Beacon! Thawed ${n}`)}
  else if(k==="tar"){for(const h of thr)if(Math.hypot(h.x-o.x,h.y-o.y)<250)h.sl=300;if(o===P)say("🛢 Tar pit: freezers slowed")}
@@ -162,12 +163,41 @@ function useKit(o,a,dist=230){const k=o.kit;if(!k||(o.fz&&o!==P))return;
  else if(k==="shockwave"){for(const h of thr){if(Math.hypot(h.x-o.x,h.y-o.y)<250){const b=Math.atan2(h.y-o.y,h.x-o.x);for(let i=0;i<40;i++)step(h,b,5)}}fx.push({x:o.x,y:o.y,r:110,t:25});if(o===P)say("💥 Shockwave!")}
  else if(k==="rally"){for(const q of actors())if(!q.fz)q.sp=240;if(o===P)say("📣 Rally! Runners speed up")}
  else if(k==="aegis"){for(const q of actors())if(!q.fz&&Math.hypot(q.x-o.x,q.y-o.y)<300)q.sh=Math.max(q.sh|0,1);if(o===P)say("🏅 Aegis: nearby runners shielded")}
- else if(k==="timestop"){for(const h of thr)h.stun=120;if(o===P)say("⏱ Time stop!")}}
+ else if(k==="timestop"){for(const h of thr)h.stun=120;if(o===P)say("⏱ Time stop!")}
+ else if(k==="cloak"){o.gh=180;o.sp=180;if(o===P)say("🥷 Cloak!")}
+ else if(k==="lifeline"){const fz=actors().filter(q=>q.fz).sort((p,q)=>Math.hypot(p.x-o.x,p.y-o.y)-Math.hypot(q.x-o.x,q.y-o.y)).slice(0,2);for(const q of fz){q.fz=0;q.th=0;q.sh=1;q.sp=Math.max(q.sp||0,180);if(o===P){score+=25;earn()}}if(o===P)say(`💗 Lifeline! Thawed ${fz.length}`)}
+ else if(k==="bubble"){for(const q of actors())if(!q.fz&&Math.hypot(q.x-o.x,q.y-o.y)<200)q.gh=Math.max(q.gh|0,150);fx.push({x:o.x,y:o.y,r:100,t:25});if(o===P)say("🫧 Bubble!")}
+ else if(k==="minefield"){for(let i=0;i<5;i++){const b=a+i*Math.PI*2/5;traps.push({x:o.x+Math.cos(b)*90,y:o.y+Math.sin(b)*90,t:1800,k:"mine"})}if(o===P)say("💥 Minefield!")}
+ else if(k==="mirage"){for(let i=0;i<8;i++){const b=a+i*Math.PI/4;decoys.push({x:o.x+Math.cos(b)*130,y:o.y+Math.sin(b)*130,t:600})}if(o===P)say("🎭 Mirage!")}
+ else if(k==="quake"){for(const h of thr)if(Math.hypot(h.x-o.x,h.y-o.y)<400)h.stun=90;fx.push({x:o.x,y:o.y,r:120,t:25});if(o===P)say("🌋 Quake!")}
+ else if(k==="bunker"){for(const[wx,wy,h]of[[o.x-60,o.y,1],[o.x+60,o.y,1],[o.x,o.y-60,0],[o.x,o.y+60,0]])walls.push({x0:h?wx-7:wx-65,x1:h?wx+7:wx+65,y0:h?wy-65:wy-7,y1:h?wy+65:wy+7,t:1500,s:1});if(o===P)say("🏯 Bunker!")}
+ else if(k==="hero"){for(const q of actors())if(!q.fz){q.sp=300;q.sh=Math.max(q.sh|0,1)}if(o===P)say("🦸 Hero! Runners fast and shielded")}
+ else if(k==="gust"){for(const h of thr){if(Math.hypot(h.x-o.x,h.y-o.y)<450){const b=Math.atan2(h.y-o.y,h.x-o.x);for(let i=0;i<70;i++)step(h,b,5)}}fx.push({x:o.x,y:o.y,r:140,t:25});if(o===P)say("🌬 Gust!")}
+ else if(k==="tremor"){for(const q of actors())if(!q.fz&&Math.hypot(q.x-o.x,q.y-o.y)<350)q.stun=90;fx.push({x:o.x,y:o.y,r:120,t:25});if(o===P)say("🫨 Tremor!")}
+ else if(k==="frostbomb"){boom(o.x+Math.cos(a)*150,o.y+Math.sin(a)*150,90,"freeze",o);if(o===P)say("🧊 Frost bomb!")}
+ else if(k==="lunge"){for(let i=0;i<14;i++)step(o,a,8);o.path=null;if(o===P)say("🗡 Lunge!")}
+ else if(k==="webfield"){for(const d of[50,110,170])traps.push({x:o.x+Math.cos(a)*d,y:o.y+Math.sin(a)*d,t:1800,k:"web"});if(o===P)say("🕷 Web field!")}
+ else if(k==="goofield"){for(let i=0;i<5;i++){const b=a+i*Math.PI*2/5;traps.push({x:o.x+Math.cos(b)*70,y:o.y+Math.sin(b)*70,t:900,k:"goo"})}if(o===P)say("🟩 Goo field!")}
+ else if(k==="fear"){for(const q of actors())if(!q.fz&&Math.hypot(q.x-o.x,q.y-o.y)<300){q.sl=240;q.stun=40}fx.push({x:o.x,y:o.y,r:100,t:25});if(o===P)say("😱 Fear!")}
+ else if(k==="vortex"){for(const q of actors())if(!q.fz&&q.gh<=0&&Math.hypot(q.x-o.x,q.y-o.y)<500)q.pl={by:o,t:60};if(o===P)say("🌪 Vortex!")}
+ else if(k==="lasso")pj.push({k:"rope",x:o.x,y:o.y,a,d:0,max:700,by:o});
+ else if(k==="net"){for(const d of[-.25,0,.25])pj.push({k:"rope",x:o.x,y:o.y,a:a+d,d:0,max:450,by:o})}
+ else if(k==="volley"){for(const d of[-.2,0,.2])pj.push({k:"snow",x:o.x,y:o.y,a:a+d,d:0,max:350,by:o})}
+ else if(k==="rage"){o.tb=240;if(o===P)say("😡 Rage!")}
+ else if(k==="ambush"){let z=null,zd=900;for(const q of actors()){const d=Math.hypot(q.x-o.x,q.y-o.y);if(q!==o&&!q.fz&&q.gh<=0&&d<zd){zd=d;z=q}}
+  if(z)for(let i=0;i<8;i++){const b=i*Math.PI/4,nx=z.x+Math.cos(b)*45,ny=z.y+Math.sin(b)*45;if(free(nx,ny,PR)){o.x=nx;o.y=ny;o.path=null;break}}if(o===P)say(z?"🥷 Ambush!":"🥷 Nobody in range")}
+ else if(k==="breaker"){for(const q of actors()){q.sh=0;q.gh=0;q.sl=150}if(o===P)say("🔨 Breaker!")}
+ else if(k==="demolish"){walls.length=0;if(o===P)say("🚧 Barriers destroyed!")}
+ else if(k==="sniper")pj.push({k:"snow",x:o.x,y:o.y,a,d:0,max:800,by:o});
+ else if(k==="nova"){boom(o.x,o.y,170,"freeze",o);if(o===P)say("🌟 Frost nova!")}
+ else if(k==="stasis"){const rs=actors().filter(q=>!q.fz&&q!==o).sort((p,q)=>Math.hypot(p.x-o.x,p.y-o.y)-Math.hypot(q.x-o.x,q.y-o.y)).slice(0,3);for(const q of rs)q.stun=300;if(o===P)say("🗿 Stasis!")}
+ else if(k==="chains"){const rs=actors().filter(q=>!q.fz&&q!==o).sort((p,q)=>Math.hypot(p.x-o.x,p.y-o.y)-Math.hypot(q.x-o.x,q.y-o.y)).slice(0,5);for(const q of rs)q.sl=400;if(o===P)say("⛓ Chains!")}
+ else if(k==="ring"){for(let i=0;i<6;i++){const b=a+i*Math.PI/3;traps.push({x:o.x+Math.cos(b)*90,y:o.y+Math.sin(b)*90,t:1800,k:"web"})}if(o===P)say("⭕ Snare ring!")}}
 function pull(o){const b=o.pl.by;if(--o.pl.t<=0||Math.hypot(b.x-o.x,b.y-o.y)<18){o.pl=null;return}toward(o,b.x,b.y,5)}
 function aimPt(){const k=P.kit;if(!k)return null;
  if(k==="wall"||k==="web"||k==="goo")return[P.x+Math.cos(P.a)*60,P.y+Math.sin(P.a)*60];
- const mx=k==="bomb"?230:k==="rope"?450:k==="snow"?350:k==="blink"?250:0;if(!mx)return null;
- const hit=k==="rope"||k==="snow",tg=actors().filter(o=>o!==P&&!o.fz);let d=0,px=P.x,py=P.y;
+ const mx={bomb:230,rope:450,snow:350,blink:250,lasso:700,sniper:800,launch:600,frostbomb:150,net:450,volley:350}[k]||0;if(!mx)return null;
+ const hit=k==="rope"||k==="snow"||k==="lasso"||k==="sniper"||k==="net"||k==="volley",tg=actors().filter(o=>o!==P&&!o.fz);let d=0,px=P.x,py=P.y;
  while(d<mx){const nx=P.x+Math.cos(P.a)*(d+6),ny=P.y+Math.sin(P.a)*(d+6);if(!free(nx,ny,2))break;px=nx;py=ny;d+=6;if(hit&&tg.some(o=>Math.hypot(o.x-nx,o.y-ny)<16))break}
  return[px,py]}
 function nearBox(o,r){let b=null,bd=r;for(const q of boxes){if(!q.on)continue;const d=Math.hypot(q.x-o.x,q.y-o.y);if(d<bd){bd=d;b=q}}return b}
@@ -184,13 +214,13 @@ function update(){
  const all=actors();for(const o of[P,...mates,...chasers]){if(o.sp>0)o.sp-=1;if(o.tb>0)o.tb-=1;if(o.gh>0)o.gh-=1;if(o.sl>0)o.sl-=1;if(o.cd>0)o.cd--;if(o.kc>0&&--o.kc<=0)o.kit=o.kk}
  const rs=role==="freezer"?.9:1,threats=role==="freezer"?[...chasers,P]:chasers;
  for(const m of mates){if(m.fz){m.pl=null;continue}if(m.stun>0){m.stun--;continue}if(m.pl){pull(m);continue}
-  if(m.kit==="phoenix"&&all.filter(o=>o.fz).length>=3||m.kit==="medic"&&all.some(o=>o.fz)||m.kit==="beacon"&&all.some(o=>o.fz&&Math.hypot(o.x-m.x,o.y-m.y)<300))useKit(m,0);
+  if(m.kit==="phoenix"&&all.filter(o=>o.fz).length>=3||m.kit==="medic"&&all.some(o=>o.fz)||m.kit==="lifeline"&&all.some(o=>o.fz)||m.kit==="beacon"&&all.some(o=>o.fz&&Math.hypot(o.x-m.x,o.y-m.y)<300))useKit(m,0);
   let ch=null,cd=1e9;for(const c of threats){const d=Math.hypot(c.x-m.x,c.y-m.y);if(d<cd){cd=d;ch=c}}
   if(ch&&cd<220){
    if(m.kit==="speed"&&cd<180)useKit(m,0);else if(m.kit==="wall"&&cd<130)useKit(m,Math.atan2(ch.y-m.y,ch.x-m.x));
    else if(m.kit==="ghost"&&cd<150||m.kit==="shield"&&cd<200||m.kit==="teleport"&&cd<70||m.kit==="mine"&&cd<160||m.kit==="smoke"&&cd<160||m.kit==="fort"&&cd<110||m.kit==="zap"&&cd<300)useKit(m,0);
    else if(m.kit==="decoy"&&cd<250)useKit(m,Math.atan2(ch.y-m.y,ch.x-m.x));
-   else if(m.kit==="evade"&&cd<80)useKit(m,Math.atan2(m.y-ch.y,m.x-ch.x));else if(cd<(KAI[m.kit]||0))useKit(m,0);
+   else if((m.kit==="evade"&&cd<80||m.kit==="launch"&&cd<110))useKit(m,Math.atan2(m.y-ch.y,m.x-ch.x));else if(cd<(KAI[m.kit]||0))useKit(m,0);
    if(!m.fg||m.ft--<=0||Math.hypot(m.fg[0]-m.x,m.fg[1]-m.y)<20){let best=null,bs=cd+40;m.fl=true;
     for(let k=0;k<12;k++){const a=k*Math.PI/6,px=m.x+Math.cos(a)*160,py=m.y+Math.sin(a)*160;if(!free(px,py,PR)||!los(m.x,m.y,px,py))continue;const s=Math.hypot(px-ch.x,py-ch.y);if(s>bs){bs=s;best=[px,py]}}
     if(best)m.ft=6;else{m.fl=false;bs=-1e9;for(let k=0;k<6;k++){const[a,b]=spot([],0),s=Math.hypot(a-ch.x,b-ch.y)-.4*Math.hypot(a-m.x,b-m.y);if(s>bs){bs=s;best=[a,b]}}m.ft=45}
@@ -209,12 +239,13 @@ function update(){
   {let dq=null,dd=350;for(const q of decoys){const d=Math.hypot(q.x-c.x,q.y-c.y);if(d<dd){dd=d;dq=q}}
    if(dq&&dd<td){go(c,dq.x,dq.y,cs*sb(c));if(dd<22){dq.t=0;c.pause=120}continue}}
   if(c.kit){const ang=Math.atan2(tg.y-c.y,tg.x-c.x);
-   if(c.kit==="speed"&&td<260)useKit(c,0);else if((c.kit==="rope"&&td>70&&td<400||c.kit==="snow"&&td>50&&td<350)&&los(c.x,c.y,tg.x,tg.y))useKit(c,ang);
+   if(c.kit==="speed"&&td<260)useKit(c,0);else if((c.kit==="rope"&&td>70&&td<400||c.kit==="snow"&&td>50&&td<350||c.kit==="lasso"&&td>70&&td<650||c.kit==="sniper"&&td>60&&td<750||c.kit==="net"&&td>70&&td<400||c.kit==="volley"&&td>50&&td<350)&&los(c.x,c.y,tg.x,tg.y))useKit(c,ang);
    else if(c.kit==="turbo"&&td>60&&td<350)useKit(c,0);else if((c.kit==="web"||c.kit==="goo")&&td<220)useKit(c,ang);
    else if(c.kit==="cage"&&td<300||c.kit==="timewarp"&&td<250||c.kit==="pounce"&&td>60&&td<450)useKit(c,0);
    else if(c.kit==="blink"&&td>100&&td<300&&los(c.x,c.y,tg.x,tg.y))useKit(c,ang);
    else if((c.kit==="magnet"&&td>100&&td<250||c.kit==="stun"&&td<200)&&all.filter(o=>!o.fz&&Math.hypot(o.x-c.x,o.y-c.y)<250).length>=2)useKit(c,0);
-   else if(c.kit==="wave"&&all.filter(o=>!o.fz&&Math.hypot(o.x-c.x,o.y-c.y)<100).length>=2)useKit(c,0)}
+   else if(c.kit==="wave"&&all.filter(o=>!o.fz&&Math.hypot(o.x-c.x,o.y-c.y)<100).length>=2)useKit(c,0);
+   else if(KFAI[c.kit]&&td>KFAI[c.kit][0]&&td<KFAI[c.kit][1]&&(c.kit!=="demolish"||walls.length))useKit(c,ang)}
   const bx=!c.kit&&td>250?nearBox(c,300):null;
   if(bx)go(c,bx.x,bx.y,cs*sb(c));else go(c,tg.x,tg.y,cs*sb(c));
   if(td<22){c.pause=90;if(freeze(tg)){if(tg===P)say("❄️ You're frozen! A teammate can thaw you by touching you");else if(role==="runner"&&Math.hypot(tg.x-P.x,tg.y-P.y)<400)say("❄️ A teammate got frozen! Go touch them!")}else if(tg===P)say("🛡 Shield absorbed the freeze!")}}
