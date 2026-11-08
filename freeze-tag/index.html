@@ -11,7 +11,7 @@ button{border:0;border-radius:.5rem;background:#cffafe;color:#083344;cursor:poin
 <body><main><a href="../">← All games</a><h1>🥶 Freeze Tag 3D</h1>
 <p>You are one of 20 runners being hunted by 10 red freezers on a huge map. Get touched and you freeze solid! Touch a frozen teammate to thaw them instantly (thawed runners get a 3s speed boost), and they'll do the same for you. Survive until the timer ends, and don't let everyone get frozen at once.</p>
 <p><strong>Freezer mode:</strong> you are a freezer with 9 AI partners. Chase down all 15 runners and have every one frozen at the same time before the clock runs out, while the runners keep thawing each other.</p>
-<p><strong>Coins:</strong> runners earn a runner coin every time they unfreeze someone, and freezers earn a freezer coin every time they freeze someone. Spend coins to BUY a kit once and you own it forever. Pick any kit you own at the start of each round and use it for free (with a short cooldown). Speed is always free. You start with 3 coins.</p>
+<p><strong>Coins:</strong> runners earn a runner coin every time they unfreeze someone, and freezers earn a freezer coin every time they freeze someone. Spend coins to BUY a kit once and you own it forever. Pick any kit you own at the start of each round and use it for free, as often as you like. Speed is always free. You start with 3 coins.</p>
 <p><strong>Kits:</strong> Runners can pick Speed, Thaw Bomb (explosion that unfreezes), Barrier (a wall freezers can't cross), Ghost, Shield, Teleport, Phoenix (thaws everyone) or Mine, Smoke Screen, Medic, Decoy, Lightning Zap or Fort, Beacon, Tar Pit, Flash, Evade, Armor, Clones, Shockwave, Rally, Aegis or Time Stop. Freezers can pick Speed, Rope (drags a runner to you), Freeze Wave, Magnet, Snowball, Turbo, Stun Blast, Web Trap, Cage, Blink, Goo Trap, Time Warp or Pounce. The AI uses them too.</p>
 <p><strong>Maps:</strong> Arena, Maze, Castle, City and Forest. Auto cycles one per level, or pick one with the map button (M).</p>
 <p><strong>W/S or ↑/↓</strong> run · <strong>A/D or ←/→</strong> turn, or click the game and move the mouse (Esc to release) · <strong>Space / E</strong> dash · <strong>Q / F</strong> use kit · <strong>Enter</strong> start</p>
@@ -125,7 +125,7 @@ function boom(px,py,r,type,by){fx.push({x:px,y:py,r,t:30});for(const o of actors
  if(type==="thaw"&&o.fz){o.fz=0;o.th=0;o.sp=Math.max(o.sp||0,180);if(by===P){score+=25;earn()}if(o===P)say("🔥 You were thawed!")}
  else if(type==="freeze"&&o!==by){if(freeze(o)&&by===P){score+=20;earn()}}}}
 function useKit(o,a,dist=230){const k=o.kit;if(!k||(o.fz&&o!==P))return;
- if(o===P){if(P.cd>0){say(`${KITS[k]} cooling down ${Math.ceil(P.cd/60)}s`);return}P.cd=KCOST[k]*50}else{o.kit=null;o.kk=k;o.kc=720}
+ if(o!==P){o.kit=null;o.kk=k;o.kc=720}
  const thr=[...chasers,...(P.fr&&o!==P?[P]:[])];
  if(k==="speed"){o.sp=240;if(o===P)say("⚡ Speed boost!")}
  else if(k==="bomb")pj.push({k:"bomb",x:o.x,y:o.y,a,d:0,max:dist,by:o});
@@ -294,7 +294,7 @@ function draw(){
  if(mode!=="title"){
   const al=actors(),free2=al.filter(o=>!o.fz).length;
   text(role==="freezer"?`LV ${level} · ${MAPS[mapI].n} · Frozen ${al.length-free2}/${al.length}`:`LV ${level} · ${MAPS[mapI].n} · Free ${free2}/${al.length}`,10,24,17,"#fff");text(`⏱ ${Math.max(0,Math.ceil(time/60))}s`,W/2+90,24,20,time<600?"#f87171":"#fde047","center");text(`SCORE ${score}  BEST ${hi}`,W-10,24,15,"#fde047","right");
-  x.fillStyle="rgb(0 0 0 / 55%)";x.fillRect(10,H-24,120,12);x.fillStyle=dashCd>0?"#f97316":"#4ade80";x.fillRect(10,H-24,120*(dashCd>0?1-dashCd/150:1),12);text("DASH",138,H-13,14,"#fff");text(P.kit?`${KITS[P.kit]} (Q) ${P.cd>0?"⏳ "+Math.ceil(P.cd/60)+"s":"ready"}   ${role==="freezer"?"🧊 freezer":"🪙 runner"} coins: ${coins}`:"",10,H-34,15,P.cd>0?"#f87171":"#fde047");
+  x.fillStyle="rgb(0 0 0 / 55%)";x.fillRect(10,H-24,120,12);x.fillStyle=dashCd>0?"#f97316":"#4ade80";x.fillRect(10,H-24,120*(dashCd>0?1-dashCd/150:1),12);text("DASH",138,H-13,14,"#fff");text(P.kit?`${KITS[P.kit]} (Q)    ${role==="freezer"?"🧊 freezer":"🪙 runner"} coins: ${coins}`:"",10,H-34,15,"#fde047");
   if(msgT>0)text(msg,W/2,H-60,20,"#fff","center")}
  if(mode==="pick"){x.fillStyle="rgb(2 6 23 / 45%)";x.fillRect(0,0,W,H);text("Pick your kit above ↑",W/2,H/2,30,"#fde047","center")}
  if(mode==="title"){x.fillStyle="rgb(2 6 23 / 55%)";x.fillRect(0,0,W,H);text("FREEZE TAG 3D",W/2,170,50,"#cffafe","center");text("1: Runner (don't get frozen) · 2: Freezer (freeze them all)",W/2,225,19,"#fde047","center");if(Math.floor(t/30)%2)text("Press 1 or 2, or use the buttons above",W/2,275,20,"#fff","center")}
