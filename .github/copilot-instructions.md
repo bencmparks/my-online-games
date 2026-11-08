@@ -90,7 +90,7 @@ Keep a list of my games here.
 - Ping Pong Pop (`ping-pong-pop/`)
 - Bubble Pop Shooter (`bubble-pop-shooter/`)
 - Brick Breaker Blast (`brick-breaker-blast/`)
-- Fighter Merge (`fighter-merge/`, merge fighters and beat waves)
+- Fighter Merge (`fighter-merge/`, merge fighters and throwers, watch the battle, beat waves)
 - Cup Shuffle (`cup-shuffle/`, follow the ball)
 - Hide and Seek (`hide-and-seek/`, Seek and Hide modes, first-person 3D maze of 20 rooms with random layouts, mouse look, top view optional)
 - Freeze Tag 3D (`freeze-tag/`, first-person 3D freeze tag with Runner mode (dodge freezers, thaw teammates) and Freezer mode (freeze all runners), 20 runners vs 10 freezers on a 2500px map, 5 maps: Arena, Maze, Castle, City, Forest, dash, instant thaw on touch, 66 kits: buy kits once with coins and own them forever, pick one owned kit per round and use it free with no cooldown (earn runner coins by thawing, freezer coins by freezing); runner kits (speed, thaw bomb, barrier, ghost, shield, teleport, phoenix, mine, smoke, medic, decoy, zap, fort, beacon, tar, flash, evade, armor, clones, shockwave, rally, aegis, time stop, cloak, lifeline, bubble, minefield, mirage, quake, launch, bunker, hero, gust) and freezer kits (rope, freeze wave, magnet, snowball, turbo, stun blast, web trap, cage, blink, goo, time warp, pounce, tremor, frost bomb, lunge, web field, goo field, fear, vortex, lasso, net, snow volley, rage, ambush, breaker, demolish, sniper, frost nova, dive, stasis, chains, snare ring); online 2-player: host and guest join with a room code and each choose Runner or Freezer)

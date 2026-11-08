@@ -13,25 +13,35 @@ main{width:min(100%,30rem);padding:1.5rem;border:.2rem solid #f87171;border-radi
 button.b{border:0;border-radius:.5rem;color:#1a0b0b;cursor:pointer;font:inherit;font-weight:bold;padding:.7rem 1rem;margin:.2rem;touch-action:manipulation}
 button.b:disabled{opacity:.5;cursor:default}
 #m{min-height:1.5rem;font-weight:bold}
+#field{position:relative;height:11rem;margin:.5rem 0;border-radius:.6rem;background:linear-gradient(#3b1d1d,#1f0d0d);overflow:hidden}
+.u{position:absolute;font-size:1.7rem;line-height:1;transition:transform .15s,opacity .4s,filter .4s;will-change:transform}
+.u.enemy{transform:scaleX(-1)}
+.proj{position:absolute;font-size:1.2rem;transition:left .35s linear,top .35s ease-out;pointer-events:none;z-index:2}
+button.b+button.b{margin-left:.2rem}
+.u.l1{transform:translateX(1.6rem)}.u.enemy.l1{transform:scaleX(-1) translateX(1.6rem)}
+.u.dead{opacity:0;filter:grayscale(1);transform:rotate(80deg) translateY(.8rem)}
+.fx{position:absolute;font-size:1.4rem;pointer-events:none;animation:fx .5s forwards}
+@keyframes fx{from{opacity:1;transform:scale(.6)}to{opacity:0;transform:scale(1.6) translateY(-1rem)}}
+#field .vs{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-weight:bold;color:#7f1d1d;font-size:2rem}
 </style></head>
 <body><main><a href="../">← All games</a><h1>🥊 Fighter Merge</h1>
-<p>Recruit fighters, <strong>tap two of the same level</strong> to merge them into a stronger one, then send your team to fight the waves. Tap a fighter then an empty slot to move it.</p>
+<p>Recruit fighters and <strong>throwers</strong> (they stay back and hurl stuff), <strong>tap two of the same kind and level</strong> to merge them into a stronger one, then send your team to fight the waves. Tap a fighter then an empty slot to move it.</p>
 <div class="bar"><span id="co">🪙 0</span><span id="wv">Wave 1</span><span id="bs">Best wave 1</span></div>
 <div class="arena"><span>You</span><div class="hp"><i id="h1" style="background:#4ade80"></i></div><div class="hp"><i id="h2" style="background:#f87171"></i></div><span id="en">👹</span></div>
-<div id="m">Recruit and merge!</div>
+<div id="field" hidden></div><div id="m">Recruit and merge!</div>
 <div id="grid"></div>
-<button class="b" id="buy" type="button" style="background:#fbbf24"></button><button class="b" id="fight" type="button" style="background:#f87171">⚔️ Fight!</button>
+<button class="b" id="buy" type="button" style="background:#fbbf24"></button><button class="b" id="buyT" type="button" style="background:#fb923c"></button><button class="b" id="fight" type="button" style="background:#f87171">⚔️ Fight!</button>
 </main>
 <script>
-const FACE=["👶","🧒","🧑","🥷","🤺","🧙","🦸","🥋","🐉","👑","🔥","⭐"],N=12,G=document.querySelector("#grid"),$=s=>document.querySelector(s);
+const FACE=["👶","🧒","🧑","🥷","🤺","🧙","🦸","🥋","🐉","👑","🔥","⭐"],THR=["🤾","🧑‍🍳","🧑‍🌾","🧑‍🚀","🧑‍🎤","🧑‍🏫","🧑‍🔬","🧑‍🎨","🦹","🧝","🧞","🧑‍✈️"],AMMO=["🍅","🪨","🥫","🔪","🪃","🏐","🎯","🧨","☄️","💎","🔥","⭐"],face=v=>(v<0?THR:FACE)[Math.min(Math.abs(v),12)-1],N=12,G=document.querySelector("#grid"),$=s=>document.querySelector(s);
 let st={coins:30,wave:1,best:1,bought:0,g:Array(N).fill(0)},sel=-1,busy=false,popI=-1;
 try{const s=JSON.parse(localStorage.getItem("fighterMerge"));if(s&&s.g&&s.g.length===N)st=s}catch(e){}
 const save=()=>{try{localStorage.setItem("fighterMerge",JSON.stringify(st))}catch(e){}},
- cost=()=>10+st.bought*4,pw=l=>Math.pow(3,l-1),team=()=>st.g.reduce((a,l)=>a+(l?pw(l):0),0),foe=w=>Math.round(2.5*Math.pow(1.5,w-1));
+ cost=()=>10+st.bought*4,costT=()=>cost()+6,pw=l=>Math.pow(3,Math.abs(l)-1),team=()=>st.g.reduce((a,l)=>a+(l?pw(l):0),0),foe=w=>Math.round(2.5*Math.pow(1.5,w-1));
 function render(){
- G.innerHTML="";st.g.forEach((l,i)=>{const b=document.createElement("button");b.className="slot"+(i===sel?" sel":"")+(i===popI?" pop":"");b.setAttribute("aria-label",l?"Fighter level "+l:"Empty slot");b.innerHTML=l?FACE[Math.min(l-1,FACE.length-1)]+"<small>Lv"+l+"</small>":"";b.onclick=()=>tapSlot(i);G.append(b)});
+ G.innerHTML="";st.g.forEach((l,i)=>{const b=document.createElement("button");b.className="slot"+(i===sel?" sel":"")+(i===popI?" pop":"");b.setAttribute("aria-label",l?(l<0?"Thrower":"Fighter")+" level "+Math.abs(l):"Empty slot");b.innerHTML=l?face(l)+"<small>"+(l<0?AMMO[-l-1]:"")+"Lv"+Math.abs(l)+"</small>":"";b.onclick=()=>tapSlot(i);G.append(b)});
  $("#co").textContent="🪙 "+st.coins;$("#wv").textContent="Wave "+st.wave;$("#bs").textContent="Best wave "+st.best;
- $("#buy").textContent="Recruit 🪙"+cost();$("#buy").disabled=busy;$("#fight").disabled=busy||!team();
+ $("#buy").textContent="Recruit 🪙"+cost();$("#buyT").textContent="Thrower 🪙"+costT();$("#buy").disabled=$("#buyT").disabled=busy;$("#fight").disabled=busy||!team();
  $("#h1").style.width=$("#h2").style.width="100%";$("#en").textContent=st.wave%5===0?"🐲":"👹";
  if(!busy)$("#m").textContent=`Team power ${team()} vs enemy ${foe(st.wave)}`}
 function tapSlot(i){
@@ -39,21 +49,39 @@ function tapSlot(i){
  if(sel<0){if(st.g[i])sel=i}
  else if(sel===i)sel=-1;
  else{const a=st.g[sel],b=st.g[i];
-  if(a&&a===b&&a<FACE.length){st.g[i]=a+1;st.g[sel]=0;popI=i}
+  if(a&&a===b&&Math.abs(a)<12){st.g[i]=a+Math.sign(a);st.g[sel]=0;popI=i}
   else{st.g[i]=a;st.g[sel]=b}
   sel=-1;save()}
  render()}
-$("#buy").onclick=()=>{const e=st.g.indexOf(0);if(e<0){$("#m").textContent="No room! Merge fighters first.";return}if(st.coins<cost()){$("#m").textContent="Not enough coins.";return}
- st.coins-=cost();st.bought++;st.g[e]=1;popI=e;sel=-1;save();render()};
+const recruit=th=>{const e=st.g.indexOf(0),c=th?costT():cost();if(e<0){$("#m").textContent="No room! Merge fighters first.";return}if(st.coins<c){$("#m").textContent="Not enough coins.";return}
+ st.coins-=c;st.bought++;st.g[e]=th?-1:1;popI=e;sel=-1;save();render()};
+$("#buy").onclick=()=>recruit(false);$("#buyT").onclick=()=>recruit(true);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 $("#fight").onclick=async()=>{
- busy=true;sel=-1;render();const t=team(),f=foe(st.wave);$("#m").textContent="Fighting…";
- const steps=12,w=t>=f;
+ busy=true;sel=-1;render();const t=team(),f=foe(st.wave),w=t>=f,F=$("#field");$("#m").textContent="Fighting…";
+ const mine=st.g.filter(l=>l>0).sort((a,b)=>b-a),thr=st.g.filter(l=>l<0).sort((a,b)=>a-b),ne=Math.min(10,2+st.wave),boss=st.wave%5===0;
+ F.hidden=false;F.innerHTML='<div class="vs">VS</div>';
+ const mk=(face,side,i,n,base=26)=>{const e=document.createElement("span"),cols=Math.ceil(n/5),c=Math.floor(i/5),r=i%5,rows=Math.min(5,n-c*5);
+  e.className="u"+(side?" enemy":"");e.textContent=face;
+  e.style.left=(side?(80-c*14):(base+c*14))+"%";e.style.top=(50+ (r-(rows-1)/2)*18 )+"%";e.style.marginTop="-.85rem";F.append(e);return e};
+ const A=mine.map((l,i)=>mk(face(l),0,i,mine.length)),T=thr.map((l,i)=>mk(face(l),0,i,thr.length,4)),E=Array.from({length:ne},(_,i)=>mk(boss&&i===0?"🐲":"👹",1,i,ne));
+ const fx=(el,ch)=>{const d=document.createElement("span");d.className="fx";d.textContent=ch;d.style.left=el.offsetLeft+"px";d.style.top=el.offsetTop+"px";F.append(d);setTimeout(()=>d.remove(),500)};
+ const all=()=>[...A,...T,...E],throwAt=(from,to,ch)=>{const p=document.createElement("span");p.className="proj";p.textContent=ch;p.style.left=from.offsetLeft+"px";p.style.top=from.offsetTop+"px";F.append(p);requestAnimationFrame(()=>requestAnimationFrame(()=>{p.style.left=to.offsetLeft+"px";p.style.top=to.offsetTop+"px"}));setTimeout(()=>p.remove(),380)};
+ await sleep(600);const steps=14,loser=w?E:[...T,...A];
  for(let i=1;i<=steps;i++){const k=i/steps;
+  [...A,...E].forEach(u=>!u.classList.contains("dead")&&u.classList.add("l1"));
+  const liveE=()=>E.filter(u=>!u.classList.contains("dead")),shooters=T.filter(u=>!u.classList.contains("dead")),tg=liveE().length?liveE():E;
+  shooters.forEach((u,j)=>throwAt(u,tg[Math.floor(Math.random()*tg.length)],AMMO[-thr[T.indexOf(u)]-1]));
+  await sleep(180);
+  [...A,...E].forEach(u=>u.classList.remove("l1"));
+  fx(tg[Math.floor(Math.random()*tg.length)],"💥");const mates=[...A,...T].filter(u=>!u.classList.contains("dead"));if(mates.length)fx(mates[Math.floor(Math.random()*mates.length)],"💢");
   $("#h2").style.width=(w?100*(1-k):100-k*Math.min(60,t/f*60))+"%";
   $("#h1").style.width=(w?100-k*Math.min(60,f/t*60):100*(1-k))+"%";
-  await new Promise(r=>setTimeout(r,130))}
- if(t>=f){const win=8+st.wave*5;st.coins+=win;$("#h2").style.width="0%";$("#m").textContent=`Victory! +🪙${win}`;st.wave++;st.best=Math.max(st.best,st.wave)}
- else{$("#h1").style.width="0%";st.coins+=3;$("#m").textContent="Defeated! +🪙3. Merge up and try again."}
- save();busy=false;$("#buy").disabled=false;$("#fight").disabled=false;$("#co").textContent="🪙 "+st.coins;$("#wv").textContent="Wave "+st.wave;$("#bs").textContent="Best wave "+st.best};
+  const alive=Math.ceil(loser.length*(1-k));loser.forEach((u,j)=>{if(j>=alive)u.classList.add("dead")});
+  await sleep(140)}
+ if(w){const win=8+st.wave*5;st.coins+=win;$("#m").textContent=`Victory! +🪙${win}`;st.wave++;st.best=Math.max(st.best,st.wave)}
+ else{st.coins+=3;$("#m").textContent="Defeated! +🪙3. Merge up and try again."}
+ save();busy=false;$("#buy").disabled=$("#buyT").disabled=false;$("#fight").disabled=false;$("#co").textContent="🪙 "+st.coins;$("#wv").textContent="Wave "+st.wave;$("#bs").textContent="Best wave "+st.best;
+ await sleep(1800);if(!busy)F.hidden=true};
 render();
 </script></body></html>
