@@ -88,7 +88,7 @@ $("#fight").onclick=async()=>{
   await sleep(260);[...la,...le].forEach(u=>u.classList.remove("l1"));
   const want=Math.ceil(n*r/R);while(dead<want){loser[dead++].classList.add("dead")}
   const done=r/R;$(w?"#h2":"#h1").style.width=100*(1-done)+"%";$(w?"#h1":"#h2").style.width=(100-done*rate)+"%";
-  await sleep(280)} fighting=false;E.forEach(e=>e.classList.remove("tgt"));[...A,...E].forEach(home);await sleep(500); if(w){const win=8+st.wave*5;st.coins+=win;$("#m").textContent=`Victory! +🪙${win}`;st.wave++;st.best=Math.max(st.best,st.wave)}
+  await sleep(280)} fighting=false;E.forEach(e=>e.classList.remove("tgt"));[...A,...E].forEach(home);await sleep(500); if(w){const win=Math.ceil(Math.max(cost(),costT())*1.5);st.coins+=win;$("#m").textContent=`Victory! +🪙${win}`;st.wave++;st.best=Math.max(st.best,st.wave)}
  else{const c=Math.ceil(Math.max(cost(),costT())/2);st.coins+=c;$("#m").textContent=`Defeated! +🪙${c}. Merge up and try again.`}
  save();busy=false;$("#buy").disabled=$("#buyT").disabled=false;$("#fight").disabled=false;$("#co").textContent="🪙 "+st.coins;$("#wv").textContent="Wave "+st.wave;$("#bs").textContent="Best wave "+st.best;
  await sleep(1800);if(!busy)F.hidden=true};
