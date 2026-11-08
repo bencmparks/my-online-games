@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Rhythm Tiles | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#0f0720;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#6d28d9,#0f0720)}
+main{width:min(100%,30rem);padding:1.5rem;border:.2rem solid #c084fc;border-radius:1.25rem;background:rgb(15 7 32 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.6rem 0;color:#e9d5ff;font-size:1.6rem}
+canvas{display:block;width:100%;max-width:22rem;height:auto;margin:1rem auto;border:.2rem solid #7c3aed;border-radius:.4rem;background:#fff;touch-action:none}
+.bar{display:flex;justify-content:center;gap:.8rem;flex-wrap:wrap;align-items:center;font-weight:bold;color:#fde68a}
+</style></head>
+<body><main><a href="../">← All games</a><h1>🎹 Rhythm Tiles</h1>
+<p>Tap the dark tiles as they fall. Don't miss one and don't tap a white square! It speeds up the longer you last.</p>
+<p><strong>Tap / click</strong> a tile, or keys <strong>D F J K</strong> for the four lanes · <strong>Space</strong> start</p>
+<div class="bar"><span id="sc">Score 0</span><span id="bs">Best 0</span></div>
+<canvas id="g" width="360" height="520" aria-label="Rhythm Tiles game"></canvas>
+</main>
+<script>
+const C=document.querySelector("#g"),x=C.getContext("2d"),W=360,H=520,L=4,CW=W/L,TH=130,NOTES=[261.6,293.7,329.6,349.2,392,440,493.9,523.3];
+let tiles=[],score=0,best=0,mode="title",speed=3.2,note=0,bad=null,au;
+try{best=+localStorage.getItem("rhythmTilesBest")||0}catch(e){}
+function beep(f){try{au=au||new(window.AudioContext||window.webkitAudioContext)();const o=au.createOscillator(),g=au.createGain();o.type="triangle";o.frequency.value=f;g.gain.setValueAtTime(.25,au.currentTime);g.gain.exponentialRampToValueAtTime(.001,au.currentTime+.35);o.connect(g);g.connect(au.destination);o.start();o.stop(au.currentTime+.35)}catch(e){}}
+function rl(p){let l;do l=Math.floor(Math.random()*L);while(l===p);return l}
+function start(){tiles=[];score=0;speed=3.2;mode="play";bad=null;let p=-1;for(let i=0;i<5;i++){p=rl(p);tiles.push({l:p,y:H-TH*(i+1)-20,hit:false})}hud()}
+function hud(){document.querySelector("#sc").textContent="Score "+score;document.querySelector("#bs").textContent="Best "+best}
+function lose(l,y){mode="over";bad={l,y};if(score>best){best=score;try{localStorage.setItem("rhythmTilesBest",best)}catch(e){}}hud()}
+function lowest(){return tiles.filter(t=>!t.hit).sort((a,b)=>b.y-a.y)[0]}
+function tap(l,y){
+ if(mode!=="play"){start();return}
+ const t=lowest();
+ if(!t||t.l!==l||(y!==undefined&&(y<t.y||y>t.y+TH))){lose(l,y===undefined?(t?t.y:0):y-TH/2);return}
+ t.hit=true;score++;beep(NOTES[note++%NOTES.length]);speed=Math.min(9,3.2+score*.06);hud()}
+function update(){
+ if(mode!=="play")return;
+ for(const t of tiles)t.y+=speed;
+ const t=lowest();
+ if(t&&t.y>H){lose(t.l,t.y);return}
+ tiles=tiles.filter(q=>q.y<H+20);
+ const top=tiles.reduce((a,b)=>a.y<b.y?a:b);
+ if(top.y>0)tiles.push({l:rl(top.l),y:top.y-TH,hit:false})}
+function draw(){
+ x.fillStyle="#fff";x.fillRect(0,0,W,H);x.strokeStyle="#e5e7eb";
+ for(let i=1;i<L;i++){x.beginPath();x.moveTo(i*CW,0);x.lineTo(i*CW,H);x.stroke()}
+ for(const t of tiles){x.fillStyle=t.hit?"#c4b5fd":"#111";x.fillRect(t.l*CW+3,t.y+3,CW-6,TH-6)}
+ if(bad){x.fillStyle="#ef4444";x.fillRect(bad.l*CW+3,bad.y+3,CW-6,TH-6)}
+ x.textAlign="center";x.fillStyle="#7c3aed";x.font="bold 54px Arial";if(mode==="play")x.fillText(score,W/2,70);
+ if(mode!=="play"){x.fillStyle="rgb(15 7 32 / 78%)";x.fillRect(0,H/2-90,W,180);x.fillStyle="#fff";x.font="bold 36px Arial";x.fillText(mode==="over"?"Game over":"Rhythm Tiles",W/2,H/2-30);x.font="bold 20px Arial";if(mode==="over")x.fillText(`Score ${score}  ·  Best ${best}`,W/2,H/2+8);x.fillText("Tap or press Space to "+(mode==="over"?"retry":"start"),W/2,H/2+50)}
+ update();requestAnimationFrame(draw)}
+C.addEventListener("pointerdown",e=>{e.preventDefault();const b=C.getBoundingClientRect(),l=Math.min(L-1,Math.max(0,Math.floor((e.clientX-b.left)/b.width*L))),y=(e.clientY-b.top)/b.height*H;tap(l,y)});
+addEventListener("keydown",e=>{if(e.repeat)return;if(e.code==="Space"){e.preventDefault();if(mode!=="play")start();return}const l={KeyD:0,KeyF:1,KeyJ:2,KeyK:3}[e.code];if(l!==undefined)tap(l)});
+draw();
+</script></body></html>
