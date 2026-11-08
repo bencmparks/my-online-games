@@ -52,7 +52,7 @@
     <h1>Match 3</h1>
     <p class="stats"><span>Level: <strong id="level">1</strong></span><span>Score: <strong id="score">0</strong></span><span>Moves: <strong id="moves">20</strong></span><span>Best: <strong id="best">0</strong></span></p>
     <p id="goals" class="goals" aria-live="polite"></p>
-    <p id="status" aria-live="polite">Select two neighboring gems to swap them. Double-click a power-up, or swap it with a neighbor, to set it off. Match 5 in a row for a 🪩 disco ball, or a 2×2 square for a 🧨 dynamite.</p>
+    <p id="status" aria-live="polite">Select two neighboring gems to swap them. Double-click a power-up, or swap it with a neighbor, to set it off. Match 5 in a row for a 🪩 disco ball, or a 2×2 square for a 🧨 dynamite. Swap two power-ups to merge them: a 🪩 disco merged with any power-up copies it onto every gem of the most common color and sets them all off!</p>
     <div class="board" id="board" aria-label="Match 3 gem board"></div>
     <button id="new-game" type="button">New game</button> <button id="levels-btn" type="button">Levels</button>
     <div id="levels" class="levels" hidden></div>
@@ -271,8 +271,35 @@
       anim[`${first.row},${first.column}`] = { type: "swap", vars: { "--dx": `${(second.column - first.column) * 110}%`, "--dy": `${(second.row - first.row) * 110}%` } };
       anim[`${second.row},${second.column}`] = { type: "swap", vars: { "--dx": `${(first.column - second.column) * 110}%`, "--dy": `${(first.row - second.row) * 110}%` } };
       render(); await wait(190);
+      if (isPowerup(board[first.row][first.column]) && isPowerup(board[second.row][second.column])) { await mergePowerups(first, second); return; }
       const spot = isPowerup(board[second.row][second.column]) ? second : first;
       resolving = false; await activatePowerup(spot.row, spot.column, true);
+    }
+    async function mergePowerups(first, second) {
+      const a = board[first.row][first.column], b = board[second.row][second.column], isLine = (value) => ["↔️", "↕️", "✚"].includes(value);
+      board[first.row][first.column] = ""; board[second.row][second.column] = "";
+      let cells = [], label = "";
+      if (a === "🪩" || b === "🪩") {
+        const other = a === "🪩" ? b : a;
+        if (other === "🪩") { label = "🪩+🪩 Whole board!"; for (let r = 0; r < size; r += 1) for (let c = 0; c < size; c += 1) cells.push({ row: r, column: c }); }
+        else {
+          const target = discoTarget();
+          for (let r = 0; r < size; r += 1) for (let c = 0; c < size; c += 1) if (board[r][c] === target) { board[r][c] = other; cells.push({ row: r, column: c }); }
+          board[second.row][second.column] = other; cells.push({ row: second.row, column: second.column });
+          label = `🪩+${other} Replicated ${other} on ${cells.length - 1} gems!`;
+        }
+        statusElement.textContent = label; render(); await wait(600);
+      } else {
+        const map = new Map(), add = (r, c) => { if (r >= 0 && r < size && c >= 0 && c < size) map.set(`${r},${c}`, { row: r, column: c }); }, row = second.row, column = second.column;
+        if (a === "🧨" && b === "🧨") { for (let r = row - 4; r <= row + 4; r += 1) for (let c = column - 4; c <= column + 4; c += 1) add(r, c); label = "🧨+🧨 Mega blast!"; }
+        else if (a === "🧨" || b === "🧨") { for (let i = 0; i < size; i += 1) for (let d = -1; d <= 1; d += 1) { add(row + d, i); add(i, column + d); } label = "🧨 Triple-wide cross!"; }
+        else { for (let i = 0; i < size; i += 1) { add(row, i); add(i, column); } label = "✚ Power-ups merged!"; }
+        statusElement.textContent = label; cells = [...map.values()];
+      }
+      await resolveMatches(cells);
+      const wasLevel = level;
+      await finishTurn();
+      if (level === wasLevel && moves > 0) statusElement.textContent = label;
     }
     async function activatePowerup(row, column, force) {
       if (resolving || (moves === 0 && !force)) return;
@@ -294,10 +321,13 @@
       if (powerup === "↕️" || powerup === "✚") for (let currentRow = 0; currentRow < size; currentRow += 1) cleared.push({ row: currentRow, column });
       return [...new Map(cleared.map((square) => [`${square.row},${square.column}`, square])).values()];
     }
-    function getDiscoClear() {
+    function discoTarget() {
       const counts = new Map();
       for (const gem of board.flat()) if (gems.includes(gem)) counts.set(gem, (counts.get(gem) || 0) + 1);
-      const target = [...counts.entries()].sort((first, second) => second[1] - first[1])[0]?.[0];
+      return [...counts.entries()].sort((first, second) => second[1] - first[1])[0]?.[0];
+    }
+    function getDiscoClear() {
+      const target = discoTarget();
       return board.flat().flatMap((value, index) => value === target ? [{ row: Math.floor(index / size), column: index % size }] : []);
     }
     function dropGems() {
