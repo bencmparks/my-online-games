@@ -78,7 +78,7 @@ $("#fight").onclick=async()=>{
   const la=alive(A),lt=alive(T),le=alive(E),mineT=la.length?la:lt,pairs=[];
   la.forEach((u,j)=>{const e=le[j%le.length];if(e)pairs.push([u,e])});
   le.forEach((e,j)=>{const u=mineT[j%mineT.length];if(u)pairs.push([e,u])});
-  pairs.forEach(([u,v],j)=>{const mid=(u._l+v._l)/2,side=u._l<v._l?-1:1,top=(u._t+v._t)/2+((j%3)-1)*4;u.style.left=Math.max(2,Math.min(88,mid+side*5))+"%";u.style.top=Math.max(8,Math.min(86,top))+"%"});
+  la.forEach((u,j)=>{const e=le[j%le.length];if(!e)return;u.style.left=Math.max(2,e._l-8-Math.floor(j/3)*4)+"%";u.style.top=Math.max(8,Math.min(86,e._t+((j%3)-1)*8))+"%"});
   await sleep(430);
   [...la,...le].forEach(u=>u.classList.add("l1"));
   pairs.forEach(([u,v])=>{if(Math.random()<.7)fx(v,u.classList.contains("enemy")?"💢":"💥")});
