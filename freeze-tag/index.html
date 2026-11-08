@@ -9,7 +9,7 @@ button{border:0;border-radius:.5rem;background:#cffafe;color:#083344;cursor:poin
 </style></head>
 <body><main><a href="../">← All games</a><h1>🥶 Freeze Tag 3D</h1>
 <p>You are one of 30 runners being hunted by 10 red freezers on a huge map. Get touched and you freeze solid! Touch a frozen teammate to thaw them instantly, and they'll do the same for you. Survive until the timer ends, and don't let everyone get frozen at once.</p>
-<p><strong>Freezer mode:</strong> you are a freezer with 9 AI partners. Chase down all 30 runners and have every one frozen at the same time before the clock runs out, while the runners keep thawing each other.</p>
+<p><strong>Freezer mode:</strong> you are a freezer with 9 AI partners. Chase down all 15 runners and have every one frozen at the same time before the clock runs out, while the runners keep thawing each other.</p>
 <p><strong>Kits:</strong> grab 🎁 boxes. Runners get Speed, Thaw Bomb (explosion that unfreezes), Barrier (a wall freezers can't cross), Ghost, Shield, Teleport, Phoenix (thaws everyone) or Mine. Freezers get Speed, Rope (drags a runner to you), Freeze Wave, Magnet, Snowball, Turbo, Stun Blast or Web Trap. The AI uses them too.</p>
 <p><strong>Maps:</strong> Arena, Maze, Castle, City and Forest. Auto cycles one per level, or pick one with the map button (M).</p>
 <p><strong>W/S or ↑/↓</strong> run · <strong>A/D or ←/→</strong> turn, or click the game and move the mouse (Esc to release) · <strong>Space / E</strong> dash · <strong>Q / F</strong> use kit · <strong>Enter</strong> start</p>
@@ -78,7 +78,7 @@ function setup(){
  P=mk(0,{fr});
  const cn=fr?NF-1:NF;
  chasers=[];for(let i=0;i<cn;i++)chasers.push(mk(fr?250:500,{pause:60,fr:true}));
- const rn=fr?NR:NR-1;
+ const rn=fr?15:NR-1;
  mates=[];for(let i=0;i<rn;i++)mates.push(mk(fr?300:90,{c:`hsl(${i*37%360} 70% 52%)`,wx:0,wy:0,wt:0,fg:null,ft:0}));
  boxes=[];for(let i=0;i<18;i++){const[a,b]=spot(placed,0);boxes.push({x:a,y:b,on:true,t:0})}pj=[];fx=[];walls=[];traps=[];
  time=(fr?Math.max(150,300-level*10):Math.min(240,150+level*10))*60;dash=0;dashCd=0;msg="";msgT=0}
