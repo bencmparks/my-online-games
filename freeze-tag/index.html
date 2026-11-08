@@ -109,7 +109,7 @@ const KITS={speed:"⚡ Speed",bomb:"💣 Thaw Bomb",wall:"🧱 Barrier",rope:"�
 function boom(px,py,r,type,by){fx.push({x:px,y:py,r,t:30});for(const o of actors()){if(Math.hypot(o.x-px,o.y-py)>=r)continue;
  if(type==="thaw"&&o.fz){o.fz=0;o.th=0;if(by===P)score+=25;if(o===P)say("🔥 You were thawed!")}
  else if(type==="freeze"&&o!==by){if(freeze(o)&&by===P)score+=20}}}
-function useKit(o,a,dist=230){const k=o.kit;if(!k||o.fz)return;o.kit=null;
+function useKit(o,a,dist=230){const k=o.kit;if(!k||(o.fz&&o!==P))return;o.kit=null;
  if(k==="speed"){o.sp=240;if(o===P)say("⚡ Speed boost!")}
  else if(k==="bomb")pj.push({k:"bomb",x:o.x,y:o.y,a,d:0,max:dist,by:o});
  else if(k==="rope")pj.push({k:"rope",x:o.x,y:o.y,a,d:0,max:450,by:o});
@@ -126,6 +126,12 @@ function useKit(o,a,dist=230){const k=o.kit;if(!k||o.fz)return;o.kit=null;
  else if(k==="stun"){for(const q of actors())if(!q.fz&&Math.hypot(q.x-o.x,q.y-o.y)<200)q.stun=180;fx.push({x:o.x,y:o.y,r:70,t:20});if(o===P)say("📢 Stun blast!")}
  else if(k==="web"){traps.push({x:o.x+Math.cos(a)*60,y:o.y+Math.sin(a)*60,t:1800,k:"web"});if(o===P)say("🕸 Web set: stuns runners")}}
 function pull(o){const b=o.pl.by;if(--o.pl.t<=0||Math.hypot(b.x-o.x,b.y-o.y)<18){o.pl=null;return}toward(o,b.x,b.y,5)}
+function aimPt(){const k=P.kit;if(!k)return null;
+ if(k==="wall"||k==="web")return[P.x+Math.cos(P.a)*60,P.y+Math.sin(P.a)*60];
+ const mx=k==="bomb"?230:k==="rope"?450:k==="snow"?350:0;if(!mx)return null;
+ const hit=k!=="bomb",tg=actors().filter(o=>o!==P&&!o.fz);let d=0,px=P.x,py=P.y;
+ while(d<mx){const nx=P.x+Math.cos(P.a)*(d+6),ny=P.y+Math.sin(P.a)*(d+6);if(!free(nx,ny,2))break;px=nx;py=ny;d+=6;if(hit&&tg.some(o=>Math.hypot(o.x-nx,o.y-ny)<16))break}
+ return[px,py]}
 function nearBox(o,r){let b=null,bd=r;for(const q of boxes){if(!q.on)continue;const d=Math.hypot(q.x-o.x,q.y-o.y);if(d<bd){bd=d;b=q}}return b}
 function update(){
  t+=1;if(msgT>0)msgT-=1;if(mode==="title"){camA+=.004;return}if(mode!=="play")return;
@@ -134,6 +140,7 @@ function update(){
  if(P.fz)P.pl=null;
  if(P.pl)pull(P);
  else if(P.stun>0){P.stun--}
+ else if(P.fz)P.a+=dx*.05;
  else if(!P.fz){P.a+=dx*.05;const sp=(dash>0?5:2.6)*sb(P);if(dy){step(P,P.a+(dy>0?Math.PI:0),sp)}else if(dash>0)step(P,P.a,sp)}
  if(dash>0)dash-=1;if(dashCd>0)dashCd-=1;
  const all=actors();for(const o of[P,...mates,...chasers]){if(o.sp>0)o.sp-=1;if(o.tb>0)o.tb-=1;if(o.gh>0)o.gh-=1}
@@ -187,7 +194,7 @@ addEventListener("keydown",e=>{if(e.code==="Digit1"){pick("runner");return}if(e.
 addEventListener("keyup",e=>{const k=KEYS[e.code];if(k)held[k]=false});
 addEventListener("blur",()=>{held={}});
 C.addEventListener("click",()=>{if(mode==="play"&&C.requestPointerLock)C.requestPointerLock()});
-addEventListener("mousemove",e=>{if(document.pointerLockElement===C&&mode==="play"&&!P.fz)P.a+=e.movementX*.003});
+addEventListener("mousemove",e=>{if(document.pointerLockElement===C&&mode==="play")P.a+=e.movementX*.003});
 document.querySelectorAll("[data-k]").forEach(b=>{const k=b.dataset.k;b.addEventListener("pointerdown",e=>{e.preventDefault();held[k]=true;if(k==="act")act();if(k==="kit"&&mode==="play")useKit(P,P.a)});["pointerup","pointerleave","pointercancel"].forEach(ev=>b.addEventListener(ev,()=>{held[k]=false}))});
 function text(s,a,b,size=18,color="#fff",align="left"){x.font=`bold ${size}px Arial,sans-serif`;x.fillStyle=color;x.textAlign=align;x.lineWidth=4;x.strokeStyle="#000";x.strokeText(s,a,b);x.fillText(s,a,b)}
 const shade=(h,m)=>{const n=parseInt(h.slice(1),16);return`rgb(${Math.min(255,(n>>16)*m)|0} ${Math.min(255,((n>>8)&255)*m)|0} ${Math.min(255,(n&255)*m)|0})`};
@@ -211,6 +218,7 @@ function draw3d(){
  const em=(px,py,z0,ch,sz,col)=>{const d=Math.hypot(px-c.x,py-c.y);if(d>FAR)return;items.push({d,f(){const b=tr(px,py,z0);if(b[2]<N)return;const q=pr(b),s=sz*F/b[2];x.font=`${Math.max(6,s|0)}px Arial`;x.textAlign="center";x.fillStyle=col||"#fff";x.fillText(ch,q[0],q[1])}})};
  const rope=(a,b)=>{const n=Math.floor(Math.hypot(b.x-a.x,b.y-a.y)/30);for(let i=1;i<=n;i++)em(a.x+(b.x-a.x)*i/n,a.y+(b.y-a.y)*i/n,22,"●",12,"#a16207")};
  for(const b of boxes)if(b.on)em(b.x,b.y,30+Math.sin(t/12)*5,"🎁",40);
+ const ap=mode==="play"?aimPt():null;if(ap)em(ap[0],ap[1],6,"🎯",30);
  for(const q of traps)em(q.x,q.y,6,q.k==="mine"?"🧨":"🕸",28);
  for(const p of pj){em(p.x,p.y,22,p.k==="bomb"?"💣":p.k==="snow"?"❄️":"🪢",30);if(p.k==="rope")rope(p.by,p)}
  for(const f of fx)em(f.x,f.y,30,"💥",f.r*(1.3-f.t/40));
