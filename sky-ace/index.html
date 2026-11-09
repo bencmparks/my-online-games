@@ -148,7 +148,7 @@
     LEVELS.forEach((lv) => { if (lv.swarm) { lv.swarm.roster = LEVELS.slice(0, 49).filter((o) => o.boss && !o.swarm).map((o) => ({ name: o.boss.name, hp: o.boss.hp * 100, heli: !!o.boss.heli })); lv.swarm.count = lv.swarm.roster.length; } });
     const levelGoal = (lv) => lv.swarm ? `defeat ${lv.swarm.count} bosses at once, then The Overlord with ${lv.swarm.finalMult}x their combined life` : lv.squad ? `destroy ${lv.squad.helis} helicopters and 1 elite plane with triple life` : lv.boss ? `defeat the boss ${lv.boss.name} (no other planes or ships)` : `destroy ${lv.planes} planes and ${lv.ships} ${lv.land ? "tanks" : "ships"}${lv.tough ? " (tougher and faster)" : ""}`;
     const levelsEl = document.querySelector("#levels");
-    const OWNER_HASH = "bc1fdfcf3e00a250bc58b781b4c974340d8bd4aa203e5a152ad83b7f7144a7b7";
+    const OWNER_HASH = "f7db20ac5eb7cdb58f6d195d202e4fba228f06d723c0485e2870d1ebbc116aff";
     let owner = localStorage.getItem("skyAceOwner") === OWNER_HASH; const unl = () => owner ? LEVELS.length : save.unlocked;
     const PAGE = 50; let levelPage = Math.floor((save.pick - 1) / PAGE);
     function renderLevels() {

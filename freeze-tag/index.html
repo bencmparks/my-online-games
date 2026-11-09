@@ -104,7 +104,7 @@ function fin(fw){const win=P.fr===fw;if(win)score+=fw?100*level+Math.floor(time/
 function startRound(){mode="play";say(`Level ${level} · ${MAPS[mapI].n}: `+(P.fr?`freeze all ${actors().length} runners!`:"don't get frozen!"))}
 function pick(r){role=r;level=1;score=0;begin()}
 const kp=document.querySelector("#kitPick"),kl=document.querySelector("#kitList");
-const OH="bc1fdfcf3e00a250bc58b781b4c974340d8bd4aa203e5a152ad83b7f7144a7b7";
+const OH="f7db20ac5eb7cdb58f6d195d202e4fba228f06d723c0485e2870d1ebbc116aff";
 let owner=false,cmb=false,sel=[];try{owner=localStorage.getItem("freezeTagOwner")===OH}catch(e){}
 const comboCost=n=>n<2?0:100+50*(n-2),kn=o=>[o.kit,...(o.kx||[])].map(k=>KITS[k]).join(" + ");
 function finishPick(k,kx){P.kit=k;P.kx=kx;kp.hidden=true;if(nr==="guest"){myReady=true;net.send({t:"kit0",k,kx})}else{hostReady=true;tryStart()}}
