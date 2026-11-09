@@ -14,7 +14,7 @@ Keep a list of my games here.
 - Brick Breaker (`breakout/`)
 - Flamingo Clicker (`flamingo-clicker/`)
 - Memory Match (`memory-match/`)
-- Match 3 (`match-3/`)
+- Match 3 (`match-3/`, level mode plus endless Infinity mode)
 - Gem Merge (`gem-merge/`)
 - Coloring Studio (`coloring-studio/`)
 - Word Dash (`word-dash/`)

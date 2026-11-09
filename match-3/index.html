@@ -42,7 +42,7 @@
     .lv { padding: 0.5rem 0.2rem; border: 0.12rem solid #a78bfa; border-radius: 0.7rem; background: #312e81; color: #f8fafc; cursor: pointer; font: inherit; font-weight: bold; }
     .lv small { display: block; font-weight: normal; color: #c7d2fe; }
     .lv.current { border-color: #facc15; } .lv:disabled { opacity: 0.4; cursor: not-allowed; }
-    #levels-btn { margin-top: 1rem; padding: 0.7rem 1.1rem; border: 0; border-radius: 0.5rem; background: #fde68a; color: #312e81; cursor: pointer; font: inherit; font-weight: bold; }
+    #levels-btn, #infinity-btn { margin-top: 1rem; padding: 0.7rem 1.1rem; border: 0; border-radius: 0.5rem; background: #fde68a; color: #312e81; cursor: pointer; font: inherit; font-weight: bold; }
     #new-game { margin-top: 1rem; padding: 0.7rem 1.1rem; border: 0; border-radius: 0.5rem; background: #c4b5fd; color: #312e81; cursor: pointer; font: inherit; font-weight: bold; }
   </style>
 </head>
@@ -54,7 +54,7 @@
     <p id="goals" class="goals" aria-live="polite"></p>
     <p id="status" aria-live="polite">Select two neighboring gems to swap them. Double-click a power-up, or swap it with a neighbor, to set it off. Match 5 in a row for a 🪩 disco ball, or a 2×2 square for a 🧨 dynamite. Swap two power-ups to merge them: a 🪩 disco merged with any power-up copies it onto every gem of the most common color and sets them all off!</p>
     <div class="board" id="board" aria-label="Match 3 gem board"></div>
-    <button id="new-game" type="button">New game</button> <button id="levels-btn" type="button">Levels</button>
+    <button id="new-game" type="button">New game</button> <button id="levels-btn" type="button">Levels</button> <button id="infinity-btn" type="button">♾️ Infinity mode</button>
     <div id="levels" class="levels" hidden></div>
   </main>
   <script src="../shared/profile.js"></script>
@@ -78,7 +78,7 @@
     }
     function playLevel(number) {
       if (number > unlocked() || resolving) return;
-      level = number; score = 0; resolving = false; levelBusy = false; startLevel();
+      level = number; score = 0; resolving = false; levelBusy = false; infinity = false; startLevel();
       statusElement.textContent = `Level ${level}: reach the goals before you run out of moves.`;
       levelsElement.hidden = true; render();
     }
@@ -93,18 +93,18 @@
     }
     function startLevel() {
       const def = levelDef(level);
-      goals = def.goals.map((goal) => ({ ...goal })); moves = def.moves; selected = null;
+      goals = infinity ? [] : def.goals.map((goal) => ({ ...goal })); moves = infinity ? Infinity : def.moves; selected = null;
       for (let row = 0; row < size; row += 1) {
         for (let column = 0; column < size; column += 1) {
           do { board[row][column] = randomGem(); } while (findMatches().some((match) => match.row === row && match.column === column));
         }
       }
-      for (let placed = 0; placed < def.boxes;) {
+      for (let placed = 0; placed < (infinity ? 0 : def.boxes);) {
         const row = Math.floor(Math.random() * 6), column = Math.floor(Math.random() * size);
         if (board[row][column] !== BOX) { board[row][column] = BOX; placed += 1; }
       }
     }
-    function goalsDone() { return goals.every((goal) => goal.left <= 0); }
+    function goalsDone() { return !infinity && goals.every((goal) => goal.left <= 0); }
     const boardElement = document.querySelector("#board");
     const scoreElement = document.querySelector("#score");
     const movesElement = document.querySelector("#moves");
@@ -112,7 +112,7 @@
     const statusElement = document.querySelector("#status");
     const progress = GameProfiles.getGame("match-3", { bestScore: 0 });
     const levelElement = document.querySelector("#level");
-    let board, score, moves, level, selected, resolving, anim = {};
+    let board, score, moves, level, selected, resolving, infinity = false, anim = {};
     const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     const cell = (row, column) => boardElement.children[row * size + column];
     function floatPoints(cells, text) {
@@ -124,7 +124,7 @@
 
     function newGame() {
       board = Array.from({ length: size }, () => Array(size).fill(""));
-      score = 0; level = 1; resolving = false; startLevel();
+      score = 0; level = 1; resolving = false; infinity = false; startLevel();
       statusElement.textContent = "Reach each level goal before you run out of moves. Match next to 📦 to break it.";
       render();
     }
@@ -143,9 +143,9 @@
         boardElement.append(button);
       }
       anim = {};
-      scoreElement.textContent = score; movesElement.textContent = moves; levelElement.textContent = level;
+      scoreElement.textContent = score; movesElement.textContent = infinity ? "∞" : moves; levelElement.textContent = infinity ? "∞" : level;
       goalsElement.replaceChildren(...goals.map((goal) => { const item = document.createElement("span"); item.className = `goal${goal.left <= 0 ? " done" : ""}`; item.textContent = `${goal.box ? BOX : goal.gem} ${goal.left <= 0 ? "✔" : goal.left}`; return item; }));
-      bestElement.textContent = progress.bestScore;
+      bestElement.textContent = infinity ? (progress.infinityBest || 0) : progress.bestScore;
     }
 
     function chooseGem(row, column) {
@@ -261,7 +261,7 @@
       } else if (moves === 0) {
         statusElement.textContent = `Out of moves on level ${level}! Final score: ${score}.`;
       }
-      if (score > progress.bestScore) progress.bestScore = score;
+      if (infinity) { if (score > (progress.infinityBest || 0)) progress.infinityBest = score; } else if (score > progress.bestScore) progress.bestScore = score;
       GameProfiles.saveGame("match-3", progress);
       resolving = false; render();
     }
@@ -341,6 +341,11 @@
         }
       }
     }
+    document.querySelector("#infinity-btn").addEventListener("click", () => {
+      levelsElement.hidden = true; board = Array.from({ length: size }, () => Array(size).fill(""));
+      score = 0; level = 1; resolving = false; levelBusy = false; infinity = true; startLevel();
+      statusElement.textContent = "Infinity mode: no goals, no move limit. Play as long as you want!"; render();
+    });
     document.querySelector("#new-game").addEventListener("click", () => { levelsElement.hidden = true; newGame(); });
     document.querySelector("#levels-btn").addEventListener("click", () => { renderLevels(); levelsElement.hidden = !levelsElement.hidden; });
     newGame();
