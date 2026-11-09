@@ -41,7 +41,8 @@ const UPS=[
  {k:"c1",n:"🧑‍💼 Cashier 1",c:[150]},
  {k:"c2",n:"🧑‍💼 Cashier 2",c:[600],ok:()=>s.up.reg2},
  {k:"c3",n:"🧑‍💼 Cashier 3",c:[2000],ok:()=>s.up.reg3}];
-UPS.forEach((u,i)=>{u.x=1110+(i%5)*130;u.y=580+Math.floor(i/5)*140});
+const UPOS={bag:[260,440],speed:[1400,700],cust:[850,440],farmw:[1180,470],grow:[1500,470],shelf:[880,250],price:[1250,880],mach:[1640,260],reg2:[325,640],reg3:[575,640],c1:[100,780],c2:[325,860],c3:[575,860]};
+UPS.forEach(u=>{u.x=UPOS[u.k][0];u.y=UPOS[u.k][1]});
 const RX=[200,450,700],RY=700,DOOR={x:850,y:WH},PCAP=12;
 const DEF={cash:0,sh:{banana:1},pr:{banana:1,corn:0,egg:0,milk:0,tomato:0,popcorn:0,juice:0,cheese:0},up:{bag:0,speed:0,cust:0,farmw:0,grow:0,shelf:0,price:0,mach:0,reg2:0,reg3:0,c1:0,c2:0,c3:0},paid:{},served:0};
 let s=JSON.parse(JSON.stringify(DEF));try{const o=JSON.parse(localStorage.getItem(KEY)||"{}");for(const k in o)if(typeof o[k]==="object"&&o[k]&&!Array.isArray(o[k]))Object.assign(s[k],o[k]);else s[k]=o[k]}catch(e){}
@@ -125,7 +126,7 @@ function draw(){
  x.save();x.translate(-Math.round(cam.x),-Math.round(cam.y));
  x.fillStyle="#e7d3b0";x.fillRect(0,0,WW,WH);x.fillStyle="#d6bd91";for(let i=0;i<WW;i+=100)for(let j=0;j<WH;j+=100)if((i+j)/100%2)x.fillRect(i,j,100,100);
  x.fillStyle="#bef264";x.fillRect(0,16,WW,170);x.fillStyle="#65a30d";x.fillRect(0,0,WW,16);x.fillRect(0,184,WW,6);
- x.fillStyle="#bae6fd";x.fillRect(1090,500,590,540);text("⭐ UPGRADE PLAZA ⭐",1385,535,18,"#0c4a6e");
+ 
  text("FARMS & FACTORIES",110,34,13,"#365314","left");text("CHECKOUT",60,RY-52,13,"#334155","left");
  x.fillStyle="#92400e";x.fillRect(DOOR.x-60,WH-14,120,14);text("Door",DOOR.x,WH-20,12,"#78350f");
  for(const p of PRODS){const I=INFO[p],px=I.x,py=I.y,f=I.from;
@@ -152,7 +153,7 @@ function draw(){
  let hint="";if(s.served<1&&!shelf.banana&&!P.items.length)hint="Walk up to the 🍌 grove to grab bananas";else if(s.served<1&&P.items.length)hint="Drop the fruit on the matching shelf";else if(queues[0].length&&!hasC(0)&&dist(P,regPos(0))>=95)hint="Stand at the register to ring up customers";else if(piles.some(v=>v>0))hint="Collect the 💵 cash pile";
  if(vands.some(v=>v.st!=="flee"))hint="😈 Vandal! Catch it before it tags a shelf!";else if(PRODS.some(p=>tag[p]))hint="Stand at the tagged shelf to clean it";
  if(hint){x.fillStyle="rgb(0 0 0 / 65%)";x.fillRect(VW/2-190,VH-40,380,28);text(hint,VW/2,VH-20,15,"#fff")}
- const mx=VW-160,my=8,ms=150/WW;x.fillStyle="rgb(0 0 0 / 45%)";x.fillRect(mx-2,my-2,154,WH*ms+4);x.fillStyle="#e7d3b0";x.fillRect(mx,my,150,WH*ms);x.fillStyle="#bef264";x.fillRect(mx,my,150,186*ms);x.fillStyle="#bae6fd";x.fillRect(mx+1090*ms,my+500*ms,590*ms,540*ms);
+ const mx=VW-160,my=8,ms=150/WW;x.fillStyle="rgb(0 0 0 / 45%)";x.fillRect(mx-2,my-2,154,WH*ms+4);x.fillStyle="#e7d3b0";x.fillRect(mx,my,150,WH*ms);x.fillStyle="#bef264";x.fillRect(mx,my,150,186*ms);
  for(const p of PRODS){x.fillStyle=s.pr[p]?"#166534":"#4d7c0f66";x.fillRect(mx+(INFO[p].x-12)*ms,my+(INFO[p].y-12)*ms,24*ms,24*ms+2)}
  for(const v of vands){x.fillStyle="#dc2626";x.fillRect(mx+v.x*ms-2,my+v.y*ms-2,4,4)}
  for(const c of custs){x.fillStyle="#2563eb";x.fillRect(mx+c.x*ms-1,my+c.y*ms-1,2,2)}
