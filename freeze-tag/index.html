@@ -116,7 +116,7 @@ function showPick(){const fz=P.fr,pl=POOL[fz?1:0],ow=own[fz?"freezer":"runner"],
   for(const k of pl){const b=document.createElement("button");b.type="button";const has=owner||ow[k];b.innerHTML=`${cmb&&has?(sel.includes(k)?"☑ ":"☐ "):""}${KITS[k]} · ${has?"✔ owned":"Buy "+KCOST[k]+"🪙"}<small>${KDESC[k]}</small>`;
    if(sel.includes(k))b.style.outline=".15rem solid #fde047";
    b.onclick=()=>{if(!has){if(coins<KCOST[k]){info.textContent=`Need ${KCOST[k]} 🪙 for ${KITS[k]} (you have ${coins}). Earn coins by ${fz?"freezing runners":"thawing teammates"}.`;return}coins-=KCOST[k];ow[k]=1;saveKits();showPick();return}
-    if(cmb){sel=sel.includes(k)?sel.filter(v=>v!==k):owner||sel.length<5?[...sel,k]:sel;showPick();return}
+    if(cmb){sel=sel.includes(k)?sel.filter(v=>v!==k):owner||sel.length<10?[...sel,k]:sel;showPick();return}
     finishPick(k,[])};kl.appendChild(b)}
   const row=(txt,fn)=>{const b=document.createElement("button");b.type="button";b.textContent=txt;b.style.gridColumn="1/-1";b.onclick=fn;kl.appendChild(b)};
   row(cmb?"✖ Stop combining":"🔗 Combine kits (2 for 100🪙, +50🪙 each extra)",()=>{cmb=!cmb;sel=[];showPick()});
