@@ -105,7 +105,7 @@ function setBet(v){bet=v;document.querySelectorAll("#bets button").forEach(b=>b.
 function setRisk(r){risk=r;document.querySelectorAll("#risks button").forEach(b=>b.classList.toggle("on",b.dataset.v===r))}
 function setAuto(v){auto=v;document.querySelector("#auto").textContent="Auto: "+(v?"On":"Off");document.querySelector("#auto").classList.toggle("on",v)}
 document.querySelector("#allup").onclick=()=>{
- for(let n=0;n<5000;n+=1){let u=null;for(const q of UPS)if(up[q.k]<q.max&&q.cost(up[q.k])<=coins&&(!u||q.cost(up[q.k])<u.cost(up[u.k])))u=q;
+ for(let n=0;n<2e6;n+=1){let u=null;for(const q of UPS)if(up[q.k]<q.max&&q.cost(up[q.k])<=coins&&(!u||q.cost(up[q.k])<u.cost(up[u.k])))u=q;
   if(!u)break;const l=up[u.k],c=u.cost(l);if(c===1){const k=Math.min(coins,u.max-l);coins-=k;up[u.k]+=k}else{coins-=c;up[u.k]+=1}}
  save()};
 for(const u of UPS){const b=document.createElement("button");b.dataset.k=u.k;b.onclick=()=>{const l=up[u.k];if(l<u.max&&coins>=u.cost(l)){coins-=u.cost(l);up[u.k]+=1;save()}};document.querySelector("#ups").append(b)}
