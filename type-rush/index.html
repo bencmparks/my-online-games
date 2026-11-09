@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Type Rush | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#052e16;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#166534,#052e16)}
+main{width:min(100%,32rem);padding:1.5rem;border:.2rem solid #4ade80;border-radius:1.25rem;background:rgb(5 46 22 / 94%);text-align:center}a{color:#86efac}h1{margin:.6rem 0;color:#bbf7d0;font-size:1.6rem}
+.bar{display:flex;justify-content:center;gap:1rem;flex-wrap:wrap;font-weight:bold;color:#fde68a}
+#word{margin:1.2rem 0 .6rem;font:bold 2.6rem monospace;min-height:3.2rem;letter-spacing:.1rem}#word .ok{color:#4ade80}
+#inp{width:100%;padding:.8rem;border:.15rem solid #4ade80;border-radius:.6rem;background:#022c22;color:#fff;font:bold 1.4rem monospace;text-align:center}
+#tm{height:.7rem;border-radius:.4rem;background:#14532d;overflow:hidden}#tm i{display:block;height:100%;background:#4ade80;width:100%}
+button{margin-top:1rem;border:0;border-radius:.5rem;background:#4ade80;color:#052e16;cursor:pointer;font:inherit;font-weight:bold;padding:.7rem 1.2rem;touch-action:manipulation}
+</style></head>
+<body><main><a href="../">← All games</a><h1>⌨️ Type Rush</h1>
+<p>Type each word and press <strong>Enter</strong> (or Space) before the timer runs out. Correct words give time back and get faster!</p>
+<div class="bar"><span id="sc">Score 0</span><span id="st">Streak 0</span><span id="bs">Best 0</span></div>
+<div id="tm"><i id="bar"></i></div><div id="word">Press Start</div>
+<input id="inp" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Type the word" disabled>
+<button id="go" type="button">Start</button>
+</main>
+<script>
+const W="apple brave cloud dance eagle flame ghost happy jolly kitten lemon magic noble ocean pizza queen robot sunny tiger ultra video water xenon yacht zebra bridge candle dragon forest garden hammer island jungle knight ladder marble nature orange pencil rocket silver tunnel violet wizard puzzle planet monkey rabbit pirate castle shadow thunder whisper crystal mystery balloon journey pumpkin diamond lantern victory".split(" "),$=s=>document.querySelector(s),inp=$("#inp");
+let word="",score=0,streak=0,best=0,left=0,max=6,run=false,last=0;
+try{best=+localStorage.getItem("typeRushBest")||0}catch(e){}
+function hud(){$("#sc").textContent="Score "+score;$("#st").textContent="Streak "+streak;$("#bs").textContent="Best "+best}
+function next(){let w;do w=W[Math.floor(Math.random()*W.length)];while(w===word);word=w;inp.value="";show()}
+function show(){const v=inp.value;let ok=0;while(ok<v.length&&v[ok]===word[ok])ok++;$("#word").innerHTML=`<span class="ok">${word.slice(0,ok)}</span>${word.slice(ok)}`}
+function start(){score=0;streak=0;max=6;left=max;run=true;last=performance.now();inp.disabled=false;inp.focus();$("#go").hidden=true;next();hud();requestAnimationFrame(tick)}
+function tick(now){if(!run)return;left-=(now-last)/1000;last=now;$("#bar").style.width=Math.max(0,left/max*100)+"%";
+ if(left<=0){run=false;inp.disabled=true;$("#word").textContent="Time! Score "+score;if(score>best){best=score;try{localStorage.setItem("typeRushBest",best)}catch(e){}}hud();$("#go").textContent="Play again";$("#go").hidden=false;return}
+ requestAnimationFrame(tick)}
+function submit(){if(!run)return;if(inp.value.trim()===word){streak++;score+=word.length+Math.min(10,streak);max=Math.max(2.5,6-score/60);left=Math.min(max,left+max*.6);hud();next()}else{streak=0;inp.value="";show();hud()}}
+inp.addEventListener("input",()=>{if(inp.value.endsWith(" ")){inp.value=inp.value.trim();submit()}else show()});
+inp.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();submit()}});
+$("#go").onclick=start;
+</script></body></html>

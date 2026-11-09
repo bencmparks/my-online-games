@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Reaction Test | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#0f172a;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#334155,#0f172a)}
+main{width:min(100%,32rem);padding:1.5rem;border:.2rem solid #38bdf8;border-radius:1.25rem;background:rgb(15 23 42 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.6rem 0;color:#bae6fd;font-size:1.6rem}
+#pad{display:grid;place-items:center;height:14rem;margin:1rem 0;border:0;border-radius:1rem;width:100%;background:#2563eb;color:#fff;font:bold 1.4rem Arial;cursor:pointer;touch-action:manipulation;user-select:none}
+#pad.wait{background:#dc2626}#pad.go{background:#16a34a}
+.bar{display:flex;justify-content:center;gap:1rem;flex-wrap:wrap;font-weight:bold;color:#fde68a}
+</style></head>
+<body><main><a href="../">← All games</a><h1>⚡ Reaction Test</h1>
+<p>Click the pad when it turns <strong style="color:#4ade80">green</strong>. Too early and you restart. Five rounds, lowest average wins!</p>
+<div class="bar"><span id="rd">Round 1/5</span><span id="av">Average —</span><span id="bs">Best —</span></div>
+<button id="pad" type="button">Click to start</button>
+<p id="log"></p>
+</main>
+<script>
+const pad=document.querySelector("#pad"),$=s=>document.querySelector(s);
+let state="idle",t0=0,timer,times=[],best=null;
+try{best=+localStorage.getItem("reactionBest")||null}catch(e){}
+const bs=()=>$("#bs").textContent="Best "+(best?best+" ms":"—");bs();
+function set(cls,text){pad.className=cls;pad.textContent=text}
+function arm(){state="wait";set("wait","Wait for green…");timer=setTimeout(()=>{state="go";t0=performance.now();set("go","CLICK NOW!")},1000+Math.random()*3000)}
+function press(){
+ if(state==="idle"){times=[];$("#log").textContent="";arm();hud();return}
+ if(state==="wait"){clearTimeout(timer);state="early";set("","Too early! Click to try again");return}
+ if(state==="early"){arm();return}
+ if(state==="go"){const ms=Math.round(performance.now()-t0);times.push(ms);hud();
+  if(times.length>=5){const avg=Math.round(times.reduce((a,b)=>a+b)/5);state="idle";set("","Average "+avg+" ms · click to play again");$("#log").textContent=times.join(" ms, ")+" ms";
+   if(!best||avg<best){best=avg;try{localStorage.setItem("reactionBest",best)}catch(e){}bs()}}
+  else{state="between";set("",ms+" ms · click for next round")}return}
+ if(state==="between")arm()}
+function hud(){$("#rd").textContent="Round "+Math.min(5,times.length+1)+"/5";$("#av").textContent="Average "+(times.length?Math.round(times.reduce((a,b)=>a+b)/times.length)+" ms":"—")}
+pad.addEventListener("pointerdown",e=>{e.preventDefault();press()});
+addEventListener("keydown",e=>{if(e.code==="Space"){e.preventDefault();press()}});
+</script></body></html>

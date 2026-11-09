@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Balloon Pop | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#0c4a6e;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:linear-gradient(#38bdf8,#0c4a6e)}
+main{width:min(100%,32rem);padding:1.5rem;border:.2rem solid #fde047;border-radius:1.25rem;background:rgb(12 74 110 / 92%);text-align:center}a{color:#fde68a}h1{margin:.6rem 0;color:#fef9c3;font-size:1.6rem}
+canvas{display:block;width:100%;height:auto;margin:1rem auto;border:.2rem solid #bae6fd;border-radius:.6rem;background:linear-gradient(#7dd3fc,#e0f2fe);touch-action:none}
+.bar{display:flex;justify-content:center;gap:1rem;flex-wrap:wrap;font-weight:bold;color:#fde68a}
+</style></head>
+<body><main><a href="../">← All games</a><h1>🎈 Balloon Pop</h1>
+<p>Pop balloons before they float away! Gold balloons are worth 5, <strong>💣 bombs cost a life</strong>. Miss 5 balloons and it's over.</p>
+<div class="bar"><span id="sc">Score 0</span><span id="li">❤️❤️❤️❤️❤️</span><span id="bs">Best 0</span></div>
+<canvas id="g" width="400" height="500" aria-label="Balloon Pop game"></canvas>
+</main>
+<script>
+const C=document.querySelector("#g"),x=C.getContext("2d"),W=400,H=500,COLS=["#ef4444","#3b82f6","#22c55e","#a855f7","#f97316","#ec4899"];
+let b=[],pf=[],score=0,lives=5,best=0,mode="title",t=0,spawn=0;
+try{best=+localStorage.getItem("balloonBest")||0}catch(e){}
+function hud(){document.querySelector("#sc").textContent="Score "+score;document.querySelector("#bs").textContent="Best "+best;document.querySelector("#li").textContent="❤️".repeat(Math.max(0,lives))}
+function start(){b=[];pf=[];score=0;lives=5;t=0;spawn=0;mode="play";hud()}
+function add(){const r=24+Math.random()*10,k=Math.random();b.push({x:r+Math.random()*(W-2*r),y:H+r,r,v:.8+Math.random()*.8+Math.min(2.2,t/1800),c:COLS[Math.floor(Math.random()*COLS.length)],type:k<.1?"bomb":k<.2?"gold":"n",ph:Math.random()*6})}
+function over(){mode="over";if(score>best){best=score;try{localStorage.setItem("balloonBest",best)}catch(e){}}hud()}
+function burst(o){for(let i=0;i<12;i++){const a=Math.random()*7;pf.push({x:o.x,y:o.y,vx:Math.cos(a)*3,vy:Math.sin(a)*3,l:20,c:o.type==="bomb"?"#f59e0b":o.c})}}
+function pop(px,py){
+ if(mode!=="play"){start();return}
+ for(let i=b.length-1;i>=0;i--){const o=b[i];if(Math.hypot(px-o.x,py-o.y)<o.r+6){b.splice(i,1);burst(o);
+  if(o.type==="bomb"){lives--;if(lives<=0)over()}else score+=o.type==="gold"?5:1;hud();return}}}
+function frame(){
+ if(mode==="play"){t++;if(--spawn<=0){add();spawn=Math.max(14,50-t/60)}
+  for(const o of b){o.y-=o.v;o.x+=Math.sin(t/25+o.ph)*.6}
+  for(let i=b.length-1;i>=0;i--)if(b[i].y<-b[i].r*2){if(b[i].type!=="bomb"){lives--;if(lives<=0)over()}b.splice(i,1);hud()}}
+ for(const p of pf){p.x+=p.vx;p.y+=p.vy;p.vy+=.15;p.l--}pf=pf.filter(p=>p.l>0);
+ x.clearRect(0,0,W,H);
+ for(const o of b){x.strokeStyle="#475569";x.beginPath();x.moveTo(o.x,o.y+o.r);x.lineTo(o.x+Math.sin(t/25+o.ph)*6,o.y+o.r+30);x.stroke();
+  x.fillStyle=o.type==="gold"?"#fbbf24":o.type==="bomb"?"#1e293b":o.c;x.beginPath();x.ellipse(o.x,o.y,o.r*.85,o.r,0,0,7);x.fill();
+  x.fillStyle="rgb(255 255 255 / 35%)";x.beginPath();x.ellipse(o.x-o.r*.3,o.y-o.r*.35,o.r*.2,o.r*.3,.5,0,7);x.fill();
+  if(o.type==="bomb"){x.font="22px Arial";x.textAlign="center";x.fillText("💣",o.x,o.y+8)}}
+ for(const p of pf){x.fillStyle=p.c;x.fillRect(p.x,p.y,4,4)}
+ if(mode!=="play"){x.fillStyle="rgb(12 74 110 / 75%)";x.fillRect(0,H/2-80,W,160);x.fillStyle="#fff";x.textAlign="center";x.font="bold 34px Arial";x.fillText(mode==="over"?"Game over":"Balloon Pop",W/2,H/2-25);x.font="bold 18px Arial";if(mode==="over")x.fillText(`Score ${score} · Best ${best}`,W/2,H/2+8);x.fillText("Tap to "+(mode==="over"?"play again":"start"),W/2,H/2+45)}
+ requestAnimationFrame(frame)}
+C.addEventListener("pointerdown",e=>{e.preventDefault();const r=C.getBoundingClientRect();pop((e.clientX-r.left)/r.width*W,(e.clientY-r.top)/r.height*H)});
+hud();frame();
+</script></body></html>
