@@ -14,7 +14,8 @@ button{border:0;border-radius:.5rem;background:#cffafe;color:#083344;cursor:poin
 <p><strong>Coins:</strong> runners earn a runner coin every time they unfreeze someone, and freezers earn a freezer coin every time they freeze someone. Spend coins to BUY a kit once and you own it forever. Pick any kit you own at the start of each round and use it for free, as often as you like. Speed is always free. You start with 3 coins. <strong>Combos:</strong> press Combine kits, tick 2 or more owned kits and buy the combo for 100 coins (+50 coins for each extra kit). Q then fires all of them at once. The 🔑 owner code (same as Sky Ace) gives infinite coins, kits and combos.</p>
 <p><strong>Kits:</strong> Runners can pick Speed (1🪙), Barrier (2🪙), Super Speed (3🪙), Climber (4🪙, climb building walls for 6s with no dash cooldown), Shield (5🪙, blocks 1 freeze) or Phoenix (1000🪙, frees everyone). Freezers can pick Speed (1🪙), Giant (2🪙, bigger tag radius), Super Speed (3🪙), Teleport (4🪙), Rope (5🪙, drags a runner to you), Snowball (6🪙) or Blizzard (1000🪙, freezes every runner). Enemies never use kits.</p>
 <p><strong>2 players online:</strong> one device hosts and shares the 4-letter code, the other joins. The guest picks Runner or Freezer with the role buttons, the host picks theirs to start the round, and you both choose your own kit. You can both be runners, both freezers, or one of each. Coins you earn go to your own device.</p>
-<p><strong>Maps:</strong> Arena, Maze, Castle, City and Forest. Buildings are hollow with rooms: go in through the door, pass the doorway in the inner wall, take the stairs inside up to the roof and run around on top (freezers follow you up). The Climber kit scales the outside walls instead. Arena, Castle towers, City and Forest cabins all have them. Auto cycles one per level, or pick one with the map button (M).</p>
+<p><strong>View:</strong> press P to switch between first-person and a view from just behind you.</p>
+  <p><strong>Maps:</strong> Arena, Maze, Castle, City and Forest. Buildings are hollow with rooms: go in through the door, pass the doorway in the inner wall, take the stairs inside up to the roof and run around on top (freezers follow you up). The Climber kit scales the outside walls instead. Arena, Castle towers, City and Forest cabins all have them. Auto cycles one per level, or pick one with the map button (M).</p>
 <p><strong>W/S or ↑/↓</strong> run · <strong>A/D or ←/→</strong> turn, click the game and move the mouse (Esc to release), or drag on the view with a finger · <strong>Space / E</strong> dash · <strong>Q / F</strong> use kit · <strong>Enter</strong> start</p>
 <div class="modes"><button id="mRun" type="button">🏃 Play Runner (1)</button><button id="mFrz" type="button">🥶 Play Freezer (2)</button><button id="mMap" type="button">🗺 Map: Auto (M)</button></div>
 <div id="online"></div><p id="netInfo" style="margin:.2rem 0;font-size:.85rem;color:#fde047"></p>
@@ -31,7 +32,7 @@ let coins=3,own={runner:{speed:1},freezer:{speed:1}},role="runner",mode="title",
 try{hi=+localStorage.getItem("freezeTagBest")||0;const s=JSON.parse(localStorage.getItem("freezeTagKits")||"null");if(s){coins=s.coins;own=s.own}}catch(e){}
 const saveKits=()=>{try{localStorage.setItem("freezeTagKits",JSON.stringify({coins,own}))}catch(e){}};
 const rnd=(a,b)=>a+Math.random()*(b-a),ri=(a,b)=>Math.floor(rnd(a,b+1));
-let CL=false,ZH=0,TREE=false,stairs=[],roofs=[],HS=[];function free(a,b,r,w){if(!(a>r&&a<AR-r&&b>r&&b<AR-r))return false;
+let view3=false,CL=false,ZH=0,TREE=false,stairs=[],roofs=[],HS=[];function free(a,b,r,w){if(!(a>r&&a<AR-r&&b>r&&b<AR-r))return false;
  const g0=Math.max(0,(a-r)/BS|0),g1=Math.min(BW-1,(a+r)/BS|0),h0=Math.max(0,(b-r)/BS|0),h1=Math.min(BW-1,(b+r)/BS|0);
  for(let i=g0;i<=g1;i++)for(let j=h0;j<=h1;j++){const L=bk[i+j*BW];if(L)for(const q of L)if(a>q.x0-r&&a<q.x1+r&&b>q.y0-r&&b<q.y1+r){if(q.climb&&CL||ZH>=q.h-2)continue;return false}}
  if(w)for(const q of walls)if(q.s===w&&a>q.x0-r&&a<q.x1+r&&b>q.y0-r&&b<q.y1+r)return false
@@ -339,7 +340,7 @@ function update(){
  if(all.length&&all.every(o=>o.fz))return fin(true);
  if(time<=0)fin(false)
 }
-addEventListener("keydown",e=>{if(mode==="pick"&&e.code!=="Digit1"&&e.code!=="Digit2"&&e.code!=="KeyM")return;if(e.code==="Digit1"){choose("runner");return}if(e.code==="Digit2"){choose("freezer");return}if(e.code==="KeyM"){cycleMap();return}const k=KEYS[e.code];if(!k)return;e.preventDefault();held[k]=true;if(!e.repeat&&k==="act")act();if(!e.repeat&&k==="kit")myKit()});
+addEventListener("keydown",e=>{if(mode==="pick"&&e.code!=="Digit1"&&e.code!=="Digit2"&&e.code!=="KeyM")return;if(e.code==="Digit1"){choose("runner");return}if(e.code==="Digit2"){choose("freezer");return}if(e.code==="KeyM"){cycleMap();return}if(e.code==="KeyP"){view3=!view3;return}const k=KEYS[e.code];if(!k)return;e.preventDefault();held[k]=true;if(!e.repeat&&k==="act")act();if(!e.repeat&&k==="kit")myKit()});
 addEventListener("keyup",e=>{const k=KEYS[e.code];if(k)held[k]=false});
 addEventListener("blur",()=>{held={}});
 let lastTouch=false,dragX=null;C.addEventListener("click",()=>{if(!lastTouch&&mode==="play"&&C.requestPointerLock)C.requestPointerLock()});
@@ -349,7 +350,7 @@ document.querySelectorAll("[data-k]").forEach(b=>{const k=b.dataset.k;b.addEvent
 function text(s,a,b,size=18,color="#fff",align="left"){x.font=`bold ${size}px Arial,sans-serif`;x.fillStyle=color;x.textAlign=align;x.lineWidth=4;x.strokeStyle="#000";x.strokeText(s,a,b);x.fillText(s,a,b)}
 const shade=(h,m)=>{const n=parseInt(h.slice(1),16);return`rgb(${Math.min(255,(n>>16)*m)|0} ${Math.min(255,((n>>8)&255)*m)|0} ${Math.min(255,(n&255)*m)|0})`};
 function draw3d(){
- const c=mode==="title"?{x:P.x,y:P.y,a:camA}:P,ca=Math.cos(c.a),sa=Math.sin(c.a),F=300,EY=28+(c.z||0),HZ=H/2,N=2,FAR=1000,MP=MAPS[mapI];
+ const b3=view3&&mode!=="title",c0=mode==="title"?{x:P.x,y:P.y,a:camA}:P,c=b3?{x:P.x-Math.cos(P.a)*70,y:P.y-Math.sin(P.a)*70,a:P.a,z:P.z}:c0,ca=Math.cos(c.a),sa=Math.sin(c.a),F=300,EY=28+(c.z||0)+(b3?16:0),HZ=H/2,N=2,FAR=1000,MP=MAPS[mapI];
  const tr=(a,b,z)=>{const dx=a-c.x,dy=b-c.y;return[-sa*dx+ca*dy,z-EY,ca*dx+sa*dy]};
  const pr=q=>[W/2+q[0]/q[2]*F,HZ-q[1]/q[2]*F];
  const clip=pts=>{const o=[];for(let i=0;i<pts.length;i++){const a=pts[i],b=pts[(i+1)%pts.length],ia=a[2]>=N,ib=b[2]>=N;if(ia)o.push(a);if(ia!==ib){const k=(N-a[2])/(b[2]-a[2]);o.push([a[0]+(b[0]-a[0])*k,a[1]+(b[1]-a[1])*k,N])}}return o};
@@ -385,7 +386,7 @@ function draw3d(){
    if(o.th>0){x.fillStyle="#fde047";x.fillRect(P2[0]-20*z,P2[1]-112*z,40*z*o.th/50,5*z)}}
   else if(label){x.font=`bold ${Math.max(10,22*z)|0}px Arial`;x.textAlign="center";x.fillStyle="#fecaca";x.fillText(label,P2[0],P2[1]-82*z)}
   x.globalAlpha=1;if(o.sh||o.stun>0){x.font=`${Math.max(10,22*z)|0}px Arial`;x.textAlign="center";x.fillText(o.stun>0?"💫":"🛡",P2[0],P2[1]-(o.fz?112:80)*z)}}})};
- mates.forEach(m=>who(m,m.c,""));chasers.forEach(o=>who(o,"#dc2626",P.fr?"😈 Partner":"😈 IT"));if(PF)who(PF,PF.fr?"#dc2626":"#3b82f6",PF.fr?"😈 Friend":"👤 Friend");
+ mates.forEach(m=>who(m,m.c,""));chasers.forEach(o=>who(o,"#dc2626",P.fr?"😈 Partner":"😈 IT"));if(b3)who(P,P.fr?"#dc2626":"#3b82f6","");if(PF)who(PF,PF.fr?"#dc2626":"#3b82f6",PF.fr?"😈 Friend":"👤 Friend");
  items.sort((a,b)=>b.d-a.d).forEach(i=>i.f());
  if(mode!=="title"){
   const k=170/AR,mx=W-170-8,my=H-170-8;x.fillStyle="rgb(0 0 0 / 55%)";x.fillRect(mx-3,my-3,176,176);x.fillStyle="#94a3b8";rects.forEach(q=>x.fillRect(mx+q.x0*k,my+q.y0*k,Math.max(1,(q.x1-q.x0)*k),Math.max(1,(q.y1-q.y0)*k)));
