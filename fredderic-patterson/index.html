@@ -21,34 +21,47 @@ const $=s=>document.querySelector(s),cv=$("#c"),x=cv.getContext("2d"),W=640,H=40
 const yrs=(c,a)=>({q:c,opts:a});
 const D=(l,ok)=>({l,ok:!!ok}),Pn=(l,e,ok,r)=>({l,e,ok:!!ok,r});
 const L=[
-{n:"1871 — You are born",bg:"#d9c4a0",intro:"You are <b>Fredderic Patterson</b>, a Black person born in <b>1871</b>. Remember that year!<br><br>Walk up to the correct door and press <b>E / Space</b> (or tap it). Careful: a wrong answer costs a ♥.",
- rounds:[{kind:"door",ask:"Walk through the door of the year you were born",opts:[D("1861"),D("1871",1),D("1881"),D("1891")],right:"Yes! You were born in 1871.",wrong:"Not that one — you were born in 1871.",fact:"Born in 1871."}]},
-{n:"Washington, DC",bg:"#9bbf9a",intro:"You were born in <b>Washington, DC</b>, the capital of the United States.<br><br>Pick the city where you were born.",
- rounds:[{kind:"door",ask:"Which city were you born in?",opts:[D("Baltimore"),D("Richmond"),D("Washington, DC",1),D("Philadelphia")],right:"Yes! You were born in Washington, DC.",wrong:"Not there — you were born in Washington, DC.",fact:"Born in Washington, DC."}]},
+{n:"1871 — You are born",bg:"#d9c4a0",intro:"You are <b>Fredderic Patterson</b>, a Black person born in <b>1871</b>. Remember that year!<br><br><b>Catch the falling years!</b> Move left and right and touch <b>1871</b> three times. Any other year costs a ♥.",
+ rounds:[{kind:"fall",need:3,ask:"Catch the year you were born: 1871",opts:[D("1861"),D("1871",1),D("1881"),D("1891"),D("1851")],right:"✔ 1871!",wrong:"Not that year — you were born in 1871.",fact:"Born in 1871."}]},
+{n:"Washington, DC",bg:"#9bbf9a",intro:"You were born in <b>Washington, DC</b>, the capital of the United States.<br><br>Chase down the city where you were born. The signs run fast, so touch the right one!",
+ rounds:[{kind:"chase",ask:"Catch the city where you were born",opts:[Pn("Baltimore","🏙️",0,"Baltimore? No — you were born in Washington, DC."),Pn("Richmond","🌆",0,"Richmond? No — you were born in Washington, DC."),Pn("Washington, DC","🏛️",1,"Yes! You were born in Washington, DC."),Pn("Philadelphia","🌇",0,"Philadelphia? No — you were born in Washington, DC.")],fact:"Born in Washington, DC."}]},
 {n:"Your parents",bg:"#c9a06a",intro:"Your mother is <b>Josephene</b> and your father is <b>Charles</b>.<br><br>Find <b>both of your parents</b> in the crowded house. Neighbors are mixed in, so don't pick the wrong person!",
  rounds:[{kind:"person",need:2,ask:"Find your parents: Josephene and Charles",opts:[Pn("Josephene","👩🏿",1,"Josephene — your mother!"),Pn("Charles","👨🏿",1,"Charles — your father!"),Pn("Ellen","👩🏿",0,"That's Ellen, a neighbor — not your parent."),Pn("Thomas","👨🏿",0,"That's Thomas, a neighbor — not your parent."),Pn("Harriet","👵🏿",0,"That's Harriet, a neighbor — not your parent.")],fact:"Parents: Josephene (mother) and Charles (father)."}]},
 {n:"Your siblings",bg:"#b98a5a",intro:"You have <b>four siblings</b>: <b>Mary</b>, <b>Dollie</b>, <b>Samuel</b> and <b>Catheren</b>. Samuel is your brother; Mary, Dollie and Catheren are your sisters.<br><br>Gather all four. Don't grab the neighbors!",
  rounds:[{kind:"person",need:4,ask:"Find your 4 siblings",opts:[Pn("Mary","👧🏿",1,"Mary — your sister!"),Pn("Dollie","👧🏿",1,"Dollie — your sister!"),Pn("Samuel","👦🏿",1,"Samuel — your brother!"),Pn("Catheren","👧🏿",1,"Catheren — your sister!"),Pn("Robert","👦🏿",0,"That's Robert, a neighbor — not your sibling."),Pn("Lucy","👧🏿",0,"That's Lucy, a neighbor — not your sibling."),Pn("Henry","👦🏿",0,"That's Henry, a neighbor — not your sibling.")],fact:"Siblings: Mary, Dollie, Samuel and Catheren."}]},
-{n:"1932 — The end",bg:"#9aa3b5",intro:"You lived from 1871 until <b>1932</b>, when you died.<br><br>Walk through the door of the year you died.",
- rounds:[{kind:"door",ask:"Which door is the year you died?",opts:[D("1902"),D("1918"),D("1932",1),D("1945")],right:"Yes! You died in 1932.",wrong:"Not that one — you died in 1932.",fact:"Died in 1932."}]},
+{n:"Family match",bg:"#a7c4a0",intro:"Time to memorize the family! Flip cards (walk up and press <b>E / Space</b>, or tap) and match each <b>name</b> with the right <b>role</b>:<br><b>Josephene</b> mother · <b>Charles</b> father · <b>Samuel</b> brother · <b>Mary, Dollie, Catheren</b> sisters.",
+ rounds:[{kind:"memory",ask:"Match each name with their role",cards:[["Josephene","Mother","m"],["Charles","Father","f"],["Samuel","Brother","b"],["Mary","Sister","s"],["Dollie","Sister","s"],["Catheren","Sister","s"]],fact:"Roles: Josephene mother, Charles father, Samuel brother, Mary/Dollie/Catheren sisters."}]},
+{n:"1932 — The end",bg:"#9aa3b5",intro:"You lived from 1871 until <b>1932</b>, when you died.<br><br><b>Catch the falling years</b> and touch <b>1932</b> three times.",
+ rounds:[{kind:"fall",need:3,ask:"Catch the year you died: 1932",opts:[D("1902"),D("1918"),D("1932",1),D("1945"),D("1923")],right:"✔ 1932!",wrong:"Not that year — you died in 1932.",fact:"Died in 1932."}]},
 {n:"Final exam: Be Fredderic",bg:"#e5c76b",intro:"<b>Final exam!</b> Answer five questions as Fredderic Patterson, with no hints. Wrong answers cost a ♥.",
  rounds:[
- {kind:"door",ask:"In what year were you born?",opts:[D("1861"),D("1871",1),D("1881"),D("1891")],right:"Correct: 1871.",wrong:"No — 1871.",fact:"Exam: born 1871 ✔"},
+ {kind:"chase",ask:"Catch the year you were born",opts:[Pn("1861","📅",0,"No — 1871."),Pn("1871","📅",1,"Correct: 1871."),Pn("1881","📅",0,"No — 1871."),Pn("1891","📅",0,"No — 1871.")],fact:"Exam: born 1871 ✔"},
  {kind:"door",ask:"Where were you born?",opts:[D("Richmond"),D("Washington, DC",1),D("Baltimore"),D("Boston")],right:"Correct: Washington, DC.",wrong:"No — Washington, DC.",fact:"Exam: Washington, DC ✔"},
- {kind:"door",ask:"Who is your MOTHER?",opts:[D("Charles"),D("Josephene",1),D("Mary"),D("Catheren")],right:"Correct: Josephene.",wrong:"No — your mother is Josephene.",fact:"Exam: mother Josephene ✔"},
- {kind:"door",ask:"Who is your BROTHER?",opts:[D("Dollie"),D("Mary"),D("Catheren"),D("Samuel",1)],right:"Correct: Samuel.",wrong:"No — your brother is Samuel.",fact:"Exam: brother Samuel ✔"},
- {kind:"door",ask:"In what year did you die?",opts:[D("1932",1),D("1922"),D("1942"),D("1952")],right:"Correct: 1932.",wrong:"No — 1932.",fact:"Exam: died 1932 ✔"}]}
+ {kind:"person",ask:"Find your MOTHER",opts:[Pn("Charles","👨🏿",0,"No — that is your father."),Pn("Josephene","👩🏿",1,"Correct: Josephene."),Pn("Mary","👧🏿",0,"No — Mary is your sister."),Pn("Catheren","👧🏿",0,"No — Catheren is your sister.")],fact:"Exam: mother Josephene ✔"},
+ {kind:"person",ask:"Find your BROTHER",opts:[Pn("Dollie","👧🏿",0,"No — Dollie is your sister."),Pn("Mary","👧🏿",0,"No — Mary is your sister."),Pn("Catheren","👧🏿",0,"No — Catheren is your sister."),Pn("Samuel","👦🏿",1,"Correct: Samuel.")],fact:"Exam: brother Samuel ✔"},
+ {kind:"fall",need:2,ask:"Catch the year you died",opts:[D("1932",1),D("1922"),D("1942"),D("1952")],right:"✔ 1932!",wrong:"No — 1932.",fact:"Exam: died 1932 ✔"}]}
 ];
 const shuf=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
-let li=0,ri=0,hearts=3,score=0,miss=0,objs=[],got=0,msg="",wait=0,st="intro",P={x:W/2,y:360,t:0},tgt=null,keys={},journal={},best=+localStorage.getItem("fredericBest")||0,shake=0;
+let li=0,ri=0,hearts=3,score=0,miss=0,objs=[],got=0,msg="",wait=0,st="intro",P={x:W/2,y:360,t:0},tgt=null,keys={},journal={},best=+localStorage.getItem("fredericBest")||0,shake=0,spawn=0,open=[],lock=0;
 const R=()=>L[li].rounds[ri];
 function bk(){const v=Object.values(journal);$("#bk").innerHTML=v.length?v.map(f=>"<li>"+f+"</li>").join(""):"<li>Nothing learned yet.</li>"}
 function ov(h,p,b,f){const o=$("#ov");o.hidden=false;o.innerHTML="<h2>"+h+"</h2><p>"+p+"</p><button>"+b+"</button>";o.querySelector("button").onclick=()=>{o.hidden=true;f()}}
 function startRound(){
  const r=R();got=0;msg="";objs=[];tgt=null;P.x=W/2;P.y=360;
- if(r.kind==="door"){const o=shuf(r.opts),n=o.length;o.forEach((d,i)=>objs.push({k:"door",l:d.l,ok:d.ok,x:(i+.5)*W/n,y:118,w:W/n-16}))}
- else{shuf(r.opts).forEach(d=>{let px,py,t=0;do{px=60+Math.random()*520;py=140+Math.random()*190;t++}while(t<60&&objs.some(o=>Math.hypot(o.x-px,o.y-py)<80));objs.push({k:"p",l:d.l,e:d.e,ok:d.ok,r:d.r,x:px,y:py,vx:(Math.random()-.5)*50,vy:(Math.random()-.5)*50})})}
+ if(r.kind==="fall"){spawn=0}
+ else if(r.kind==="memory"){const c=[];r.cards.forEach(([a,b,k],i)=>{c.push({k:"card",l:a,t:"n",key:k,id:i});c.push({k:"card",l:b,t:"r",key:k,id:i})});shuf(c).forEach((o,i)=>{o.x=(i%6+.5)*W/6;o.y=170+Math.floor(i/6)*115;objs.push(o)});open=[];lock=0}
+ else if(r.kind==="door"){const o=shuf(r.opts),n=o.length;o.forEach((d,i)=>objs.push({k:"door",l:d.l,ok:d.ok,x:(i+.5)*W/n,y:118,w:W/n-16}))}
+ else{shuf(r.opts).forEach(d=>{let px,py,t=0;do{px=60+Math.random()*520;py=140+Math.random()*190;t++}while(t<60&&objs.some(o=>Math.hypot(o.x-px,o.y-py)<80));objs.push({k:"p",l:d.l,e:d.e,ok:d.ok,r:d.r,x:px,y:py,sp:r.kind==="chase"?2.6:1,vx:(Math.random()-.5)*50*(r.kind==="chase"?2.6:1),vy:(Math.random()-.5)*50*(r.kind==="chase"?2.6:1)})})}
  st="play";wait=0;
+}
+function cardPick(o){
+ if(lock>0||o.done||open.includes(o)||st!=="play"||wait>0)return;
+ open.push(o);
+ if(open.length<2)return;
+ const[a,b]=open;
+ if(a.key===b.key&&a.t!==b.t){a.done=b.done=true;open=[];got++;score+=100;msg="✅ "+(a.t==="n"?a.l+" is "+b.l.toLowerCase():b.l+" is "+a.l.toLowerCase())+"!";
+  if(got>=R().cards.length){score+=hearts*20;journal[li+"-"+ri]=R().fact;bk();wait=1.6}}
+ else{lock=.9;score=Math.max(0,score-10);msg="❌ No match — remember where they are!"}
 }
 function startLevel(){
  const l=L[li];hearts=3;ri=0;st="intro";
@@ -68,7 +81,9 @@ function end(){
  ov("🏆 You are Fredderic Patterson!","Score: <b>"+score+"</b> (best "+best+")<br>"+"⭐".repeat(stars)+"☆".repeat(3-stars)+" — "+miss+" mistake"+(miss===1?"":"s")+"<br><br>Born <b>1871</b> in <b>Washington, DC</b> to <b>Josephene</b> and <b>Charles</b>. Siblings <b>Mary, Dollie, Samuel, Catheren</b>. Died <b>1932</b>.","Play again",()=>{li=0;score=0;miss=0;journal={};startLevel()});
 }
 function pick(o){
+ if(o.k==="card")return cardPick(o);
  if(st!=="play"||wait>0||o.done||o.bad)return;
+ if(o.k==="f")o.gone=true;
  const r=R();
  if(o.ok){
   o.done=true;got++;score+=100;msg="✅ "+(o.r||r.right);
@@ -79,7 +94,7 @@ function pick(o){
   if(hearts<=0){st="fail";setTimeout(()=>ov("Fredderic needs another try","Out of hearts! Let's learn it again.","Retry",startLevel),1100)}
  }
 }
-function near(){let b=null,bd=75;for(const o of objs){const d=Math.hypot(o.x-P.x,o.y-P.y);if(d<bd){bd=d;b=o}}return b}
+function near(){let b=null,bd=75;for(const o of objs){if(o.k==="f"||R().kind==="chase")continue;const d=Math.hypot(o.x-P.x,o.y-P.y);if(d<bd){bd=d;b=o}}return b}
 addEventListener("keydown",e=>{const k=e.key.toLowerCase();keys[k]=1;if(k===" "||k==="e"){const o=near();if(o)pick(o);e.preventDefault()}if(k.startsWith("arrow"))e.preventDefault()});
 addEventListener("keyup",e=>delete keys[e.key.toLowerCase()]);
 cv.addEventListener("pointerdown",e=>{
@@ -98,7 +113,16 @@ function update(dt){
  const m=Math.hypot(dx,dy)||1;
  if(dx||dy){P.x+=dx/m*180*dt;P.y+=dy/m*180*dt;P.t+=dt*10}
  P.x=Math.max(16,Math.min(W-16,P.x));P.y=Math.max(70,Math.min(H-16,P.y));
- for(const o of objs)if(o.k==="p"){o.x+=o.vx*dt;o.y+=o.vy*dt;if(o.x<40||o.x>W-40)o.vx*=-1;if(o.y<140||o.y>340)o.vy*=-1;if(Math.random()<dt*.4){o.vx=(Math.random()-.5)*50;o.vy=(Math.random()-.5)*50}}
+ for(const o of objs)if(o.k==="p"){o.x+=o.vx*dt;o.y+=o.vy*dt;if(o.x<40||o.x>W-40)o.vx*=-1;if(o.y<140||o.y>340)o.vy*=-1;if(Math.random()<dt*.4){o.vx=(Math.random()-.5)*50*o.sp;o.vy=(Math.random()-.5)*50*o.sp}}
+ const r=R();
+ if(r.kind==="chase")for(const o of objs)if(!o.done&&!o.bad&&Math.hypot(o.x-P.x,o.y-P.y)<36)pick(o);
+ if(r.kind==="memory"&&lock>0){lock-=dt;if(lock<=0){open=[]}}
+ if(r.kind==="fall"){
+  spawn-=dt;
+  if(spawn<=0){spawn=.75;const ok=Math.random()<.4,pool=r.opts.filter(d=>!!d.ok===ok),d=pool[Math.random()*pool.length|0];objs.push({k:"f",l:d.l,ok:d.ok,x:50+Math.random()*(W-100),y:70,vy:110+Math.random()*50})}
+  for(const o of objs)if(o.k==="f"){o.y+=o.vy*dt;if(Math.abs(o.x-P.x)<42&&Math.abs(o.y-P.y)<30)pick(o)}
+  objs=objs.filter(o=>!o.gone&&o.y<H+20);
+ }
  if(shake>0)shake-=dt;
 }
 function wrap(t,mw,f){x.font=f;const w=t.split(" "),ls=[];let c="";for(const s of w){if(x.measureText(c+" "+s).width>mw&&c){ls.push(c);c=s}else c=c?c+" "+s:s}ls.push(c);return ls}
@@ -117,6 +141,8 @@ function draw(){
  }
  const nr=near();
  for(const o of objs){
+  if(o.k==="f"){x.font="bold 20px Georgia";const w=x.measureText(o.l).width+22;x.fillStyle="#7c2d12";rr(o.x-w/2,o.y-15,w,30,15);x.fill();x.strokeStyle="#fcd34d";x.lineWidth=2;x.stroke();x.fillStyle="#fff";x.fillText(o.l,o.x,o.y);continue}
+  if(o.k==="card"){const up=o.done||open.includes(o);x.fillStyle=o.done?"#15803d":up?"#fff":"#7c2d12";rr(o.x-40,o.y-48,80,96,10);x.fill();x.lineWidth=o===nr?4:2;x.strokeStyle=o===nr?"#fff":"#fcd34d";x.stroke();x.fillStyle=o.done?"#fff":up?"#2a1c10":"#fcd34d";if(up){x.font="bold "+(o.l.length>7?13:16)+"px Georgia";x.fillText(o.l,o.x,o.y);x.font="11px Georgia";x.fillText(o.t==="n"?"name":"role",o.x,o.y+24)}else{x.font="bold 34px Georgia";x.fillText("?",o.x,o.y)}continue}
   if(o.k==="door"){
    x.fillStyle=o.done?"#15803d":o.bad?"#555":"#7c2d12";rr(o.x-o.w/2,o.y-34,o.w,68,10);x.fill();
    x.lineWidth=o===nr?4:2;x.strokeStyle=o===nr?"#fff":"#fcd34d";x.stroke();
