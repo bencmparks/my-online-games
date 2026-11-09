@@ -31,14 +31,22 @@ const L=[
  rounds:[{kind:"person",need:4,ask:"Find your 4 siblings",opts:[Pn("Mary","👧🏿",1,"Mary — your sister!"),Pn("Dollie","👧🏿",1,"Dollie — your sister!"),Pn("Samuel","👦🏿",1,"Samuel — your brother!"),Pn("Catheren","👧🏿",1,"Catheren — your sister!"),Pn("Robert","👦🏿",0,"That's Robert, a neighbor — not your sibling."),Pn("Lucy","👧🏿",0,"That's Lucy, a neighbor — not your sibling."),Pn("Henry","👦🏿",0,"That's Henry, a neighbor — not your sibling.")],fact:"Siblings: Mary, Dollie, Samuel and Catheren."}]},
 {n:"Family match",bg:"#a7c4a0",intro:"Time to memorize the family! Flip cards (walk up and press <b>E / Space</b>, or tap) and match each <b>name</b> with the right <b>role</b>:<br><b>Josephene</b> mother · <b>Charles</b> father · <b>Samuel</b> brother · <b>Mary, Dollie, Catheren</b> sisters.",
  rounds:[{kind:"memory",ask:"Match each name with their role",cards:[["Josephene","Mother","m"],["Charles","Father","f"],["Samuel","Brother","b"],["Mary","Sister","s"],["Dollie","Sister","s"],["Catheren","Sister","s"]],fact:"Roles: Josephene mother, Charles father, Samuel brother, Mary/Dollie/Catheren sisters."}]},
+{n:"Marriage to Bettie",bg:"#e8b4c8",intro:"You grew up and married <b>Bettie</b>.<br><br>Bettie is out among the guests at the celebration. <b>Chase her down</b> and touch her. Touching anyone else costs a ♥.",
+ rounds:[{kind:"chase",ask:"Catch up to your wife, Bettie",opts:[Pn("Bettie","👩🏿",1,"Bettie — your wife!"),Pn("Clara","👩🏿",0,"That's Clara — not your wife."),Pn("Nora","👩🏿",0,"That's Nora — not your wife."),Pn("Edna","👵🏿",0,"That's Edna — not your wife.")],fact:"Married Bettie."}]},
+{n:"Auto business",bg:"#a8b0b8",intro:"You became the <b>first Black man to own an auto business</b>! 🚗<br><br><b>Catch the falling signs</b> that say <b>Auto business</b> three times. Other businesses cost a ♥.",
+ rounds:[{kind:"fall",need:3,ask:"Catch your business: Auto business",opts:[D("Auto business",1),D("Feed store"),D("Bakery"),D("Barber shop"),D("Blacksmith")],right:"✔ Auto business — you were the first Black man to own one!",wrong:"Not your business — you owned an auto business.",fact:"First Black man to own an auto business."}]},
 {n:"1932 — The end",bg:"#9aa3b5",intro:"You lived from 1871 until <b>1932</b>, when you died.<br><br><b>Catch the falling years</b> and touch <b>1932</b> three times.",
  rounds:[{kind:"fall",need:3,ask:"Catch the year you died: 1932",opts:[D("1902"),D("1918"),D("1932",1),D("1945"),D("1923")],right:"✔ 1932!",wrong:"Not that year — you died in 1932.",fact:"Died in 1932."}]},
-{n:"Final exam: Be Fredderic",bg:"#e5c76b",intro:"<b>Final exam!</b> Answer five questions as Fredderic Patterson, with no hints. Wrong answers cost a ♥.",
+{n:"Life recap",bg:"#c7b8e0",intro:"Match each <b>clue</b> with the right <b>fact</b> about your life: when and where you were born, your parents, your wife, your business and when you died.",
+ rounds:[{kind:"memory",tags:["clue","fact"],ask:"Match each clue with the fact",cards:[["Born","1871","a"],["City","Washington, DC","b"],["Parents","Josephene & Charles","c"],["Wife","Bettie","d"],["Business","Auto business","e"],["Died","1932","f"]],fact:"Recap: 1871, Washington DC, Josephene & Charles, Bettie, auto business, 1932."}]},
+{n:"Final exam: Be Fredderic",bg:"#e5c76b",intro:"<b>Final exam!</b> Answer seven questions as Fredderic Patterson, with no hints. Wrong answers cost a ♥.",
  rounds:[
  {kind:"chase",ask:"Catch the year you were born",opts:[Pn("1861","📅",0,"No — 1871."),Pn("1871","📅",1,"Correct: 1871."),Pn("1881","📅",0,"No — 1871."),Pn("1891","📅",0,"No — 1871.")],fact:"Exam: born 1871 ✔"},
  {kind:"door",ask:"Where were you born?",opts:[D("Richmond"),D("Washington, DC",1),D("Baltimore"),D("Boston")],right:"Correct: Washington, DC.",wrong:"No — Washington, DC.",fact:"Exam: Washington, DC ✔"},
  {kind:"person",ask:"Find your MOTHER",opts:[Pn("Charles","👨🏿",0,"No — that is your father."),Pn("Josephene","👩🏿",1,"Correct: Josephene."),Pn("Mary","👧🏿",0,"No — Mary is your sister."),Pn("Catheren","👧🏿",0,"No — Catheren is your sister.")],fact:"Exam: mother Josephene ✔"},
  {kind:"person",ask:"Find your BROTHER",opts:[Pn("Dollie","👧🏿",0,"No — Dollie is your sister."),Pn("Mary","👧🏿",0,"No — Mary is your sister."),Pn("Catheren","👧🏿",0,"No — Catheren is your sister."),Pn("Samuel","👦🏿",1,"Correct: Samuel.")],fact:"Exam: brother Samuel ✔"},
+ {kind:"person",ask:"Find your WIFE",opts:[Pn("Ellen","👩🏿",0,"No — Ellen is a neighbor."),Pn("Bettie","👩🏿",1,"Correct: Bettie."),Pn("Harriet","👵🏿",0,"No — Harriet is a neighbor."),Pn("Lucy","👧🏿",0,"No — Lucy is a neighbor.")],fact:"Exam: wife Bettie ✔"},
+ {kind:"door",ask:"Which business did you own as the first Black man to do so?",opts:[D("Bakery"),D("Auto business",1),D("Barber shop"),D("Feed store")],right:"Correct: an auto business.",wrong:"No — an auto business.",fact:"Exam: auto business ✔"},
  {kind:"fall",need:2,ask:"Catch the year you died",opts:[D("1932",1),D("1922"),D("1942"),D("1952")],right:"✔ 1932!",wrong:"No — 1932.",fact:"Exam: died 1932 ✔"}]}
 ];
 const shuf=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
@@ -59,7 +67,7 @@ function cardPick(o){
  open.push(o);
  if(open.length<2)return;
  const[a,b]=open;
- if(a.key===b.key&&a.t!==b.t){a.done=b.done=true;open=[];got++;score+=100;msg="✅ "+(a.t==="n"?a.l+" is "+b.l.toLowerCase():b.l+" is "+a.l.toLowerCase())+"!";
+ if(a.key===b.key&&a.t!==b.t){a.done=b.done=true;open=[];got++;score+=100;msg="✅ "+(a.t==="n"?a.l+" ↔ "+b.l:b.l+" ↔ "+a.l)+"!";
   if(got>=R().cards.length){score+=hearts*20;journal[li+"-"+ri]=R().fact;bk();wait=1.6}}
  else{lock=.9;score=Math.max(0,score-10);msg="❌ No match — remember where they are!"}
 }
@@ -78,7 +86,7 @@ function nextRound(){
 function end(){
  st="end";const stars=miss===0?3:miss<=3?2:1;
  if(score>best){best=score;localStorage.setItem("fredericBest",best)}
- ov("🏆 You are Fredderic Patterson!","Score: <b>"+score+"</b> (best "+best+")<br>"+"⭐".repeat(stars)+"☆".repeat(3-stars)+" — "+miss+" mistake"+(miss===1?"":"s")+"<br><br>Born <b>1871</b> in <b>Washington, DC</b> to <b>Josephene</b> and <b>Charles</b>. Siblings <b>Mary, Dollie, Samuel, Catheren</b>. Died <b>1932</b>.","Play again",()=>{li=0;score=0;miss=0;journal={};startLevel()});
+ ov("🏆 You are Fredderic Patterson!","Score: <b>"+score+"</b> (best "+best+")<br>"+"⭐".repeat(stars)+"☆".repeat(3-stars)+" — "+miss+" mistake"+(miss===1?"":"s")+"<br><br>Born <b>1871</b> in <b>Washington, DC</b> to <b>Josephene</b> and <b>Charles</b>. Siblings <b>Mary, Dollie, Samuel, Catheren</b>. Married <b>Bettie</b>. The <b>first Black man to own an auto business</b>. Died <b>1932</b>.","Play again",()=>{li=0;score=0;miss=0;journal={};startLevel()});
 }
 function pick(o){
  if(o.k==="card")return cardPick(o);
@@ -142,7 +150,7 @@ function draw(){
  const nr=near();
  for(const o of objs){
   if(o.k==="f"){x.font="bold 20px Georgia";const w=x.measureText(o.l).width+22;x.fillStyle="#7c2d12";rr(o.x-w/2,o.y-15,w,30,15);x.fill();x.strokeStyle="#fcd34d";x.lineWidth=2;x.stroke();x.fillStyle="#fff";x.fillText(o.l,o.x,o.y);continue}
-  if(o.k==="card"){const up=o.done||open.includes(o);x.fillStyle=o.done?"#15803d":up?"#fff":"#7c2d12";rr(o.x-40,o.y-48,80,96,10);x.fill();x.lineWidth=o===nr?4:2;x.strokeStyle=o===nr?"#fff":"#fcd34d";x.stroke();x.fillStyle=o.done?"#fff":up?"#2a1c10":"#fcd34d";if(up){x.font="bold "+(o.l.length>7?13:16)+"px Georgia";x.fillText(o.l,o.x,o.y);x.font="11px Georgia";x.fillText(o.t==="n"?"name":"role",o.x,o.y+24)}else{x.font="bold 34px Georgia";x.fillText("?",o.x,o.y)}continue}
+  if(o.k==="card"){const up=o.done||open.includes(o);x.fillStyle=o.done?"#15803d":up?"#fff":"#7c2d12";rr(o.x-40,o.y-48,80,96,10);x.fill();x.lineWidth=o===nr?4:2;x.strokeStyle=o===nr?"#fff":"#fcd34d";x.stroke();x.fillStyle=o.done?"#fff":up?"#2a1c10":"#fcd34d";if(up){const w=o.l.split(" "),m=o.l.length>10&&w.length>1?Math.ceil(w.length/2):w.length,ln=m<w.length?[w.slice(0,m).join(" "),w.slice(m).join(" ")]:[o.l];x.font="bold "+(o.l.length>7?13:16)+"px Georgia";ln.forEach((s,i)=>x.fillText(s,o.x,o.y-4+(i-(ln.length-1)/2)*16));x.font="11px Georgia";x.fillText((R().tags||["name","role"])[o.t==="n"?0:1],o.x,o.y+34)}else{x.font="bold 34px Georgia";x.fillText("?",o.x,o.y)}continue}
   if(o.k==="door"){
    x.fillStyle=o.done?"#15803d":o.bad?"#555":"#7c2d12";rr(o.x-o.w/2,o.y-34,o.w,68,10);x.fill();
    x.lineWidth=o===nr?4:2;x.strokeStyle=o===nr?"#fff":"#fcd34d";x.stroke();
