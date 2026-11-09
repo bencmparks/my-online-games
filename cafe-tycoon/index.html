@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cafe Tycoon | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#1c1008;color:#f5e9dc}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#b45309,#1c1008 70%)}
+main{width:min(100%,52rem);padding:1.25rem;border:.2rem solid #fbbf24;border-radius:1.25rem;background:rgb(28 16 8 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.5rem 0;color:#fde68a;font-size:1.6rem}p{margin:.4rem 0;line-height:1.4}
+canvas{display:block;width:100%;height:auto;margin:.8rem auto;border:.2rem solid #92400e;border-radius:.4rem;background:#e7d3b0;touch-action:none}
+.hud{display:flex;justify-content:center;gap:1.2rem;flex-wrap:wrap;font-weight:700;color:#fde68a}
+.row{display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap;margin:.5rem 0}.row button{padding:.6rem 1.4rem;border:0;border-radius:.6rem;background:#f59e0b;color:#111;font-weight:700;font-size:1rem;cursor:pointer}
+#shop{display:grid;grid-template-columns:repeat(auto-fit,minmax(10.5rem,1fr));gap:.5rem;margin:.6rem 0}#shop button{padding:.5rem;border:.1rem solid #b45309;border-radius:.6rem;background:#3b1d08;color:#f5e9dc;font-size:.85rem;cursor:pointer}#shop button:disabled{opacity:.45;cursor:default}#shop b{display:block;color:#86efac}
+button{touch-action:manipulation}</style></head>
+<body><main><a href="../">← All games</a><h1>🍔 Cafe Tycoon</h1>
+<p>Buy a <strong>kitchen</strong> and a <strong>table</strong> and customers will show up. Move with <strong>WASD / arrows</strong> (or tap the room). Stand at the kitchen and press <strong>E</strong> (or the Action button) to cook the dish a customer ordered, carry it to their table and press <strong>E</strong> to serve it. They eat, then leave <strong>money and trash</strong>: press <strong>E</strong> at the table to collect and clean up. Be quick, hungry customers get angry and leave! Spend your money on more tables, a faster stove, new menu items, ads, and employees (cooks, waiters and cleaners) to run the cafe for you.</p>
+<div class="hud"><span id="cash"></span><span id="served"></span><span id="tip"></span></div>
+<canvas id="c" width="800" height="520" aria-label="Cafe Tycoon game"></canvas>
+<div class="row"><button id="act">Action (E)</button></div>
+<h2 style="margin:.6rem 0 0;font-size:1.1rem;color:#fde68a">Shop</h2><div id="shop"></div>
+<div class="row"><button id="reset" style="background:#7f1d1d;color:#fff;font-size:.85rem">Reset progress</button></div>
+</main>
+<script>
+const C=document.querySelector("#c"),x=C.getContext("2d"),W=800,H=520,KEY="cafe-tycoon";
+const FOODS={burger:{e:"🍔",t:3,p:10},pizza:{e:"🍕",t:4.5,p:18},cake:{e:"🍰",t:6,p:30}};
+const SL=[[160,250],[330,250],[500,250],[670,250],[160,400],[330,400],[500,400],[670,400]];
+const KIT={x:130,y:130},DOOR={x:400,y:560},DEF={cash:70,kitchen:0,tables:0,kl:0,cook:0,waiter:0,cleaner:0,ads:0,pizza:0,cake:0,served:0};
+const ITEMS=[
+ {k:"kitchen",n:"🍳 Kitchen",d:"Needed to cook food",max:1,cost:()=>40},
+ {k:"tables",n:"🪑 Table",d:"Seats one more customer",max:8,cost:n=>Math.round(20*1.45**n)},
+ {k:"kl",n:"🔥 Faster stove",d:"Cook 15% faster",max:8,need:"kitchen",cost:n=>Math.round(100*(n+1)**1.6)},
+ {k:"cook",n:"👨‍🍳 Hire cook",d:"Cooks orders for you",max:5,need:"kitchen",cost:n=>Math.round(120*1.6**n)},
+ {k:"waiter",n:"🤵 Hire waiter",d:"Delivers cooked food",max:5,cost:n=>Math.round(100*1.6**n)},
+ {k:"cleaner",n:"🧹 Hire cleaner",d:"Collects money and trash",max:5,cost:n=>Math.round(80*1.6**n)},
+ {k:"ads",n:"📣 Advertising",d:"More customers arrive",max:6,cost:n=>Math.round(90*1.8**n)},
+ {k:"pizza",n:"🍕 Pizza menu",d:"Pays $18, takes longer",max:1,cost:()=>150},
+ {k:"cake",n:"🍰 Cake menu",d:"Pays $30, takes longest",max:1,cost:()=>400}];
+let s={...DEF};try{Object.assign(s,JSON.parse(localStorage.getItem(KEY)||"{}"))}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(s))}catch(e){}};
+const P={x:400,y:430,hold:null,pc:null,mt:null},keys={};
+let tbl=[],guests=[],ready=[],workers=[],floats=[],spawnT=3,oidc=0,msg="",msgT=0,last=0,hudKey="";
+const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y),say=m=>{msg=m;msgT=2.2},fl=(px,py,t,c)=>floats.push({x:px,y:py,t,c,l:1.2});
+const need=f=>FOODS[f].t*.85**s.kl;
+function syncTables(){while(tbl.length<s.tables){const i=tbl.length;tbl.push({x:SL[i][0],y:SL[i][1],st:"empty",g:null,oid:0,food:null,pat:0,eat:0,money:0,trash:false,claim:0,cl:0,tip:0,ord:0})}}
+function syncWorkers(){for(const t of["cook","waiter","cleaner"]){const w=workers.filter(q=>q.t===t);for(let i=w.length;i<s[t];i++){const home=t==="cook"?{x:70+i*34,y:70}:t==="waiter"?{x:270,y:160+i*36}:{x:740,y:60+i*36};workers.push({t,x:home.x,y:home.y,hx:home.x,hy:home.y,task:null})}}}
+const free=t=>t.st==="empty"&&!t.money&&!t.trash;
+const avail=()=>["burger",...(s.pizza?["pizza"]:[]),...(s.cake?["cake"]:[])];
+function unclaimed(){return tbl.filter(t=>t.st==="waiting"&&t.claim!==t.oid).sort((a,b)=>a.pat-b.pat)}
+function leave(g,mood){g.leaving=true;g.mood=mood;g.tx=DOOR.x;g.ty=DOOR.y}
+function serve(t){t.st="eating";t.eat=5;t.tip=Math.floor(t.pat/6);s.served+=1;save()}
+function collect(t){if(t.money){s.cash+=t.money;fl(t.x,t.y-30,"+$"+t.money,"#16a34a")}t.money=0;t.trash=false;t.st="empty";save()}
+function validDish(d){const t=tbl[d.ti];return !!t&&t.st==="waiting"&&t.oid===d.oid}
+function act(){
+ if(!s.kitchen&&!s.tables){say("Buy a kitchen and a table first!");return}
+ let bi=-1,bd=80;tbl.forEach((t,i)=>{const d=dist(P,t);if(d<bd){bd=d;bi=i}});
+ if(bi>=0){const t=tbl[bi];
+  if(P.hold&&t.st==="waiting"&&t.oid===P.hold.oid){serve(t);P.hold=null;say("Enjoy your meal!");return}
+  if(t.st==="done"){collect(t);return}
+  if(P.hold&&t.st==="waiting"){say("That's not their order!");return}}
+ if(s.kitchen&&dist(P,KIT)<90){
+  if(P.hold||P.pc){say("You're already busy!");return}
+  ready=ready.filter(validDish);
+  if(ready.length){P.hold=ready.shift();say("Picked up "+FOODS[P.hold.food].e);return}
+  const u=unclaimed()[0];if(!u){say("No orders to cook right now");return}
+  u.claim=u.oid;P.pc={ti:tbl.indexOf(u),oid:u.oid,food:u.food,prog:0,need:need(u.food)};say("Stay near the stove...");return}
+ say("Go to the kitchen or a table")}
+function update(dt){
+ syncTables();syncWorkers();
+ let dx=(keys.ArrowRight||keys.KeyD?1:0)-(keys.ArrowLeft||keys.KeyA?1:0),dy=(keys.ArrowDown||keys.KeyS?1:0)-(keys.ArrowUp||keys.KeyW?1:0);
+ if(dx||dy){P.mt=null}else if(P.mt){const d=dist(P,P.mt);if(d<6)P.mt=null;else{dx=(P.mt.x-P.x)/d;dy=(P.mt.y-P.y)/d}}
+ if(dx||dy){const m=Math.hypot(dx,dy);P.x=Math.max(20,Math.min(W-20,P.x+dx/m*190*dt));P.y=Math.max(20,Math.min(H-20,P.y+dy/m*190*dt))}
+ if(s.kitchen&&s.tables){spawnT-=dt;if(spawnT<=0){spawnT=Math.max(2.5,9-s.ads*1.2)*(.7+Math.random()*.6);const t=tbl.find(free);if(t){t.st="reserved";const g={x:DOOR.x,y:DOOR.y-30,tx:t.x,ty:t.y+48,e:["🧑","👩","👨","👧","🧓","👦"][Math.floor(Math.random()*6)],mood:"",t,leaving:false};t.g=g;guests.push(g)}}}
+ for(const g of guests){const d=Math.hypot(g.tx-g.x,g.ty-g.y);if(d>3){g.x+=(g.tx-g.x)/d*Math.min(d,150*dt);g.y+=(g.ty-g.y)/d*Math.min(d,150*dt)}else if(!g.leaving&&g.t.st==="reserved"){g.t.st="ordering";g.t.ord=1}}
+ guests=guests.filter(g=>!(g.leaving&&Math.hypot(g.tx-g.x,g.ty-g.y)<=3));
+ for(const t of tbl){
+  if(t.st==="ordering"&&(t.ord-=dt)<=0){const a=avail();t.food=a[Math.floor(Math.random()*a.length)];t.oid=++oidc;t.pat=36;t.st="waiting"}
+  else if(t.st==="waiting"){t.pat-=dt;if(t.pat<=0){leave(t.g,"😠");t.g=null;t.st="empty";t.oid=0;say("A customer got angry and left!")}}
+  else if(t.st==="eating"&&(t.eat-=dt)<=0){t.st="done";t.money=FOODS[t.food].p+t.tip;t.trash=true;leave(t.g,"😋");t.g=null;save()}}
+ if(P.hold&&!validDish(P.hold)){P.hold=null;say("The customer left, dish wasted")}
+ if(P.pc){const p=P.pc,t=tbl[p.ti];if(!t||t.st!=="waiting"||t.oid!==p.oid)P.pc=null;else if(dist(P,KIT)<90){p.prog+=dt;if(p.prog>=p.need){P.hold={ti:p.ti,oid:p.oid,food:p.food};P.pc=null;say("Food ready! Take it to the table")}}}
+ ready=ready.filter(validDish);
+ for(const w of workers){const go=(px,py)=>{const d=Math.hypot(px-w.x,py-w.y);if(d<=3)return true;w.x+=(px-w.x)/d*Math.min(d,130*dt);w.y+=(py-w.y)/d*Math.min(d,130*dt);return false};
+  if(w.t==="cook"){if(!w.task){const u=unclaimed()[0];if(u&&s.kitchen){u.claim=u.oid;w.task={ti:tbl.indexOf(u),oid:u.oid,food:u.food,prog:0,need:need(u.food)*1.3}}}
+   if(w.task){const k=w.task,t=tbl[k.ti];if(!t||t.st!=="waiting"||t.oid!==k.oid)w.task=null;else{k.prog+=dt;if(k.prog>=k.need){ready.push({ti:k.ti,oid:k.oid,food:k.food});w.task=null}}}}
+  else if(w.t==="waiter"){if(!w.task&&ready.length){w.task={d:ready.shift()}}
+   if(w.task){const t=tbl[w.task.d.ti];if(!validDish(w.task.d))w.task=null;else if(go(t.x+34,t.y+10)){serve(t);w.task=null}}else go(w.hx,w.hy)}
+  else{if(!w.task){const t=tbl.find(q=>q.st==="done"&&!q.cl);if(t){t.cl=1;w.task={t}}}
+   if(w.task){if(go(w.task.t.x-34,w.task.t.y+10)){w.task.t.cl=0;collect(w.task.t);w.task=null}}else go(w.hx,w.hy)}}
+ for(const f of floats)f.l-=dt;floats=floats.filter(f=>f.l>0);if(msgT>0)msgT-=dt}
+function text(t,px,py,sz,col,al="center"){x.font=sz+"px Arial";x.textAlign=al;x.fillStyle=col;x.fillText(t,px,py)}
+function draw(){
+ x.fillStyle="#e7d3b0";x.fillRect(0,0,W,H);x.fillStyle="#d6bd91";for(let i=0;i<W;i+=80)for(let j=0;j<H;j+=80)if((i+j)/80%2)x.fillRect(i,j,80,80);
+ x.fillStyle="#7c2d12";x.fillRect(0,0,W,14);x.fillStyle="#92400e";x.fillRect(DOOR.x-50,H-12,100,12);text("Door",DOOR.x,H-16,12,"#78350f");
+ if(s.kitchen){x.fillStyle="#475569";x.fillRect(30,24,230,76);x.fillStyle="#64748b";x.fillRect(30,24,230,12);text("🍳🍲🔪",145,78,34,"#fff");text("Kitchen"+(s.kl?" Lv"+s.kl:""),145,114,13,"#475569")}
+ else{x.strokeStyle="#92400e";x.setLineDash([8,6]);x.lineWidth=3;x.strokeRect(30,24,230,76);x.setLineDash([]);text("Empty — buy a kitchen",145,68,14,"#92400e")}
+ if(s.tables<8){const i=s.tables;x.strokeStyle="#92400e88";x.setLineDash([6,6]);x.lineWidth=2;x.beginPath();x.arc(SL[i][0],SL[i][1],34,0,7);x.stroke();x.setLineDash([]);text("next table",SL[i][0],SL[i][1]+4,11,"#92400e")}
+ for(const t of tbl){x.fillStyle="#92400e";x.beginPath();x.arc(t.x,t.y,34,0,7);x.fill();x.fillStyle="#b45309";x.beginPath();x.arc(t.x,t.y,27,0,7);x.fill();
+  if(t.st==="eating")text(FOODS[t.food].e,t.x,t.y+10,28,"#fff");
+  if(t.trash)text("🗑",t.x+14,t.y+12,22,"#fff");if(t.money)text("💵",t.x-12,t.y+10,24,"#fff");
+  if(t.st==="waiting"){x.fillStyle="#fff";x.beginPath();x.arc(t.x,t.y-62,22,0,7);x.fill();text(FOODS[t.food].e,t.x,t.y-53,26,"#000");const f=Math.max(0,t.pat/36);x.fillStyle="#1f2937";x.fillRect(t.x-22,t.y-38,44,6);x.fillStyle=f>.5?"#22c55e":f>.25?"#eab308":"#ef4444";x.fillRect(t.x-22,t.y-38,44*f,6);
+   if(t.claim===t.oid)text("🔥",t.x+30,t.y-60,16,"#fff")}}
+ for(const g of guests){text(g.e,g.x,g.y,32,"#000");if(g.mood)text(g.mood,g.x+18,g.y-22,18,"#000")}
+ for(const w of workers){text(w.t==="cook"?"👨‍🍳":w.t==="waiter"?"🤵":"🧹",w.x,w.y,30,"#000");if(w.t==="waiter"&&w.task)text(FOODS[w.task.d.food].e,w.x+14,w.y-24,20,"#000");if(w.t==="cook"&&w.task){x.fillStyle="#1f2937";x.fillRect(w.x-16,w.y-34,32,5);x.fillStyle="#f59e0b";x.fillRect(w.x-16,w.y-34,32*w.task.prog/w.task.need,5)}}
+ ready.forEach((d,i)=>text(FOODS[d.food].e,60+i*28,118,22,"#000"));
+ x.strokeStyle="#fbbf24";x.lineWidth=3;x.beginPath();x.arc(P.x,P.y-10,20,0,7);x.stroke();text("🧑‍🍳",P.x,P.y,32,"#000");
+ if(P.hold)text(FOODS[P.hold.food].e,P.x,P.y-36,28,"#000");
+ if(P.pc){x.fillStyle="#1f2937";x.fillRect(P.x-24,P.y-48,48,8);x.fillStyle="#f59e0b";x.fillRect(P.x-24,P.y-48,48*P.pc.prog/P.pc.need,8)}
+ for(const f of floats){x.globalAlpha=Math.min(1,f.l);text(f.t,f.x,f.y-(1.2-f.l)*40,18,f.c);x.globalAlpha=1}
+ if(msgT>0){x.fillStyle="rgb(0 0 0 / 65%)";x.fillRect(W/2-190,H-52,380,32);text(msg,W/2,H-30,16,"#fff")}}
+function ui(){
+ const hk=JSON.stringify(s)+"|"+Math.floor(s.cash);if(hk===hudKey)return;hudKey=hk;
+ document.querySelector("#cash").textContent="💰 $"+Math.floor(s.cash);document.querySelector("#served").textContent="🍽 Served: "+s.served;document.querySelector("#tip").textContent="👥 Staff: "+(s.cook+s.waiter+s.cleaner);
+ document.querySelectorAll("#shop button").forEach(b=>{const u=ITEMS.find(q=>q.k===b.dataset.k),l=s[u.k],c=u.cost(l),done=l>=u.max,lock=u.need&&!s[u.need];b.disabled=done||!!lock||s.cash<c;
+  const h=`${u.n}${u.max>1?` (${l}/${u.max})`:""}<br>${u.d}<b>${done?"OWNED":lock?"Needs kitchen":"$"+c}</b>`;if(b.innerHTML!==h)b.innerHTML=h})}
+for(const u of ITEMS){const b=document.createElement("button");b.dataset.k=u.k;b.onclick=()=>{const l=s[u.k],c=u.cost(l);if(l<u.max&&s.cash>=c&&!(u.need&&!s[u.need])){s.cash-=c;s[u.k]+=1;save();syncTables();syncWorkers();hudKey=""}};document.querySelector("#shop").append(b)}
+document.querySelector("#reset").onclick=()=>{if(confirm("Reset all progress?")){s={...DEF};tbl=[];guests=[];ready=[];workers=[];P.hold=null;P.pc=null;save();hudKey=""}};
+document.querySelector("#act").onclick=act;
+addEventListener("keydown",e=>{if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Space"].includes(e.code))e.preventDefault();keys[e.code]=true;if(!e.repeat&&(e.code==="KeyE"||e.code==="Space"||e.code==="Enter"))act()});
+addEventListener("keyup",e=>{keys[e.code]=false});
+C.addEventListener("pointerdown",e=>{const r=C.getBoundingClientRect();P.mt={x:(e.clientX-r.left)/r.width*W,y:(e.clientY-r.top)/r.height*H}});
+function loop(ts){const dt=Math.min(.05,(ts-last)/1000||0);last=ts;update(dt);draw();ui();requestAnimationFrame(loop)}
+syncTables();syncWorkers();requestAnimationFrame(loop);setInterval(save,5000);
+</script></body></html>
