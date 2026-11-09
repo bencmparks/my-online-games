@@ -11,10 +11,23 @@ button{touch-action:manipulation}</style></head>
 <div class="hud"><span id="cash"></span><span id="served"></span><span id="carry"></span><span id="staff"></span></div>
 <canvas id="c" width="800" height="520" aria-label="Ape Market game"></canvas>
 <div class="row" id="spd" aria-label="Game speed"><span style="align-self:center;font-weight:700;color:#d9f99d">Speed:</span></div>
+<div class="row" id="mkt" aria-label="Markets"><span style="align-self:center;font-weight:700;color:#d9f99d">Market:</span></div>
 <div class="row"><button id="reset" style="background:#7f1d1d;color:#fff;font-size:.85rem">Reset progress</button></div>
 </main>
 <script>
-const C=document.querySelector("#c"),x=C.getContext("2d"),VW=800,VH=520,WW=1700,WH=1100,KEY="ape-market";
+const C=document.querySelector("#c"),x=C.getContext("2d"),VW=800,VH=520,WW=1700,WH=1100,SPK="ape-marketSpeed";
+const MK=[
+{n:"Ape Market",ic:"🐵",bg:"#e7d3b0",tl:"#d6bd91",g:"🍌🌽🥚🥛🍅🍿🧃🧀",nm:"Banana grove,Corn field,Chicken coop,Dairy cow,Tomato patch,Popcorn machine,Juice press,Cheese maker",pm:1},
+{n:"Fish Market",ic:"🐟",bg:"#bfdbfe",tl:"#93c5fd",g:"🐟🦐🦀🦑🐙🍤🍣🍢",nm:"Fish pond,Shrimp tank,Crab trap,Squid net,Octopus cave,Shrimp fryer,Sushi bar,Squid grill",pm:1.5},
+{n:"Bakery Market",ic:"🥖",bg:"#fde68a",tl:"#fcd34d",g:"🥖🥐🥨🍪🍩🥪🍰🎂",nm:"Baguette oven,Croissant oven,Pretzel oven,Cookie oven,Donut fryer,Sandwich bar,Cake mixer,Party cake machine",pm:2.2},
+{n:"Candy Market",ic:"🍭",bg:"#fbcfe8",tl:"#f9a8d4",g:"🍬🍭🍫🍡🧁🍨🍦🍧",nm:"Sweet jar,Lollipop tree,Chocolate river,Dango stand,Cupcake oven,Gelato maker,Cone machine,Ice shaver",pm:3.2},
+{n:"Toy Market",ic:"🧸",bg:"#ddd6fe",tl:"#c4b5fd",g:"🧸🚗🪀🎲🪁🎮🤖🚀",nm:"Teddy workshop,Car track,Yo-yo shop,Dice factory,Kite loft,Console line,Robot lab,Rocket pad",pm:4.5},
+{n:"Pet Market",ic:"🐾",bg:"#d9f99d",tl:"#bef264",g:"🦴🧶🥕🐠🐦🧺🎾🐾",nm:"Bone yard,Yarn spinner,Carrot patch,Fish tank,Bird nest,Pet bed loom,Ball machine,Paw print press",pm:6.5},
+{n:"Pizza Market",ic:"🍕",bg:"#fed7aa",tl:"#fdba74",g:"🍄🥦🧅🥓🍍🍕🌭🍔",nm:"Mushroom cave,Broccoli bed,Onion field,Bacon smoker,Pineapple grove,Pizza oven,Hot dog cart,Burger grill",pm:9},
+{n:"Tech Market",ic:"💻",bg:"#cbd5e1",tl:"#94a3b8",g:"🔌🔋💾📱💻🎧⌚📷",nm:"Cable spool,Battery pack,Disk drive,Phone line,Laptop line,Headphone line,Watch bench,Camera lab",pm:13},
+{n:"Space Market",ic:"🚀",bg:"#a5b4fc",tl:"#818cf8",g:"🪨🌟🌠👽🛸🚀🔭💎",nm:"Moon quarry,Star field,Comet catcher,Alien farm,UFO dock,Rocket factory,Telescope lab,Gem cutter",pm:20}];
+let mk=Math.min(8,Math.max(0,+localStorage.getItem("ape-market-cur")||0)),meta={u:0};try{Object.assign(meta,JSON.parse(localStorage.getItem("ape-market-meta")||"{}"))}catch(e){}
+mk=Math.min(mk,meta.u);let KEY=mk?"ape-market-"+mk:"ape-market";const MKT=()=>MK[mk];
 const PRODS=["banana","corn","egg","milk","tomato","popcorn","juice","cheese"];
 const INFO={
  banana:{e:"🍌",p:3,t:1.6,cost:0,n:"Banana grove",icon:"🌴"},
@@ -45,19 +58,21 @@ const UPOS={bag:[260,440],speed:[1400,700],cust:[850,440],farmw:[1180,470],grow:
 UPS.forEach(u=>{u.x=UPOS[u.k][0];u.y=UPOS[u.k][1]});
 const RX=[200,450,700],RY=700,DOOR={x:850,y:WH},PCAP=12;
 const DEF={cash:0,sh:{banana:1},pr:{banana:1,corn:0,egg:0,milk:0,tomato:0,popcorn:0,juice:0,cheese:0},up:{bag:0,speed:0,cust:0,farmw:0,grow:0,shelf:0,price:0,mach:0,reg2:0,reg3:0,c1:0,c2:0,c3:0},paid:{},served:0};
-let s=JSON.parse(JSON.stringify(DEF));try{const o=JSON.parse(localStorage.getItem(KEY)||"{}");for(const k in o)if(typeof o[k]==="object"&&o[k]&&!Array.isArray(o[k]))Object.assign(s[k],o[k]);else s[k]=o[k]}catch(e){}
+const loadS=()=>{const d=JSON.parse(JSON.stringify(DEF));try{const o=JSON.parse(localStorage.getItem(KEY)||"{}");for(const k in o)if(typeof o[k]==="object"&&o[k]&&!Array.isArray(o[k]))Object.assign(d[k],o[k]);else d[k]=o[k]}catch(e){}return d};let s=loadS();
+const saveMeta=()=>{try{localStorage.setItem("ape-market-meta",JSON.stringify(meta));localStorage.setItem("ape-market-cur",mk)}catch(e){}};
+function applyMarket(){const g=Array.from(MKT().g),nm=MKT().nm.split(",");PRODS.forEach((p,i)=>{INFO[p].e=g[i];INFO[p].n=nm[i];INFO[p].icon=i<5?g[i]:"⚙️"});document.querySelector("h1").textContent=MKT().ic+" "+MKT().n;document.title=MKT().n+" | My Online Games";C.setAttribute("aria-label",MKT().n+" game")}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(s))}catch(e){}};
 const P={x:300,y:430,items:[],pk:0},keys={},cam={x:0,y:0};
-let vands=[],tag={},tagT={},vT=40,drops=[],prod,mach,shelf,custs,queues,piles,payT,workers,floats,spawnT,last=0,hudKey="",speed=+localStorage.getItem(KEY+"Speed")||1;
+let vands=[],tag={},tagT={},vT=40,drops=[],prod,mach,shelf,custs,queues,piles,payT,workers,floats,spawnT,last=0,hudKey="",speed=+localStorage.getItem(SPK)||1;
 function initWorld(){prod={};mach={};shelf={};for(const p of PRODS){prod[p]={n:p==="banana"?4:0,t:0};mach[p]={in:0,out:0,t:0};shelf[p]=0}
  custs=[];drops=[];vands=[];tag={};tagT={};vT=40;queues=[[],[],[]];piles=[0,0,0];payT=[0,0,0];workers=[];floats=[];spawnT=2;P.items=[]}
 initWorld();
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y),fl=(px,py,t,c)=>floats.push({x:px,y:py,t,c,l:1.2});
-const CAP=()=>4+3*s.up.bag,SPD=()=>170*(1+.2*s.up.speed),MAXC=()=>3+2*s.up.cust,SH=()=>10+5*s.up.shelf,GROW=()=>.75**s.up.grow,PM=()=>1+.15*s.up.price,NREG=()=>1+s.up.reg2+s.up.reg3,hasC=r=>s.up["c"+(r+1)]>0;
+const CAP=()=>4+3*s.up.bag,SPD=()=>170*(1+.2*s.up.speed),MAXC=()=>3+2*s.up.cust,SH=()=>10+5*s.up.shelf,GROW=()=>.75**s.up.grow,PM=()=>(1+.15*s.up.price)*MKT().pm,CM=c=>Math.round(c*MKT().pm),NREG=()=>1+s.up.reg2+s.up.reg3,hasC=r=>s.up["c"+(r+1)]>0;
 const regPos=r=>({x:RX[r],y:RY+25});
-const pads=()=>{const a=[];for(const p of PRODS)if(!s.pr[p])a.push({id:"p:"+p,label:INFO[p].e+" "+INFO[p].n,cost:INFO[p].cost,x:INFO[p].x,y:INFO[p].y,p});
- for(const p of PRODS)if(s.pr[p]&&!s.sh[p])a.push({id:"s:"+p,label:"📦 Shelf "+INFO[p].e,cost:SC[p],x:INFO[p].sx,y:INFO[p].sy,sp:p});
- for(const u of UPS){const l=s.up[u.k];if(l<u.c.length&&(!u.ok||u.ok()))a.push({id:"u:"+u.k,label:u.n+(u.c.length>1?" "+(l+1)+"/"+u.c.length:""),cost:u.c[l],x:u.x,y:u.y,u})}return a};
+const pads=()=>{const a=[];for(const p of PRODS)if(!s.pr[p])a.push({id:"p:"+p,label:INFO[p].e+" "+INFO[p].n,cost:CM(INFO[p].cost),x:INFO[p].x,y:INFO[p].y,p});
+ for(const p of PRODS)if(s.pr[p]&&!s.sh[p])a.push({id:"s:"+p,label:"📦 Shelf "+INFO[p].e,cost:CM(SC[p]),x:INFO[p].sx,y:INFO[p].sy,sp:p});
+ for(const u of UPS){const l=s.up[u.k];if(l<u.c.length&&(!u.ok||u.ok()))a.push({id:"u:"+u.k,label:u.n+(u.c.length>1?" "+(l+1)+"/"+u.c.length:""),cost:CM(u.c[l]),x:u.x,y:u.y,u})}return a};
 function buy(pd){if(pd.p)s.pr[pd.p]=1;else if(pd.sp)s.sh[pd.sp]=1;else s.up[pd.u.k]+=1;delete s.paid[pd.id];save();syncWorkers();fl(pd.x,pd.y-40,"Unlocked!","#facc15")}
 function syncWorkers(){for(let i=workers.length;i<s.up.farmw;i++)workers.push({x:60+i*30,y:480,items:[],st:"idle",job:"",p:"",from:"",i})}
 const src=p=>INFO[p].from?mach[p].out:prod[p].n,takeSrc=(p,k)=>{if(INFO[p].from)mach[p].out-=k;else prod[p].n-=k};
@@ -95,13 +110,13 @@ function update(dt){
  for(let i=drops.length-1;i>=0;i--){const d=drops[i];if(Math.hypot(P.x-d.x,P.y-d.y)<36){s.cash+=d.v;fl(d.x,d.y-10,"+$"+d.v,"#ca8a04");drops.splice(i,1)}}
  for(let r=0;r<NREG();r++){const f=queues[r][0];
   if(f&&(hasC(r)||dist(P,regPos(r))<95)&&Math.hypot(f.x-RX[r],f.y-(RY+50))<8){payT[r]+=dt;const cnt=f.list.reduce((a,l)=>a+l.got,0);
-   if(payT[r]>=.45*cnt){payT[r]=0;const amt=Math.round(f.list.reduce((a,l)=>a+l.got*INFO[l.p].p,0)*PM()*(f.vip?3:1));queues[r].shift();f.st="leave";f.mood=f.vip?"🤩":"😊";s.served++;
+   if(payT[r]>=.45*cnt){payT[r]=0;const amt=Math.round(f.list.reduce((a,l)=>a+l.got*INFO[l.p].p,0)*PM()*(f.vip?3:1));queues[r].shift();f.st="leave";f.mood=f.vip?"🤩":"😊";s.served++;if(s.served>=50&&mk===meta.u&&meta.u<8){meta.u++;saveMeta();buildMk();fl(P.x,P.y-60,"🎉 New market unlocked!","#7c3aed")}
     piles[r]+=amt;save()}}else payT[r]=0;
   if(piles[r]>0&&dist(P,{x:RX[r]+80,y:RY})<70){s.cash+=piles[r];fl(RX[r]+80,RY-30,"+$"+piles[r],"#16a34a");piles[r]=0;save()}}
  custs=custs.filter(c=>!(c.st==="leave"&&c.y>=DOOR.y-2));
  vT-=dt;if(vT<=0){vT=45+Math.random()*45;const own=PRODS.filter(p=>s.pr[p]&&s.sh[p]&&!tag[p]);if(s.served>=8&&vands.length<2&&own.length)vands.push({x:DOOR.x,y:DOOR.y-20,p:own[Math.floor(Math.random()*own.length)],st:"go",tm:3,ox:Math.random()*80-40})}
  for(const v of vands){let tg=null;const I=INFO[v.p];
-  if(v.st!=="flee"&&Math.hypot(P.x-v.x,P.y-v.y)<45){v.st="flee";const b=Math.round(25+s.served/2);s.cash+=b;fl(v.x,v.y-30,"Caught! +$"+b,"#ca8a04")}
+  if(v.st!=="flee"&&Math.hypot(P.x-v.x,P.y-v.y)<45){v.st="flee";const b=Math.round((25+s.served/2)*MKT().pm);s.cash+=b;fl(v.x,v.y-30,"Caught! +$"+b,"#ca8a04")}
   if(v.st==="go"){tg={x:I.sx+v.ox,y:I.sy+I.sd};if(Math.hypot(tg.x-v.x,tg.y-v.y)<4)v.st="spray"}
   else if(v.st==="spray"){v.tm-=dt;if(v.tm<=0){if(s.sh[v.p]){tag[v.p]=1;tagT[v.p]=0}v.st="flee"}}
   else tg={x:DOOR.x,y:DOOR.y};
@@ -124,7 +139,7 @@ function text(t,px,py,sz,col,al="center"){x.font=sz+"px Arial";x.textAlign=al;x.
 function draw(){
  cam.x=Math.max(0,Math.min(WW-VW,P.x-VW/2));cam.y=Math.max(0,Math.min(WH-VH,P.y-VH/2));
  x.save();x.translate(-Math.round(cam.x),-Math.round(cam.y));
- x.fillStyle="#e7d3b0";x.fillRect(0,0,WW,WH);x.fillStyle="#d6bd91";for(let i=0;i<WW;i+=100)for(let j=0;j<WH;j+=100)if((i+j)/100%2)x.fillRect(i,j,100,100);
+ x.fillStyle=MKT().bg;x.fillRect(0,0,WW,WH);x.fillStyle=MKT().tl;for(let i=0;i<WW;i+=100)for(let j=0;j<WH;j+=100)if((i+j)/100%2)x.fillRect(i,j,100,100);
  x.fillStyle="#bef264";x.fillRect(0,16,WW,170);x.fillStyle="#65a30d";x.fillRect(0,0,WW,16);x.fillRect(0,184,WW,6);
  
  text("FARMS & FACTORIES",110,34,13,"#365314","left");text("CHECKOUT",60,RY-52,13,"#334155","left");
@@ -153,7 +168,7 @@ function draw(){
  let hint="";if(s.served<1&&!shelf.banana&&!P.items.length)hint="Walk up to the 🍌 grove to grab bananas";else if(s.served<1&&P.items.length)hint="Drop the fruit on the matching shelf";else if(queues[0].length&&!hasC(0)&&dist(P,regPos(0))>=95)hint="Stand at the register to ring up customers";else if(piles.some(v=>v>0))hint="Collect the 💵 cash pile";
  if(vands.some(v=>v.st!=="flee"))hint="😈 Vandal! Catch it before it tags a shelf!";else if(PRODS.some(p=>tag[p]))hint="Stand at the tagged shelf to clean it";
  if(hint){x.fillStyle="rgb(0 0 0 / 65%)";x.fillRect(VW/2-190,VH-40,380,28);text(hint,VW/2,VH-20,15,"#fff")}
- const mx=VW-160,my=8,ms=150/WW;x.fillStyle="rgb(0 0 0 / 45%)";x.fillRect(mx-2,my-2,154,WH*ms+4);x.fillStyle="#e7d3b0";x.fillRect(mx,my,150,WH*ms);x.fillStyle="#bef264";x.fillRect(mx,my,150,186*ms);
+ const mx=VW-160,my=8,ms=150/WW;x.fillStyle="rgb(0 0 0 / 45%)";x.fillRect(mx-2,my-2,154,WH*ms+4);x.fillStyle=MKT().bg;x.fillRect(mx,my,150,WH*ms);x.fillStyle="#bef264";x.fillRect(mx,my,150,186*ms);
  for(const p of PRODS){x.fillStyle=s.pr[p]?"#166534":"#4d7c0f66";x.fillRect(mx+(INFO[p].x-12)*ms,my+(INFO[p].y-12)*ms,24*ms,24*ms+2)}
  for(const v of vands){x.fillStyle="#dc2626";x.fillRect(mx+v.x*ms-2,my+v.y*ms-2,4,4)}
  for(const c of custs){x.fillStyle="#2563eb";x.fillRect(mx+c.x*ms-1,my+c.y*ms-1,2,2)}
@@ -161,12 +176,14 @@ function draw(){
 function ui(){const hk=Math.floor(s.cash)+"|"+s.served+"|"+P.items.length+"|"+CAP()+"|"+workers.length+"|"+NREG();if(hk===hudKey)return;hudKey=hk;
  document.querySelector("#cash").textContent="💰 $"+Math.floor(s.cash);document.querySelector("#served").textContent="🛒 Customers: "+s.served;document.querySelector("#carry").textContent="🎒 "+P.items.length+"/"+CAP();
  document.querySelector("#staff").textContent="🧾 Registers: "+NREG()+" · 🐒 Helpers: "+workers.length+" · 🧑‍💼 Cashiers: "+(s.up.c1+s.up.c2+s.up.c3)}
-for(let n=1;n<=10;n++){const b=document.createElement("button");b.textContent=n+"x";b.dataset.n=n;b.onclick=()=>{speed=n;try{localStorage.setItem(KEY+"Speed",n)}catch(e){}markSpeed()};document.querySelector("#spd").append(b)}
+for(let n=1;n<=10;n++){const b=document.createElement("button");b.textContent=n+"x";b.dataset.n=n;b.onclick=()=>{speed=n;try{localStorage.setItem(SPK,n)}catch(e){}markSpeed()};document.querySelector("#spd").append(b)}
 function markSpeed(){document.querySelectorAll("#spd button").forEach(b=>b.classList.toggle("on",+b.dataset.n===speed))}markSpeed();
+function buildMk(){const b=document.querySelector("#mkt");b.querySelectorAll("button").forEach(e=>e.remove());MK.forEach((m,i)=>{const e=document.createElement("button");e.textContent=i<=meta.u?m.ic+" "+m.n:"🔒 "+m.n;e.disabled=i>meta.u;e.title=i>meta.u?"Serve 50 customers in the previous market":"";e.classList.toggle("on",i===mk);e.onclick=()=>switchMk(i);b.append(e)})}
+function switchMk(i){if(i>meta.u||i===mk)return;save();mk=i;KEY=mk?"ape-market-"+mk:"ape-market";s=loadS();initWorld();P.x=300;P.y=430;applyMarket();saveMeta();hudKey="";buildMk()}
 document.querySelector("#reset").onclick=()=>{if(confirm("Reset all progress?")){s=JSON.parse(JSON.stringify(DEF));initWorld();save();hudKey=""}};
 addEventListener("keydown",e=>{if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Space"].includes(e.code))e.preventDefault();keys[e.code]=true});
 addEventListener("keyup",e=>{keys[e.code]=false});
 C.addEventListener("pointerdown",e=>{const r=C.getBoundingClientRect();P.mt={x:(e.clientX-r.left)/r.width*VW+cam.x,y:(e.clientY-r.top)/r.height*VH+cam.y}});
 function loop(ts){let dt=Math.min(.05,(ts-last)/1000||0)*speed;last=ts;while(dt>0){const d=Math.min(dt,.05);update(d);dt-=d}draw();ui();requestAnimationFrame(loop)}
-syncWorkers();requestAnimationFrame(loop);setInterval(save,5000);
+applyMarket();buildMk();syncWorkers();requestAnimationFrame(loop);setInterval(save,5000);
 </script></body></html>
