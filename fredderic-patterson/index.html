@@ -37,9 +37,12 @@ const L=[
  rounds:[{kind:"fall",need:3,ask:"Catch your business: Auto business",opts:[D("Auto business",1),D("Feed store"),D("Bakery"),D("Barber shop"),D("Blacksmith")],right:"✔ Auto business — you were the first Black man to own one!",wrong:"Not your business — you owned an auto business.",fact:"First Black man to own an auto business."}]},
 {n:"1932 — The end",bg:"#9aa3b5",intro:"You lived from 1871 until <b>1932</b>, when you died.<br><br><b>Catch the falling years</b> and touch <b>1932</b> three times.",
  rounds:[{kind:"fall",need:3,ask:"Catch the year you died: 1932",opts:[D("1902"),D("1918"),D("1932",1),D("1945"),D("1923")],right:"✔ 1932!",wrong:"Not that year — you died in 1932.",fact:"Died in 1932."}]},
+{n:"The Hunt for a Ghost Car",bg:"#b9c98f",intro:"Decades after your death, classic car collectors and historians have spent years searching old barns, fields and estate sales for a surviving <b>Patterson-Greenfield automobile</b>. If one is ever found it would be worth a fortune, the ultimate lost piece of Black automotive history.<br><br><b>Part 1:</b> search the spots (walk up and press <b>E / Space</b>, or tap). Empty spots cost 10 points.<br><b>Part 2:</b> drive it! Steer with <b>← →</b> or <b>A D</b>, brake with <b>↓ / S / Space</b> (or the BRAKE button). Dodge obstacles and <b>stop at red lights</b>.",
+ rounds:[{kind:"hunt",need:1,ask:"Search for the lost Patterson-Greenfield automobile",opts:[Pn("Old barn","🏚️",0,"Just hay, rust and old tools in the old barn."),Pn("Field","🌾",0,"Only tall grass in this field."),Pn("Estate sale","🏠",0,"Furniture and dishes at the estate sale, no car."),Pn("Shed","🛖",0,"An empty shed with a leaky roof."),Pn("Orchard","🌳",0,"Apple trees and no car."),Pn("Warehouse","🏭",0,"Crates and dust in the warehouse.")],fact:"Collectors still hunt for a surviving Patterson-Greenfield automobile; it would be worth a fortune."},
+ {kind:"drive",len:3600,opts:[],ask:"Drive it! Dodge obstacles and stop at red lights",fact:"Found and drove the lost Patterson-Greenfield automobile."}]},
 {n:"Life recap",bg:"#c7b8e0",intro:"Match each <b>clue</b> with the right <b>fact</b> about your life: when and where you were born, your parents, your wife, your business and when you died.",
  rounds:[{kind:"memory",tags:["clue","fact"],ask:"Match each clue with the fact",cards:[["Born","1871","a"],["City","Washington, DC","b"],["Parents","Josephene & Charles","c"],["Wife","Bettie","d"],["Business","Auto business","e"],["Died","1932","f"]],fact:"Recap: 1871, Washington DC, Josephene & Charles, Bettie, auto business, 1932."}]},
-{n:"Final exam: Be Fredderic",bg:"#e5c76b",intro:"<b>Final exam!</b> Answer seven questions as Fredderic Patterson, with no hints. Wrong answers cost a ♥.",
+{n:"Final exam: Be Fredderic",bg:"#e5c76b",intro:"<b>Final exam!</b> Answer eight questions as Fredderic Patterson, with no hints. Wrong answers cost a ♥.",
  rounds:[
  {kind:"chase",ask:"Catch the year you were born",opts:[Pn("1861","📅",0,"No — 1871."),Pn("1871","📅",1,"Correct: 1871."),Pn("1881","📅",0,"No — 1871."),Pn("1891","📅",0,"No — 1871.")],fact:"Exam: born 1871 ✔"},
  {kind:"door",ask:"Where were you born?",opts:[D("Richmond"),D("Washington, DC",1),D("Baltimore"),D("Boston")],right:"Correct: Washington, DC.",wrong:"No — Washington, DC.",fact:"Exam: Washington, DC ✔"},
@@ -47,11 +50,12 @@ const L=[
  {kind:"person",ask:"Find your BROTHER",opts:[Pn("Dollie","👧🏿",0,"No — Dollie is your sister."),Pn("Mary","👧🏿",0,"No — Mary is your sister."),Pn("Catheren","👧🏿",0,"No — Catheren is your sister."),Pn("Samuel","👦🏿",1,"Correct: Samuel.")],fact:"Exam: brother Samuel ✔"},
  {kind:"person",ask:"Find your WIFE",opts:[Pn("Ellen","👩🏿",0,"No — Ellen is a neighbor."),Pn("Bettie","👩🏿",1,"Correct: Bettie."),Pn("Harriet","👵🏿",0,"No — Harriet is a neighbor."),Pn("Lucy","👧🏿",0,"No — Lucy is a neighbor.")],fact:"Exam: wife Bettie ✔"},
  {kind:"door",ask:"Which business did you own as the first Black man to do so?",opts:[D("Bakery"),D("Auto business",1),D("Barber shop"),D("Feed store")],right:"Correct: an auto business.",wrong:"No — an auto business.",fact:"Exam: auto business ✔"},
+ {kind:"door",ask:"What are collectors still hunting for?",opts:[D("A Patterson-Greenfield automobile",1),D("A lost gold coin"),D("A famous painting"),D("A steam train")],right:"Correct: a surviving Patterson-Greenfield automobile.",wrong:"No — a Patterson-Greenfield automobile.",fact:"Exam: lost car ✔"},
  {kind:"fall",need:2,ask:"Catch the year you died",opts:[D("1932",1),D("1922"),D("1942"),D("1952")],right:"✔ 1932!",wrong:"No — 1932.",fact:"Exam: died 1932 ✔"}]}
 ];
 const shuf=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
-let li=0,ri=0,hearts=3,score=0,miss=0,objs=[],got=0,msg="",wait=0,st="intro",P={x:W/2,y:360,t:0},tgt=null,keys={},journal={},best=+localStorage.getItem("fredericBest")||0,shake=0,spawn=0,open=[],lock=0;
-const R=()=>L[li].rounds[ri];
+let li=0,ri=0,hearts=3,score=0,miss=0,objs=[],got=0,msg="",wait=0,st="intro",P={x:W/2,y:360,t:0},tgt=null,keys={},journal={},best=+localStorage.getItem("fredericBest")||0,shake=0,spawn=0,open=[],lock=0,pbrake=false,drv={};
+const R=()=>(L[li]||L[L.length-1]).rounds[ri]||{};
 function bk(){const v=Object.values(journal);$("#bk").innerHTML=v.length?v.map(f=>"<li>"+f+"</li>").join(""):"<li>Nothing learned yet.</li>"}
 function ov(h,p,b,f){const o=$("#ov");o.hidden=false;o.innerHTML="<h2>"+h+"</h2><p>"+p+"</p><button>"+b+"</button>";o.querySelector("button").onclick=()=>{o.hidden=true;f()}}
 function startRound(){
@@ -60,6 +64,8 @@ function startRound(){
  else if(r.kind==="memory"){const c=[];r.cards.forEach(([a,b,k],i)=>{c.push({k:"card",l:a,t:"n",key:k,id:i});c.push({k:"card",l:b,t:"r",key:k,id:i})});shuf(c).forEach((o,i)=>{o.x=(i%6+.5)*W/6;o.y=170+Math.floor(i/6)*115;objs.push(o)});open=[];lock=0}
  else if(r.kind==="door"){const o=shuf(r.opts),n=o.length;o.forEach((d,i)=>objs.push({k:"door",l:d.l,ok:d.ok,x:(i+.5)*W/n,y:118,w:W/n-16}))}
  else{shuf(r.opts).forEach(d=>{let px,py,t=0;do{px=60+Math.random()*520;py=140+Math.random()*190;t++}while(t<60&&objs.some(o=>Math.hypot(o.x-px,o.y-py)<80));objs.push({k:"p",l:d.l,e:d.e,ok:d.ok,r:d.r,x:px,y:py,sp:r.kind==="chase"?2.6:1,vx:(Math.random()-.5)*50*(r.kind==="chase"?2.6:1),vy:(Math.random()-.5)*50*(r.kind==="chase"?2.6:1)})})}
+ if(r.kind==="hunt"){const t=objs[Math.random()*objs.length|0];t.ok=true;t.r="You found the lost Patterson-Greenfield automobile!";objs.forEach(o=>{o.vx=o.vy=0})}
+ if(r.kind==="drive"){drv={d:0,v:170,ot:1,lt:300,off:0,done:0};P.x=W/2;P.y=340}
  st="play";wait=0;
 }
 function cardPick(o){
@@ -86,33 +92,57 @@ function nextRound(){
 function end(){
  st="end";const stars=miss===0?3:miss<=3?2:1;
  if(score>best){best=score;localStorage.setItem("fredericBest",best)}
- ov("🏆 You are Fredderic Patterson!","Score: <b>"+score+"</b> (best "+best+")<br>"+"⭐".repeat(stars)+"☆".repeat(3-stars)+" — "+miss+" mistake"+(miss===1?"":"s")+"<br><br>Born <b>1871</b> in <b>Washington, DC</b> to <b>Josephene</b> and <b>Charles</b>. Siblings <b>Mary, Dollie, Samuel, Catheren</b>. Married <b>Bettie</b>. The <b>first Black man to own an auto business</b>. Died <b>1932</b>.","Play again",()=>{li=0;score=0;miss=0;journal={};startLevel()});
+ ov("🏆 You are Fredderic Patterson!","Score: <b>"+score+"</b> (best "+best+")<br>"+"⭐".repeat(stars)+"☆".repeat(3-stars)+" — "+miss+" mistake"+(miss===1?"":"s")+"<br><br>Born <b>1871</b> in <b>Washington, DC</b> to <b>Josephene</b> and <b>Charles</b>. Siblings <b>Mary, Dollie, Samuel, Catheren</b>. Married <b>Bettie</b>. The <b>first Black man to own an auto business</b>. Died <b>1932</b>. Ghost car: the <b>Patterson-Greenfield</b>, still hunted by collectors.","Play again",()=>{li=0;score=0;miss=0;journal={};startLevel()});
 }
 function pick(o){
  if(o.k==="card")return cardPick(o);
  if(st!=="play"||wait>0||o.done||o.bad)return;
- if(o.k==="f")o.gone=true;
+ if(o.k==="f")o.gone=true;if(R().kind==="hunt"&&!o.ok){o.bad=true;score=Math.max(0,score-10);msg="🔍 "+o.r;return}
  const r=R();
  if(o.ok){
-  o.done=true;got++;score+=100;msg="✅ "+(o.r||r.right);
+  o.done=true;if(r.kind==="hunt")o.e="🚗";got++;score+=100;msg="✅ "+(o.r||r.right);
   const need=r.need||1;
   if(got>=need){score+=hearts*20;journal[li+"-"+ri]=r.fact;bk();wait=1.6;msg+=need>1?"  Round complete!":""}
  }else{
-  o.bad=true;hearts--;miss++;shake=.3;msg="❌ "+(o.r||r.wrong);
-  if(hearts<=0){st="fail";setTimeout(()=>ov("Fredderic needs another try","Out of hearts! Let's learn it again.","Retry",startLevel),1100)}
+  o.bad=true;hurt("❌ "+(o.r||r.wrong));
+  
  }
 }
-function near(){let b=null,bd=75;for(const o of objs){if(o.k==="f"||R().kind==="chase")continue;const d=Math.hypot(o.x-P.x,o.y-P.y);if(d<bd){bd=d;b=o}}return b}
+function hurt(m){hearts--;miss++;shake=.3;msg=m;if(hearts<=0){st="fail";setTimeout(()=>ov("Fredderic needs another try","Out of hearts! Let's learn it again.","Retry",startLevel),1100)}}
+function driveUpdate(dt){
+ const D=drv,r=R(),brake=keys.s||keys.arrowdown||keys[" "]||pbrake;
+ D.v+=((brake?0:170)-D.v)*Math.min(1,dt*(brake?7:2.5));
+ let dx=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0);
+ if(dx)tgt=null;else if(tgt)dx=Math.abs(tgt.x-P.x)>6?Math.sign(tgt.x-P.x):0;
+ P.x=Math.max(150,Math.min(490,P.x+dx*240*dt));P.y=340;
+ const mv=D.v*dt;D.d+=mv;D.off=(D.off+mv)%60;
+ for(const o of objs)o.y+=mv;
+ D.ot-=dt*D.v/170;D.lt-=mv;
+ if(D.d<r.len-350){
+  if(D.ot<=0){D.ot=.9+Math.random()*.6;if(!objs.some(o=>o.k==="lt"&&o.y<260))objs.push({k:"ob",l:["🪨","🚧","🐄","🛢️"][Math.random()*4|0],x:150+Math.random()*340,y:95})}
+  if(D.lt<=0){D.lt=700;objs.push({k:"lt",y:95,t:0,red:true})}
+ }
+ for(const o of objs){
+  if(o.k==="lt"){o.t+=dt;if(o.t>3.5)o.red=false;if(!o.passed&&o.y>=P.y){o.passed=true;if(o.red&&D.v>25)hurt("🚦 You ran a red light! Stop when it is red.")}}
+  else if(Math.abs(o.x-P.x)<34&&Math.abs(o.y-P.y)<34){o.gone=true;hurt("💥 You hit an obstacle!")}
+ }
+ objs=objs.filter(o=>!o.gone&&o.y<H+40);
+ if(shake>0)shake-=dt;
+ if(D.d>=r.len&&!D.done&&st==="play"){D.done=1;score+=100+hearts*20;journal[li+"-"+ri]=r.fact;bk();msg="🏁 You drove the Patterson-Greenfield!";wait=2}
+}
+function near(){let b=null,bd=75;for(const o of objs){if(o.k==="f"||o.k==="ob"||o.k==="lt"||R().kind==="chase")continue;const d=Math.hypot(o.x-P.x,o.y-P.y);if(d<bd){bd=d;b=o}}return b}
 addEventListener("keydown",e=>{const k=e.key.toLowerCase();keys[k]=1;if(k===" "||k==="e"){const o=near();if(o)pick(o);e.preventDefault()}if(k.startsWith("arrow"))e.preventDefault()});
 addEventListener("keyup",e=>delete keys[e.key.toLowerCase()]);
 cv.addEventListener("pointerdown",e=>{
  const b=cv.getBoundingClientRect(),mx=(e.clientX-b.left)*W/b.width,my=(e.clientY-b.top)*H/b.height;
  let o=null,bd=45;for(const q of objs){const d=Math.hypot(q.x-mx,q.y-my);if(d<bd||(q.k==="door"&&Math.abs(q.x-mx)<q.w/2&&Math.abs(q.y-my)<40)){bd=d;o=q}}
+ if(R().kind==="drive"&&Math.hypot(mx-575,my-345)<42){pbrake=true;return}
  tgt={x:mx,y:Math.max(70,Math.min(H-16,my)),o};
 });
+addEventListener("pointerup",()=>pbrake=false);
 function update(dt){
  if(wait>0){wait-=dt;if(wait<=0)nextRound();return}
- if(st!=="play")return;
+ if(st!=="play")return;if(R().kind==="drive")return driveUpdate(dt);
  let dx=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0),dy=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0);
  if(dx||dy)tgt=null;
  else if(tgt){const ex=tgt.x-P.x,ey=tgt.y-P.y,d=Math.hypot(ex,ey);
@@ -121,7 +151,7 @@ function update(dt){
  const m=Math.hypot(dx,dy)||1;
  if(dx||dy){P.x+=dx/m*180*dt;P.y+=dy/m*180*dt;P.t+=dt*10}
  P.x=Math.max(16,Math.min(W-16,P.x));P.y=Math.max(70,Math.min(H-16,P.y));
- for(const o of objs)if(o.k==="p"){o.x+=o.vx*dt;o.y+=o.vy*dt;if(o.x<40||o.x>W-40)o.vx*=-1;if(o.y<140||o.y>340)o.vy*=-1;if(Math.random()<dt*.4){o.vx=(Math.random()-.5)*50*o.sp;o.vy=(Math.random()-.5)*50*o.sp}}
+ for(const o of objs)if(o.k==="p"&&R().kind!=="hunt"){o.x+=o.vx*dt;o.y+=o.vy*dt;if(o.x<40||o.x>W-40)o.vx*=-1;if(o.y<140||o.y>340)o.vy*=-1;if(Math.random()<dt*.4){o.vx=(Math.random()-.5)*50*o.sp;o.vy=(Math.random()-.5)*50*o.sp}}
  const r=R();
  if(r.kind==="chase")for(const o of objs)if(!o.done&&!o.bad&&Math.hypot(o.x-P.x,o.y-P.y)<36)pick(o);
  if(r.kind==="memory"&&lock>0){lock-=dt;if(lock<=0){open=[]}}
@@ -147,8 +177,13 @@ function draw(){
   ls.forEach((s,i)=>x.fillText(s,W/2,24+i*20+(ls.length>1?-6:6)));
   x.textAlign="left";x.font="20px serif";x.fillStyle="#ef4444";x.fillText("♥".repeat(Math.max(0,hearts)),8,76);x.textAlign="right";x.font="bold 15px Georgia";x.fillStyle="#2a1c10";x.fillText("Score "+score+"   Lv "+(li+1)+"/"+L.length,W-8,76);x.textAlign="center";
  }
+ if(st!=="intro"&&R().kind==="drive"){x.fillStyle="#5b6169";x.fillRect(120,90,400,H-90);x.fillStyle="#fff";for(const lx of[253,387])for(let y=-60+drv.off;y<H;y+=60)x.fillRect(lx-3,Math.max(90,y),6,y<90?Math.max(0,y+30-90):30);x.fillRect(120,90,5,H-90);x.fillRect(515,90,5,H-90);
+  x.fillStyle="rgb(0 0 0 / 40%)";x.fillRect(200,64,240,10);x.fillStyle="#fcd34d";x.fillRect(200,64,240*Math.min(1,drv.d/R().len),10);x.font="14px serif";x.fillText("🏁",452,69);
+  x.fillStyle=pbrake?"#991b1b":"#dc2626";x.beginPath();x.arc(575,345,36,0,7);x.fill();x.fillStyle="#fff";x.font="bold 13px Georgia";x.fillText("BRAKE",575,345)}
  const nr=near();
  for(const o of objs){
+  if(o.k==="ob"){x.font="38px serif";x.fillText(o.l,o.x,o.y);continue}
+  if(o.k==="lt"){x.fillStyle=o.red?"#dc2626":"#16a34a";x.fillRect(120,o.y-3,400,6);x.font="30px serif";x.fillText(o.red?"🔴":"🟢",96,o.y);x.fillText(o.red?"🔴":"🟢",544,o.y);x.font="bold 13px Georgia";x.fillStyle="#fff";x.fillText(o.red?"STOP":"GO",W/2,o.y-14);continue}
   if(o.k==="f"){x.font="bold 20px Georgia";const w=x.measureText(o.l).width+22;x.fillStyle="#7c2d12";rr(o.x-w/2,o.y-15,w,30,15);x.fill();x.strokeStyle="#fcd34d";x.lineWidth=2;x.stroke();x.fillStyle="#fff";x.fillText(o.l,o.x,o.y);continue}
   if(o.k==="card"){const up=o.done||open.includes(o);x.fillStyle=o.done?"#15803d":up?"#fff":"#7c2d12";rr(o.x-40,o.y-48,80,96,10);x.fill();x.lineWidth=o===nr?4:2;x.strokeStyle=o===nr?"#fff":"#fcd34d";x.stroke();x.fillStyle=o.done?"#fff":up?"#2a1c10":"#fcd34d";if(up){const w=o.l.split(" "),m=o.l.length>10&&w.length>1?Math.ceil(w.length/2):w.length,ln=m<w.length?[w.slice(0,m).join(" "),w.slice(m).join(" ")]:[o.l];x.font="bold "+(o.l.length>7?13:16)+"px Georgia";ln.forEach((s,i)=>x.fillText(s,o.x,o.y-4+(i-(ln.length-1)/2)*16));x.font="11px Georgia";x.fillText((R().tags||["name","role"])[o.t==="n"?0:1],o.x,o.y+34)}else{x.font="bold 34px Georgia";x.fillText("?",o.x,o.y)}continue}
   if(o.k==="door"){
@@ -163,7 +198,7 @@ function draw(){
    if(o.done)x.fillText("✔",o.x+22,o.y-20);if(o.bad)x.fillText("✘",o.x+22,o.y-20);
   }
  }
- x.font="40px serif";x.fillStyle="#fff";x.fillText("🧑🏿",P.x,P.y-Math.abs(Math.sin(P.t))*5);
+ x.font="40px serif";x.fillStyle="#fff";x.fillText(R().kind==="drive"?"🚘":"🧑🏿",P.x,P.y-Math.abs(Math.sin(P.t))*5);
  x.font="bold 11px Georgia";x.fillStyle="#fcd34d";x.fillText("You",P.x,P.y+24);
  if(msg){const ls=wrap(msg,560,"bold 15px Georgia");x.fillStyle="rgb(0 0 0 / 78%)";rr(20,H-14-ls.length*20-8,W-40,ls.length*20+10,8);x.fill();x.fillStyle="#fff";x.textAlign="center";ls.forEach((s,i)=>x.fillText(s,W/2,H-14-ls.length*20+8+i*20))}
  x.restore();
