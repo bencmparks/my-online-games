@@ -9,7 +9,7 @@ canvas{display:block;width:100%;max-width:34rem;height:auto;margin:.8rem auto;bo
 .lbl{align-self:center;color:#c4b5fd;font-weight:700}
 button{touch-action:manipulation}</style></head>
 <body><main><a href="../">← All games</a><h1>🔮 Plinko</h1>
-<p>Move the mouse (or finger) to nudge where the ball starts, then <strong>click</strong> or press <strong>Space</strong> to drop a ball. It bounces down through the pegs into a slot and pays your bet times the slot's multiplier. Higher risk means bigger edge prizes and a worse middle! Earn XP to level up for coin rewards, a payout bonus and bigger bets, and spend coins on upgrades.</p>
+<p>Move the mouse (or finger) to nudge where the ball starts, then <strong>click</strong> or press <strong>Space</strong> to drop a ball. It bounces down through the pegs into a slot and pays your bet times the slot's multiplier. Higher risk means bigger edge prizes and a worse middle! 100B and 1000B pay 100 billion x and 1000 billion x on the two edge slots. Earn XP to level up for coin rewards, a payout bonus and bigger bets, and spend coins on upgrades.</p>
 <canvas id="c" width="600" height="720" aria-label="Plinko game"></canvas>
 <div class="row"><span class="lbl">Bet:</span><span id="bets"></span><span class="lbl">Risk:</span><span id="risks"></span></div>
 <div class="lvl"><span id="lvl"></span><div class="bar"><i id="xp"></i></div></div>
@@ -18,7 +18,7 @@ button{touch-action:manipulation}</style></head>
 </main>
 <script>
 const C=document.querySelector("#c"),x=C.getContext("2d"),W=600,H=720,S=46,CX=300,SLOTS=12,SLOT_Y=610,KEY="plinko";
-const MULT={low:[6,3,1.8,1.3,.9,.5,.5,.9,1.3,1.8,3,6],mid:[25,8,2.5,1,.4,.2,.2,.4,1,2.5,8,25],high:[40,8,3,1,.2,.1,.1,.2,1,3,8,40]};
+const MULT={low:[6,3,1.8,1.3,.9,.5,.5,.9,1.3,1.8,3,6],mid:[25,8,2.5,1,.4,.2,.2,.4,1,2.5,8,25],high:[40,8,3,1,.2,.1,.1,.2,1,3,8,40],"100b":[1e11,50,5,.5,.1,.02,.02,.1,.5,5,50,1e11],"1000b":[1e12,50,5,.5,.1,.02,.02,.1,.5,5,50,1e12]};
 const BETS=[5,10,25,50,100,250,500,100000],BET_LVL=[1,1,1,1,1,5,10,1];
 const betOk=v=>v===100000?best>=1000000:level>=BET_LVL[BETS.indexOf(v)];
 const UPS=[
@@ -93,7 +93,7 @@ function draw(){
  const mult=MULT[risk];
  for(let i=0;i<SLOTS;i+=1){const sx=LEFT+S*i,m=mult[i],fl=flash.find(f=>f.i===i);
   x.fillStyle=color(m);x.globalAlpha=.25+(fl?fl.t*.6:0);x.fillRect(sx+2,SLOT_Y+4,S-4,H-SLOT_Y-60);x.globalAlpha=1;
-  text("x"+m,sx+S/2,SLOT_Y+44,m>=100?12:14,color(m))}
+  text("x"+fmt(m),sx+S/2,SLOT_Y+44,m>=100?12:14,color(m))}
  x.strokeStyle="#94a3b8";x.lineWidth=4;x.beginPath();for(const dx of dividers){x.moveTo(dx,SLOT_Y+4);x.lineTo(dx,SLOT_Y+60)}x.stroke();
  const ar=aimR(),gx=Math.max(CX-ar,Math.min(CX+ar,mx));
  x.globalAlpha=.5;x.fillStyle="#fff";x.beginPath();x.arc(gx,28,BR,0,6.3);x.fill();x.globalAlpha=1;
@@ -108,7 +108,7 @@ document.querySelector("#allup").onclick=()=>{
  save()};
 for(const u of UPS){const b=document.createElement("button");b.dataset.k=u.k;b.onclick=()=>{const l=up[u.k];if(l<u.max&&coins>=u.cost(l)){coins-=u.cost(l);up[u.k]+=1;save()}};document.querySelector("#ups").append(b)}
 for(const v of BETS){const b=document.createElement("button");b.textContent=fmt(v);b.dataset.v=v;b.onclick=()=>setBet(v);document.querySelector("#bets").append(b)}
-for(const r of ["low","mid","high"]){const b=document.createElement("button");b.textContent=r[0].toUpperCase()+r.slice(1);b.dataset.v=r;b.onclick=()=>setRisk(r);document.querySelector("#risks").append(b)}
+for(const r of ["low","mid","high","100b","1000b"]){const b=document.createElement("button");b.textContent=/\d/.test(r)?r.toUpperCase():r[0].toUpperCase()+r.slice(1);b.dataset.v=r;b.onclick=()=>setRisk(r);document.querySelector("#risks").append(b)}
 setBet(10);setRisk("mid");
 function pos(e){const r=C.getBoundingClientRect();return(e.clientX-r.left)/r.width*W}
 C.addEventListener("pointermove",e=>{mx=pos(e)});
