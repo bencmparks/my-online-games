@@ -90,7 +90,7 @@ Keep a list of my games here.
 - Ping Pong Pop (`ping-pong-pop/`)
 - Bubble Pop Shooter (`bubble-pop-shooter/`)
 - Brick Breaker Blast (`brick-breaker-blast/`)
-- Reaction Test (`reaction-test/`, click on green)
+- Dots and Boxes (`dots-and-boxes/`, 5x5 vs CPU)
 - Balloon Pop (`balloon-pop/`, pop balloons, avoid bombs)
 - Type Rush (`type-rush/`, typing against the clock)
 - Fighter Merge (`fighter-merge/`, merge fighters and throwers, watch the battle, beat waves)

@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Dots and Boxes | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#1e1b4b;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:#1e1b4b}
+main{width:min(100%,32rem);padding:1.5rem;border:.2rem solid #a78bfa;border-radius:1.25rem;background:#312e81;text-align:center}a{color:#c4b5fd}h1{margin:.6rem 0;color:#ede9fe;font-size:1.6rem}
+canvas{display:block;width:100%;height:auto;margin:1rem auto;border-radius:.6rem;background:#1e1b4b;touch-action:none}
+.bar{display:flex;justify-content:center;gap:1.2rem;font-weight:bold}.you{color:#60a5fa}.cpu{color:#f87171}
+button{padding:.5rem 1rem;border:0;border-radius:.5rem;background:#a78bfa;color:#1e1b4b;font-weight:bold;cursor:pointer}
+</style></head>
+<body><main><a href="../">← All games</a><h1>🔲 Dots and Boxes</h1>
+<p>Take turns drawing a line between two dots. Finish a box to claim it and go again. Most boxes wins!</p>
+<div class="bar"><span class="you" id="y">You 0</span><span id="m">Your turn</span><span class="cpu" id="c">CPU 0</span></div>
+<canvas id="g" width="420" height="420" aria-label="Dots and Boxes board"></canvas>
+<button id="n">New game</button>
+</main>
+<script>
+const N=5,S=70,P=35,C=document.querySelector("#g"),x=C.getContext("2d");
+let h,v,own,turn,sc,over,busy;
+const $=s=>document.querySelector(s);
+function init(){h=Array.from({length:N+1},()=>Array(N).fill(0));v=Array.from({length:N},()=>Array(N+1).fill(0));own=Array.from({length:N},()=>Array(N).fill(0));turn=1;sc=[0,0,0];over=false;busy=false;draw()}
+function sides(r,c){return(h[r][c]?1:0)+(h[r+1][c]?1:0)+(v[r][c]?1:0)+(v[r][c+1]?1:0)}
+function move(t,r,c,p){
+ (t==="h"?h:v)[r][c]=p;let got=0;
+ const chk=(a,b)=>{if(a>=0&&b>=0&&a<N&&b<N&&!own[a][b]&&sides(a,b)===4){own[a][b]=p;sc[p]++;got++}};
+ if(t==="h"){chk(r-1,c);chk(r,c)}else{chk(r,c-1);chk(r,c)}
+ if(sc[1]+sc[2]===N*N)over=true;
+ return got}
+function lines(){const l=[];for(let r=0;r<=N;r++)for(let c=0;c<N;c++)if(!h[r][c])l.push(["h",r,c]);for(let r=0;r<N;r++)for(let c=0;c<=N;c++)if(!v[r][c])l.push(["v",r,c]);return l}
+function boxesOf(t,r,c){return t==="h"?[[r-1,c],[r,c]]:[[r,c-1],[r,c]]}
+const ok=(a,b)=>a>=0&&b>=0&&a<N&&b<N;
+function ai(){
+ const l=lines();
+ const gain=l.filter(m=>boxesOf(...m).some(([a,b])=>ok(a,b)&&sides(a,b)===3));
+ if(gain.length)return gain[Math.floor(Math.random()*gain.length)];
+ const safe=l.filter(m=>boxesOf(...m).every(([a,b])=>!ok(a,b)||sides(a,b)<2));
+ const pool=safe.length?safe:l;return pool[Math.floor(Math.random()*pool.length)]}
+function status(){
+ $("#y").textContent="You "+sc[1];$("#c").textContent="CPU "+sc[2];
+ $("#m").textContent=over?(sc[1]>sc[2]?"You win! 🎉":sc[1]<sc[2]?"CPU wins":"Tie"):turn===1?"Your turn":"CPU thinking…"}
+function play(m,p){const g=move(m[0],m[1],m[2],p);if(!g&&!over)turn=3-p;draw();return g}
+function cpu(){
+ if(over||turn!==2){busy=false;return}
+ busy=true;
+ setTimeout(()=>{play(ai(),2);cpu()},450)}
+function draw(){
+ x.clearRect(0,0,420,420);
+ for(let r=0;r<N;r++)for(let c=0;c<N;c++)if(own[r][c]){x.fillStyle=own[r][c]===1?"#2563eb":"#dc2626";x.fillRect(P+c*S+6,P+r*S+6,S-12,S-12);x.fillStyle="#fff";x.font="bold 26px Arial";x.textAlign="center";x.textBaseline="middle";x.fillText(own[r][c]===1?"Y":"C",P+c*S+S/2,P+r*S+S/2)}
+ x.lineCap="round";x.lineWidth=7;
+ for(let r=0;r<=N;r++)for(let c=0;c<N;c++){x.strokeStyle=h[r][c]?(h[r][c]===1?"#60a5fa":"#f87171"):"#3730a3";x.beginPath();x.moveTo(P+c*S,P+r*S);x.lineTo(P+c*S+S,P+r*S);x.stroke()}
+ for(let r=0;r<N;r++)for(let c=0;c<=N;c++){x.strokeStyle=v[r][c]?(v[r][c]===1?"#60a5fa":"#f87171"):"#3730a3";x.beginPath();x.moveTo(P+c*S,P+r*S);x.lineTo(P+c*S,P+r*S+S);x.stroke()}
+ x.fillStyle="#fff";for(let r=0;r<=N;r++)for(let c=0;c<=N;c++){x.beginPath();x.arc(P+c*S,P+r*S,6,0,7);x.fill()}
+ status()}
+C.addEventListener("pointerdown",e=>{
+ if(over||turn!==1||busy)return;
+ const b=C.getBoundingClientRect(),px=(e.clientX-b.left)*420/b.width-P,py=(e.clientY-b.top)*420/b.height-P;
+ let best=null,bd=S*.3;
+ for(const m of lines()){const[t,r,c]=m;const cx=t==="h"?c*S+S/2:c*S,cy=t==="h"?r*S:r*S+S/2;const d=Math.hypot(px-cx,py-cy);if(d<bd){bd=d;best=m}}
+ if(!best)return;
+ play(best,1);if(turn===2)cpu()});
+$("#n").onclick=init;
+init();
+</script></body></html>
