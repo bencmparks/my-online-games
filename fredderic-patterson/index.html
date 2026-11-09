@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Fredderic Patterson | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Georgia,serif;background:#1c1410;color:#f5e9d3}*{box-sizing:border-box}
+body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#4a3220,#1c1410 75%)}
+main{width:min(100%,38rem);padding:1.25rem;border:.2rem solid #d4a35a;border-radius:1rem;background:rgb(28 20 16 / 95%)}
+a{color:#fcd34d}h1{margin:.4rem 0;text-align:center;color:#fcd34d}
+.bar{display:flex;gap:.3rem;margin:.6rem 0}.bar i{flex:1;height:.5rem;border-radius:.3rem;background:#4a3a2a}.bar i.on{background:#fcd34d}
+.page{padding:1rem;border-radius:.6rem;background:#f5e9d3;color:#2a1c10;min-height:7rem;line-height:1.5}
+.page b{color:#7c2d12}.q{margin:.9rem 0 .4rem;font-weight:700;color:#fcd34d}
+.opts{display:grid;gap:.5rem}.opts button,.nx{padding:.7rem;border:0;border-radius:.5rem;background:#7c2d12;color:#fff;font:inherit;font-size:1rem;cursor:pointer;min-height:2.8rem}
+.opts button:hover,.nx:hover{background:#9a3412}.opts button.bad{background:#444;opacity:.6}.opts button.good{background:#15803d}
+#fb{min-height:1.6rem;margin:.5rem 0;font-weight:700;color:#fde68a}
+.nx{display:block;margin:.6rem auto 0;min-width:10rem}
+.book{margin-top:.8rem;padding:.7rem;border:1px dashed #d4a35a;border-radius:.5rem;font-size:.95rem}.book h3{margin:0 0 .3rem;color:#fcd34d;font-size:1rem}.book li{margin:.15rem 0}
+</style></head>
+<body><main><a href="../">← All games</a><h1>📜 Fredderic Patterson</h1>
+<p style="text-align:center;margin:.2rem 0">Step into his shoes and learn his life by living it. Answer as Fredderic.</p>
+<div class="bar" id="bar"></div>
+<div class="page" id="pg"></div><div class="q" id="q"></div><div class="opts" id="op"></div><div id="fb"></div>
+<button class="nx" id="nx" hidden></button>
+<div class="book"><h3>📖 Fredderic's family record</h3><ul id="bk" style="margin:0;padding-left:1.2rem"></ul></div>
+</main>
+<script>
+const $=s=>document.querySelector(s);
+const S=[
+{t:"You are <b>Fredderic Patterson</b>, a Black person living in the United States in the late 1800s. Everything you will learn in this game is part of your own life story. Let's begin at the very start: you were born.",
+ q:"What year were you born?",o:["1861","1871","1881","1891"],a:1,f:"Born in 1871.",ok:"Yes — you were born in 1871."},
+{t:"You were born in <b>1871</b>, just a few years after the end of the Civil War, when many Black families were building new lives as free people.",
+ q:"In which city were you born?",o:["Baltimore, Maryland","Richmond, Virginia","Washington, DC","Philadelphia, Pennsylvania"],a:2,f:"Born in Washington, DC.",ok:"Right — you were born in Washington, DC, the nation's capital."},
+{t:"In Washington, DC, you grew up in a household with two parents who raised you. Your mother's name was <b>Josephene</b> and your father's name was <b>Charles</b>.",
+ q:"Who are your parents?",o:["Josephene and Charles","Mary and Samuel","Catheren and Charles","Dollie and Josephene"],a:0,f:"Parents: Josephene (mother) and Charles (father).",ok:"Correct — Josephene is your mother and Charles is your father."},
+{t:"You did not grow up alone. You had <b>four siblings</b>: Mary, Dollie, Samuel and Catheren. Think of the dinner table at home — who is sitting around it?",
+ q:"Which of these are ALL your siblings?",o:["Mary, Dollie, Samuel and Catheren","Mary, Josephene, Samuel and Charles","Dollie, Catheren and Charles","Samuel and Mary only"],a:0,f:"Siblings: Mary, Dollie, Samuel and Catheren.",ok:"Yes — Mary, Dollie, Samuel and Catheren are your siblings."},
+{t:"Now it is time to match names to roles. Your family has two parents and four siblings, so six people besides you.",
+ q:"Which one of these is your BROTHER?",o:["Mary","Dollie","Samuel","Catheren"],a:2,f:"Samuel is a brother.",ok:"Samuel is your brother. Mary, Dollie and Catheren are your sisters."},
+{t:"You lived a full life. At the end of it you died in <b>1932</b>, so you lived about 61 years, from 1871 to 1932.",
+ q:"In what year did you die?",o:["1902","1918","1932","1945"],a:2,f:"Died in 1932.",ok:"Yes — you died in 1932."},
+{t:"One last look at your whole story, in your own words: <i>\"I am Fredderic Patterson. I was born in 1871 in Washington, DC, to Josephene and Charles. My siblings are Mary, Dollie, Samuel and Catheren. I died in 1932.\"</i>",
+ q:"Final test: which statement is TRUE about you?",o:["Born 1871 in Washington, DC; parents Josephene and Charles; died 1932","Born 1881 in Washington, DC; parents Josephene and Charles; died 1932","Born 1871 in Washington, DC; parents Mary and Samuel; died 1932","Born 1871 in Richmond; parents Josephene and Charles; died 1942"],a:0,f:"You know your whole story.",ok:"Perfect — you know Fredderic Patterson's life."}
+];
+let i=0,got=[],tries=0,perfect=0;
+const bar=$("#bar");S.forEach(()=>bar.append(document.createElement("i")));
+function book(){$("#bk").innerHTML=got.length?got.map(g=>"<li>"+g+"</li>").join(""):"<li>Nothing learned yet.</li>"}
+function show(){
+ const s=S[i];tries=0;
+ [...bar.children].forEach((b,k)=>b.classList.toggle("on",k<=i));
+ $("#pg").innerHTML=s.t;$("#q").textContent=s.q;$("#fb").textContent="";$("#nx").hidden=true;
+ const op=$("#op");op.innerHTML="";
+ s.o.forEach((t,k)=>{const b=document.createElement("button");b.textContent=t;b.onclick=()=>pick(b,k);op.append(b)});
+}
+function pick(b,k){
+ const s=S[i];
+ if(k!==s.a){tries++;b.classList.add("bad");b.disabled=true;$("#fb").textContent="Not quite — try again!";return}
+ if(!tries)perfect++;
+ b.classList.add("good");[...$("#op").children].forEach(x=>x.disabled=true);
+ got.push(s.f);book();$("#fb").textContent="✅ "+s.ok;
+ const nx=$("#nx");nx.hidden=false;nx.textContent=i<S.length-1?"Continue →":"Finish";nx.onclick=()=>{i++;i<S.length?show():end()};
+}
+function end(){
+ $("#pg").innerHTML="<b>The end of Fredderic's story.</b><br>You answered "+perfect+" of "+S.length+" on the first try.<br><br>Born 1871 in Washington, DC · Parents Josephene and Charles · Siblings Mary, Dollie, Samuel and Catheren · Died 1932.";
+ $("#q").textContent="";$("#op").innerHTML="";$("#fb").textContent="🏆 You lived his life and learned the facts!";
+ const nx=$("#nx");nx.hidden=false;nx.textContent="Play again";nx.onclick=()=>{i=0;got=[];perfect=0;book();show()};
+}
+book();show();
+</script></body></html>
