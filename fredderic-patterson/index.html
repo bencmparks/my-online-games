@@ -2,64 +2,139 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Fredderic Patterson | My Online Games</title><style>
 :root{color-scheme:dark;font-family:Georgia,serif;background:#1c1410;color:#f5e9d3}*{box-sizing:border-box}
 body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#4a3220,#1c1410 75%)}
-main{width:min(100%,38rem);padding:1.25rem;border:.2rem solid #d4a35a;border-radius:1rem;background:rgb(28 20 16 / 95%)}
-a{color:#fcd34d}h1{margin:.4rem 0;text-align:center;color:#fcd34d}
-.bar{display:flex;gap:.3rem;margin:.6rem 0}.bar i{flex:1;height:.5rem;border-radius:.3rem;background:#4a3a2a}.bar i.on{background:#fcd34d}
-.page{padding:1rem;border-radius:.6rem;background:#f5e9d3;color:#2a1c10;min-height:7rem;line-height:1.5}
-.page b{color:#7c2d12}.q{margin:.9rem 0 .4rem;font-weight:700;color:#fcd34d}
-.opts{display:grid;gap:.5rem}.opts button,.nx{padding:.7rem;border:0;border-radius:.5rem;background:#7c2d12;color:#fff;font:inherit;font-size:1rem;cursor:pointer;min-height:2.8rem}
-.opts button:hover,.nx:hover{background:#9a3412}.opts button.bad{background:#444;opacity:.6}.opts button.good{background:#15803d}
-#fb{min-height:1.6rem;margin:.5rem 0;font-weight:700;color:#fde68a}
-.nx{display:block;margin:.6rem auto 0;min-width:10rem}
-.book{margin-top:.8rem;padding:.7rem;border:1px dashed #d4a35a;border-radius:.5rem;font-size:.95rem}.book h3{margin:0 0 .3rem;color:#fcd34d;font-size:1rem}.book li{margin:.15rem 0}
+main{width:min(100%,42rem);padding:1rem;border:.2rem solid #d4a35a;border-radius:1rem;background:rgb(28 20 16 / 95%)}
+a{color:#fcd34d}h1{margin:.3rem 0;text-align:center;color:#fcd34d;font-size:1.5rem}
+.wrap{position:relative}canvas{display:block;width:100%;border-radius:.6rem;background:#000;touch-action:none}
+#ov{position:absolute;inset:0;display:grid;place-content:center;gap:.7rem;padding:1.2rem;text-align:center;background:rgb(20 12 8 / 92%);border-radius:.6rem}
+#ov[hidden]{display:none}#ov h2{margin:0;color:#fcd34d}#ov p{margin:0;line-height:1.5}
+#ov button{justify-self:center;padding:.7rem 1.6rem;border:0;border-radius:.5rem;background:#b45309;color:#fff;font:inherit;font-size:1.1rem;cursor:pointer}#ov button:hover{background:#d97706}
+.book{margin-top:.7rem;padding:.6rem;border:1px dashed #d4a35a;border-radius:.5rem;font-size:.9rem}.book h3{margin:0 0 .3rem;color:#fcd34d;font-size:1rem}.book ul{margin:0;padding-left:1.2rem}
+.help{text-align:center;font-size:.85rem;opacity:.8;margin:.4rem 0 0}
 </style></head>
 <body><main><a href="../">← All games</a><h1>📜 Fredderic Patterson</h1>
-<p style="text-align:center;margin:.2rem 0">Step into his shoes and learn his life by living it. Answer as Fredderic.</p>
-<div class="bar" id="bar"></div>
-<div class="page" id="pg"></div><div class="q" id="q"></div><div class="opts" id="op"></div><div id="fb"></div>
-<button class="nx" id="nx" hidden></button>
-<div class="book"><h3>📖 Fredderic's family record</h3><ul id="bk" style="margin:0;padding-left:1.2rem"></ul></div>
+<div class="wrap"><canvas id="c" width="640" height="400"></canvas><div id="ov"></div></div>
+<p class="help">Move: WASD / arrows or tap the map · Choose: E / Space near something, or tap it</p>
+<div class="book"><h3>📖 Fredderic's family record</h3><ul id="bk"></ul></div>
 </main>
 <script>
-const $=s=>document.querySelector(s);
-const S=[
-{t:"You are <b>Fredderic Patterson</b>, a Black person living in the United States in the late 1800s. Everything you will learn in this game is part of your own life story. Let's begin at the very start: you were born.",
- q:"What year were you born?",o:["1861","1871","1881","1891"],a:1,f:"Born in 1871.",ok:"Yes — you were born in 1871."},
-{t:"You were born in <b>1871</b>, just a few years after the end of the Civil War, when many Black families were building new lives as free people.",
- q:"In which city were you born?",o:["Baltimore, Maryland","Richmond, Virginia","Washington, DC","Philadelphia, Pennsylvania"],a:2,f:"Born in Washington, DC.",ok:"Right — you were born in Washington, DC, the nation's capital."},
-{t:"In Washington, DC, you grew up in a household with two parents who raised you. Your mother's name was <b>Josephene</b> and your father's name was <b>Charles</b>.",
- q:"Who are your parents?",o:["Josephene and Charles","Mary and Samuel","Catheren and Charles","Dollie and Josephene"],a:0,f:"Parents: Josephene (mother) and Charles (father).",ok:"Correct — Josephene is your mother and Charles is your father."},
-{t:"You did not grow up alone. You had <b>four siblings</b>: Mary, Dollie, Samuel and Catheren. Think of the dinner table at home — who is sitting around it?",
- q:"Which of these are ALL your siblings?",o:["Mary, Dollie, Samuel and Catheren","Mary, Josephene, Samuel and Charles","Dollie, Catheren and Charles","Samuel and Mary only"],a:0,f:"Siblings: Mary, Dollie, Samuel and Catheren.",ok:"Yes — Mary, Dollie, Samuel and Catheren are your siblings."},
-{t:"Now it is time to match names to roles. Your family has two parents and four siblings, so six people besides you.",
- q:"Which one of these is your BROTHER?",o:["Mary","Dollie","Samuel","Catheren"],a:2,f:"Samuel is a brother.",ok:"Samuel is your brother. Mary, Dollie and Catheren are your sisters."},
-{t:"You lived a full life. At the end of it you died in <b>1932</b>, so you lived about 61 years, from 1871 to 1932.",
- q:"In what year did you die?",o:["1902","1918","1932","1945"],a:2,f:"Died in 1932.",ok:"Yes — you died in 1932."},
-{t:"One last look at your whole story, in your own words: <i>\"I am Fredderic Patterson. I was born in 1871 in Washington, DC, to Josephene and Charles. My siblings are Mary, Dollie, Samuel and Catheren. I died in 1932.\"</i>",
- q:"Final test: which statement is TRUE about you?",o:["Born 1871 in Washington, DC; parents Josephene and Charles; died 1932","Born 1881 in Washington, DC; parents Josephene and Charles; died 1932","Born 1871 in Washington, DC; parents Mary and Samuel; died 1932","Born 1871 in Richmond; parents Josephene and Charles; died 1942"],a:0,f:"You know your whole story.",ok:"Perfect — you know Fredderic Patterson's life."}
+const $=s=>document.querySelector(s),cv=$("#c"),x=cv.getContext("2d"),W=640,H=400;
+const yrs=(c,a)=>({q:c,opts:a});
+const D=(l,ok)=>({l,ok:!!ok}),Pn=(l,e,ok,r)=>({l,e,ok:!!ok,r});
+const L=[
+{n:"1871 — You are born",bg:"#d9c4a0",intro:"You are <b>Fredderic Patterson</b>, a Black person born in <b>1871</b>. Remember that year!<br><br>Walk up to the correct door and press <b>E / Space</b> (or tap it). Careful: a wrong answer costs a ♥.",
+ rounds:[{kind:"door",ask:"Walk through the door of the year you were born",opts:[D("1861"),D("1871",1),D("1881"),D("1891")],right:"Yes! You were born in 1871.",wrong:"Not that one — you were born in 1871.",fact:"Born in 1871."}]},
+{n:"Washington, DC",bg:"#9bbf9a",intro:"You were born in <b>Washington, DC</b>, the capital of the United States.<br><br>Pick the city where you were born.",
+ rounds:[{kind:"door",ask:"Which city were you born in?",opts:[D("Baltimore"),D("Richmond"),D("Washington, DC",1),D("Philadelphia")],right:"Yes! You were born in Washington, DC.",wrong:"Not there — you were born in Washington, DC.",fact:"Born in Washington, DC."}]},
+{n:"Your parents",bg:"#c9a06a",intro:"Your mother is <b>Josephene</b> and your father is <b>Charles</b>.<br><br>Find <b>both of your parents</b> in the crowded house. Neighbors are mixed in, so don't pick the wrong person!",
+ rounds:[{kind:"person",need:2,ask:"Find your parents: Josephene and Charles",opts:[Pn("Josephene","👩🏿",1,"Josephene — your mother!"),Pn("Charles","👨🏿",1,"Charles — your father!"),Pn("Ellen","👩🏿",0,"That's Ellen, a neighbor — not your parent."),Pn("Thomas","👨🏿",0,"That's Thomas, a neighbor — not your parent."),Pn("Harriet","👵🏿",0,"That's Harriet, a neighbor — not your parent.")],fact:"Parents: Josephene (mother) and Charles (father)."}]},
+{n:"Your siblings",bg:"#b98a5a",intro:"You have <b>four siblings</b>: <b>Mary</b>, <b>Dollie</b>, <b>Samuel</b> and <b>Catheren</b>. Samuel is your brother; Mary, Dollie and Catheren are your sisters.<br><br>Gather all four. Don't grab the neighbors!",
+ rounds:[{kind:"person",need:4,ask:"Find your 4 siblings",opts:[Pn("Mary","👧🏿",1,"Mary — your sister!"),Pn("Dollie","👧🏿",1,"Dollie — your sister!"),Pn("Samuel","👦🏿",1,"Samuel — your brother!"),Pn("Catheren","👧🏿",1,"Catheren — your sister!"),Pn("Robert","👦🏿",0,"That's Robert, a neighbor — not your sibling."),Pn("Lucy","👧🏿",0,"That's Lucy, a neighbor — not your sibling."),Pn("Henry","👦🏿",0,"That's Henry, a neighbor — not your sibling.")],fact:"Siblings: Mary, Dollie, Samuel and Catheren."}]},
+{n:"1932 — The end",bg:"#9aa3b5",intro:"You lived from 1871 until <b>1932</b>, when you died.<br><br>Walk through the door of the year you died.",
+ rounds:[{kind:"door",ask:"Which door is the year you died?",opts:[D("1902"),D("1918"),D("1932",1),D("1945")],right:"Yes! You died in 1932.",wrong:"Not that one — you died in 1932.",fact:"Died in 1932."}]},
+{n:"Final exam: Be Fredderic",bg:"#e5c76b",intro:"<b>Final exam!</b> Answer five questions as Fredderic Patterson, with no hints. Wrong answers cost a ♥.",
+ rounds:[
+ {kind:"door",ask:"In what year were you born?",opts:[D("1861"),D("1871",1),D("1881"),D("1891")],right:"Correct: 1871.",wrong:"No — 1871.",fact:"Exam: born 1871 ✔"},
+ {kind:"door",ask:"Where were you born?",opts:[D("Richmond"),D("Washington, DC",1),D("Baltimore"),D("Boston")],right:"Correct: Washington, DC.",wrong:"No — Washington, DC.",fact:"Exam: Washington, DC ✔"},
+ {kind:"door",ask:"Who is your MOTHER?",opts:[D("Charles"),D("Josephene",1),D("Mary"),D("Catheren")],right:"Correct: Josephene.",wrong:"No — your mother is Josephene.",fact:"Exam: mother Josephene ✔"},
+ {kind:"door",ask:"Who is your BROTHER?",opts:[D("Dollie"),D("Mary"),D("Catheren"),D("Samuel",1)],right:"Correct: Samuel.",wrong:"No — your brother is Samuel.",fact:"Exam: brother Samuel ✔"},
+ {kind:"door",ask:"In what year did you die?",opts:[D("1932",1),D("1922"),D("1942"),D("1952")],right:"Correct: 1932.",wrong:"No — 1932.",fact:"Exam: died 1932 ✔"}]}
 ];
-let i=0,got=[],tries=0,perfect=0;
-const bar=$("#bar");S.forEach(()=>bar.append(document.createElement("i")));
-function book(){$("#bk").innerHTML=got.length?got.map(g=>"<li>"+g+"</li>").join(""):"<li>Nothing learned yet.</li>"}
-function show(){
- const s=S[i];tries=0;
- [...bar.children].forEach((b,k)=>b.classList.toggle("on",k<=i));
- $("#pg").innerHTML=s.t;$("#q").textContent=s.q;$("#fb").textContent="";$("#nx").hidden=true;
- const op=$("#op");op.innerHTML="";
- s.o.forEach((t,k)=>{const b=document.createElement("button");b.textContent=t;b.onclick=()=>pick(b,k);op.append(b)});
+const shuf=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
+let li=0,ri=0,hearts=3,score=0,miss=0,objs=[],got=0,msg="",wait=0,st="intro",P={x:W/2,y:360,t:0},tgt=null,keys={},journal={},best=+localStorage.getItem("fredericBest")||0,shake=0;
+const R=()=>L[li].rounds[ri];
+function bk(){const v=Object.values(journal);$("#bk").innerHTML=v.length?v.map(f=>"<li>"+f+"</li>").join(""):"<li>Nothing learned yet.</li>"}
+function ov(h,p,b,f){const o=$("#ov");o.hidden=false;o.innerHTML="<h2>"+h+"</h2><p>"+p+"</p><button>"+b+"</button>";o.querySelector("button").onclick=()=>{o.hidden=true;f()}}
+function startRound(){
+ const r=R();got=0;msg="";objs=[];tgt=null;P.x=W/2;P.y=360;
+ if(r.kind==="door"){const o=shuf(r.opts),n=o.length;o.forEach((d,i)=>objs.push({k:"door",l:d.l,ok:d.ok,x:(i+.5)*W/n,y:118,w:W/n-16}))}
+ else{shuf(r.opts).forEach(d=>{let px,py,t=0;do{px=60+Math.random()*520;py=140+Math.random()*190;t++}while(t<60&&objs.some(o=>Math.hypot(o.x-px,o.y-py)<80));objs.push({k:"p",l:d.l,e:d.e,ok:d.ok,r:d.r,x:px,y:py,vx:(Math.random()-.5)*50,vy:(Math.random()-.5)*50})})}
+ st="play";wait=0;
 }
-function pick(b,k){
- const s=S[i];
- if(k!==s.a){tries++;b.classList.add("bad");b.disabled=true;$("#fb").textContent="Not quite — try again!";return}
- if(!tries)perfect++;
- b.classList.add("good");[...$("#op").children].forEach(x=>x.disabled=true);
- got.push(s.f);book();$("#fb").textContent="✅ "+s.ok;
- const nx=$("#nx");nx.hidden=false;nx.textContent=i<S.length-1?"Continue →":"Finish";nx.onclick=()=>{i++;i<S.length?show():end()};
+function startLevel(){
+ const l=L[li];hearts=3;ri=0;st="intro";
+ for(const k in journal)if(k.startsWith(li+"-"))delete journal[k];bk();
+ ov(l.n,l.intro,"Start",startRound);
+}
+function nextRound(){
+ ri++;
+ if(ri<L[li].rounds.length)return startRound();
+ li++;
+ if(li<L.length)return startLevel();
+ end();
 }
 function end(){
- $("#pg").innerHTML="<b>The end of Fredderic's story.</b><br>You answered "+perfect+" of "+S.length+" on the first try.<br><br>Born 1871 in Washington, DC · Parents Josephene and Charles · Siblings Mary, Dollie, Samuel and Catheren · Died 1932.";
- $("#q").textContent="";$("#op").innerHTML="";$("#fb").textContent="🏆 You lived his life and learned the facts!";
- const nx=$("#nx");nx.hidden=false;nx.textContent="Play again";nx.onclick=()=>{i=0;got=[];perfect=0;book();show()};
+ st="end";const stars=miss===0?3:miss<=3?2:1;
+ if(score>best){best=score;localStorage.setItem("fredericBest",best)}
+ ov("🏆 You are Fredderic Patterson!","Score: <b>"+score+"</b> (best "+best+")<br>"+"⭐".repeat(stars)+"☆".repeat(3-stars)+" — "+miss+" mistake"+(miss===1?"":"s")+"<br><br>Born <b>1871</b> in <b>Washington, DC</b> to <b>Josephene</b> and <b>Charles</b>. Siblings <b>Mary, Dollie, Samuel, Catheren</b>. Died <b>1932</b>.","Play again",()=>{li=0;score=0;miss=0;journal={};startLevel()});
 }
-book();show();
+function pick(o){
+ if(st!=="play"||wait>0||o.done||o.bad)return;
+ const r=R();
+ if(o.ok){
+  o.done=true;got++;score+=100;msg="✅ "+(o.r||r.right);
+  const need=r.need||1;
+  if(got>=need){score+=hearts*20;journal[li+"-"+ri]=r.fact;bk();wait=1.6;msg+=need>1?"  Round complete!":""}
+ }else{
+  o.bad=true;hearts--;miss++;shake=.3;msg="❌ "+(o.r||r.wrong);
+  if(hearts<=0){st="fail";setTimeout(()=>ov("Fredderic needs another try","Out of hearts! Let's learn it again.","Retry",startLevel),1100)}
+ }
+}
+function near(){let b=null,bd=75;for(const o of objs){const d=Math.hypot(o.x-P.x,o.y-P.y);if(d<bd){bd=d;b=o}}return b}
+addEventListener("keydown",e=>{const k=e.key.toLowerCase();keys[k]=1;if(k===" "||k==="e"){const o=near();if(o)pick(o);e.preventDefault()}if(k.startsWith("arrow"))e.preventDefault()});
+addEventListener("keyup",e=>delete keys[e.key.toLowerCase()]);
+cv.addEventListener("pointerdown",e=>{
+ const b=cv.getBoundingClientRect(),mx=(e.clientX-b.left)*W/b.width,my=(e.clientY-b.top)*H/b.height;
+ let o=null,bd=45;for(const q of objs){const d=Math.hypot(q.x-mx,q.y-my);if(d<bd||(q.k==="door"&&Math.abs(q.x-mx)<q.w/2&&Math.abs(q.y-my)<40)){bd=d;o=q}}
+ tgt={x:mx,y:Math.max(70,Math.min(H-16,my)),o};
+});
+function update(dt){
+ if(wait>0){wait-=dt;if(wait<=0)nextRound();return}
+ if(st!=="play")return;
+ let dx=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0),dy=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0);
+ if(dx||dy)tgt=null;
+ else if(tgt){const ex=tgt.x-P.x,ey=tgt.y-P.y,d=Math.hypot(ex,ey);
+  if(tgt.o&&Math.hypot(tgt.o.x-P.x,tgt.o.y-P.y)<55){pick(tgt.o);tgt=null}
+  else if(d<6)tgt=null;else{dx=ex/d;dy=ey/d}}
+ const m=Math.hypot(dx,dy)||1;
+ if(dx||dy){P.x+=dx/m*180*dt;P.y+=dy/m*180*dt;P.t+=dt*10}
+ P.x=Math.max(16,Math.min(W-16,P.x));P.y=Math.max(70,Math.min(H-16,P.y));
+ for(const o of objs)if(o.k==="p"){o.x+=o.vx*dt;o.y+=o.vy*dt;if(o.x<40||o.x>W-40)o.vx*=-1;if(o.y<140||o.y>340)o.vy*=-1;if(Math.random()<dt*.4){o.vx=(Math.random()-.5)*50;o.vy=(Math.random()-.5)*50}}
+ if(shake>0)shake-=dt;
+}
+function wrap(t,mw,f){x.font=f;const w=t.split(" "),ls=[];let c="";for(const s of w){if(x.measureText(c+" "+s).width>mw&&c){ls.push(c);c=s}else c=c?c+" "+s:s}ls.push(c);return ls}
+function rr(a,b,w,h,r){x.beginPath();x.roundRect(a,b,w,h,r)}
+function draw(){
+ const l=L[li]||L[L.length-1];
+ x.save();if(shake>0)x.translate((Math.random()-.5)*8,(Math.random()-.5)*8);
+ x.fillStyle=l.bg;x.fillRect(0,0,W,H);
+ x.fillStyle="rgb(0 0 0 / 8%)";for(let i=0;i<W;i+=64)for(let j=60;j<H;j+=64)if((i+j)/64%2<1)x.fillRect(i,j,64,64);
+ x.fillStyle="#2a1c10";x.fillRect(0,0,W,60);
+ x.textAlign="center";x.textBaseline="middle";
+ if(st==="play"||st==="fail"){
+  const r=R();x.fillStyle="#fcd34d";const ls=wrap((r.ask+(r.need>1?"  ("+got+"/"+r.need+")":"")),600,"bold 17px Georgia");
+  ls.forEach((s,i)=>x.fillText(s,W/2,24+i*20+(ls.length>1?-6:6)));
+  x.textAlign="left";x.font="20px serif";x.fillStyle="#ef4444";x.fillText("♥".repeat(Math.max(0,hearts)),8,76);x.textAlign="right";x.font="bold 15px Georgia";x.fillStyle="#2a1c10";x.fillText("Score "+score+"   Lv "+(li+1)+"/"+L.length,W-8,76);x.textAlign="center";
+ }
+ const nr=near();
+ for(const o of objs){
+  if(o.k==="door"){
+   x.fillStyle=o.done?"#15803d":o.bad?"#555":"#7c2d12";rr(o.x-o.w/2,o.y-34,o.w,68,10);x.fill();
+   x.lineWidth=o===nr?4:2;x.strokeStyle=o===nr?"#fff":"#fcd34d";x.stroke();
+   x.fillStyle="#fff";x.font="bold "+(o.l.length>10?15:20)+"px Georgia";x.fillText(o.l,o.x,o.y);
+   if(o.done)x.fillText("✔",o.x+o.w/2-14,o.y-24);if(o.bad)x.fillText("✘",o.x+o.w/2-14,o.y-24);
+  }else{
+   if(o===nr){x.strokeStyle="#fff";x.lineWidth=3;x.beginPath();x.arc(o.x,o.y,30,0,7);x.stroke()}
+   x.globalAlpha=o.bad?.4:1;x.font="38px serif";x.fillText(o.e,o.x,o.y);x.globalAlpha=1;
+   x.font="bold 12px Georgia";const w=x.measureText(o.l).width+10;x.fillStyle=o.done?"#15803d":o.bad?"#7f1d1d":"rgb(0 0 0 / 70%)";rr(o.x-w/2,o.y+22,w,17,8);x.fill();x.fillStyle="#fff";x.fillText(o.l,o.x,o.y+31);
+   if(o.done)x.fillText("✔",o.x+22,o.y-20);if(o.bad)x.fillText("✘",o.x+22,o.y-20);
+  }
+ }
+ x.font="40px serif";x.fillStyle="#fff";x.fillText("🧑🏿",P.x,P.y-Math.abs(Math.sin(P.t))*5);
+ x.font="bold 11px Georgia";x.fillStyle="#fcd34d";x.fillText("You",P.x,P.y+24);
+ if(msg){const ls=wrap(msg,560,"bold 15px Georgia");x.fillStyle="rgb(0 0 0 / 78%)";rr(20,H-14-ls.length*20-8,W-40,ls.length*20+10,8);x.fill();x.fillStyle="#fff";x.textAlign="center";ls.forEach((s,i)=>x.fillText(s,W/2,H-14-ls.length*20+8+i*20))}
+ x.restore();
+}
+let last=performance.now();
+(function loop(t){const dt=Math.min(.05,(t-last)/1000);last=t;update(dt);draw();requestAnimationFrame(loop)})(last);
+bk();startLevel();
 </script></body></html>
