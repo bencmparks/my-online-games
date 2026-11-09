@@ -19,8 +19,8 @@ button{touch-action:manipulation}</style></head>
 <script>
 const C=document.querySelector("#c"),x=C.getContext("2d"),W=600,H=720,S=46,CX=300,SLOTS=12,SLOT_Y=610,KEY="plinko";
 const MULT={low:[6,3,1.8,1.3,.9,.5,.5,.9,1.3,1.8,3,6],mid:[25,8,2.5,1,.4,.2,.2,.4,1,2.5,8,25],high:[40,8,3,1,.2,.1,.1,.2,1,3,8,40],"100b":[1e11,50,5,.5,.1,.02,.02,.1,.5,5,50,1e11],"1000b":[1e12,50,5,.5,.1,.02,.02,.1,.5,5,50,1e12]};
-const BETS=[5,10,25,50,100,250,500,100000],BET_LVL=[1,1,1,1,1,5,10,1];
-const betOk=v=>v===100000?best>=1000000:level>=BET_LVL[BETS.indexOf(v)];
+const BETS=[5,10,25,50,100,250,500,100000,1e13],BET_LVL=[1,1,1,1,1,5,10,1,1];
+const betOk=v=>v===1e13?best>=1e14:v===100000?best>=1000000:level>=BET_LVL[BETS.indexOf(v)];
 const UPS=[
  {k:"pay",n:"Payout Boost",d:"+5% on every win",max:Infinity,cost:l=>60*(l+1)**2},
  {k:"aim",n:"Wider Aim",d:"+12px drop range",max:Infinity,cost:l=>40+50*l},
