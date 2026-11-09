@@ -14,7 +14,7 @@ button{border:0;border-radius:.5rem;background:#cffafe;color:#083344;cursor:poin
 <p><strong>Coins:</strong> runners earn a runner coin every time they unfreeze someone, and freezers earn a freezer coin every time they freeze someone. Spend coins to BUY a kit once and you own it forever. Pick any kit you own at the start of each round and use it for free, as often as you like. Speed is always free. You start with 3 coins. <strong>Combos:</strong> press Combine kits, tick 2 or more owned kits and buy the combo for 100 coins (+50 coins for each extra kit). Q then fires all of them at once. The 🔑 owner code (same as Sky Ace) gives infinite coins, kits and combos.</p>
 <p><strong>Kits:</strong> Runners can pick Speed (1🪙), Barrier (2🪙), Super Speed (3🪙), Climber (4🪙, climb building walls for 6s with no dash cooldown), Shield (5🪙, blocks 1 freeze) or Phoenix (1000🪙, frees everyone). Freezers can pick Speed (1🪙), Giant (2🪙, bigger tag radius), Super Speed (3🪙), Teleport (4🪙), Rope (5🪙, drags a runner to you), Snowball (6🪙) or Blizzard (1000🪙, freezes every runner). Enemies never use kits.</p>
 <p><strong>2 players online:</strong> one device hosts and shares the 4-letter code, the other joins. The guest picks Runner or Freezer with the role buttons, the host picks theirs to start the round, and you both choose your own kit. You can both be runners, both freezers, or one of each. Coins you earn go to your own device.</p>
-<p><strong>View:</strong> press P to switch between first-person and a view from just behind you.</p>
+<p><strong>View:</strong> press P to switch between first-person and a view from just behind you. Move the mouse up/down (or drag on touch, or hold R / V) to look up and down: snowballs, ropes and bombs fly where you look, so you can hit people on roofs or throw over walls.</p>
   <p><strong>Maps:</strong> Arena, Maze, Castle, City and Forest. Buildings are hollow with rooms (about half have no stairs, so you need Climber to reach those roofs): go in through the door, pass the doorway in the inner wall, take the stairs inside up to the roof and run around on top (computer players can't get up there, only players using stairs or Climber can). The Climber kit scales the outside walls instead. Arena, Castle towers, City and Forest cabins all have them. Auto cycles one per level, or pick one with the map button (M).</p>
 <p><strong>W/S or ↑/↓</strong> run · <strong>A/D or ←/→</strong> turn, click the game and move the mouse (Esc to release), or drag on the view with a finger · <strong>Space / E</strong> dash · <strong>Q / F</strong> use kit · <strong>Enter</strong> start</p>
 <div class="modes"><button id="mRun" type="button">🏃 Play Runner (1)</button><button id="mFrz" type="button">🥶 Play Freezer (2)</button><button id="mMap" type="button">🗺 Map: Auto (M)</button></div>
@@ -26,7 +26,7 @@ button{border:0;border-radius:.5rem;background:#cffafe;color:#083344;cursor:poin
 <script src="../online.js"></script>
 <script>
 const C=document.querySelector("#g"),x=C.getContext("2d"),W=640,H=480,AR=2500,PR=10,CS=50,NG=AR/CS,BS=125,BW=Math.ceil(AR/BS),NR=30,NF=10;
-const KEYS={ArrowUp:"up",KeyW:"up",ArrowDown:"down",KeyS:"down",ArrowLeft:"left",KeyA:"left",ArrowRight:"right",KeyD:"right",KeyE:"act",Space:"act",Enter:"act",KeyQ:"kit",KeyF:"kit"};
+const KEYS={ArrowUp:"up",KeyW:"up",ArrowDown:"down",KeyS:"down",ArrowLeft:"left",KeyA:"left",ArrowRight:"right",KeyD:"right",KeyE:"act",Space:"act",Enter:"act",KeyQ:"kit",KeyF:"kit",KeyR:"lookup",KeyV:"lookdn"};
 const MAPS=[{n:"Arena",f0:"#14532d",f1:"#22c55e",wc:"#38bdf8"},{n:"Maze",f0:"#1e293b",f1:"#475569",wc:"#15803d"},{n:"Castle",f0:"#365314",f1:"#84cc16",wc:"#94a3b8"},{n:"City",f0:"#111827",f1:"#4b5563",wc:"#475569"},{n:"Forest",f0:"#052e16",f1:"#16a34a",wc:"#166534"}];
 let coins=3,own={runner:{speed:1},freezer:{speed:1}},role="runner",mode="title",level=1,score=0,hi=0,t=0,time=0,held={},P,mates=[],chasers=[],rects=[],pieces=[],bk=[],blocked=null,boxes=[],pj=[],fx=[],walls=[],traps=[],decoys=[],mapSel=-1,mapI=0,msg="",msgT=0,camA=0,PF=null,nr=null,gr="runner",PFin={},hostReady=false,guestReady=false,myReady=false,e2=0,le2=0,curSeed=1,netTick=0;
 try{hi=+localStorage.getItem("freezeTagBest")||0;const s=JSON.parse(localStorage.getItem("freezeTagKits")||"null");if(s){coins=s.coins;own=s.own}}catch(e){}
@@ -184,7 +184,7 @@ function drive(h,c,turn){const dx=(c.right?1:0)-(c.left?1:0),dy=(c.down?1:0)-(c.
  else if(h.fz){if(turn)h.a+=dx*.05;if(h.ds>0)step(h,h.a,5)}
  else{if(turn)h.a+=dx*.05;const sp=(h.ds>0?5:2.6)*sb(h);if(dy){step(h,h.a+(dy>0?Math.PI:0),sp)}else if(h.ds>0)step(h,h.a,sp)}
  if(h.ds>0)h.ds--;if(h.dc>0)h.dc--}
-function myKit(){if(mode!=="play")return;if(nr==="guest"){if(P.kit)net.send({t:"kit",a:P.a})}else useKit(P,P.a)}
+function myKit(){if(mode!=="play")return;if(nr==="guest"){if(P.kit)net.send({t:"kit",a:P.a,p:P.pit||0})}else useKit(P,P.a)}
 const sb=o=>1.3*(o.ub>0?3.4:o.tb>0?2.4:o.sp>0?1.6:1)*(o.sl>0?.5:1),POOL=[["speed","wall","super","climber","shield","phoenix"],["speed","giant","super","teleport","rope","snow","blizzard"]];
 function freeze(o){if(o.fz||o.gh>0)return false;if(o.sh>0){o.sh--;return false}o.fz=1;o.th=0;return true}
 const KITS={climber:"🧗 Climber",giant:"🦣 Giant",blizzard:"🌨 Blizzard (freeze all)",super:"💨 Super Speed",speed:"⚡ Speed",bomb:"💣 Thaw Bomb",wall:"🧱 Barrier",rope:"🪢 Rope",wave:"🌀 Freeze Wave",ghost:"👻 Ghost",shield:"🛡 Shield",teleport:"🔀 Teleport",phoenix:"🔥 Phoenix (thaw all)",mine:"🧨 Mine",magnet:"🧲 Magnet",snow:"❄ Snowball",turbo:"🚀 Turbo",stun:"📢 Stun Blast",web:"🕸 Web Trap",smoke:"💨 Smoke Screen",medic:"⛑ Medic",decoy:"🧍 Decoy",zap:"🌩 Lightning Zap",fort:"🏰 Fort",cage:"🔒 Cage",blink:"✨ Blink",goo:"🟢 Goo Trap",timewarp:"⏳ Time Warp",pounce:"🐆 Pounce",beacon:"📡 Beacon",tar:"🛢 Tar Pit",flash:"📸 Flash",evade:"🌀 Evade",armor:"🥋 Armor",clones:"👥 Clones",shockwave:"💥 Shockwave",rally:"📣 Rally",aegis:"🏅 Aegis",timestop:"⏱ Time Stop",cloak:"🥷 Cloak",lifeline:"💗 Lifeline",bubble:"🫧 Bubble",minefield:"💥 Minefield",mirage:"🎭 Mirage",quake:"🌋 Quake",launch:"🛫 Launch",bunker:"🏯 Bunker",hero:"🦸 Hero",gust:"🌬 Gust",tremor:"🫨 Tremor",frostbomb:"🧊 Frost Bomb",lunge:"🗡 Lunge",webfield:"🕷 Web Field",goofield:"🟩 Goo Field",fear:"😱 Fear",vortex:"🌪 Vortex",lasso:"🤠 Lasso",net:"🥅 Net",volley:"🎯 Snow Volley",rage:"😡 Rage",ambush:"🥷 Ambush",breaker:"🔨 Breaker",demolish:"🚧 Demolish",sniper:"🔭 Sniper",nova:"🌟 Frost Nova",dive:"🦅 Dive",stasis:"🗿 Stasis",chains:"⛓ Chains",ring:"⭕ Snare Ring"};
@@ -281,6 +281,7 @@ function nearBox(o,r){let b=null,bd=r;for(const q of boxes){if(!q.on)continue;co
 function update(){
  t+=1;if(msgT>0)msgT-=1;if(mode==="title"){camA+=.004;return}if(mode!=="play")return;
  time-=1;if(time%60===0)score+=1;
+ if(held.lookup)P.pit=clampPit((P.pit||0)+.03);if(held.lookdn)P.pit=clampPit((P.pit||0)-.03);
  drive(P,held,true);if(PF)drive(PF,PFin,false);
  for(const o of[...hu(),...mates,...chasers])if(isH(o)||o.cb>0||o.z>0)elev(o);
  const all=actors();for(const o of[...hu(),...mates,...chasers]){if(o.sp>0)o.sp-=1;if(o.tb>0)o.tb-=1;if(o.ub>0)o.ub-=1;if(o.gi>0)o.gi-=1;if(o.cb>0&&--o.cb===0){ZH=o.z||0;if(!free(o.x,o.y,PR))unstick(o);ZH=0}if(o.gh>0)o.gh-=1;if(o.sl>0)o.sl-=1;if(o.cd>0)o.cd--;if(o.kc>0&&--o.kc<=0)o.kit=o.kk}
@@ -331,9 +332,12 @@ function update(){
   for(const o of vs)if(!o.fz&&Math.hypot(o.x-tr.x,o.y-tr.y)<24){o.stun=tr.k==="mine"?240:180;tr.t=0;sayTo(o,"💫 Stunned!");break}}
  traps=traps.filter(q=>--q.t>0);decoys=decoys.filter(q=>--q.t>0);
  for(const p of pj){const sp=p.k==="bomb"?6:p.k==="rope"?10:9,nx=p.x+Math.cos(p.a)*sp,ny=p.y+Math.sin(p.a)*sp;p.d+=sp;
-  if(p.k!=="bomb")for(const o of(p.by.fr?all:frs())){if(o.fz||o===p.by||o.gh>0||Math.hypot(o.x-nx,o.y-ny)>16)continue;if(!p.by.fr){o.stun=p.k==="rope"?180:240;sayTo(o,"💫 Stunned!");rew(p.by,5)}else if(p.k==="rope"){o.pl={by:p.by,t:70};sayTo(o,"🪢 Roped! You're being pulled in")}else if(freeze(o))rew(p.by,20);p.dead=true;break}
+  if(p.z===undefined){p.z=(p.by.z||0)+22;p.vz=Math.tan(p.by.pit||0)*sp}
+  p.z+=p.vz;if(p.k==="bomb")p.vz-=.12;
+  if(p.k!=="bomb")for(const o of(p.by.fr?all:frs())){if(o.fz||o===p.by||o.gh>0||Math.hypot(o.x-nx,o.y-ny)>16||Math.abs(p.z-(o.z||0)-26)>34)continue;if(!p.by.fr){o.stun=p.k==="rope"?180:240;sayTo(o,"💫 Stunned!");rew(p.by,5)}else if(p.k==="rope"){o.pl={by:p.by,t:70};sayTo(o,"🪢 Roped! You're being pulled in")}else if(freeze(o))rew(p.by,20);p.dead=true;break}
   if(p.dead)continue;
-  if(!free(nx,ny,2)||p.d>=p.max){if(p.k==="bomb")boom(p.x,p.y,90,"thaw",p.by);p.dead=true}else{p.x=nx;p.y=ny}}
+  const zh=ZH;ZH=p.z;const ok=free(nx,ny,2);ZH=zh;
+  if(!ok||p.d>=p.max||p.z<0||p.z>500){if(p.k==="bomb")boom(p.x,p.y,90,"thaw",p.by);p.dead=true}else{p.x=nx;p.y=ny}}
  pj=pj.filter(p=>!p.dead);fx=fx.filter(f=>--f.t>0);walls=walls.filter(w=>--w.t>0);
  for(const f of all){if(!f.fz)continue;for(const u of all)if(!u.fz&&Math.hypot(u.x-f.x,u.y-f.y)<28){f.fz=0;f.th=0;f.sp=Math.max(f.sp||0,180);score+=25;if(isH(u))earn(u);if(isH(f))sayTo(f,"🔥 You were thawed!");else if(!P.fr&&Math.hypot(f.x-P.x,f.y-P.y)<400)say("🔥 Teammate thawed! +25");break}}
  snapSend();
@@ -343,14 +347,15 @@ function update(){
 addEventListener("keydown",e=>{if(mode==="pick"&&e.code!=="Digit1"&&e.code!=="Digit2"&&e.code!=="KeyM")return;if(e.code==="Digit1"){choose("runner");return}if(e.code==="Digit2"){choose("freezer");return}if(e.code==="KeyM"){cycleMap();return}if(e.code==="KeyP"){view3=!view3;return}const k=KEYS[e.code];if(!k)return;e.preventDefault();held[k]=true;if(!e.repeat&&k==="act")act();if(!e.repeat&&k==="kit")myKit()});
 addEventListener("keyup",e=>{const k=KEYS[e.code];if(k)held[k]=false});
 addEventListener("blur",()=>{held={}});
-let lastTouch=false,dragX=null;C.addEventListener("click",()=>{if(!lastTouch&&mode==="play"&&C.requestPointerLock)C.requestPointerLock()});
-C.addEventListener("pointerdown",e=>{lastTouch=e.pointerType!=="mouse";if(lastTouch){dragX=e.clientX;C.setPointerCapture(e.pointerId)}});C.addEventListener("pointermove",e=>{if(dragX!==null&&e.pointerType!=="mouse"){if(mode==="play")P.a+=(e.clientX-dragX)*.008;dragX=e.clientX}});["pointerup","pointercancel"].forEach(n=>C.addEventListener(n,()=>{dragX=null}));
-addEventListener("mousemove",e=>{if(document.pointerLockElement===C&&mode==="play")P.a+=e.movementX*.003});
+let lastTouch=false,dragX=null,dragY=0;C.addEventListener("click",()=>{if(!lastTouch&&mode==="play"&&C.requestPointerLock)C.requestPointerLock()});
+C.addEventListener("pointerdown",e=>{lastTouch=e.pointerType!=="mouse";if(lastTouch){dragX=e.clientX;dragY=e.clientY;C.setPointerCapture(e.pointerId)}});C.addEventListener("pointermove",e=>{if(dragX!==null&&e.pointerType!=="mouse"){if(mode==="play"){P.a+=(e.clientX-dragX)*.008;P.pit=clampPit((P.pit||0)-(e.clientY-dragY)*.004)}dragX=e.clientX;dragY=e.clientY}});["pointerup","pointercancel"].forEach(n=>C.addEventListener(n,()=>{dragX=null}));
+const clampPit=v=>Math.max(-.9,Math.min(.9,v));
+addEventListener("mousemove",e=>{if(document.pointerLockElement===C&&mode==="play"){P.a+=e.movementX*.003;P.pit=clampPit((P.pit||0)-e.movementY*.003)}});
 document.querySelectorAll("[data-k]").forEach(b=>{const k=b.dataset.k;b.addEventListener("pointerdown",e=>{e.preventDefault();held[k]=true;if(k==="act")act();if(k==="kit")myKit()});["pointerup","pointerleave","pointercancel"].forEach(ev=>b.addEventListener(ev,()=>{held[k]=false}))});
 function text(s,a,b,size=18,color="#fff",align="left"){x.font=`bold ${size}px Arial,sans-serif`;x.fillStyle=color;x.textAlign=align;x.lineWidth=4;x.strokeStyle="#000";x.strokeText(s,a,b);x.fillText(s,a,b)}
 const shade=(h,m)=>{const n=parseInt(h.slice(1),16);return`rgb(${Math.min(255,(n>>16)*m)|0} ${Math.min(255,((n>>8)&255)*m)|0} ${Math.min(255,(n&255)*m)|0})`};
 function draw3d(){
- const b3=view3&&mode!=="title",c0=mode==="title"?{x:P.x,y:P.y,a:camA}:P,c=b3?{x:P.x-Math.cos(P.a)*70,y:P.y-Math.sin(P.a)*70,a:P.a,z:P.z}:c0,ca=Math.cos(c.a),sa=Math.sin(c.a),F=300,EY=28+(c.z||0)+(b3?16:0),HZ=H/2,N=2,FAR=1000,MP=MAPS[mapI];
+ const b3=view3&&mode!=="title",c0=mode==="title"?{x:P.x,y:P.y,a:camA}:P,c=b3?{x:P.x-Math.cos(P.a)*70,y:P.y-Math.sin(P.a)*70,a:P.a,z:P.z}:c0,ca=Math.cos(c.a),sa=Math.sin(c.a),F=300,EY=28+(c.z||0)+(b3?16:0),HZ=H/2+Math.tan(mode==="title"?0:P.pit||0)*F,N=2,FAR=1000,MP=MAPS[mapI];
  const tr=(a,b,z)=>{const dx=a-c.x,dy=b-c.y;return[-sa*dx+ca*dy,z-EY,ca*dx+sa*dy]};
  const pr=q=>[W/2+q[0]/q[2]*F,HZ-q[1]/q[2]*F];
  const clip=pts=>{const o=[];for(let i=0;i<pts.length;i++){const a=pts[i],b=pts[(i+1)%pts.length],ia=a[2]>=N,ib=b[2]>=N;if(ia)o.push(a);if(ia!==ib){const k=(N-a[2])/(b[2]-a[2]);o.push([a[0]+(b[0]-a[0])*k,a[1]+(b[1]-a[1])*k,N])}}return o};
@@ -370,10 +375,10 @@ function draw3d(){
  const em=(px,py,z0,ch,sz,col)=>{const d=Math.hypot(px-c.x,py-c.y);if(d>FAR)return;items.push({d,f(){const b=tr(px,py,z0);if(b[2]<N)return;const q=pr(b),s=sz*F/b[2];x.font=`${Math.max(6,s|0)}px Arial`;x.textAlign="center";x.fillStyle=col||"#fff";x.fillText(ch,q[0],q[1])}})};
  const rope=(a,b)=>{const n=Math.floor(Math.hypot(b.x-a.x,b.y-a.y)/30);for(let i=1;i<=n;i++)em(a.x+(b.x-a.x)*i/n,a.y+(b.y-a.y)*i/n,22,"●",12,"#a16207")};
  for(const b of boxes)if(b.on)em(b.x,b.y,30+Math.sin(t/12)*5,"🎁",40);
- const ap=mode==="play"?aimPt():null;if(ap)em(ap[0],ap[1],6,"🎯",30);
+ const ap=mode==="play"&&Math.abs(P.pit||0)<.05?aimPt():null;if(ap)em(ap[0],ap[1],6,"🎯",30);
  for(const q of traps)em(q.x,q.y,6,{mine:"🧨",web:"🕸",goo:"🟢",smoke:"💨"}[q.k],q.k==="goo"||q.k==="smoke"?70:28);
  for(const q of decoys)em(q.x,q.y,0,"🧍",52);
- for(const p of pj){em(p.x,p.y,22,p.k==="bomb"?"💣":p.k==="snow"?"❄️":"🪢",30);if(p.k==="rope")rope(p.by,p)}
+ for(const p of pj){em(p.x,p.y,p.z===undefined?22:p.z,p.k==="bomb"?"💣":p.k==="snow"?"❄️":"🪢",30);if(p.k==="rope")rope(p.by,p)}
  for(const f of fx)em(f.x,f.y,30,"💥",f.r*(1.3-f.t/40));
  for(const o of actors())if(o.pl)rope(o.pl.by,o);
  for(const w of walls){const d=Math.hypot((w.x0+w.x1)/2-c.x,(w.y0+w.y1)/2-c.y);if(d<FAR)items.push({d,f(){box(w.x0,w.y0,w.x1,w.y1,70,w.s===2?"#f87171":"#22d3ee",fog(d))}})}
@@ -412,7 +417,7 @@ document.querySelector("#mRun").onclick=()=>choose("runner");document.querySelec
 const num=v=>typeof v==="number"&&isFinite(v);
 function snapSend(){if(!PF||++netTick%3)return;
  const L=[P,PF,...mates,...chasers],r=Math.round,av=o=>[r(o.x),r(o.y),o.fz?1:0,r(o.th||0),Math.ceil(o.gh>0?o.gh:0),o.sh|0,Math.ceil(o.stun>0?o.stun:0),Math.ceil(o.sp>0?o.sp:0),Math.ceil(o.tb>0?o.tb:0),Math.ceil(o.sl>0?o.sl:0),o.pl?L.indexOf(o.pl.by):-1,r(o.z||0),Math.ceil(o.cb>0?o.cb:0)];
- net.send({t:"s",tm:time,sc:score,e2,G:av(PF),H:av(P),M:mates.map(av),C:chasers.map(av),T:traps.map(q=>[q.k,r(q.x),r(q.y)]),D:decoys.map(q=>[r(q.x),r(q.y)]),J:pj.map(p=>[p.k,r(p.x),r(p.y),L.indexOf(p.by)]),F:fx.map(f=>[r(f.x),r(f.y),f.r,f.t]),W:walls.map(w=>[r(w.x0),r(w.y0),r(w.x1),r(w.y1),w.s])})}
+ net.send({t:"s",tm:time,sc:score,e2,G:av(PF),H:av(P),M:mates.map(av),C:chasers.map(av),T:traps.map(q=>[q.k,r(q.x),r(q.y)]),D:decoys.map(q=>[r(q.x),r(q.y)]),J:pj.map(p=>[p.k,r(p.x),r(p.y),L.indexOf(p.by),r(p.z||22)]),F:fx.map(f=>[r(f.x),r(f.y),f.r,f.t]),W:walls.map(w=>[r(w.x0),r(w.y0),r(w.x1),r(w.y1),w.s])})}
 function applySnap(s){
  const LG=[PF,P,...mates,...chasers];
  if(!PF||!Array.isArray(s.G)||!Array.isArray(s.M)||s.M.length!==mates.length||s.C.length!==chasers.length)return;
@@ -421,7 +426,7 @@ function applySnap(s){
  set(P,s.G);set(PF,s.H);s.M.forEach((a,i)=>set(mates[i],a));s.C.forEach((a,i)=>set(chasers[i],a));
  for(const o of LG)o.pl=o.pi>=0&&LG[o.pi]?{by:LG[o.pi],t:3}:null;
  traps=s.T.map(a=>({k:a[0],x:a[1],y:a[2]}));decoys=s.D.map(a=>({x:a[0],y:a[1]}));
- pj=s.J.filter(a=>a[3]>=0&&LG[a[3]]).map(a=>({k:a[0],x:a[1],y:a[2],by:LG[a[3]]}));
+ pj=s.J.filter(a=>a[3]>=0&&LG[a[3]]).map(a=>({k:a[0],x:a[1],y:a[2],z:a[4]||22,by:LG[a[3]]}));
  fx=s.F.map(a=>({x:a[0],y:a[1],r:a[2],t:a[3]}));walls=s.W.map(a=>({x0:a[0],y0:a[1],x1:a[2],y1:a[3],s:a[4],t:99}))}
 function guestFrame(){
  t+=1;if(msgT>0)msgT-=1;if(mode==="title"){camA+=.004;return}if(mode!=="play")return;
@@ -436,7 +441,7 @@ function onMsg(m){
   else if(m.t==="kit0"&&PF&&mode==="pick"&&!guestReady&&POOL[PF.fr?1:0].includes(m.k)){PF.kit=m.k;PF.kx=Array.isArray(m.kx)?m.kx.filter(k=>POOL[PF.fr?1:0].includes(k)&&k!==m.k).slice(0,12):[];guestReady=true;tryStart()}
   else if(m.t==="i"&&PF){PFin={up:!!m.u,down:!!m.d};if(num(m.a))PF.a=m.a}
   else if(m.t==="dash"&&PF&&mode==="play"&&PF.dc<=0){PF.ds=18;PF.dc=150}
-  else if(m.t==="kit"&&PF&&mode==="play"){if(num(m.a))PF.a=m.a;useKit(PF,PF.a)}
+  else if(m.t==="kit"&&PF&&mode==="play"){if(num(m.a))PF.a=m.a;PF.pit=num(m.p)?Math.max(-.9,Math.min(.9,m.p)):0;useKit(PF,PF.a)}
   else if(m.t==="next"&&(mode==="won"||mode==="lost"))act()}
  else if(nr==="guest"){
   if(m.t==="setup"&&MAPS[m.mi]&&num(m.sd)&&num(m.nm)&&num(m.nc)&&(m.gr==="runner"||m.gr==="freezer")&&(m.hr==="runner"||m.hr==="freezer")){role=gr=m.gr;level=m.lv|0||1;score=0;hostReady=guestReady=myReady=false;setup(m);mode="pick";showPick();netTxt()}
