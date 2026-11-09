@@ -15,7 +15,7 @@ button{border:0;border-radius:.5rem;background:#cffafe;color:#083344;cursor:poin
 <p><strong>Kits:</strong> Runners can pick Speed (1🪙), Barrier (2🪙), Super Speed (3🪙), Climber (4🪙, climb building walls for 6s with no dash cooldown), Shield (5🪙, blocks 1 freeze) or Phoenix (1000🪙, frees everyone). Freezers can pick Speed (1🪙), Giant (2🪙, bigger tag radius), Super Speed (3🪙), Teleport (4🪙), Rope (5🪙, drags a runner to you), Snowball (6🪙) or Blizzard (1000🪙, freezes every runner). Enemies never use kits.</p>
 <p><strong>2 players online:</strong> one device hosts and shares the 4-letter code, the other joins. The guest picks Runner or Freezer with the role buttons, the host picks theirs to start the round, and you both choose your own kit. You can both be runners, both freezers, or one of each. Coins you earn go to your own device.</p>
 <p><strong>View:</strong> press P to switch between first-person and a view from just behind you.</p>
-  <p><strong>Maps:</strong> Arena, Maze, Castle, City and Forest. Buildings are hollow with rooms (about half have no stairs, so you need Climber to reach those roofs): go in through the door, pass the doorway in the inner wall, take the stairs inside up to the roof and run around on top (freezers follow you up). The Climber kit scales the outside walls instead. Arena, Castle towers, City and Forest cabins all have them. Auto cycles one per level, or pick one with the map button (M).</p>
+  <p><strong>Maps:</strong> Arena, Maze, Castle, City and Forest. Buildings are hollow with rooms (about half have no stairs, so you need Climber to reach those roofs): go in through the door, pass the doorway in the inner wall, take the stairs inside up to the roof and run around on top (computer players can't get up there, only players using stairs or Climber can). The Climber kit scales the outside walls instead. Arena, Castle towers, City and Forest cabins all have them. Auto cycles one per level, or pick one with the map button (M).</p>
 <p><strong>W/S or ↑/↓</strong> run · <strong>A/D or ←/→</strong> turn, click the game and move the mouse (Esc to release), or drag on the view with a finger · <strong>Space / E</strong> dash · <strong>Q / F</strong> use kit · <strong>Enter</strong> start</p>
 <div class="modes"><button id="mRun" type="button">🏃 Play Runner (1)</button><button id="mFrz" type="button">🥶 Play Freezer (2)</button><button id="mMap" type="button">🗺 Map: Auto (M)</button></div>
 <div id="online"></div><p id="netInfo" style="margin:.2rem 0;font-size:.85rem;color:#fde047"></p>
@@ -153,7 +153,7 @@ function showPick(){const fz=P.fr,pl=POOL[fz?1:0],ow=own[fz?"freezer":"runner"],
 function end(win,m){mode=win?"won":"lost";msg=m;if(win){level+=1}if(score>hi){hi=score;try{localStorage.setItem("freezeTagBest",hi)}catch(e){}}}
 function step(o,ang,spd){CL=o.cb>0;ZH=o.z||0;step1(o,ang,spd);CL=false;ZH=0}
 function elev(o){let z=0;const oz=o.z||0;
- for(const s of stairs)if(o.x>s.x0&&o.x<s.x1&&o.y>s.y0&&o.y<s.y1){const dd=s.d===0?s.x1-o.x:s.d===1?o.x-s.x0:s.d===2?s.y1-o.y:o.y-s.y0;z=Math.max(z,s.h*Math.min(1,dd/(s.Lp||84)))}
+ for(const s of stairs)if((isH(o)||o.cb>0)&&o.x>s.x0&&o.x<s.x1&&o.y>s.y0&&o.y<s.y1){const dd=s.d===0?s.x1-o.x:s.d===1?o.x-s.x0:s.d===2?s.y1-o.y:o.y-s.y0;z=Math.max(z,s.h*Math.min(1,dd/(s.Lp||84)))}
  for(const q of roofs)if(o.x>q.x0&&o.x<q.x1&&o.y>q.y0&&o.y<q.y1&&(o.cb>0||oz>=q.h-2))z=Math.max(z,q.h);
  o.z=z>=oz?(o.cb>0?Math.min(z,oz+6):z):Math.max(z,oz-7)}
 function unstick(o){for(let r=20;r<900;r+=20)for(let k=0;k<16;k++){const a=o.x+Math.cos(k*.39)*r,b=o.y+Math.sin(k*.39)*r;if(free(a,b,PR)){o.x=a;o.y=b;return}}}
@@ -307,7 +307,7 @@ function update(){
  for(const o of all)o.cl=0;
  for(const c of chasers){if(c.stun>0){c.stun--;continue}if(c.pause>0){c.pause-=1;continue}
   let tg=null,td=1e9,ts=1e9;for(const o of all){if(o.fz||o.gh>0)continue;const d=Math.hypot(o.x-c.x,o.y-c.y),s=d+o.cl*300;if(s<ts){ts=s;td=d;tg=o}}
-  if(!tg)continue;tg.cl+=1;if(tg.z>0)c.cb=Math.max(c.cb||0,3);
+  if(!tg)continue;tg.cl+=1;
   {let dq=null,dd=350;for(const q of decoys){const d=Math.hypot(q.x-c.x,q.y-c.y);if(d<dd){dd=d;dq=q}}
    if(dq&&dd<td){go(c,dq.x,dq.y,cs*sb(c));if(dd<22){dq.t=0;c.pause=120}continue}}
   if(c.kit){const ang=Math.atan2(tg.y-c.y,tg.x-c.x);
