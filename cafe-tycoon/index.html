@@ -7,7 +7,7 @@ canvas{display:block;width:100%;height:auto;margin:.8rem auto;border:.2rem solid
 .row{display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap;margin:.5rem 0}.row button{padding:.4rem .8rem;font-size:.9rem;background:#1a2e05;color:#f1f5e9;border:.1rem solid #65a30d;border-radius:.6rem;cursor:pointer;font-weight:700}.row button.on{background:#a3e635;color:#111}
 button{touch-action:manipulation}</style></head>
 <body><main><a href="../">← All games</a><h1>🐵 Ape Market</h1>
-<p>Build a giant supermarket! <strong>Walk</strong> (WASD / arrows, or tap the map) around the big store. Grab fruit, corn, eggs and more from the <strong>farms</strong> up top and drop them on the matching <strong>shelves</strong>. Carry raw goods to <strong>machines</strong> (corn → 🍿, bananas → 🧃, milk → 🧀) and shelve what they make. Customers shop their whole list, then line up at a <strong>register</strong>: stand there to ring them up and walk over the <strong>💵 pile</strong> to collect. Stand on glowing <strong>pads</strong> to unlock new goods, registers, cashiers, helpers, bigger shelves, better prices and more.</p>
+<p>Build a giant supermarket! <strong>Walk</strong> (WASD / arrows, or tap the map) around the big store. Grab fruit, corn, eggs and more from the <strong>farms</strong> up top and drop them on the matching <strong>shelves</strong>. Carry raw goods to <strong>machines</strong> (corn → 🍿, bananas → 🧃, milk → 🧀) and shelve what they make. Ape customers shop their whole list, then line up at a <strong>register</strong>: stand there to ring them up and walk over the <strong>💵 pile</strong> to collect. Stand on glowing <strong>pads</strong> to unlock new goods, registers, cashiers, helpers, bigger shelves, better prices and more.</p>
 <div class="hud"><span id="cash"></span><span id="served"></span><span id="carry"></span><span id="staff"></span></div>
 <canvas id="c" width="800" height="520" aria-label="Ape Market game"></canvas>
 <div class="row" id="spd" aria-label="Game speed"><span style="align-self:center;font-weight:700;color:#d9f99d">Speed:</span></div>
@@ -58,10 +58,10 @@ const pads=()=>{const a=[];for(const p of PRODS)if(!s.pr[p])a.push({id:"p:"+p,la
 function buy(pd){if(pd.p)s.pr[pd.p]=1;else s.up[pd.u.k]+=1;delete s.paid[pd.id];save();syncWorkers();fl(pd.x,pd.y-40,"Unlocked!","#facc15")}
 function syncWorkers(){for(let i=workers.length;i<s.up.farmw;i++)workers.push({x:60+i*30,y:480,items:[],st:"idle",job:"",p:"",from:"",i})}
 const src=p=>INFO[p].from?mach[p].out:prod[p].n,takeSrc=(p,k)=>{if(INFO[p].from)mach[p].out-=k;else prod[p].n-=k};
-const FACES=["🧑","👩","👨","👧","🧓","👦"];
+const FACES=["🐵","🐒","🦍","🦧","🐵","🐒"];
 function mkCust(){const act=PRODS.filter(p=>s.pr[p]),n=Math.min(act.length,1+Math.floor(Math.random()*Math.min(3,1+Math.floor(s.served/15)))),pool=act.slice(),list=[];
  for(let i=0;i<n;i++){const p=pool.splice(Math.floor(Math.random()*pool.length),1)[0];list.push({p,q:1+Math.floor(Math.random()*3),got:0})}
- const vip=Math.random()<.08;custs.push({x:DOOR.x+Math.random()*80-40,y:DOOR.y-20,e:vip?"🤴":FACES[Math.floor(Math.random()*6)],vip,list,i:0,st:"go",pat:20,tm:0,mood:"",reg:-1,ox:Math.random()*100-50})}
+ const vip=Math.random()<.08;custs.push({x:DOOR.x+Math.random()*80-40,y:DOOR.y-20,e:vip?"🦍":FACES[Math.floor(Math.random()*6)],vip,list,i:0,st:"go",pat:20,tm:0,mood:"",reg:-1,ox:Math.random()*100-50})}
 function nextItem(c){c.i++;c.pat=20;if(c.i<c.list.length){c.st="go";return}
  if(!c.list.some(l=>l.got)){c.st="leave";c.mood="😠";return}
  let r=0;for(let k=1;k<NREG();k++)if(queues[k].length<queues[r].length)r=k;c.reg=r;queues[r].push(c);c.st="queue"}
