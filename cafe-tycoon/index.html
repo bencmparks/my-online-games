@@ -7,93 +7,147 @@ canvas{display:block;width:100%;height:auto;margin:.8rem auto;border:.2rem solid
 .row{display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap;margin:.5rem 0}.row button{padding:.4rem .8rem;font-size:.9rem;background:#1a2e05;color:#f1f5e9;border:.1rem solid #65a30d;border-radius:.6rem;cursor:pointer;font-weight:700}.row button.on{background:#a3e635;color:#111}
 button{touch-action:manipulation}</style></head>
 <body><main><a href="../">← All games</a><h1>🐵 Ape Market</h1>
-<p>Run your own little market! <strong>Walk</strong> (WASD / arrows, or tap the room) up to the <strong>🍌 banana grove</strong> to grab fruit, then carry it to the <strong>shelf</strong> to stock it. Customers take items, line up at the <strong>register</strong> and pay: stand at the register to ring them up, then walk over the <strong>💵 cash pile</strong> to collect. Stand on a glowing <strong>pad</strong> to spend your money: unlock corn, eggs and milk, a bigger bag, faster feet, more customers, growth boosts and helpers who restock and run the register for you.</p>
-<div class="hud"><span id="cash"></span><span id="served"></span><span id="carry"></span></div>
+<p>Build a giant supermarket! <strong>Walk</strong> (WASD / arrows, or tap the map) around the big store. Grab fruit, corn, eggs and more from the <strong>farms</strong> up top and drop them on the matching <strong>shelves</strong>. Carry raw goods to <strong>machines</strong> (corn → 🍿, bananas → 🧃, milk → 🧀) and shelve what they make. Customers shop their whole list, then line up at a <strong>register</strong>: stand there to ring them up and walk over the <strong>💵 pile</strong> to collect. Stand on glowing <strong>pads</strong> to unlock new goods, registers, cashiers, helpers, bigger shelves, better prices and more.</p>
+<div class="hud"><span id="cash"></span><span id="served"></span><span id="carry"></span><span id="staff"></span></div>
 <canvas id="c" width="800" height="520" aria-label="Ape Market game"></canvas>
 <div class="row" id="spd" aria-label="Game speed"><span style="align-self:center;font-weight:700;color:#d9f99d">Speed:</span></div>
 <div class="row"><button id="reset" style="background:#7f1d1d;color:#fff;font-size:.85rem">Reset progress</button></div>
 </main>
 <script>
-const C=document.querySelector("#c"),x=C.getContext("2d"),W=800,H=520,KEY="cafe-mart";
-const PRODS=["banana","corn","egg","milk"];
-const INFO={banana:{e:"🍌",p:3,t:1.6,x:110,cost:0,n:"Banana grove"},corn:{e:"🌽",p:6,t:3.5,x:290,cost:60,n:"Corn field"},egg:{e:"🥚",p:10,t:4.5,x:470,cost:220,n:"Chicken coop"},milk:{e:"🥛",p:16,t:6,x:650,cost:600,n:"Dairy cow"}};
+const C=document.querySelector("#c"),x=C.getContext("2d"),VW=800,VH=520,WW=1700,WH=1100,KEY="ape-market";
+const PRODS=["banana","corn","egg","milk","tomato","popcorn","juice","cheese"];
+const INFO={
+ banana:{e:"🍌",p:3,t:1.6,cost:0,n:"Banana grove",icon:"🌴"},
+ corn:{e:"🌽",p:6,t:3,cost:60,n:"Corn field",icon:"🌾"},
+ egg:{e:"🥚",p:10,t:4,cost:250,n:"Chicken coop",icon:"🐔"},
+ milk:{e:"🥛",p:16,t:5.5,cost:800,n:"Dairy cow",icon:"🐄"},
+ tomato:{e:"🍅",p:25,t:7,cost:2000,n:"Tomato patch",icon:"🌱"},
+ popcorn:{e:"🍿",p:18,from:"corn",cost:1500,n:"Popcorn machine",icon:"⚙️"},
+ juice:{e:"🧃",p:12,from:"banana",cost:3500,n:"Juice press",icon:"⚙️"},
+ cheese:{e:"🧀",p:45,from:"milk",cost:9000,n:"Cheese maker",icon:"⚙️"}};
+PRODS.forEach((p,i)=>INFO[p].x=150+i*200);
 const UPS=[
- {k:"bag",n:"🎒 Bigger bag",costs:[40,100,220,450],x:520,y:350},
- {k:"speed",n:"👟 Faster feet",costs:[80,200,500],x:630,y:350},
- {k:"cust",n:"👥 More customers",costs:[50,120,250,500,900],x:740,y:350},
- {k:"farmw",n:"🐒 Helper",costs:[120,300,700],x:520,y:440},
- {k:"cashw",n:"🧑‍💼 Cashier",costs:[150],x:630,y:440},
- {k:"grow",n:"🌱 Faster growth",costs:[150,400,900],x:740,y:440}];
-const REG={x:110,y:430},PILE={x:110,y:488},DOOR={x:400,y:560},SHY=250,PRY=90,FRONT=300;
-const DEF={cash:0,pr:{banana:1,corn:0,egg:0,milk:0},up:{bag:0,speed:0,cust:0,farmw:0,cashw:0,grow:0},paid:{},served:0};
+ {k:"bag",n:"🎒 Bigger bag",c:[40,100,220,450,900,1800]},
+ {k:"speed",n:"👟 Faster feet",c:[80,200,500,1100,2400]},
+ {k:"cust",n:"👥 More customers",c:[50,120,250,500,900,1800,3500,7000]},
+ {k:"farmw",n:"🐒 Helper",c:[120,300,700,1500,3200,7000]},
+ {k:"grow",n:"🌱 Faster growth",c:[150,400,900,2000,4500]},
+ {k:"shelf",n:"📦 Bigger shelves",c:[200,600,1800,5000]},
+ {k:"price",n:"🏷️ Better prices",c:[300,900,2500,7000,20000]},
+ {k:"mach",n:"⚙️ Faster machines",c:[1200,3000,7000,15000]},
+ {k:"reg2",n:"🧾 Register 2",c:[800]},
+ {k:"reg3",n:"🧾 Register 3",c:[3000],ok:()=>s.up.reg2},
+ {k:"c1",n:"🧑‍💼 Cashier 1",c:[150]},
+ {k:"c2",n:"🧑‍💼 Cashier 2",c:[600],ok:()=>s.up.reg2},
+ {k:"c3",n:"🧑‍💼 Cashier 3",c:[2000],ok:()=>s.up.reg3}];
+UPS.forEach((u,i)=>{u.x=1110+(i%5)*130;u.y=580+Math.floor(i/5)*140});
+const RX=[200,450,700],RY=700,PRY=110,SHY=330,FRONT=400,DOOR={x:850,y:WH},PCAP=12;
+const DEF={cash:0,pr:{banana:1,corn:0,egg:0,milk:0,tomato:0,popcorn:0,juice:0,cheese:0},up:{bag:0,speed:0,cust:0,farmw:0,grow:0,shelf:0,price:0,mach:0,reg2:0,reg3:0,c1:0,c2:0,c3:0},paid:{},served:0};
 let s=JSON.parse(JSON.stringify(DEF));try{const o=JSON.parse(localStorage.getItem(KEY)||"{}");for(const k in o)if(typeof o[k]==="object"&&o[k]&&!Array.isArray(o[k]))Object.assign(s[k],o[k]);else s[k]=o[k]}catch(e){}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(s))}catch(e){}};
-const P={x:400,y:420,items:[],pk:0},keys={};
-let prod={},shelf={},custs=[],queue=[],workers=[],floats=[],pile=0,spawnT=2,payT=0,last=0,hudKey="",msg="",msgT=0,speed=+localStorage.getItem(KEY+"Speed")||1,tick=0;
-for(const p of PRODS){prod[p]={n:p==="banana"?4:0,t:0};shelf[p]=0}
+const P={x:300,y:430,items:[],pk:0},keys={},cam={x:0,y:0};
+let prod,mach,shelf,custs,queues,piles,payT,workers,floats,spawnT,last=0,hudKey="",speed=+localStorage.getItem(KEY+"Speed")||1;
+function initWorld(){prod={};mach={};shelf={};for(const p of PRODS){prod[p]={n:p==="banana"?4:0,t:0};mach[p]={in:0,out:0,t:0};shelf[p]=0}
+ custs=[];queues=[[],[],[]];piles=[0,0,0];payT=[0,0,0];workers=[];floats=[];spawnT=2;P.items=[]}
+initWorld();
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y),fl=(px,py,t,c)=>floats.push({x:px,y:py,t,c,l:1.2});
-const CAP=()=>4+3*s.up.bag,SPD=()=>170*(1+.2*s.up.speed),MAXC=()=>2+2*s.up.cust,SHCAP=10,GROW=()=>.75**s.up.grow;
+const CAP=()=>4+3*s.up.bag,SPD=()=>170*(1+.2*s.up.speed),MAXC=()=>3+2*s.up.cust,SH=()=>10+5*s.up.shelf,GROW=()=>.75**s.up.grow,PM=()=>1+.15*s.up.price,NREG=()=>1+s.up.reg2+s.up.reg3,hasC=r=>s.up["c"+(r+1)]>0;
+const regPos=r=>({x:RX[r],y:RY+25});
 const pads=()=>{const a=[];for(const p of PRODS)if(!s.pr[p])a.push({id:"p:"+p,label:INFO[p].e+" "+INFO[p].n,cost:INFO[p].cost,x:INFO[p].x,y:PRY,p});
- for(const u of UPS){const l=s.up[u.k];if(l<u.costs.length)a.push({id:"u:"+u.k,label:u.n+(u.costs.length>1?" "+(l+1)+"/"+u.costs.length:""),cost:u.costs[l],x:u.x,y:u.y,u})}return a};
+ for(const u of UPS){const l=s.up[u.k];if(l<u.c.length&&(!u.ok||u.ok()))a.push({id:"u:"+u.k,label:u.n+(u.c.length>1?" "+(l+1)+"/"+u.c.length:""),cost:u.c[l],x:u.x,y:u.y,u})}return a};
 function buy(pd){if(pd.p)s.pr[pd.p]=1;else s.up[pd.u.k]+=1;delete s.paid[pd.id];save();syncWorkers();fl(pd.x,pd.y-40,"Unlocked!","#facc15")}
-function syncWorkers(){const mk=(t,i)=>({t,x:60+i*30,y:t==="farm"?330:480,items:[],st:"idle",p:null,tm:0});
- const fw=workers.filter(w=>w.t==="farm");for(let i=fw.length;i<s.up.farmw;i++)workers.push(mk("farm",i))}
-function spot(c){const i=custs.indexOf(c);return{x:INFO[c.want].x+((i%3)-1)*24,y:FRONT+(i%2)*14}}
+function syncWorkers(){for(let i=workers.length;i<s.up.farmw;i++)workers.push({x:60+i*30,y:480,items:[],st:"idle",job:"",p:"",from:"",i})}
+const src=p=>INFO[p].from?mach[p].out:prod[p].n,takeSrc=(p,k)=>{if(INFO[p].from)mach[p].out-=k;else prod[p].n-=k};
+const FACES=["🧑","👩","👨","👧","🧓","👦"];
+function mkCust(){const act=PRODS.filter(p=>s.pr[p]),n=Math.min(act.length,1+Math.floor(Math.random()*Math.min(3,1+Math.floor(s.served/15)))),pool=act.slice(),list=[];
+ for(let i=0;i<n;i++){const p=pool.splice(Math.floor(Math.random()*pool.length),1)[0];list.push({p,q:1+Math.floor(Math.random()*3),got:0})}
+ const vip=Math.random()<.08;custs.push({x:DOOR.x+Math.random()*80-40,y:DOOR.y-20,e:vip?"🤴":FACES[Math.floor(Math.random()*6)],vip,list,i:0,st:"go",pat:20,tm:0,mood:"",reg:-1,ox:Math.random()*100-50})}
+function nextItem(c){c.i++;c.pat=20;if(c.i<c.list.length){c.st="go";return}
+ if(!c.list.some(l=>l.got)){c.st="leave";c.mood="😠";return}
+ let r=0;for(let k=1;k<NREG();k++)if(queues[k].length<queues[r].length)r=k;c.reg=r;queues[r].push(c);c.st="queue"}
+const spot=c=>({x:INFO[c.list[c.i].p].x+c.ox,y:FRONT+(c.ox>0?16:0)});
 function update(dt){
- tick+=dt;syncWorkers();
+ syncWorkers();
  let dx=(keys.ArrowRight||keys.KeyD?1:0)-(keys.ArrowLeft||keys.KeyA?1:0),dy=(keys.ArrowDown||keys.KeyS?1:0)-(keys.ArrowUp||keys.KeyW?1:0);
  if(dx||dy){P.mt=null}else if(P.mt){const d=dist(P,P.mt);if(d<6)P.mt=null;else{dx=(P.mt.x-P.x)/d;dy=(P.mt.y-P.y)/d}}
- if(dx||dy){const m=Math.hypot(dx,dy);P.x=Math.max(20,Math.min(W-20,P.x+dx/m*SPD()*dt));P.y=Math.max(20,Math.min(H-20,P.y+dy/m*SPD()*dt))}
- for(const p of PRODS){if(!s.pr[p])continue;const r=prod[p];if(r.n<8){r.t+=dt;if(r.t>=INFO[p].t*GROW()){r.t=0;r.n+=1}}}
+ if(dx||dy){const m=Math.hypot(dx,dy);P.x=Math.max(20,Math.min(WW-20,P.x+dx/m*SPD()*dt));P.y=Math.max(20,Math.min(WH-20,P.y+dy/m*SPD()*dt))}
+ for(const p of PRODS){if(!s.pr[p])continue;const f=INFO[p].from;
+  if(!f){const r=prod[p];if(r.n<PCAP){r.t+=dt;if(r.t>=INFO[p].t*GROW()){r.t=0;r.n++}}}
+  else{const m=mach[p];if(m.in>=2&&m.out<PCAP){m.t+=dt;if(m.t>=5/(1+.4*s.up.mach)){m.t=0;m.in-=2;m.out++}}else m.t=0}}
  P.pk-=dt;if(P.pk<=0){P.pk=.09;
-  for(const p of PRODS){if(!s.pr[p])continue;if(prod[p].n>0&&P.items.length<CAP()&&Math.hypot(P.x-INFO[p].x,P.y-PRY)<75){prod[p].n--;P.items.push(p);break}
-   if(shelf[p]<SHCAP&&Math.hypot(P.x-INFO[p].x,P.y-SHY)<75){const k=P.items.lastIndexOf(p);if(k>=0){P.items.splice(k,1);shelf[p]++;break}}}}
- const att=s.up.cashw>0||dist(P,REG)<85;
- spawnT-=dt;if(spawnT<=0){spawnT=Math.max(1.6,6-.7*s.up.cust)*(.7+Math.random()*.6);const act=PRODS.filter(p=>s.pr[p]);if(custs.length<MAXC()){const w=act[Math.floor(Math.random()*act.length)];custs.push({x:DOOR.x+Math.random()*60-30,y:DOOR.y-20,e:["🧑","👩","👨","👧","🧓","👦"][Math.floor(Math.random()*6)],want:w,qty:1+Math.floor(Math.random()*3),got:0,st:"go",pat:25,tm:0,mood:""})}}
+  for(const p of PRODS){if(!s.pr[p])continue;const px=INFO[p].x,f=INFO[p].from;
+   if(shelf[p]<SH()&&Math.hypot(P.x-px,P.y-SHY)<85){const k=P.items.lastIndexOf(p);if(k>=0){P.items.splice(k,1);shelf[p]++;break}}
+   if(Math.hypot(P.x-px,P.y-PRY)<85){
+    if(f&&mach[p].in<8){const k=P.items.lastIndexOf(f);if(k>=0){P.items.splice(k,1);mach[p].in++;break}}
+    if(src(p)>0&&P.items.length<CAP()){takeSrc(p,1);P.items.push(p);break}}}}
+ spawnT-=dt;if(spawnT<=0){spawnT=Math.max(.9,6-.6*s.up.cust)*(.7+Math.random()*.6);if(custs.length<MAXC())mkCust()}
  for(const c of custs){let tg=null;
-  if(c.st==="go"){tg=spot(c);if(Math.hypot(tg.x-c.x,tg.y-c.y)<4){c.st="take"}}
-  else if(c.st==="take"){tg=spot(c);c.tm-=dt;if(c.tm<=0){c.tm=.45;if(shelf[c.want]>0&&c.got<c.qty){shelf[c.want]--;c.got++}}
-   if(c.got>=c.qty||(c.got>0&&shelf[c.want]===0&&(c.pat-=dt)<=0)){c.st="queue";queue.push(c)}else if(c.got===0&&shelf[c.want]===0&&(c.pat-=dt)<=0){c.st="leave";c.mood="😠"}}
-  else if(c.st==="queue"){const i=queue.indexOf(c);tg={x:190+i*36,y:445}}
+  if(c.st==="go"){tg=spot(c);if(Math.hypot(tg.x-c.x,tg.y-c.y)<4)c.st="take"}
+  else if(c.st==="take"){tg=spot(c);const it=c.list[c.i];c.tm-=dt;
+   if(c.tm<=0){c.tm=.4;if(it.got<it.q&&shelf[it.p]>0){shelf[it.p]--;it.got++}}
+   if(it.got>=it.q)nextItem(c);else if(shelf[it.p]<=0){c.pat-=dt;if(c.pat<=0)nextItem(c)}}
+  else if(c.st==="queue"){const i=queues[c.reg].indexOf(c);tg={x:RX[c.reg],y:Math.min(1050,RY+50+i*34)}}
   else if(c.st==="leave"){tg={x:DOOR.x,y:DOOR.y}}
-  if(tg){const d=Math.hypot(tg.x-c.x,tg.y-c.y);if(d>1){const sp=c.st==="queue"||c.st==="leave"?140:120;c.x+=(tg.x-c.x)/d*Math.min(d,sp*dt);c.y+=(tg.y-c.y)/d*Math.min(d,sp*dt)}}}
- const f=queue[0];if(f&&att&&Math.hypot(f.x-190,f.y-445)<8){payT+=dt;if(payT>=.6*f.got){payT=0;const amt=f.got*INFO[f.want].p;queue.shift();f.st="leave";f.mood="😊";s.served++;if(s.up.cashw>0){s.cash+=amt;fl(f.x,f.y-30,"+$"+amt,"#16a34a")}else pile+=amt;save()}}else payT=0;
+  if(tg){const d=Math.hypot(tg.x-c.x,tg.y-c.y);if(d>1){const sp=c.st==="queue"||c.st==="leave"?150:125;c.x+=(tg.x-c.x)/d*Math.min(d,sp*dt);c.y+=(tg.y-c.y)/d*Math.min(d,sp*dt)}}}
+ for(let r=0;r<NREG();r++){const f=queues[r][0];
+  if(f&&(hasC(r)||dist(P,regPos(r))<95)&&Math.hypot(f.x-RX[r],f.y-(RY+50))<8){payT[r]+=dt;const cnt=f.list.reduce((a,l)=>a+l.got,0);
+   if(payT[r]>=.45*cnt){payT[r]=0;const amt=Math.round(f.list.reduce((a,l)=>a+l.got*INFO[l.p].p,0)*PM()*(f.vip?3:1));queues[r].shift();f.st="leave";f.mood=f.vip?"🤩":"😊";s.served++;
+    if(hasC(r)){s.cash+=amt;fl(f.x,f.y-30,"+$"+amt,"#16a34a")}else piles[r]+=amt;save()}}else payT[r]=0;
+  if(piles[r]>0&&dist(P,{x:RX[r]+80,y:RY})<70){s.cash+=piles[r];fl(RX[r]+80,RY-30,"+$"+piles[r],"#16a34a");piles[r]=0;save()}}
  custs=custs.filter(c=>!(c.st==="leave"&&c.y>=DOOR.y-2));
- if(pile>0&&dist(P,PILE)<70){s.cash+=pile;fl(PILE.x,PILE.y-30,"+$"+pile,"#16a34a");pile=0;save()}
- for(const w of workers){const go=(px,py)=>{const d=Math.hypot(px-w.x,py-w.y);if(d<=3)return true;w.x+=(px-w.x)/d*Math.min(d,140*dt);w.y+=(py-w.y)/d*Math.min(d,140*dt);return false};
-  if(w.st==="idle"){let best=null,bs=0;for(const p of PRODS){if(!s.pr[p]||prod[p].n<1)continue;const sc=SHCAP-shelf[p];if(sc>bs){bs=sc;best=p}}if(best&&bs>=2){w.p=best;w.st="fetch"}else go(60+workers.indexOf(w)*30,330)}
-  else if(w.st==="fetch"){if(go(INFO[w.p].x,PRY+50)){const k=Math.min(4,prod[w.p].n);prod[w.p].n-=k;for(let i=0;i<k;i++)w.items.push(w.p);w.st=w.items.length?"stock":"idle"}}
-  else if(w.st==="stock"){if(go(INFO[w.p].x,SHY+50)){while(w.items.length&&shelf[w.p]<SHCAP){w.items.pop();shelf[w.p]++}w.items=[];w.st="idle"}}}
- for(const q of floats)q.l-=dt;floats=floats.filter(q=>q.l>0);if(msgT>0)msgT-=dt;
- for(const pd of pads()){if(Math.hypot(P.x-pd.x,P.y-pd.y)<38&&s.cash>0){const paid=s.paid[pd.id]||0,a=Math.min(s.cash,Math.max(8,pd.cost*.5)*dt,pd.cost-paid);s.cash-=a;s.paid[pd.id]=paid+a;if(s.paid[pd.id]>=pd.cost-.01)buy(pd)}}}
+ for(const w of workers){const go=(px,py)=>{const d=Math.hypot(px-w.x,py-w.y);if(d<=3)return true;w.x+=(px-w.x)/d*Math.min(d,150*dt);w.y+=(py-w.y)/d*Math.min(d,150*dt);return false};
+  if(w.st==="idle"){for(const p of PRODS){const f=INFO[p].from;if(f&&s.pr[p]&&s.pr[f]&&mach[p].in<2&&mach[p].out<2&&shelf[p]<SH()/2&&prod[f].n>=2&&!workers.some(o=>o.st!=="idle"&&o.job==="feed"&&o.p===p)){w.job="feed";w.p=p;w.from=f;w.st="fetch";break}}
+   let best=null,bs=1;if(w.st==="idle")for(const p of PRODS){if(!s.pr[p]||src(p)<1)continue;const d=SH()-shelf[p];if(d>bs){bs=d;best=p}}
+   if(w.st!=="idle"){}else if(best){w.job="shelf";w.p=best;w.from=best;w.st="fetch"}
+   else{for(const p of PRODS){const f=INFO[p].from;if(f&&s.pr[p]&&s.pr[f]&&mach[p].in<6&&prod[f].n>=2){w.job="feed";w.p=p;w.from=f;w.st="fetch";break}}
+    if(w.st==="idle")go(60+w.i*30,480)}}
+  else if(w.st==="fetch"){if(go(INFO[w.from].x,PRY+55)){const k=Math.min(4,src(w.from));takeSrc(w.from,k);w.items=Array(k).fill(w.from);w.st=k?"stock":"idle"}}
+  else if(w.st==="stock"){if(go(INFO[w.p].x,w.job==="shelf"?SHY+55:PRY+55)){
+    if(w.job==="shelf"){while(w.items.length&&shelf[w.p]<SH()){w.items.pop();shelf[w.p]++}}else{while(w.items.length&&mach[w.p].in<8){w.items.pop();mach[w.p].in++}}
+    w.items=[];w.st="idle"}}}
+ for(const q of floats)q.l-=dt;floats=floats.filter(q=>q.l>0);
+ for(const pd of pads()){if(Math.hypot(P.x-pd.x,P.y-pd.y)<38&&s.cash>0){const paid=s.paid[pd.id]||0,a=Math.min(s.cash,Math.max(10,pd.cost/2.5)*dt,pd.cost-paid);s.cash-=a;s.paid[pd.id]=paid+a;if(s.paid[pd.id]>=pd.cost-.01)buy(pd)}}}
 function text(t,px,py,sz,col,al="center"){x.font=sz+"px Arial";x.textAlign=al;x.fillStyle=col;x.fillText(t,px,py)}
 function draw(){
- x.fillStyle="#e7d3b0";x.fillRect(0,0,W,H);x.fillStyle="#d6bd91";for(let i=0;i<W;i+=80)for(let j=0;j<H;j+=80)if((i+j)/80%2)x.fillRect(i,j,80,80);
- x.fillStyle="#4d7c0f";x.fillRect(0,0,W,16);x.fillStyle="#92400e";x.fillRect(DOOR.x-50,H-12,100,12);text("Door",DOOR.x,H-16,12,"#78350f");
- for(const p of PRODS){const px=INFO[p].x;if(s.pr[p]){x.fillStyle="#65a30d";x.fillRect(px-55,PRY-38,110,76);x.fillStyle="#4d7c0f";x.fillRect(px-55,PRY-38,110,10);text(p==="banana"?"🌴":p==="corn"?"🌾":p==="egg"?"🐔":"🐄",px,PRY+8,40,"#000");
-   for(let i=0;i<prod[p].n;i++)text(INFO[p].e,px-48+i*12,PRY+34,14,"#000");
-   x.fillStyle="#78350f";x.fillRect(px-55,SHY-24,110,48);x.fillStyle="#a16207";x.fillRect(px-52,SHY-21,104,42);text(INFO[p].e,px-44,SHY-8,12,"#000");
-   for(let i=0;i<shelf[p];i++)text(INFO[p].e,px-42+(i%5)*20,SHY+(i<5?-4:16),18,"#000")}
-  else{x.strokeStyle="#4d7c0f66";x.setLineDash([8,6]);x.lineWidth=2;x.strokeRect(px-55,PRY-38,110,76);x.setLineDash([])}}
- x.fillStyle="#475569";x.fillRect(REG.x-45,REG.y-30,90,60);x.fillStyle="#64748b";x.fillRect(REG.x-45,REG.y-30,90,10);text("🧾",REG.x,REG.y+14,30,"#000");if(s.up.cashw>0)text("🧑‍💼",REG.x-60,REG.y+10,28,"#000");
- if(pile>0){text("💵",PILE.x,PILE.y,30,"#000");text("$"+pile,PILE.x,PILE.y+18,13,"#166534")}
- for(const pd of pads()){const pr=(s.paid[pd.id]||0)/pd.cost;x.fillStyle="rgb(250 204 21 / 28%)";x.beginPath();x.arc(pd.x,pd.y,36,0,7);x.fill();x.strokeStyle="#facc15";x.lineWidth=3;x.beginPath();x.arc(pd.x,pd.y,36,-Math.PI/2,-Math.PI/2+7*Math.max(.01,pr));x.stroke();
+ cam.x=Math.max(0,Math.min(WW-VW,P.x-VW/2));cam.y=Math.max(0,Math.min(WH-VH,P.y-VH/2));
+ x.save();x.translate(-Math.round(cam.x),-Math.round(cam.y));
+ x.fillStyle="#e7d3b0";x.fillRect(0,0,WW,WH);x.fillStyle="#d6bd91";for(let i=0;i<WW;i+=100)for(let j=0;j<WH;j+=100)if((i+j)/100%2)x.fillRect(i,j,100,100);
+ x.fillStyle="#bef264";x.fillRect(0,16,WW,170);x.fillStyle="#65a30d";x.fillRect(0,0,WW,16);x.fillRect(0,184,WW,6);
+ x.fillStyle="#bae6fd";x.fillRect(1040,500,640,540);text("⭐ UPGRADE PLAZA ⭐",1360,535,18,"#0c4a6e");
+ text("FARMS & FACTORIES",110,34,13,"#365314","left");text("SHELVES",60,SHY-34,13,"#78350f","left");text("CHECKOUT",60,RY-52,13,"#334155","left");
+ x.fillStyle="#92400e";x.fillRect(DOOR.x-60,WH-14,120,14);text("Door",DOOR.x,WH-20,12,"#78350f");
+ for(const p of PRODS){const px=INFO[p].x,f=INFO[p].from;
+  if(s.pr[p]){x.fillStyle=f?"#94a3b8":"#65a30d";x.fillRect(px-85,PRY-44,170,88);x.fillStyle=f?"#64748b":"#4d7c0f";x.fillRect(px-85,PRY-44,170,10);text(INFO[p].icon,px,PRY+4,38,"#000");
+   const n=src(p);for(let i=0;i<n;i++)text(INFO[p].e,px-78+(i%12)*14,PRY+38,13,"#000");
+   if(f){text(INFO[f].e+" "+mach[p].in+"/8 → "+INFO[p].e,px,PRY-48,12,"#334155");if(mach[p].in>=2&&mach[p].out<PCAP){x.fillStyle="#22c55e";x.fillRect(px-60,PRY+18,120*mach[p].t*(1+.4*s.up.mach)/5,4)}}
+   x.fillStyle="#78350f";x.fillRect(px-85,SHY-32,170,64);x.fillStyle="#a16207";x.fillRect(px-82,SHY-29,164,58);text(INFO[p].e+" $"+Math.round(INFO[p].p*PM()),px-72,SHY-33,12,"#78350f","left");
+   for(let i=0;i<shelf[p];i++)text(INFO[p].e,px-72+(i%10)*16,SHY-12+Math.floor(i/10)*16,14,"#000")}
+  else{x.strokeStyle="#4d7c0f88";x.setLineDash([8,6]);x.lineWidth=2;x.strokeRect(px-85,PRY-44,170,88);x.setLineDash([])}}
+ for(let r=0;r<3;r++){const on=r<NREG();x.globalAlpha=on?1:.3;x.fillStyle="#475569";x.fillRect(RX[r]-45,RY-30,90,60);x.fillStyle="#64748b";x.fillRect(RX[r]-45,RY-30,90,10);text("🧾",RX[r],RY+14,30,"#000");x.globalAlpha=1;
+  if(on&&hasC(r))text("🧑‍💼",RX[r]-62,RY+10,28,"#000");if(on&&piles[r]>0){text("💵",RX[r]+80,RY+4,28,"#000");text("$"+piles[r],RX[r]+80,RY+24,13,"#166534")}}
+ for(const pd of pads()){const pr=(s.paid[pd.id]||0)/pd.cost;x.fillStyle="rgb(250 204 21 / 30%)";x.beginPath();x.arc(pd.x,pd.y,36,0,7);x.fill();x.strokeStyle="#facc15";x.lineWidth=3;x.beginPath();x.arc(pd.x,pd.y,36,-Math.PI/2,-Math.PI/2+7*Math.max(.01,pr));x.stroke();
   text(pd.label,pd.x,pd.y-42,11,"#365314");text("$"+Math.ceil(pd.cost-(s.paid[pd.id]||0)),pd.x,pd.y+6,16,"#713f12")}
- for(const c of custs){text(c.e,c.x,c.y,30,"#000");if(c.mood)text(c.mood,c.x+16,c.y-20,16,"#000");else if(c.st!=="leave"){x.fillStyle="#fff";x.fillRect(c.x-22,c.y-52,44,22);text(INFO[c.want].e+(c.qty-c.got>1?"x"+(c.qty-c.got):""),c.x,c.y-35,15,"#000")}}
+ for(const c of custs){text(c.e,c.x,c.y,30,"#000");if(c.mood)text(c.mood,c.x+16,c.y-20,16,"#000");else if(c.st==="queue"){text("💵",c.x,c.y-30,14,"#000")}else if(c.st!=="leave"){const it=c.list[c.i];x.fillStyle=c.vip?"#fde68a":"#fff";x.fillRect(c.x-24,c.y-52,48,22);text(INFO[it.p].e+(it.q-it.got>1?"x"+(it.q-it.got):""),c.x,c.y-35,15,"#000")}}
  for(const w of workers){text("🐒",w.x,w.y,28,"#000");w.items.forEach((p,i)=>text(INFO[p].e,w.x,w.y-30-i*8,14,"#000"))}
  x.strokeStyle="#facc15";x.lineWidth=3;x.beginPath();x.arc(P.x,P.y-9,20,0,7);x.stroke();text("🐵",P.x,P.y,32,"#000");
  P.items.forEach((p,i)=>text(INFO[p].e,P.x,P.y-34-i*9,18,"#000"));
  for(const f of floats){x.globalAlpha=Math.min(1,f.l);text(f.t,f.x,f.y-(1.2-f.l)*40,18,f.c);x.globalAlpha=1}
- let hint="";if(!s.cash&&!shelf.banana&&!P.items.length&&s.served<1)hint="Grab 🍌 from the grove, put them on the shelf";else if(P.items.length&&s.served<1)hint="Drop the fruit on the matching shelf";else if(pile>0)hint="Collect the cash 💵 pile";else if(queue.length&&!s.up.cashw&&dist(P,REG)>=85)hint="Stand at the register to ring up customers";
- if(hint){x.fillStyle="rgb(0 0 0 / 65%)";x.fillRect(W/2-190,H-52,380,30);text(hint,W/2,H-31,15,"#fff")}}
-function ui(){const hk=Math.floor(s.cash)+"|"+s.served+"|"+P.items.length+"|"+CAP();if(hk===hudKey)return;hudKey=hk;
- document.querySelector("#cash").textContent="💰 $"+Math.floor(s.cash);document.querySelector("#served").textContent="🛒 Customers: "+s.served;document.querySelector("#carry").textContent="🎒 "+P.items.length+"/"+CAP()}
+ x.restore();
+ let hint="";if(s.served<1&&!shelf.banana&&!P.items.length)hint="Walk up to the 🍌 grove to grab bananas";else if(s.served<1&&P.items.length)hint="Drop the fruit on the matching shelf";else if(queues[0].length&&!hasC(0)&&dist(P,regPos(0))>=95)hint="Stand at the register to ring up customers";else if(piles.some(v=>v>0))hint="Collect the 💵 cash pile";
+ if(hint){x.fillStyle="rgb(0 0 0 / 65%)";x.fillRect(VW/2-190,VH-40,380,28);text(hint,VW/2,VH-20,15,"#fff")}
+ const mx=VW-160,my=8,ms=150/WW;x.fillStyle="rgb(0 0 0 / 45%)";x.fillRect(mx-2,my-2,154,WH*ms+4);x.fillStyle="#e7d3b0";x.fillRect(mx,my,150,WH*ms);x.fillStyle="#bef264";x.fillRect(mx,my,150,186*ms);x.fillStyle="#bae6fd";x.fillRect(mx+1040*ms,my+500*ms,640*ms,540*ms);
+ for(const p of PRODS){x.fillStyle=s.pr[p]?"#166534":"#4d7c0f66";x.fillRect(mx+(INFO[p].x-12)*ms,my+(PRY-12)*ms,24*ms,24*ms+2)}
+ for(const c of custs){x.fillStyle="#2563eb";x.fillRect(mx+c.x*ms-1,my+c.y*ms-1,2,2)}
+ x.strokeStyle="#fff";x.lineWidth=1;x.strokeRect(mx+cam.x*ms,my+cam.y*ms,VW*ms,VH*ms);x.fillStyle="#facc15";x.fillRect(mx+P.x*ms-2,my+P.y*ms-2,4,4)}
+function ui(){const hk=Math.floor(s.cash)+"|"+s.served+"|"+P.items.length+"|"+CAP()+"|"+workers.length+"|"+NREG();if(hk===hudKey)return;hudKey=hk;
+ document.querySelector("#cash").textContent="💰 $"+Math.floor(s.cash);document.querySelector("#served").textContent="🛒 Customers: "+s.served;document.querySelector("#carry").textContent="🎒 "+P.items.length+"/"+CAP();
+ document.querySelector("#staff").textContent="🧾 Registers: "+NREG()+" · 🐒 Helpers: "+workers.length+" · 🧑‍💼 Cashiers: "+(s.up.c1+s.up.c2+s.up.c3)}
 for(let n=1;n<=10;n++){const b=document.createElement("button");b.textContent=n+"x";b.dataset.n=n;b.onclick=()=>{speed=n;try{localStorage.setItem(KEY+"Speed",n)}catch(e){}markSpeed()};document.querySelector("#spd").append(b)}
 function markSpeed(){document.querySelectorAll("#spd button").forEach(b=>b.classList.toggle("on",+b.dataset.n===speed))}markSpeed();
-document.querySelector("#reset").onclick=()=>{if(confirm("Reset all progress?")){s=JSON.parse(JSON.stringify(DEF));custs=[];queue=[];workers=[];pile=0;P.items=[];for(const p of PRODS){prod[p]={n:p==="banana"?4:0,t:0};shelf[p]=0}save();hudKey=""}};
+document.querySelector("#reset").onclick=()=>{if(confirm("Reset all progress?")){s=JSON.parse(JSON.stringify(DEF));initWorld();save();hudKey=""}};
 addEventListener("keydown",e=>{if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Space"].includes(e.code))e.preventDefault();keys[e.code]=true});
 addEventListener("keyup",e=>{keys[e.code]=false});
-C.addEventListener("pointerdown",e=>{const r=C.getBoundingClientRect();P.mt={x:(e.clientX-r.left)/r.width*W,y:(e.clientY-r.top)/r.height*H}});
+C.addEventListener("pointerdown",e=>{const r=C.getBoundingClientRect();P.mt={x:(e.clientX-r.left)/r.width*VW+cam.x,y:(e.clientY-r.top)/r.height*VH+cam.y}});
 function loop(ts){let dt=Math.min(.05,(ts-last)/1000||0)*speed;last=ts;while(dt>0){const d=Math.min(dt,.05);update(d);dt-=d}draw();ui();requestAnimationFrame(loop)}
 syncWorkers();requestAnimationFrame(loop);setInterval(save,5000);
 </script></body></html>
