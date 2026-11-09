@@ -7,7 +7,7 @@ canvas{display:block;width:100%;height:auto;margin:.8rem auto;border:.2rem solid
 .row{display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap;margin:.5rem 0}.row button{padding:.4rem .8rem;font-size:.9rem;background:#1a2e05;color:#f1f5e9;border:.1rem solid #65a30d;border-radius:.6rem;cursor:pointer;font-weight:700}.row button.on{background:#a3e635;color:#111}
 button{touch-action:manipulation}</style></head>
 <body><main><a href="../">← All games</a><h1>🐵 Ape Market</h1>
-<p>Build a giant supermarket! <strong>Walk</strong> (WASD / arrows, or tap the map) around the big store. Grab fruit, corn, eggs and more from the <strong>farms</strong> up top and drop them on the matching <strong>shelves</strong>. Carry raw goods to <strong>machines</strong> (corn → 🍿, bananas → 🧃, milk → 🧀) and shelve what they make. Rich apes in top hats pay triple and drop 💰 as they walk (grab it!). Ape customers shop their whole list, then line up at a <strong>register</strong>: stand there to ring them up and walk over the <strong>💵 pile</strong> to collect. Stand on glowing <strong>pads</strong> to unlock new goods, registers, cashiers, helpers, bigger shelves, better prices and more.</p>
+<p>Build a giant supermarket! <strong>Walk</strong> (WASD / arrows, or tap the map) around the big store. Grab fruit, corn, eggs and more from the <strong>farms</strong> up top and drop them on the matching <strong>shelves</strong>. Carry raw goods to <strong>machines</strong> (corn → 🍿, bananas → 🧃, milk → 🧀) and shelve what they make. Catch sneaky 😈 vandals before they spray graffiti on a shelf (clean it by standing there). Rich apes in top hats pay triple and drop 💰 as they walk (grab it!). Ape customers shop their whole list, then line up at a <strong>register</strong>: stand there to ring them up and walk over the <strong>💵 pile</strong> to collect. Stand on glowing <strong>pads</strong> to unlock new goods, registers, cashiers, helpers, bigger shelves, better prices and more.</p>
 <div class="hud"><span id="cash"></span><span id="served"></span><span id="carry"></span><span id="staff"></span></div>
 <canvas id="c" width="800" height="520" aria-label="Ape Market game"></canvas>
 <div class="row" id="spd" aria-label="Game speed"><span style="align-self:center;font-weight:700;color:#d9f99d">Speed:</span></div>
@@ -25,7 +25,8 @@ const INFO={
  popcorn:{e:"🍿",p:18,from:"corn",cost:1500,n:"Popcorn machine",icon:"⚙️"},
  juice:{e:"🧃",p:12,from:"banana",cost:3500,n:"Juice press",icon:"⚙️"},
  cheese:{e:"🧀",p:45,from:"milk",cost:9000,n:"Cheese maker",icon:"⚙️"}};
-PRODS.forEach((p,i)=>INFO[p].x=150+i*200);
+const LAY={banana:[150,110,150,330,70],tomato:[700,110,700,330,70],egg:[1500,110,1100,330,70],milk:[100,520,400,520,70],corn:[990,1030,990,900,-70],popcorn:[1500,330,1300,330,70],juice:[700,520,900,520,70],cheese:[400,110,400,330,70]},SC={banana:0,corn:40,egg:150,milk:500,tomato:1200,popcorn:900,juice:2200,cheese:5500};
+PRODS.forEach(p=>{const l=LAY[p],I=INFO[p];I.x=l[0];I.y=l[1];I.sx=l[2];I.sy=l[3];I.sd=l[4]});
 const UPS=[
  {k:"bag",n:"🎒 Bigger bag",c:[40,100,220,450,900,1800]},
  {k:"speed",n:"👟 Faster feet",c:[80,200,500,1100,2400]},
@@ -41,31 +42,32 @@ const UPS=[
  {k:"c2",n:"🧑‍💼 Cashier 2",c:[600],ok:()=>s.up.reg2},
  {k:"c3",n:"🧑‍💼 Cashier 3",c:[2000],ok:()=>s.up.reg3}];
 UPS.forEach((u,i)=>{u.x=1110+(i%5)*130;u.y=580+Math.floor(i/5)*140});
-const RX=[200,450,700],RY=700,PRY=110,SHY=330,FRONT=400,DOOR={x:850,y:WH},PCAP=12;
-const DEF={cash:0,pr:{banana:1,corn:0,egg:0,milk:0,tomato:0,popcorn:0,juice:0,cheese:0},up:{bag:0,speed:0,cust:0,farmw:0,grow:0,shelf:0,price:0,mach:0,reg2:0,reg3:0,c1:0,c2:0,c3:0},paid:{},served:0};
+const RX=[200,450,700],RY=700,DOOR={x:850,y:WH},PCAP=12;
+const DEF={cash:0,sh:{banana:1},pr:{banana:1,corn:0,egg:0,milk:0,tomato:0,popcorn:0,juice:0,cheese:0},up:{bag:0,speed:0,cust:0,farmw:0,grow:0,shelf:0,price:0,mach:0,reg2:0,reg3:0,c1:0,c2:0,c3:0},paid:{},served:0};
 let s=JSON.parse(JSON.stringify(DEF));try{const o=JSON.parse(localStorage.getItem(KEY)||"{}");for(const k in o)if(typeof o[k]==="object"&&o[k]&&!Array.isArray(o[k]))Object.assign(s[k],o[k]);else s[k]=o[k]}catch(e){}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(s))}catch(e){}};
 const P={x:300,y:430,items:[],pk:0},keys={},cam={x:0,y:0};
-let drops=[],prod,mach,shelf,custs,queues,piles,payT,workers,floats,spawnT,last=0,hudKey="",speed=+localStorage.getItem(KEY+"Speed")||1;
+let vands=[],tag={},tagT={},vT=40,drops=[],prod,mach,shelf,custs,queues,piles,payT,workers,floats,spawnT,last=0,hudKey="",speed=+localStorage.getItem(KEY+"Speed")||1;
 function initWorld(){prod={};mach={};shelf={};for(const p of PRODS){prod[p]={n:p==="banana"?4:0,t:0};mach[p]={in:0,out:0,t:0};shelf[p]=0}
- custs=[];drops=[];queues=[[],[],[]];piles=[0,0,0];payT=[0,0,0];workers=[];floats=[];spawnT=2;P.items=[]}
+ custs=[];drops=[];vands=[];tag={};tagT={};vT=40;queues=[[],[],[]];piles=[0,0,0];payT=[0,0,0];workers=[];floats=[];spawnT=2;P.items=[]}
 initWorld();
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y),fl=(px,py,t,c)=>floats.push({x:px,y:py,t,c,l:1.2});
 const CAP=()=>4+3*s.up.bag,SPD=()=>170*(1+.2*s.up.speed),MAXC=()=>3+2*s.up.cust,SH=()=>10+5*s.up.shelf,GROW=()=>.75**s.up.grow,PM=()=>1+.15*s.up.price,NREG=()=>1+s.up.reg2+s.up.reg3,hasC=r=>s.up["c"+(r+1)]>0;
 const regPos=r=>({x:RX[r],y:RY+25});
-const pads=()=>{const a=[];for(const p of PRODS)if(!s.pr[p])a.push({id:"p:"+p,label:INFO[p].e+" "+INFO[p].n,cost:INFO[p].cost,x:INFO[p].x,y:PRY,p});
+const pads=()=>{const a=[];for(const p of PRODS)if(!s.pr[p])a.push({id:"p:"+p,label:INFO[p].e+" "+INFO[p].n,cost:INFO[p].cost,x:INFO[p].x,y:INFO[p].y,p});
+ for(const p of PRODS)if(s.pr[p]&&!s.sh[p])a.push({id:"s:"+p,label:"📦 Shelf "+INFO[p].e,cost:SC[p],x:INFO[p].sx,y:INFO[p].sy,sp:p});
  for(const u of UPS){const l=s.up[u.k];if(l<u.c.length&&(!u.ok||u.ok()))a.push({id:"u:"+u.k,label:u.n+(u.c.length>1?" "+(l+1)+"/"+u.c.length:""),cost:u.c[l],x:u.x,y:u.y,u})}return a};
-function buy(pd){if(pd.p)s.pr[pd.p]=1;else s.up[pd.u.k]+=1;delete s.paid[pd.id];save();syncWorkers();fl(pd.x,pd.y-40,"Unlocked!","#facc15")}
+function buy(pd){if(pd.p)s.pr[pd.p]=1;else if(pd.sp)s.sh[pd.sp]=1;else s.up[pd.u.k]+=1;delete s.paid[pd.id];save();syncWorkers();fl(pd.x,pd.y-40,"Unlocked!","#facc15")}
 function syncWorkers(){for(let i=workers.length;i<s.up.farmw;i++)workers.push({x:60+i*30,y:480,items:[],st:"idle",job:"",p:"",from:"",i})}
 const src=p=>INFO[p].from?mach[p].out:prod[p].n,takeSrc=(p,k)=>{if(INFO[p].from)mach[p].out-=k;else prod[p].n-=k};
 const FACES=["🐵","🐒","🦍","🦧","🐵","🐒"];
-function mkCust(){const act=PRODS.filter(p=>s.pr[p]),n=Math.min(act.length,1+Math.floor(Math.random()*Math.min(3,1+Math.floor(s.served/15)))),pool=act.slice(),list=[];
+function mkCust(){const act=PRODS.filter(p=>s.pr[p]&&s.sh[p]),n=Math.min(act.length,1+Math.floor(Math.random()*Math.min(3,1+Math.floor(s.served/15)))),pool=act.slice(),list=[];
  for(let i=0;i<n;i++){const p=pool.splice(Math.floor(Math.random()*pool.length),1)[0];list.push({p,q:1+Math.floor(Math.random()*3),got:0})}
- const vip=Math.random()<.12;custs.push({x:DOOR.x+Math.random()*80-40,y:DOOR.y-20,e:vip?"🦍":FACES[Math.floor(Math.random()*6)],vip,list,i:0,st:"go",pat:20,tm:0,mood:"",reg:-1,ox:Math.random()*100-50,dm:0})}
+ const vip=Math.random()<.012;custs.push({x:DOOR.x+Math.random()*80-40,y:DOOR.y-20,e:vip?"🦍":FACES[Math.floor(Math.random()*6)],vip,list,i:0,st:"go",pat:20,tm:0,mood:"",reg:-1,ox:Math.random()*100-50,dm:0})}
 function nextItem(c){c.i++;c.pat=20;if(c.i<c.list.length){c.st="go";return}
  if(!c.list.some(l=>l.got)){c.st="leave";c.mood="😠";return}
  let r=0;for(let k=1;k<NREG();k++)if(queues[k].length<queues[r].length)r=k;c.reg=r;queues[r].push(c);c.st="queue"}
-const spot=c=>({x:INFO[c.list[c.i].p].x+c.ox,y:FRONT+(c.ox>0?16:0)});
+const spot=c=>{const I=INFO[c.list[c.i].p];return{x:I.sx+c.ox,y:I.sy+I.sd+(c.ox>0?16*Math.sign(I.sd):0)}};
 function update(dt){
  syncWorkers();
  let dx=(keys.ArrowRight||keys.KeyD?1:0)-(keys.ArrowLeft||keys.KeyA?1:0),dy=(keys.ArrowDown||keys.KeyS?1:0)-(keys.ArrowUp||keys.KeyW?1:0);
@@ -76,16 +78,16 @@ function update(dt){
   else{const m=mach[p];if(m.in>=2&&m.out<PCAP){m.t+=dt;if(m.t>=5/(1+.4*s.up.mach)){m.t=0;m.in-=2;m.out++}}else m.t=0}}
  P.pk-=dt;if(P.pk<=0){P.pk=.09;
   for(const p of PRODS){if(!s.pr[p])continue;const px=INFO[p].x,f=INFO[p].from;
-   if(shelf[p]<SH()&&Math.hypot(P.x-px,P.y-SHY)<85){const k=P.items.lastIndexOf(p);if(k>=0){P.items.splice(k,1);shelf[p]++;break}}
-   if(Math.hypot(P.x-px,P.y-PRY)<85){
+   if(s.sh[p]&&!tag[p]&&shelf[p]<SH()&&Math.hypot(P.x-INFO[p].sx,P.y-INFO[p].sy)<85){const k=P.items.lastIndexOf(p);if(k>=0){P.items.splice(k,1);shelf[p]++;break}}
+   if(Math.hypot(P.x-px,P.y-INFO[p].y)<85){
     if(f&&mach[p].in<8){const k=P.items.lastIndexOf(f);if(k>=0){P.items.splice(k,1);mach[p].in++;break}}
     if(src(p)>0&&P.items.length<CAP()){takeSrc(p,1);P.items.push(p);break}}}}
  spawnT-=dt;if(spawnT<=0){spawnT=Math.max(.9,6-.6*s.up.cust)*(.7+Math.random()*.6);if(custs.length<MAXC())mkCust()}
  for(const c of custs){let tg=null;
   if(c.st==="go"){tg=spot(c);if(Math.hypot(tg.x-c.x,tg.y-c.y)<4)c.st="take"}
   else if(c.st==="take"){tg=spot(c);const it=c.list[c.i];c.tm-=dt;
-   if(c.tm<=0){c.tm=.4;if(it.got<it.q&&shelf[it.p]>0){shelf[it.p]--;it.got++}}
-   if(it.got>=it.q)nextItem(c);else if(shelf[it.p]<=0){c.pat-=dt;if(c.pat<=0)nextItem(c)}}
+   if(c.tm<=0){c.tm=.4;if(it.got<it.q&&shelf[it.p]>0&&!tag[it.p]){shelf[it.p]--;it.got++}}
+   if(it.got>=it.q)nextItem(c);else if(shelf[it.p]<=0||tag[it.p]){c.pat-=dt;if(c.pat<=0)nextItem(c)}}
   else if(c.st==="queue"){const i=queues[c.reg].indexOf(c);tg={x:RX[c.reg],y:Math.min(1050,RY+50+i*34)}}
   else if(c.st==="leave"){tg={x:DOOR.x,y:DOOR.y}}
   if(tg){const d=Math.hypot(tg.x-c.x,tg.y-c.y);if(d>1){const sp=c.st==="queue"||c.st==="leave"?150:125;const m=Math.min(d,sp*dt);c.x+=(tg.x-c.x)/d*m;c.y+=(tg.y-c.y)/d*m;if(c.vip&&c.st!=="queue"){c.dm+=m;if(c.dm>=55){c.dm=0;if(drops.length<80&&c.y<DOOR.y-30)drops.push({x:c.x,y:c.y+8,v:Math.round((8+Math.min(60,s.served/4))*PM())})}}}}}
@@ -96,14 +98,23 @@ function update(dt){
     piles[r]+=amt;save()}}else payT[r]=0;
   if(piles[r]>0&&dist(P,{x:RX[r]+80,y:RY})<70){s.cash+=piles[r];fl(RX[r]+80,RY-30,"+$"+piles[r],"#16a34a");piles[r]=0;save()}}
  custs=custs.filter(c=>!(c.st==="leave"&&c.y>=DOOR.y-2));
+ vT-=dt;if(vT<=0){vT=45+Math.random()*45;const own=PRODS.filter(p=>s.pr[p]&&s.sh[p]&&!tag[p]);if(s.served>=8&&vands.length<2&&own.length)vands.push({x:DOOR.x,y:DOOR.y-20,p:own[Math.floor(Math.random()*own.length)],st:"go",tm:3,ox:Math.random()*80-40})}
+ for(const v of vands){let tg=null;const I=INFO[v.p];
+  if(v.st!=="flee"&&Math.hypot(P.x-v.x,P.y-v.y)<45){v.st="flee";const b=Math.round(25+s.served/2);s.cash+=b;fl(v.x,v.y-30,"Caught! +$"+b,"#ca8a04")}
+  if(v.st==="go"){tg={x:I.sx+v.ox,y:I.sy+I.sd};if(Math.hypot(tg.x-v.x,tg.y-v.y)<4)v.st="spray"}
+  else if(v.st==="spray"){v.tm-=dt;if(v.tm<=0){if(s.sh[v.p]){tag[v.p]=1;tagT[v.p]=0}v.st="flee"}}
+  else tg={x:DOOR.x,y:DOOR.y};
+  if(tg){const d=Math.hypot(tg.x-v.x,tg.y-v.y);if(d>1){const m=Math.min(d,170*dt);v.x+=(tg.x-v.x)/d*m;v.y+=(tg.y-v.y)/d*m}}}
+ vands=vands.filter(v=>!(v.st==="flee"&&v.y>=DOOR.y-2));
+ for(const p of PRODS){if(tag[p]&&Math.hypot(P.x-INFO[p].sx,P.y-INFO[p].sy)<85){tagT[p]+=dt;if(tagT[p]>=1.5){tag[p]=0;tagT[p]=0;fl(INFO[p].sx,INFO[p].sy-40,"Cleaned!","#16a34a")}}else tagT[p]=0}
  for(const w of workers){const go=(px,py)=>{const d=Math.hypot(px-w.x,py-w.y);if(d<=3)return true;w.x+=(px-w.x)/d*Math.min(d,150*dt);w.y+=(py-w.y)/d*Math.min(d,150*dt);return false};
-  if(w.st==="idle"){for(const p of PRODS){const f=INFO[p].from;if(f&&s.pr[p]&&s.pr[f]&&mach[p].in<2&&mach[p].out<2&&shelf[p]<SH()/2&&prod[f].n>=2&&!workers.some(o=>o.st!=="idle"&&o.job==="feed"&&o.p===p)){w.job="feed";w.p=p;w.from=f;w.st="fetch";break}}
-   let best=null,bs=1;if(w.st==="idle")for(const p of PRODS){if(!s.pr[p]||src(p)<1)continue;const d=SH()-shelf[p];if(d>bs){bs=d;best=p}}
+  if(w.st==="idle"){for(const p of PRODS){const f=INFO[p].from;if(f&&s.pr[p]&&s.sh[p]&&s.pr[f]&&mach[p].in<2&&mach[p].out<2&&shelf[p]<SH()/2&&prod[f].n>=2&&!workers.some(o=>o.st!=="idle"&&o.job==="feed"&&o.p===p)){w.job="feed";w.p=p;w.from=f;w.st="fetch";break}}
+   let best=null,bs=1;if(w.st==="idle")for(const p of PRODS){if(!s.pr[p]||!s.sh[p]||tag[p]||src(p)<1)continue;const d=SH()-shelf[p];if(d>bs){bs=d;best=p}}
    if(w.st!=="idle"){}else if(best){w.job="shelf";w.p=best;w.from=best;w.st="fetch"}
-   else{for(const p of PRODS){const f=INFO[p].from;if(f&&s.pr[p]&&s.pr[f]&&mach[p].in<6&&prod[f].n>=2){w.job="feed";w.p=p;w.from=f;w.st="fetch";break}}
+   else{for(const p of PRODS){const f=INFO[p].from;if(f&&s.pr[p]&&s.sh[p]&&s.pr[f]&&mach[p].in<6&&prod[f].n>=2){w.job="feed";w.p=p;w.from=f;w.st="fetch";break}}
     if(w.st==="idle")go(60+w.i*30,480)}}
-  else if(w.st==="fetch"){if(go(INFO[w.from].x,PRY+55)){const k=Math.min(4,src(w.from));takeSrc(w.from,k);w.items=Array(k).fill(w.from);w.st=k?"stock":"idle"}}
-  else if(w.st==="stock"){if(go(INFO[w.p].x,w.job==="shelf"?SHY+55:PRY+55)){
+  else if(w.st==="fetch"){if(go(INFO[w.from].x,INFO[w.from].y+(INFO[w.from].y>1000?-55:55))){const k=Math.min(4,src(w.from));takeSrc(w.from,k);w.items=Array(k).fill(w.from);w.st=k?"stock":"idle"}}
+  else if(w.st==="stock"){if(go(w.job==="shelf"?INFO[w.p].sx:INFO[w.p].x,w.job==="shelf"?INFO[w.p].sy+55*Math.sign(INFO[w.p].sd):INFO[w.p].y+(INFO[w.p].y>1000?-55:55))){
     if(w.job==="shelf"){while(w.items.length&&shelf[w.p]<SH()){w.items.pop();shelf[w.p]++}}else{while(w.items.length&&mach[w.p].in<8){w.items.pop();mach[w.p].in++}}
     w.items=[];w.st="idle"}}}
  for(const q of floats)q.l-=dt;floats=floats.filter(q=>q.l>0);
@@ -114,20 +125,23 @@ function draw(){
  x.save();x.translate(-Math.round(cam.x),-Math.round(cam.y));
  x.fillStyle="#e7d3b0";x.fillRect(0,0,WW,WH);x.fillStyle="#d6bd91";for(let i=0;i<WW;i+=100)for(let j=0;j<WH;j+=100)if((i+j)/100%2)x.fillRect(i,j,100,100);
  x.fillStyle="#bef264";x.fillRect(0,16,WW,170);x.fillStyle="#65a30d";x.fillRect(0,0,WW,16);x.fillRect(0,184,WW,6);
- x.fillStyle="#bae6fd";x.fillRect(1040,500,640,540);text("⭐ UPGRADE PLAZA ⭐",1360,535,18,"#0c4a6e");
- text("FARMS & FACTORIES",110,34,13,"#365314","left");text("SHELVES",60,SHY-34,13,"#78350f","left");text("CHECKOUT",60,RY-52,13,"#334155","left");
+ x.fillStyle="#bae6fd";x.fillRect(1090,500,590,540);text("⭐ UPGRADE PLAZA ⭐",1385,535,18,"#0c4a6e");
+ text("FARMS & FACTORIES",110,34,13,"#365314","left");text("CHECKOUT",60,RY-52,13,"#334155","left");
  x.fillStyle="#92400e";x.fillRect(DOOR.x-60,WH-14,120,14);text("Door",DOOR.x,WH-20,12,"#78350f");
- for(const p of PRODS){const px=INFO[p].x,f=INFO[p].from;
-  if(s.pr[p]){x.fillStyle=f?"#94a3b8":"#65a30d";x.fillRect(px-85,PRY-44,170,88);x.fillStyle=f?"#64748b":"#4d7c0f";x.fillRect(px-85,PRY-44,170,10);text(INFO[p].icon,px,PRY+4,38,"#000");
-   const n=src(p);for(let i=0;i<n;i++)text(INFO[p].e,px-78+(i%12)*14,PRY+38,13,"#000");
-   if(f){text(INFO[f].e+" "+mach[p].in+"/8 → "+INFO[p].e,px,PRY-48,12,"#334155");if(mach[p].in>=2&&mach[p].out<PCAP){x.fillStyle="#22c55e";x.fillRect(px-60,PRY+18,120*mach[p].t*(1+.4*s.up.mach)/5,4)}}
-   x.fillStyle="#78350f";x.fillRect(px-85,SHY-32,170,64);x.fillStyle="#a16207";x.fillRect(px-82,SHY-29,164,58);text(INFO[p].e+" $"+Math.round(INFO[p].p*PM()),px-72,SHY-33,12,"#78350f","left");
-   for(let i=0;i<shelf[p];i++)text(INFO[p].e,px-72+(i%10)*16,SHY-12+Math.floor(i/10)*16,14,"#000")}
-  else{x.strokeStyle="#4d7c0f88";x.setLineDash([8,6]);x.lineWidth=2;x.strokeRect(px-85,PRY-44,170,88);x.setLineDash([])}}
+ for(const p of PRODS){const I=INFO[p],px=I.x,py=I.y,f=I.from;
+  if(s.pr[p]){x.fillStyle=f?"#94a3b8":"#65a30d";x.fillRect(px-85,py-44,170,88);x.fillStyle=f?"#64748b":"#4d7c0f";x.fillRect(px-85,py-44,170,10);text(I.icon,px,py+4,38,"#000");
+   const n=src(p);for(let i=0;i<n;i++)text(I.e,px-78+(i%12)*14,py+38,13,"#000");
+   if(f){text(INFO[f].e+" "+mach[p].in+"/8 → "+I.e,px,py-48,12,"#334155");if(mach[p].in>=2&&mach[p].out<PCAP){x.fillStyle="#22c55e";x.fillRect(px-60,py+18,120*mach[p].t*(1+.4*s.up.mach)/5,4)}}}
+  else{x.strokeStyle="#4d7c0f88";x.setLineDash([8,6]);x.lineWidth=2;x.strokeRect(px-85,py-44,170,88);x.setLineDash([])}
+  if(s.pr[p]&&s.sh[p]){const sx=I.sx,sy=I.sy;x.fillStyle="#78350f";x.fillRect(sx-85,sy-32,170,64);x.fillStyle="#a16207";x.fillRect(sx-82,sy-29,164,58);text(I.e+" $"+Math.round(I.p*PM()),sx-72,sy-35,12,"#78350f","left");
+   for(let i=0;i<shelf[p];i++)text(I.e,sx-72+(i%10)*16,sy-12+Math.floor(i/10)*16,14,"#000");
+   if(tag[p]){x.fillStyle="rgb(168 85 247 / 65%)";x.fillRect(sx-82,sy-29,164,58);text("🎨 TAGGED! stand here to clean",sx,sy+4,12,"#fff");x.fillStyle="#fff";x.fillRect(sx-60,sy+14,120*tagT[p]/1.5,5)}}
+  else if(s.pr[p]){x.strokeStyle="#78350f88";x.setLineDash([8,6]);x.lineWidth=2;x.strokeRect(I.sx-85,I.sy-32,170,64);x.setLineDash([])}}
  for(let r=0;r<3;r++){const on=r<NREG();x.globalAlpha=on?1:.3;x.fillStyle="#475569";x.fillRect(RX[r]-45,RY-30,90,60);x.fillStyle="#64748b";x.fillRect(RX[r]-45,RY-30,90,10);text("🧾",RX[r],RY+14,30,"#000");x.globalAlpha=1;
   if(on&&hasC(r))text("🧑‍💼",RX[r]-62,RY+10,28,"#000");if(on&&piles[r]>0){const k=Math.min(96,Math.ceil(piles[r]/15)),sd=Math.ceil(Math.sqrt(Math.min(k,16))),ly=Math.ceil(k/16),bx=RX[r]+80-sd*7,by=RY-sd*7;x.fillStyle="#bbf7d0";x.fillRect(bx-4,by-4,sd*14+8,sd*14+8);x.strokeStyle="#16a34a";x.lineWidth=2;x.strokeRect(bx-4,by-4,sd*14+8,sd*14+8);for(let i=0;i<k;i++){const l=Math.floor(i/16),j=i%16;text("💵",bx+(j%sd)*14+7,by+Math.floor(j/sd)*14+12-l*8,13,"#000")}}}
  for(const pd of pads()){const pr=(s.paid[pd.id]||0)/pd.cost;x.fillStyle="rgb(250 204 21 / 30%)";x.beginPath();x.arc(pd.x,pd.y,36,0,7);x.fill();x.strokeStyle="#facc15";x.lineWidth=3;x.beginPath();x.arc(pd.x,pd.y,36,-Math.PI/2,-Math.PI/2+7*Math.max(.01,pr));x.stroke();
   text(pd.label,pd.x,pd.y-42,11,"#365314");text("$"+Math.ceil(pd.cost-(s.paid[pd.id]||0)),pd.x,pd.y+6,16,"#713f12")}
+ for(const v of vands){text("😈",v.x,v.y,30,"#000");text(v.st==="spray"?"🎨💦":"🎨",v.x,v.y-30,16,"#000")}
  for(const d of drops)text("💰",d.x,d.y,16,"#000");
  for(const c of custs){text(c.e,c.x,c.y,30,"#000");if(c.vip)text("🎩",c.x,c.y-26,16,"#000");if(c.mood)text(c.mood,c.x+16,c.y-20,16,"#000");else if(c.st==="queue"){text("💵",c.x,c.y-30,14,"#000")}else if(c.st!=="leave"){const it=c.list[c.i];x.fillStyle=c.vip?"#fde68a":"#fff";x.fillRect(c.x-24,c.y-58,48,22);text(INFO[it.p].e+(it.q-it.got>1?"x"+(it.q-it.got):""),c.x,c.y-41,15,"#000")}}
  for(const w of workers){text("🐒",w.x,w.y,28,"#000");w.items.forEach((p,i)=>text(INFO[p].e,w.x,w.y-30-i*8,14,"#000"))}
@@ -136,9 +150,11 @@ function draw(){
  for(const f of floats){x.globalAlpha=Math.min(1,f.l);text(f.t,f.x,f.y-(1.2-f.l)*40,18,f.c);x.globalAlpha=1}
  x.restore();
  let hint="";if(s.served<1&&!shelf.banana&&!P.items.length)hint="Walk up to the 🍌 grove to grab bananas";else if(s.served<1&&P.items.length)hint="Drop the fruit on the matching shelf";else if(queues[0].length&&!hasC(0)&&dist(P,regPos(0))>=95)hint="Stand at the register to ring up customers";else if(piles.some(v=>v>0))hint="Collect the 💵 cash pile";
+ if(vands.some(v=>v.st!=="flee"))hint="😈 Vandal! Catch it before it tags a shelf!";else if(PRODS.some(p=>tag[p]))hint="Stand at the tagged shelf to clean it";
  if(hint){x.fillStyle="rgb(0 0 0 / 65%)";x.fillRect(VW/2-190,VH-40,380,28);text(hint,VW/2,VH-20,15,"#fff")}
- const mx=VW-160,my=8,ms=150/WW;x.fillStyle="rgb(0 0 0 / 45%)";x.fillRect(mx-2,my-2,154,WH*ms+4);x.fillStyle="#e7d3b0";x.fillRect(mx,my,150,WH*ms);x.fillStyle="#bef264";x.fillRect(mx,my,150,186*ms);x.fillStyle="#bae6fd";x.fillRect(mx+1040*ms,my+500*ms,640*ms,540*ms);
- for(const p of PRODS){x.fillStyle=s.pr[p]?"#166534":"#4d7c0f66";x.fillRect(mx+(INFO[p].x-12)*ms,my+(PRY-12)*ms,24*ms,24*ms+2)}
+ const mx=VW-160,my=8,ms=150/WW;x.fillStyle="rgb(0 0 0 / 45%)";x.fillRect(mx-2,my-2,154,WH*ms+4);x.fillStyle="#e7d3b0";x.fillRect(mx,my,150,WH*ms);x.fillStyle="#bef264";x.fillRect(mx,my,150,186*ms);x.fillStyle="#bae6fd";x.fillRect(mx+1090*ms,my+500*ms,590*ms,540*ms);
+ for(const p of PRODS){x.fillStyle=s.pr[p]?"#166534":"#4d7c0f66";x.fillRect(mx+(INFO[p].x-12)*ms,my+(INFO[p].y-12)*ms,24*ms,24*ms+2)}
+ for(const v of vands){x.fillStyle="#dc2626";x.fillRect(mx+v.x*ms-2,my+v.y*ms-2,4,4)}
  for(const c of custs){x.fillStyle="#2563eb";x.fillRect(mx+c.x*ms-1,my+c.y*ms-1,2,2)}
  x.strokeStyle="#fff";x.lineWidth=1;x.strokeRect(mx+cam.x*ms,my+cam.y*ms,VW*ms,VH*ms);x.fillStyle="#facc15";x.fillRect(mx+P.x*ms-2,my+P.y*ms-2,4,4)}
 function ui(){const hk=Math.floor(s.cash)+"|"+s.served+"|"+P.items.length+"|"+CAP()+"|"+workers.length+"|"+NREG();if(hk===hudKey)return;hudKey=hk;
