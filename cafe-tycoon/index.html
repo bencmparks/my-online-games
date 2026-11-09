@@ -92,7 +92,7 @@ function update(dt){
  for(let r=0;r<NREG();r++){const f=queues[r][0];
   if(f&&(hasC(r)||dist(P,regPos(r))<95)&&Math.hypot(f.x-RX[r],f.y-(RY+50))<8){payT[r]+=dt;const cnt=f.list.reduce((a,l)=>a+l.got,0);
    if(payT[r]>=.45*cnt){payT[r]=0;const amt=Math.round(f.list.reduce((a,l)=>a+l.got*INFO[l.p].p,0)*PM()*(f.vip?3:1));queues[r].shift();f.st="leave";f.mood=f.vip?"🤩":"😊";s.served++;
-    if(hasC(r)){s.cash+=amt;fl(f.x,f.y-30,"+$"+amt,"#16a34a")}else piles[r]+=amt;save()}}else payT[r]=0;
+    piles[r]+=amt;save()}}else payT[r]=0;
   if(piles[r]>0&&dist(P,{x:RX[r]+80,y:RY})<70){s.cash+=piles[r];fl(RX[r]+80,RY-30,"+$"+piles[r],"#16a34a");piles[r]=0;save()}}
  custs=custs.filter(c=>!(c.st==="leave"&&c.y>=DOOR.y-2));
  for(const w of workers){const go=(px,py)=>{const d=Math.hypot(px-w.x,py-w.y);if(d<=3)return true;w.x+=(px-w.x)/d*Math.min(d,150*dt);w.y+=(py-w.y)/d*Math.min(d,150*dt);return false};
@@ -124,7 +124,7 @@ function draw(){
    for(let i=0;i<shelf[p];i++)text(INFO[p].e,px-72+(i%10)*16,SHY-12+Math.floor(i/10)*16,14,"#000")}
   else{x.strokeStyle="#4d7c0f88";x.setLineDash([8,6]);x.lineWidth=2;x.strokeRect(px-85,PRY-44,170,88);x.setLineDash([])}}
  for(let r=0;r<3;r++){const on=r<NREG();x.globalAlpha=on?1:.3;x.fillStyle="#475569";x.fillRect(RX[r]-45,RY-30,90,60);x.fillStyle="#64748b";x.fillRect(RX[r]-45,RY-30,90,10);text("🧾",RX[r],RY+14,30,"#000");x.globalAlpha=1;
-  if(on&&hasC(r))text("🧑‍💼",RX[r]-62,RY+10,28,"#000");if(on&&piles[r]>0){text("💵",RX[r]+80,RY+4,28,"#000");text("$"+piles[r],RX[r]+80,RY+24,13,"#166534")}}
+  if(on&&hasC(r))text("🧑‍💼",RX[r]-62,RY+10,28,"#000");if(on&&piles[r]>0){const k=Math.min(36,Math.ceil(piles[r]/15)),sd=Math.ceil(Math.sqrt(k)),bx=RX[r]+80-sd*7,by=RY-sd*7;x.fillStyle="#bbf7d0";x.fillRect(bx-4,by-4,sd*14+8,sd*14+8);x.strokeStyle="#16a34a";x.lineWidth=2;x.strokeRect(bx-4,by-4,sd*14+8,sd*14+8);for(let i=0;i<k;i++)text("💵",bx+(i%sd)*14+7,by+Math.floor(i/sd)*14+12,13,"#000");text("$"+piles[r],RX[r]+80,by+sd*14+22,13,"#166534")}}
  for(const pd of pads()){const pr=(s.paid[pd.id]||0)/pd.cost;x.fillStyle="rgb(250 204 21 / 30%)";x.beginPath();x.arc(pd.x,pd.y,36,0,7);x.fill();x.strokeStyle="#facc15";x.lineWidth=3;x.beginPath();x.arc(pd.x,pd.y,36,-Math.PI/2,-Math.PI/2+7*Math.max(.01,pr));x.stroke();
   text(pd.label,pd.x,pd.y-42,11,"#365314");text("$"+Math.ceil(pd.cost-(s.paid[pd.id]||0)),pd.x,pd.y+6,16,"#713f12")}
  for(const c of custs){text(c.e,c.x,c.y,30,"#000");if(c.mood)text(c.mood,c.x+16,c.y-20,16,"#000");else if(c.st==="queue"){text("💵",c.x,c.y-30,14,"#000")}else if(c.st!=="leave"){const it=c.list[c.i];x.fillStyle=c.vip?"#fde68a":"#fff";x.fillRect(c.x-24,c.y-52,48,22);text(INFO[it.p].e+(it.q-it.got>1?"x"+(it.q-it.got):""),c.x,c.y-35,15,"#000")}}
