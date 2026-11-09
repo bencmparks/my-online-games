@@ -11,7 +11,7 @@ button{border:0;border-radius:.5rem;background:#cffafe;color:#083344;cursor:poin
 <body><main><a href="../">← All games</a><h1>🥶 Freeze Tag 3D</h1>
 <p>You are one of 20 runners being hunted by 10 red freezers on a huge map. Get touched and you freeze solid! Touch a frozen teammate to thaw them instantly (thawed runners get a 3s speed boost), and they'll do the same for you. Survive until the timer ends, and don't let everyone get frozen at once.</p>
 <p><strong>Freezer mode:</strong> you are a freezer with 9 AI partners. Chase down all 15 runners and have every one frozen at the same time before the clock runs out, while the runners keep thawing each other.</p>
-<p><strong>Coins:</strong> runners earn a runner coin every time they unfreeze someone, and freezers earn a freezer coin every time they freeze someone. Spend coins to BUY a kit once and you own it forever. Pick any kit you own at the start of each round and use it for free, as often as you like. Speed is always free. You start with 3 coins.</p>
+<p><strong>Coins:</strong> runners earn a runner coin every time they unfreeze someone, and freezers earn a freezer coin every time they freeze someone. Spend coins to BUY a kit once and you own it forever. Pick any kit you own at the start of each round and use it for free, as often as you like. Speed is always free. You start with 3 coins. <strong>Combos:</strong> press Combine kits, tick 2 or more owned kits and buy the combo for 100 coins (+50 coins for each extra kit). Q then fires all of them at once. The 🔑 owner code (same as Sky Ace) gives infinite coins, kits and combos.</p>
 <p><strong>Kits:</strong> Runners can pick Speed, Thaw Bomb (explosion that unfreezes), Barrier (a wall freezers can't cross), Ghost, Shield, Teleport, Phoenix (thaws everyone) or Mine, Smoke Screen, Medic, Decoy, Lightning Zap or Fort, Beacon, Tar Pit, Flash, Evade, Armor, Clones, Shockwave, Rally, Aegis or Time Stop. Freezers can pick Speed, Rope (drags a runner to you), Freeze Wave, Magnet, Snowball, Turbo, Stun Blast, Web Trap, Cage, Blink, Goo Trap, Time Warp or Pounce. The AI uses them too.</p>
 <p><strong>2 players online:</strong> one device hosts and shares the 4-letter code, the other joins. The guest picks Runner or Freezer with the role buttons, the host picks theirs to start the round, and you both choose your own kit. You can both be runners, both freezers, or one of each. Coins you earn go to your own device.</p>
 <p><strong>Maps:</strong> Arena, Maze, Castle, City and Forest. Auto cycles one per level, or pick one with the map button (M).</p>
@@ -104,11 +104,26 @@ function fin(fw){const win=P.fr===fw;if(win)score+=fw?100*level+Math.floor(time/
 function startRound(){mode="play";say(`Level ${level} · ${MAPS[mapI].n}: `+(P.fr?`freeze all ${actors().length} runners!`:"don't get frozen!"))}
 function pick(r){role=r;level=1;score=0;begin()}
 const kp=document.querySelector("#kitPick"),kl=document.querySelector("#kitList");
-function showPick(){const fz=P.fr,pl=POOL[fz?1:0],ow=own[fz?"freezer":"runner"];kl.innerHTML="";
-  document.querySelector("#kitInfo").textContent=`Level ${level} · ${MAPS[mapI].n}. You have ${coins} ${fz?"freezer":"runner"} coins. Click an owned kit to play with it, or buy a new one once to own it forever.`;
-  for(const k of pl){const b=document.createElement("button");b.type="button";const has=ow[k];b.innerHTML=`${KITS[k]} · ${has?"✔ owned":"Buy "+KCOST[k]+"🪙"}<small>${KDESC[k]}</small>`;
-   b.onclick=()=>{if(!has){if(coins<KCOST[k]){document.querySelector("#kitInfo").textContent=`Need ${KCOST[k]} 🪙 for ${KITS[k]} (you have ${coins}). Earn coins by ${fz?"freezing runners":"thawing teammates"}.`;return}coins-=KCOST[k];ow[k]=1;saveKits();showPick();return}
-    P.kit=k;kp.hidden=true;if(nr==="guest"){myReady=true;net.send({t:"kit0",k})}else{hostReady=true;tryStart()}};kl.appendChild(b)}kp.hidden=false}
+const OH="bc1fdfcf3e00a250bc58b781b4c974340d8bd4aa203e5a152ad83b7f7144a7b7";
+let owner=false,cmb=false,sel=[];try{owner=localStorage.getItem("freezeTagOwner")===OH}catch(e){}
+const comboCost=n=>n<2?0:100+50*(n-2),kn=o=>[o.kit,...(o.kx||[])].map(k=>KITS[k]).join(" + ");
+function finishPick(k,kx){P.kit=k;P.kx=kx;kp.hidden=true;if(nr==="guest"){myReady=true;net.send({t:"kit0",k,kx})}else{hostReady=true;tryStart()}}
+async function ownerCode(){if(owner){owner=false;try{localStorage.removeItem("freezeTagOwner")}catch(e){}showPick();return}
+  const c=prompt("Owner code:");if(!c)return;const d=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(c.trim().toUpperCase())),hx=Array.from(new Uint8Array(d),v=>v.toString(16).padStart(2,"0")).join("");
+  if(hx===OH){owner=true;try{localStorage.setItem("freezeTagOwner",OH)}catch(e){}showPick()}else alert("Wrong code.")}
+function showPick(){const fz=P.fr,pl=POOL[fz?1:0],ow=own[fz?"freezer":"runner"],info=document.querySelector("#kitInfo");ow.combos=ow.combos||{};kl.innerHTML="";
+  info.textContent=`Level ${level} · ${MAPS[mapI].n}. You have ${owner?"∞ (owner)":coins} ${fz?"freezer":"runner"} coins. `+(cmb?`Combining: tick 2 or more owned kits (${sel.length} picked), then press Use combo. 2 kits cost 100🪙, each extra kit +50🪙, and a combo you bought is yours forever.`:"Click an owned kit to play with it, or buy a new one once to own it forever.");
+  for(const k of pl){const b=document.createElement("button");b.type="button";const has=owner||ow[k];b.innerHTML=`${cmb&&has?(sel.includes(k)?"☑ ":"☐ "):""}${KITS[k]} · ${has?"✔ owned":"Buy "+KCOST[k]+"🪙"}<small>${KDESC[k]}</small>`;
+   if(sel.includes(k))b.style.outline=".15rem solid #fde047";
+   b.onclick=()=>{if(!has){if(coins<KCOST[k]){info.textContent=`Need ${KCOST[k]} 🪙 for ${KITS[k]} (you have ${coins}). Earn coins by ${fz?"freezing runners":"thawing teammates"}.`;return}coins-=KCOST[k];ow[k]=1;saveKits();showPick();return}
+    if(cmb){sel=sel.includes(k)?sel.filter(v=>v!==k):owner||sel.length<5?[...sel,k]:sel;showPick();return}
+    finishPick(k,[])};kl.appendChild(b)}
+  const row=(txt,fn)=>{const b=document.createElement("button");b.type="button";b.textContent=txt;b.style.gridColumn="1/-1";b.onclick=fn;kl.appendChild(b)};
+  row(cmb?"✖ Stop combining":"🔗 Combine kits (2 for 100🪙, +50🪙 each extra)",()=>{cmb=!cmb;sel=[];showPick()});
+  if(cmb&&sel.length>=2){const key=[...sel].sort().join("+"),cost=comboCost(sel.length),have=owner||ow.combos[key];
+   row(`⚔ Use combo: ${sel.map(k=>KITS[k]).join(" + ")} · ${have?"✔ owned":"Buy "+cost+"🪙"}`,()=>{if(!have){if(coins<cost){info.textContent=`Need ${cost} 🪙 for that combo (you have ${coins}).`;return}coins-=cost;ow.combos[key]=1;saveKits()}
+    const ks=sel;cmb=false;sel=[];finishPick(ks[0],ks.slice(1))})}
+  row(owner?"🔑 Owner: infinite coins, kits and combos (tap to turn off)":"🔑 Owner code",ownerCode);kp.hidden=false}
 function end(win,m){mode=win?"won":"lost";msg=m;if(win){level+=1}if(score>hi){hi=score;try{localStorage.setItem("freezeTagBest",hi)}catch(e){}}}
 function step(o,ang,spd){const sd=o.fr?1:2,bw=walls.length&&free(o.x,o.y,PR,sd)?sd:0;for(const d of[0,.5,-.5,1,-1,1.6,-1.6]){const a=ang+d,nx=o.x+Math.cos(a)*spd,ny=o.y+Math.sin(a)*spd;if(free(nx,ny,PR,bw)){o.x=nx;o.y=ny;return}if(free(nx,o.y,PR,bw)){o.x=nx;return}if(free(o.x,ny,PR,bw)){o.y=ny;return}}}
 const toward=(o,tx,ty,spd)=>step(o,Math.atan2(ty-o.y,tx-o.x),spd);
@@ -149,7 +164,8 @@ for(const k in KCOST)KCOST[k]*=4;
 function boom(px,py,r,type,by){fx.push({x:px,y:py,r,t:30});for(const o of actors()){if(Math.hypot(o.x-px,o.y-py)>=r)continue;
  if(type==="thaw"&&o.fz){o.fz=0;o.th=0;o.sp=Math.max(o.sp||0,180);rew(by,25);if(isH(o))sayTo(o,"🔥 You were thawed!")}
  else if(type==="freeze"&&o!==by){if(freeze(o))rew(by,20)}}}
-function useKit(o,a,dist=230){const k=o.kit;if(!k||(o.fz&&!isH(o)))return;
+function useKit(o,a,dist=230){if(isH(o)&&o.kx&&o.kx.length){const p=o.kit,all=[p,...o.kx];for(const k of all){o.kit=k;useKit1(o,a,dist)}o.kit=p;return}useKit1(o,a,dist)}
+function useKit1(o,a,dist=230){const k=o.kit;if(!k||(o.fz&&!isH(o)))return;
  if(!isH(o)){o.kit=null;o.kk=k;o.kc=720}
  const thr=frs();
  if(k==="speed"){o.sp=240;sayTo(o,"⚡ Speed boost!")}
@@ -345,7 +361,7 @@ function draw(){
  if(mode!=="title"){
   const al=actors(),free2=al.filter(o=>!o.fz).length;
   text(P.fr?`LV ${level} · ${MAPS[mapI].n} · Frozen ${al.length-free2}/${al.length}`:`LV ${level} · ${MAPS[mapI].n} · Free ${free2}/${al.length}`,10,24,17,"#fff");text(`⏱ ${Math.max(0,Math.ceil(time/60))}s`,W/2+90,24,20,time<600?"#f87171":"#fde047","center");text(`SCORE ${score}  BEST ${hi}`,W-10,24,15,"#fde047","right");
-  x.fillStyle="rgb(0 0 0 / 55%)";x.fillRect(10,H-24,120,12);x.fillStyle=P.dc>0?"#f97316":"#4ade80";x.fillRect(10,H-24,120*(P.dc>0?1-P.dc/150:1),12);text("DASH",138,H-13,14,"#fff");text(P.kit?`${KITS[P.kit]} (Q)    ${P.fr?"🧊 freezer":"🪙 runner"} coins: ${coins}`:"",10,H-34,15,"#fde047");
+  x.fillStyle="rgb(0 0 0 / 55%)";x.fillRect(10,H-24,120,12);x.fillStyle=P.dc>0?"#f97316":"#4ade80";x.fillRect(10,H-24,120*(P.dc>0?1-P.dc/150:1),12);text("DASH",138,H-13,14,"#fff");text(P.kit?`${kn(P)} (Q)    ${P.fr?"🧊 freezer":"🪙 runner"} coins: ${owner?"∞":coins}`:"",10,H-34,15,"#fde047");
   if(msgT>0)text(msg,W/2,H-60,20,"#fff","center")}
  if(mode==="pick"){x.fillStyle="rgb(2 6 23 / 45%)";x.fillRect(0,0,W,H);text((nr==="guest"?myReady:hostReady)?"Waiting for your friend…":"Pick your kit above ↑",W/2,H/2,30,"#fde047","center")}
  if(mode==="title"){x.fillStyle="rgb(2 6 23 / 55%)";x.fillRect(0,0,W,H);text("FREEZE TAG 3D",W/2,170,50,"#cffafe","center");text("1: Runner (don't get frozen) · 2: Freezer (freeze them all)",W/2,225,19,"#fde047","center");if(Math.floor(t/30)%2)text(nr==="guest"?"Pick your role, then wait for the host to start":"Press 1 or 2, or use the buttons above",W/2,275,20,"#fff","center")}
@@ -378,7 +394,7 @@ function onMsg(m){
  if(!m||typeof m!=="object")return;
  if(nr==="host"){
   if(m.t==="role"&&(m.r==="runner"||m.r==="freezer")){gr=m.r;netTxt()}
-  else if(m.t==="kit0"&&PF&&mode==="pick"&&!guestReady&&POOL[PF.fr?1:0].includes(m.k)){PF.kit=m.k;guestReady=true;tryStart()}
+  else if(m.t==="kit0"&&PF&&mode==="pick"&&!guestReady&&POOL[PF.fr?1:0].includes(m.k)){PF.kit=m.k;PF.kx=Array.isArray(m.kx)?m.kx.filter(k=>POOL[PF.fr?1:0].includes(k)&&k!==m.k).slice(0,12):[];guestReady=true;tryStart()}
   else if(m.t==="i"&&PF){PFin={up:!!m.u,down:!!m.d};if(num(m.a))PF.a=m.a}
   else if(m.t==="dash"&&PF&&mode==="play"&&PF.dc<=0){PF.ds=18;PF.dc=150}
   else if(m.t==="kit"&&PF&&mode==="play"){if(num(m.a))PF.a=m.a;useKit(PF,PF.a)}
