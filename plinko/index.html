@@ -24,13 +24,12 @@ const betOk=v=>v===100000?best>=1000000:level>=BET_LVL[BETS.indexOf(v)];
 const UPS=[
  {k:"pay",n:"Payout Boost",d:"+5% on every win",max:Infinity,cost:l=>60*(l+1)**2},
  {k:"aim",n:"Wider Aim",d:"+12px drop range",max:Infinity,cost:l=>40+50*l},
- {k:"multi",n:"Multi-Drop",d:"+1 ball per drop",max:Infinity,cost:l=>Math.round(150*(l+1)**1.5)},
  {k:"auto",n:"Auto Speed",d:"Faster auto drops",max:Infinity,cost:l=>50+40*l},
  {k:"xp",n:"Quick Learner",d:"+25% XP",max:Infinity,cost:l=>80+60*l}];
 const xpNeed=l=>Math.round(25*l**1.4);
 const SUF=["","K","M","B","T","Qa","Qi","Sx","Sp","Oc","No","Dc"];
 function fmt(n){const a=Math.abs(n);if(a<1000)return String(Math.round(n*10)/10);let i=Math.min(SUF.length-1,Math.floor(Math.log10(a)/3));let v=n/1000**i;if(Math.abs(v)>=999.95&&i<SUF.length-1){i+=1;v=n/1000**i}return(Math.round(v*100)/100)+SUF[i]}
-let coins=100,best=100,bet=10,risk="mid",balls=[],pegs=[],floats=[],flash=[],mx=300,auto=false,autoT=0,lastWin=0,level=1,xp=0,up={pay:0,aim:0,multi:0,auto:0,xp:0};
+let coins=100,best=100,bet=10,risk="mid",balls=[],pegs=[],floats=[],flash=[],mx=300,auto=false,autoT=0,lastWin=0,level=1,xp=0,up={pay:0,aim:0,auto:0,xp:0};
 const aimR=()=>Math.min(30+12*up.aim,(RIGHT-LEFT)/2);
 try{const c=localStorage.getItem(KEY+"Coins");if(c!==null&&+c>=0)coins=+c;best=Math.max(coins,+localStorage.getItem(KEY+"Best")||0);const p=JSON.parse(localStorage.getItem(KEY+"Prog")||"null");if(p){level=p.level||1;xp=p.xp||0;Object.assign(up,p.up)}}catch(e){}
 function save(){try{localStorage.setItem(KEY+"Coins",coins);localStorage.setItem(KEY+"Best",best);localStorage.setItem(KEY+"Prog",JSON.stringify({level,xp,up}))}catch(e){}}
@@ -40,10 +39,9 @@ const dividers=[];for(let k=0;k<=SLOTS;k+=1)dividers.push(LEFT+S*k);
 function color(m){return m>=20?"#ef4444":m>=5?"#f97316":m>=1.5?"#eab308":m>=1?"#84cc16":"#38bdf8"}
 function drop(){
  if(coins<bet)return false;
- const n=Math.min(1+up.multi,Math.floor(coins/bet)),sim=Math.min(n,300),w=n/sim;
- coins=Math.round((coins-bet*n)*10)/10;
- for(let i=0;i<sim;i+=1){const a=aimR();
-  balls.push({x:Math.max(CX-a,Math.min(CX+a,mx))+(i?(Math.random()-.5)*Math.min(a*2,16*i):0),y:28,vx:(Math.random()-.5)*30,vy:0,bet:bet*w,risk,hue:Math.floor(Math.random()*360)})}
+ coins=Math.round((coins-bet)*10)/10;
+ {const a=aimR();
+  balls.push({x:Math.max(CX-a,Math.min(CX+a,mx)),y:28,vx:(Math.random()-.5)*30,vy:0,bet:bet,risk,hue:Math.floor(Math.random()*360)})}
  save();return true}
 const payMul=()=>1+.05*up.pay+.02*(level-1);
 function addXp(a){xp+=a*(1+.25*up.xp);
