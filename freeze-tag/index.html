@@ -15,7 +15,7 @@ button{border:0;border-radius:.5rem;background:#cffafe;color:#083344;cursor:poin
 <p><strong>Kits:</strong> Runners can pick Speed (1🪙), Barrier (2🪙), Super Speed (3🪙), Climber (4🪙, climb building walls for 6s with no dash cooldown), Shield (5🪙, blocks 1 freeze) or Phoenix (1000🪙, frees everyone). Freezers can pick Speed (1🪙), Giant (2🪙, bigger tag radius), Super Speed (3🪙), Teleport (4🪙), Rope (5🪙, drags a runner to you), Snowball (6🪙) or Blizzard (1000🪙, freezes every runner). Enemies never use kits.</p>
 <p><strong>2 players online:</strong> one device hosts and shares the 4-letter code, the other joins. The guest picks Runner or Freezer with the role buttons, the host picks theirs to start the round, and you both choose your own kit. You can both be runners, both freezers, or one of each. Coins you earn go to your own device.</p>
 <p><strong>View:</strong> press P to switch between first-person and a view from just behind you.</p>
-  <p><strong>Maps:</strong> Arena, Maze, Castle, City and Forest. Buildings are hollow with rooms: go in through the door, pass the doorway in the inner wall, take the stairs inside up to the roof and run around on top (freezers follow you up). The Climber kit scales the outside walls instead. Arena, Castle towers, City and Forest cabins all have them. Auto cycles one per level, or pick one with the map button (M).</p>
+  <p><strong>Maps:</strong> Arena, Maze, Castle, City and Forest. Buildings are hollow with rooms (about half have no stairs, so you need Climber to reach those roofs): go in through the door, pass the doorway in the inner wall, take the stairs inside up to the roof and run around on top (freezers follow you up). The Climber kit scales the outside walls instead. Arena, Castle towers, City and Forest cabins all have them. Auto cycles one per level, or pick one with the map button (M).</p>
 <p><strong>W/S or ↑/↓</strong> run · <strong>A/D or ←/→</strong> turn, click the game and move the mouse (Esc to release), or drag on the view with a finger · <strong>Space / E</strong> dash · <strong>Q / F</strong> use kit · <strong>Enter</strong> start</p>
 <div class="modes"><button id="mRun" type="button">🏃 Play Runner (1)</button><button id="mFrz" type="button">🥶 Play Freezer (2)</button><button id="mMap" type="button">🗺 Map: Auto (M)</button></div>
 <div id="online"></div><p id="netInfo" style="margin:.2rem 0;font-size:.85rem;color:#fde047"></p>
@@ -49,14 +49,14 @@ function add(x0,y0,x1,y1,h,c,solid=true){
    pieces.push({x0:a,y0:e,x1:b,y1:g,h:hh,c:"#e2e8f0",cx:(a+b)/2,cy:(e+g)/2})}}
  const w=x1-x0,l=y1-y0,hor=w>=l,n=Math.max(1,Math.ceil((hor?w:l)/100));
  for(let i=0;i<n;i++){const a=hor?x0+w*i/n:x0,b=hor?x0+w*(i+1)/n:x1,e=hor?y0:y0+l*i/n,f=hor?y1:y0+l*(i+1)/n;pieces.push({x0:a,y0:e,x1:b,y1:f,h,c,cx:(a+b)/2,cy:(e+f)/2})}}
-function house(x0,y0,x1,y1,h,c,d){HS.push([x0,y0,x1,y1]);const t=16,g=40,cx=(x0+x1)/2,cy=(y0+y1)/2,ix0=x0+t,ix1=x1-t,iy0=y0+t,iy1=y1-t,sw=56;
+function house(x0,y0,x1,y1,h,c,d){HS.push([x0,y0,x1,y1]);const t=16,g=40,cx=(x0+x1)/2,cy=(y0+y1)/2,ix0=x0+t,ix1=x1-t,iy0=y0+t,iy1=y1-t,ns=HS.length%2===0,sw=ns?0:56;
  if(d===3){add(x0,y0,cx-g,y0+t,h,c);add(cx+g,y0,x1,y0+t,h,c)}else add(x0,y0,x1,y0+t,h,c);
  if(d===2){add(x0,y1-t,cx-g,y1,h,c);add(cx+g,y1-t,x1,y1,h,c)}else add(x0,y1-t,x1,y1,h,c);
  if(d===1){add(x0,iy0,x0+t,cy-g,h,c);add(x0,cy+g,x0+t,iy1,h,c)}else add(x0,iy0,x0+t,iy1,h,c);
  if(d===0){add(x1-t,iy0,x1,cy-g,h,c);add(x1-t,cy+g,x1,iy1,h,c)}else add(x1-t,iy0,x1,iy1,h,c);
- const s=d===0?{x0:ix0,x1:ix0+sw,y0:iy0,y1:iy1,d:3}:d===1?{x0:ix1-sw,x1:ix1,y0:iy0,y1:iy1,d:2}:d===2?{x0:ix0,x1:ix1,y0:iy0,y1:iy0+sw,d:1}:{x0:ix0,x1:ix1,y0:iy1-sw,y1:iy1,d:0},len=d<2?iy1-iy0:ix1-ix0;
- s.h=h;s.Lp=len-20;stairs.push(s);
- for(let i=0;i<8;i++){const f0=i/8,f1=(i+1)/8,hh=Math.min(h,h*((i+1)*len/8)/s.Lp);let a=s.x0,b=s.x1,e=s.y0,g2=s.y1;
+ const s=ns?null:d===0?{x0:ix0,x1:ix0+sw,y0:iy0,y1:iy1,d:3}:d===1?{x0:ix1-sw,x1:ix1,y0:iy0,y1:iy1,d:2}:d===2?{x0:ix0,x1:ix1,y0:iy0,y1:iy0+sw,d:1}:{x0:ix0,x1:ix1,y0:iy1-sw,y1:iy1,d:0},len=d<2?iy1-iy0:ix1-ix0;
+ if(s){s.h=h;s.Lp=len-20;stairs.push(s)}
+ for(let i=0;s&&i<8;i++){const f0=i/8,f1=(i+1)/8,hh=Math.min(h,h*((i+1)*len/8)/s.Lp);let a=s.x0,b=s.x1,e=s.y0,g2=s.y1;
   if(s.d===3){e=s.y0+len*f0;g2=s.y0+len*f1}else if(s.d===2){e=s.y1-len*f1;g2=s.y1-len*f0}else if(s.d===1){a=s.x0+len*f0;b=s.x0+len*f1}else{a=s.x1-len*f1;b=s.x1-len*f0}
   pieces.push({x0:a,y0:e,x1:b,y1:g2,h:hh,c:"#e2e8f0",cx:(a+b)/2,cy:(e+g2)/2})}
  const pt=5,pg=26,fl=(((x0/50)|0)+((y0/50)|0))&1?1:-1;
