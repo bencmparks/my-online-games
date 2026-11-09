@@ -135,45 +135,69 @@ function update(dt){
     w.items=[];w.st="idle"}}}
  for(const q of floats)q.l-=dt;floats=floats.filter(q=>q.l>0);
  for(const pd of pads()){if(Math.hypot(P.x-pd.x,P.y-pd.y)<38&&s.cash>0){const paid=s.paid[pd.id]||0,a=Math.min(s.cash,Math.max(10,pd.cost/2.5)*dt,pd.cost-paid);s.cash-=a;s.paid[pd.id]=paid+a;if(s.paid[pd.id]>=pd.cost-.01)buy(pd)}}}
-function text(t,px,py,sz,col,al="center"){x.font=sz+"px Arial";x.textAlign=al;x.fillStyle=col;x.fillText(t,px,py)}
+function text(t,px,py,sz,col,al="center",bold){x.font=(bold?"bold ":"")+sz+"px Arial";x.textAlign=al;x.fillStyle=col;x.fillText(t,px,py)}
+const rr=(a,b,w,h,r,f,st,lw)=>{x.beginPath();x.roundRect(a,b,w,h,r);if(f){x.fillStyle=f;x.fill()}if(st){x.strokeStyle=st;x.lineWidth=lw||3;x.stroke()}};
+const FUR=["#8b5a2b","#a06a3a","#6b4423","#c08457","#4a3320"],SHIRT=["#ef4444","#3b82f6","#22c55e","#f59e0b","#a855f7","#ec4899"];
+function ape(px,py,fur,shirt,o={}){const bob=o.still?0:Math.abs(Math.sin(performance.now()/140+px*.05))*2;py-=bob;
+ x.fillStyle="rgb(0 0 0 / 22%)";x.beginPath();x.ellipse(px,py+bob+14,15,6,0,0,7);x.fill();
+ rr(px-11,py-4,22,19,7,shirt,"rgb(0 0 0 / 25%)",2);
+ x.fillStyle=fur;x.beginPath();x.arc(px-14,py-18,6,0,7);x.arc(px+14,py-18,6,0,7);x.fill();x.beginPath();x.arc(px,py-16,15,0,7);x.fill();
+ x.fillStyle="#f3d2a2";x.beginPath();x.ellipse(px,py-12,10,8,0,0,7);x.fill();
+ x.fillStyle="#111";x.beginPath();x.arc(px-4,py-17,2,0,7);x.arc(px+4,py-17,2,0,7);x.fill();
+ x.strokeStyle="#7c3a12";x.lineWidth=1.5;x.beginPath();x.arc(px,py-12,4,.2,Math.PI-.2);x.stroke();
+ if(o.hat==="top"){rr(px-9,py-44,18,16,3,"#111");rr(px-14,py-30,28,5,2,"#111");rr(px-9,py-34,18,3,0,"#facc15")}
+ if(o.hat==="cap"){x.fillStyle=o.cap;x.beginPath();x.arc(px,py-21,13,Math.PI,0);x.fill();rr(px-3,py-23,17,4,2,o.cap)}}
+const skin=c=>Math.abs(Math.floor(c.ox*13));
 function draw(){
  cam.x=Math.max(0,Math.min(WW-VW,P.x-VW/2));cam.y=Math.max(0,Math.min(WH-VH,P.y-VH/2));
  x.save();x.translate(-Math.round(cam.x),-Math.round(cam.y));
  x.fillStyle=MKT().bg;x.fillRect(0,0,WW,WH);x.fillStyle=MKT().tl;for(let i=0;i<WW;i+=100)for(let j=0;j<WH;j+=100)if((i+j)/100%2)x.fillRect(i,j,100,100);
- x.fillStyle="#bef264";x.fillRect(0,16,WW,170);x.fillStyle="#65a30d";x.fillRect(0,0,WW,16);x.fillRect(0,184,WW,6);
- 
- text("FARMS & FACTORIES",110,34,13,"#365314","left");text("CHECKOUT",60,RY-52,13,"#334155","left");
- x.fillStyle="#92400e";x.fillRect(DOOR.x-60,WH-14,120,14);text("Door",DOOR.x,WH-20,12,"#78350f");
+ x.fillStyle="#7bc74d";x.fillRect(0,0,WW,190);x.fillStyle="#6ab23f";for(let i=0;i<WW;i+=60)for(let j=20;j<190;j+=45)x.fillRect(i+((j/45|0)%2)*30,j,18,5);
+ x.fillStyle="#a16207";x.fillRect(0,184,WW,10);x.fillStyle="#78350f";for(let i=0;i<WW;i+=50)x.fillRect(i,180,6,18);
+ x.fillStyle="#78350f";x.fillRect(0,0,WW,12);x.fillRect(0,0,10,WH);x.fillRect(WW-10,0,10,WH);x.fillRect(0,WH-10,WW,10);
+ text("FARMS & FACTORIES",110,40,13,"rgb(0 0 0 / 35%)","left",1);text("CHECKOUT",60,RY-52,13,"rgb(0 0 0 / 30%)","left",1);
+ rr(DOOR.x-70,WH-18,140,18,6,"#92400e","#451a03",3);text("ENTRANCE",DOOR.x,WH-30,13,"rgb(0 0 0 / 40%)","center",1);
  for(const p of PRODS){const I=INFO[p],px=I.x,py=I.y,f=I.from;
-  if(s.pr[p]){x.fillStyle=f?"#94a3b8":"#65a30d";x.fillRect(px-85,py-44,170,88);x.fillStyle=f?"#64748b":"#4d7c0f";x.fillRect(px-85,py-44,170,10);text(I.icon,px,py+4,38,"#000");
-   const n=src(p);for(let i=0;i<n;i++)text(I.e,px-78+(i%12)*14,py+38,13,"#000");
-   if(f){text(INFO[f].e+" "+mach[p].in+"/8 → "+I.e,px,py-48,12,"#334155");if(mach[p].in>=2&&mach[p].out<PCAP){x.fillStyle="#22c55e";x.fillRect(px-60,py+18,120*mach[p].t*(1+.4*s.up.mach)/5,4)}}}
-  else{x.strokeStyle="#4d7c0f88";x.setLineDash([8,6]);x.lineWidth=2;x.strokeRect(px-85,py-44,170,88);x.setLineDash([])}
-  if(s.pr[p]&&s.sh[p]){const sx=I.sx,sy=I.sy;x.fillStyle="#78350f";x.fillRect(sx-85,sy-32,170,64);x.fillStyle="#a16207";x.fillRect(sx-82,sy-29,164,58);text(I.e+" $"+Math.round(I.p*PM()),sx-72,sy-35,12,"#78350f","left");
-   for(let i=0;i<shelf[p];i++)text(I.e,sx-72+(i%10)*16,sy-12+Math.floor(i/10)*16,14,"#000");
-   if(tag[p]){x.fillStyle="rgb(168 85 247 / 65%)";x.fillRect(sx-82,sy-29,164,58);text("🎨 TAGGED! stand here to clean",sx,sy+4,12,"#fff");x.fillStyle="#fff";x.fillRect(sx-60,sy+14,120*tagT[p]/1.5,5)}}
-  else if(s.pr[p]){x.strokeStyle="#78350f88";x.setLineDash([8,6]);x.lineWidth=2;x.strokeRect(I.sx-85,I.sy-32,170,64);x.setLineDash([])}}
- for(let r=0;r<3;r++){const on=r<NREG();x.globalAlpha=on?1:.3;x.fillStyle="#475569";x.fillRect(RX[r]-45,RY-30,90,60);x.fillStyle="#64748b";x.fillRect(RX[r]-45,RY-30,90,10);text("🧾",RX[r],RY+14,30,"#000");x.globalAlpha=1;
-  if(on&&hasC(r))text("🧑‍💼",RX[r]-62,RY+10,28,"#000");if(on&&piles[r]>0){const k=Math.min(96,Math.ceil(piles[r]/15)),sd=Math.ceil(Math.sqrt(Math.min(k,16))),ly=Math.ceil(k/16),bx=RX[r]+80-sd*7,by=RY-sd*7;x.fillStyle="#bbf7d0";x.fillRect(bx-4,by-4,sd*14+8,sd*14+8);x.strokeStyle="#16a34a";x.lineWidth=2;x.strokeRect(bx-4,by-4,sd*14+8,sd*14+8);for(let i=0;i<k;i++){const l=Math.floor(i/16),j=i%16;text("💵",bx+(j%sd)*14+7,by+Math.floor(j/sd)*14+12-l*8,13,"#000")}}}
- for(const pd of pads()){const pr=(s.paid[pd.id]||0)/pd.cost;x.fillStyle="rgb(250 204 21 / 30%)";x.beginPath();x.arc(pd.x,pd.y,36,0,7);x.fill();x.strokeStyle="#facc15";x.lineWidth=3;x.beginPath();x.arc(pd.x,pd.y,36,-Math.PI/2,-Math.PI/2+7*Math.max(.01,pr));x.stroke();
-  text(pd.label,pd.x,pd.y-42,11,"#365314");text("$"+Math.ceil(pd.cost-(s.paid[pd.id]||0)),pd.x,pd.y+6,16,"#713f12")}
- for(const v of vands){text("😈",v.x,v.y,30,"#000");text(v.st==="spray"?"🎨💦":"🎨",v.x,v.y-30,16,"#000")}
- for(const d of drops)text("💰",d.x,d.y,16,"#000");
- for(const c of custs){text(c.e,c.x,c.y,30,"#000");if(c.vip)text("🎩",c.x,c.y-26,16,"#000");if(c.mood)text(c.mood,c.x+16,c.y-20,16,"#000");else if(c.st==="queue"){text("💵",c.x,c.y-30,14,"#000")}else if(c.st!=="leave"){const it=c.list[c.i];x.fillStyle=c.vip?"#fde68a":"#fff";x.fillRect(c.x-24,c.y-58,48,22);text(INFO[it.p].e+(it.q-it.got>1?"x"+(it.q-it.got):""),c.x,c.y-41,15,"#000")}}
- for(const w of workers){text("🐒",w.x,w.y,28,"#000");w.items.forEach((p,i)=>text(INFO[p].e,w.x,w.y-30-i*8,14,"#000"))}
- x.strokeStyle="#facc15";x.lineWidth=3;x.beginPath();x.arc(P.x,P.y-9,20,0,7);x.stroke();text("🐵",P.x,P.y,32,"#000");
- P.items.forEach((p,i)=>text(INFO[p].e,P.x,P.y-34-i*9,18,"#000"));
- for(const f of floats){x.globalAlpha=Math.min(1,f.l);text(f.t,f.x,f.y-(1.2-f.l)*40,18,f.c);x.globalAlpha=1}
+  if(s.pr[p]){const n=src(p);
+   if(!f){rr(px-85,py-44,170,88,14,"#7c4a1e","#4a2c0e",4);x.strokeStyle="rgb(255 255 255 / 12%)";x.lineWidth=2;for(let k=1;k<4;k++){x.beginPath();x.moveTo(px-78,py-44+k*22);x.lineTo(px+78,py-44+k*22);x.stroke()}}
+   else{rr(px-85,py-44,170,88,12,"#cbd5e1","#475569",4);x.fillStyle="#475569";x.fillRect(px-80,py-8,160,16);x.fillStyle="#94a3b8";const off=(performance.now()/60)%16;for(let k=-1;k<10;k++)x.fillRect(px-80+k*16+off,py-8,6,16);x.fillStyle="#cbd5e1";x.fillRect(px-85,py-8,5,16);x.fillRect(px+80,py-8,5,16)}
+   for(let i=0;i<n;i++)text(I.e,px-68+(i%6)*27,py-18+Math.floor(i/6)*30,f?20:24,"#000");
+   if(f){text(INFO[f].e+" "+mach[p].in+"/8",px-40,py+36,12,"#1e293b","center",1);if(mach[p].in>=2&&mach[p].out<PCAP){rr(px-20,py+28,80,8,4,"#475569");rr(px-20,py+28,Math.max(8,80*mach[p].t*(1+.4*s.up.mach)/5),8,4,"#22c55e")}else text("⚙️",px+30,py+36,14,"#000")}
+   else{const r=prod[p];if(n<PCAP){rr(px-30,py+30,60,7,3,"rgb(0 0 0 / 35%)");rr(px-30,py+30,60*Math.min(1,r.t/(I.t*GROW())),7,3,"#facc15")}}
+   rr(px-68,py-62,136,17,8,"rgb(0 0 0 / 55%)");text(I.n,px,py-49,11,"#fff","center",1)}
+  else{rr(px-85,py-44,170,88,14,"rgb(0 0 0 / 7%)","rgb(0 0 0 / 22%)",3);text("🔒",px,py+10,30,"rgb(0 0 0 / 40%)")}
+  if(s.pr[p]&&s.sh[p]){const sx=I.sx,sy=I.sy;rr(sx-85,sy-34,170,68,10,"#b45309","#78350f",4);rr(sx-79,sy-29,158,42,6,"#fde68a");
+   for(let i=0;i<shelf[p];i++)text(I.e,sx-72+(i%10)*16,sy-12+Math.floor(i/10)*14,i>=20?11:14,"#000");
+   rr(sx-30,sy+16,60,16,6,"#fff","#78350f",2);text("$"+Math.round(I.p*PM()),sx,sy+28,12,"#166534","center",1);
+   if(tag[p]){rr(sx-85,sy-34,170,68,10,"rgb(168 85 247 / 70%)");text("🎨 TAGGED!",sx,sy-4,16,"#fff","center",1);text("stand here to clean",sx,sy+12,11,"#fff");rr(sx-60,sy+20,120*tagT[p]/1.5,6,3,"#fff")}}
+  else if(s.pr[p]){rr(I.sx-85,I.sy-34,170,68,10,"rgb(0 0 0 / 7%)","rgb(0 0 0 / 22%)",3)}}
+ for(let r=0;r<3;r++){const on=r<NREG();x.globalAlpha=on?1:.3;rr(RX[r]-45,RY-30,90,60,10,"#3b82f6","#1e3a8a",4);rr(RX[r]-30,RY-24,60,22,5,"#dbeafe");text("$",RX[r],RY-7,18,"#1e3a8a","center",1);rr(RX[r]-20,RY+6,40,12,4,"#1e40af");x.globalAlpha=1;
+  if(on&&hasC(r))ape(RX[r]-66,RY+8,FUR[2],"#2563eb",{hat:"cap",cap:"#1d4ed8",still:1});
+  if(on&&piles[r]>0){const k=Math.min(96,Math.ceil(piles[r]/15)),sd=Math.ceil(Math.sqrt(Math.min(k,16))),bx=RX[r]+82-sd*11,by=RY-sd*7;rr(bx-5,by-5,sd*22+10,sd*14+10,6,"#bbf7d0","#16a34a",2);
+   for(let i=0;i<k;i++){const l=Math.floor(i/16),j=i%16;rr(bx+(j%sd)*22+1,by+Math.floor(j/sd)*14+1-l*6,20,11,2,"#4ade80","#15803d",1.5);text("$",bx+(j%sd)*22+11,by+Math.floor(j/sd)*14+10-l*6,9,"#166534","center",1)}}}
+ for(const pd of pads()){const pr=Math.min(1,(s.paid[pd.id]||0)/pd.cost),X=pd.x-42,Y=pd.y-42;rr(X,Y,84,84,14,"#fbbf24","#fff",4);
+  x.save();x.beginPath();x.roundRect(X,Y,84,84,14);x.clip();x.fillStyle="#34d399";x.fillRect(X,Y+84-84*pr,84,84*pr);x.restore();rr(X,Y,84,84,14,null,"#fff",4);
+  const w=Math.max(100,pd.label.length*6.5);rr(pd.x-w/2,Y-22,w,19,9,"rgb(0 0 0 / 60%)");text(pd.label,pd.x,Y-8,11,"#fff","center",1);
+  text("$"+Math.ceil(pd.cost-(s.paid[pd.id]||0)),pd.x,pd.y+8,20,"#7c2d12","center",1)}
+ for(const v of vands){ape(v.x,v.y,"#2b2b2b","#111",{hat:"cap",cap:"#dc2626"});text(v.st==="spray"?"🎨💦":"🎨",v.x,v.y-42,18,"#000");rr(v.x-9,v.y-27,18,5,2,"#ef4444")}
+ for(const d of drops){x.fillStyle="#facc15";x.beginPath();x.arc(d.x,d.y,9,0,7);x.fill();x.strokeStyle="#a16207";x.lineWidth=2;x.stroke();text("$",d.x,d.y+4,11,"#713f12","center",1)}
+ for(const c of custs){const k=skin(c);ape(c.x,c.y,c.vip?"#d4a017":FUR[k%5],c.vip?"#facc15":SHIRT[k%6],{hat:c.vip?"top":""});
+  if(c.mood)text(c.mood,c.x+18,c.y-26,18,"#000");else if(c.st==="queue"){rr(c.x-13,c.y-52,26,18,8,"#fff","#16a34a",2);text("$",c.x,c.y-38,13,"#16a34a","center",1)}else if(c.st!=="leave"){const it=c.list[c.i],tx=INFO[it.p].e+(it.q-it.got>1?"x"+(it.q-it.got):"");rr(c.x-24,c.y-(c.vip?64:54),48,22,10,c.vip?"#fde68a":"#fff","#334155",2);text(tx,c.x,c.y-(c.vip?47:37),15,"#000")}}
+ for(const w of workers){ape(w.x,w.y,FUR[2],"#16a34a",{hat:"cap",cap:"#15803d"});w.items.forEach((p,i)=>text(INFO[p].e,w.x,w.y-30-i*9,16,"#000"))}
+ ape(P.x,P.y,"#7a4a1f","#ef4444",{hat:"cap",cap:"#facc15",still:!(keys.KeyW||keys.KeyA||keys.KeyS||keys.KeyD||keys.ArrowUp||keys.ArrowDown||keys.ArrowLeft||keys.ArrowRight||P.mt)});
+ P.items.forEach((p,i)=>{rr(P.x-13,P.y-52-i*12,26,13,4,"rgb(255 255 255 / 80%)");text(INFO[p].e,P.x,P.y-41-i*12,13,"#000")});
+ for(const f of floats){x.globalAlpha=Math.min(1,f.l);text(f.t,f.x,f.y-(1.2-f.l)*40,20,f.c,"center",1);x.globalAlpha=1}
  x.restore();
- let hint="";if(s.served<1&&!shelf.banana&&!P.items.length)hint="Walk up to the 🍌 grove to grab bananas";else if(s.served<1&&P.items.length)hint="Drop the fruit on the matching shelf";else if(queues[0].length&&!hasC(0)&&dist(P,regPos(0))>=95)hint="Stand at the register to ring up customers";else if(piles.some(v=>v>0))hint="Collect the 💵 cash pile";
- if(vands.some(v=>v.st!=="flee"))hint="😈 Vandal! Catch it before it tags a shelf!";else if(PRODS.some(p=>tag[p]))hint="Stand at the tagged shelf to clean it";
- if(hint){x.fillStyle="rgb(0 0 0 / 65%)";x.fillRect(VW/2-190,VH-40,380,28);text(hint,VW/2,VH-20,15,"#fff")}
- const mx=VW-160,my=8,ms=150/WW;x.fillStyle="rgb(0 0 0 / 45%)";x.fillRect(mx-2,my-2,154,WH*ms+4);x.fillStyle=MKT().bg;x.fillRect(mx,my,150,WH*ms);x.fillStyle="#bef264";x.fillRect(mx,my,150,186*ms);
+ rr(8,8,170,34,17,"rgb(0 0 0 / 55%)");text("💵 $"+Math.floor(s.cash),24,32,18,"#bbf7d0","left",1);
+ rr(8,48,110,28,14,"rgb(0 0 0 / 55%)");text("🎒 "+P.items.length+"/"+CAP(),22,68,15,"#fff","left",1);
+ let hint="";if(s.served<1&&!shelf.banana&&!P.items.length)hint="Walk up to the "+INFO.banana.n+" to grab goods";else if(s.served<1&&P.items.length)hint="Drop the goods on the matching shelf";else if(queues[0].length&&!hasC(0)&&dist(P,regPos(0))>=95)hint="Stand at the register to ring up customers";else if(piles.some(v=>v>0))hint="Collect the cash pile";
+ if(vands.some(v=>v.st!=="flee"))hint="Vandal! Catch it before it tags a shelf!";else if(PRODS.some(p=>tag[p]))hint="Stand at the tagged shelf to clean it";
+ if(hint){rr(VW/2-190,VH-42,380,30,15,"rgb(0 0 0 / 65%)");text(hint,VW/2,VH-22,15,"#fff","center",1)}
+ const mx=VW-160,my=8,ms=150/WW;rr(mx-3,my-3,156,WH*ms+6,6,"rgb(0 0 0 / 50%)");x.fillStyle=MKT().bg;x.fillRect(mx,my,150,WH*ms);x.fillStyle="#7bc74d";x.fillRect(mx,my,150,190*ms);
  for(const p of PRODS){x.fillStyle=s.pr[p]?"#166534":"#4d7c0f66";x.fillRect(mx+(INFO[p].x-12)*ms,my+(INFO[p].y-12)*ms,24*ms,24*ms+2)}
  for(const v of vands){x.fillStyle="#dc2626";x.fillRect(mx+v.x*ms-2,my+v.y*ms-2,4,4)}
  for(const c of custs){x.fillStyle="#2563eb";x.fillRect(mx+c.x*ms-1,my+c.y*ms-1,2,2)}
- x.strokeStyle="#fff";x.lineWidth=1;x.strokeRect(mx+cam.x*ms,my+cam.y*ms,VW*ms,VH*ms);x.fillStyle="#facc15";x.fillRect(mx+P.x*ms-2,my+P.y*ms-2,4,4)}
-function ui(){const hk=Math.floor(s.cash)+"|"+s.served+"|"+P.items.length+"|"+CAP()+"|"+workers.length+"|"+NREG();if(hk===hudKey)return;hudKey=hk;
+ x.strokeStyle="#fff";x.lineWidth=1;x.strokeRect(mx+cam.x*ms,my+cam.y*ms,VW*ms,VH*ms);x.fillStyle="#facc15";x.fillRect(mx+P.x*ms-2,my+P.y*ms-2,4,4)}function ui(){const hk=Math.floor(s.cash)+"|"+s.served+"|"+P.items.length+"|"+CAP()+"|"+workers.length+"|"+NREG();if(hk===hudKey)return;hudKey=hk;
  document.querySelector("#cash").textContent="💰 $"+Math.floor(s.cash);document.querySelector("#served").textContent="🛒 Customers: "+s.served;document.querySelector("#carry").textContent="🎒 "+P.items.length+"/"+CAP();
  document.querySelector("#staff").textContent="🧾 Registers: "+NREG()+" · 🐒 Helpers: "+workers.length+" · 🧑‍💼 Cashiers: "+(s.up.c1+s.up.c2+s.up.c3)}
 for(let n=1;n<=10;n++){const b=document.createElement("button");b.textContent=n+"x";b.dataset.n=n;b.onclick=()=>{speed=n;try{localStorage.setItem(SPK,n)}catch(e){}markSpeed()};document.querySelector("#spd").append(b)}
