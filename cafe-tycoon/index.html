@@ -7,7 +7,7 @@ canvas{display:block;width:100%;height:auto;margin:.8rem auto;border:.2rem solid
 .row{display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap;margin:.5rem 0}.row button{padding:.4rem .8rem;font-size:.9rem;background:#1a2e05;color:#f1f5e9;border:.1rem solid #65a30d;border-radius:.6rem;cursor:pointer;font-weight:700}.row button.on{background:#a3e635;color:#111}
 button{touch-action:manipulation}</style></head>
 <body><main><a href="../">← All games</a><h1>🐵 Ape Market</h1>
-<p>Build a giant supermarket! <strong>Walk</strong> (WASD / arrows, or tap the map) around the big store. Grab fruit, corn, eggs and more from the <strong>farms</strong> up top and drop them on the matching <strong>shelves</strong>. Carry raw goods to <strong>machines</strong> (corn → 🍿, bananas → 🧃, milk → 🧀) and shelve what they make. Ape customers shop their whole list, then line up at a <strong>register</strong>: stand there to ring them up and walk over the <strong>💵 pile</strong> to collect. Stand on glowing <strong>pads</strong> to unlock new goods, registers, cashiers, helpers, bigger shelves, better prices and more.</p>
+<p>Build a giant supermarket! <strong>Walk</strong> (WASD / arrows, or tap the map) around the big store. Grab fruit, corn, eggs and more from the <strong>farms</strong> up top and drop them on the matching <strong>shelves</strong>. Carry raw goods to <strong>machines</strong> (corn → 🍿, bananas → 🧃, milk → 🧀) and shelve what they make. Rich apes in top hats pay triple and drop 💰 as they walk (grab it!). Ape customers shop their whole list, then line up at a <strong>register</strong>: stand there to ring them up and walk over the <strong>💵 pile</strong> to collect. Stand on glowing <strong>pads</strong> to unlock new goods, registers, cashiers, helpers, bigger shelves, better prices and more.</p>
 <div class="hud"><span id="cash"></span><span id="served"></span><span id="carry"></span><span id="staff"></span></div>
 <canvas id="c" width="800" height="520" aria-label="Ape Market game"></canvas>
 <div class="row" id="spd" aria-label="Game speed"><span style="align-self:center;font-weight:700;color:#d9f99d">Speed:</span></div>
@@ -46,9 +46,9 @@ const DEF={cash:0,pr:{banana:1,corn:0,egg:0,milk:0,tomato:0,popcorn:0,juice:0,ch
 let s=JSON.parse(JSON.stringify(DEF));try{const o=JSON.parse(localStorage.getItem(KEY)||"{}");for(const k in o)if(typeof o[k]==="object"&&o[k]&&!Array.isArray(o[k]))Object.assign(s[k],o[k]);else s[k]=o[k]}catch(e){}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(s))}catch(e){}};
 const P={x:300,y:430,items:[],pk:0},keys={},cam={x:0,y:0};
-let prod,mach,shelf,custs,queues,piles,payT,workers,floats,spawnT,last=0,hudKey="",speed=+localStorage.getItem(KEY+"Speed")||1;
+let drops=[],prod,mach,shelf,custs,queues,piles,payT,workers,floats,spawnT,last=0,hudKey="",speed=+localStorage.getItem(KEY+"Speed")||1;
 function initWorld(){prod={};mach={};shelf={};for(const p of PRODS){prod[p]={n:p==="banana"?4:0,t:0};mach[p]={in:0,out:0,t:0};shelf[p]=0}
- custs=[];queues=[[],[],[]];piles=[0,0,0];payT=[0,0,0];workers=[];floats=[];spawnT=2;P.items=[]}
+ custs=[];drops=[];queues=[[],[],[]];piles=[0,0,0];payT=[0,0,0];workers=[];floats=[];spawnT=2;P.items=[]}
 initWorld();
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y),fl=(px,py,t,c)=>floats.push({x:px,y:py,t,c,l:1.2});
 const CAP=()=>4+3*s.up.bag,SPD=()=>170*(1+.2*s.up.speed),MAXC=()=>3+2*s.up.cust,SH=()=>10+5*s.up.shelf,GROW=()=>.75**s.up.grow,PM=()=>1+.15*s.up.price,NREG=()=>1+s.up.reg2+s.up.reg3,hasC=r=>s.up["c"+(r+1)]>0;
@@ -61,7 +61,7 @@ const src=p=>INFO[p].from?mach[p].out:prod[p].n,takeSrc=(p,k)=>{if(INFO[p].from)
 const FACES=["🐵","🐒","🦍","🦧","🐵","🐒"];
 function mkCust(){const act=PRODS.filter(p=>s.pr[p]),n=Math.min(act.length,1+Math.floor(Math.random()*Math.min(3,1+Math.floor(s.served/15)))),pool=act.slice(),list=[];
  for(let i=0;i<n;i++){const p=pool.splice(Math.floor(Math.random()*pool.length),1)[0];list.push({p,q:1+Math.floor(Math.random()*3),got:0})}
- const vip=Math.random()<.08;custs.push({x:DOOR.x+Math.random()*80-40,y:DOOR.y-20,e:vip?"🦍":FACES[Math.floor(Math.random()*6)],vip,list,i:0,st:"go",pat:20,tm:0,mood:"",reg:-1,ox:Math.random()*100-50})}
+ const vip=Math.random()<.12;custs.push({x:DOOR.x+Math.random()*80-40,y:DOOR.y-20,e:vip?"🦍":FACES[Math.floor(Math.random()*6)],vip,list,i:0,st:"go",pat:20,tm:0,mood:"",reg:-1,ox:Math.random()*100-50,dm:0})}
 function nextItem(c){c.i++;c.pat=20;if(c.i<c.list.length){c.st="go";return}
  if(!c.list.some(l=>l.got)){c.st="leave";c.mood="😠";return}
  let r=0;for(let k=1;k<NREG();k++)if(queues[k].length<queues[r].length)r=k;c.reg=r;queues[r].push(c);c.st="queue"}
@@ -88,7 +88,8 @@ function update(dt){
    if(it.got>=it.q)nextItem(c);else if(shelf[it.p]<=0){c.pat-=dt;if(c.pat<=0)nextItem(c)}}
   else if(c.st==="queue"){const i=queues[c.reg].indexOf(c);tg={x:RX[c.reg],y:Math.min(1050,RY+50+i*34)}}
   else if(c.st==="leave"){tg={x:DOOR.x,y:DOOR.y}}
-  if(tg){const d=Math.hypot(tg.x-c.x,tg.y-c.y);if(d>1){const sp=c.st==="queue"||c.st==="leave"?150:125;c.x+=(tg.x-c.x)/d*Math.min(d,sp*dt);c.y+=(tg.y-c.y)/d*Math.min(d,sp*dt)}}}
+  if(tg){const d=Math.hypot(tg.x-c.x,tg.y-c.y);if(d>1){const sp=c.st==="queue"||c.st==="leave"?150:125;const m=Math.min(d,sp*dt);c.x+=(tg.x-c.x)/d*m;c.y+=(tg.y-c.y)/d*m;if(c.vip&&c.st!=="queue"){c.dm+=m;if(c.dm>=55){c.dm=0;if(drops.length<80&&c.y<DOOR.y-30)drops.push({x:c.x,y:c.y+8,v:Math.round((8+Math.min(60,s.served/4))*PM())})}}}}}
+ for(let i=drops.length-1;i>=0;i--){const d=drops[i];if(Math.hypot(P.x-d.x,P.y-d.y)<36){s.cash+=d.v;fl(d.x,d.y-10,"+$"+d.v,"#ca8a04");drops.splice(i,1)}}
  for(let r=0;r<NREG();r++){const f=queues[r][0];
   if(f&&(hasC(r)||dist(P,regPos(r))<95)&&Math.hypot(f.x-RX[r],f.y-(RY+50))<8){payT[r]+=dt;const cnt=f.list.reduce((a,l)=>a+l.got,0);
    if(payT[r]>=.45*cnt){payT[r]=0;const amt=Math.round(f.list.reduce((a,l)=>a+l.got*INFO[l.p].p,0)*PM()*(f.vip?3:1));queues[r].shift();f.st="leave";f.mood=f.vip?"🤩":"😊";s.served++;
@@ -127,7 +128,8 @@ function draw(){
   if(on&&hasC(r))text("🧑‍💼",RX[r]-62,RY+10,28,"#000");if(on&&piles[r]>0){const k=Math.min(36,Math.ceil(piles[r]/15)),sd=Math.ceil(Math.sqrt(k)),bx=RX[r]+80-sd*7,by=RY-sd*7;x.fillStyle="#bbf7d0";x.fillRect(bx-4,by-4,sd*14+8,sd*14+8);x.strokeStyle="#16a34a";x.lineWidth=2;x.strokeRect(bx-4,by-4,sd*14+8,sd*14+8);for(let i=0;i<k;i++)text("💵",bx+(i%sd)*14+7,by+Math.floor(i/sd)*14+12,13,"#000");text("$"+piles[r],RX[r]+80,by+sd*14+22,13,"#166534")}}
  for(const pd of pads()){const pr=(s.paid[pd.id]||0)/pd.cost;x.fillStyle="rgb(250 204 21 / 30%)";x.beginPath();x.arc(pd.x,pd.y,36,0,7);x.fill();x.strokeStyle="#facc15";x.lineWidth=3;x.beginPath();x.arc(pd.x,pd.y,36,-Math.PI/2,-Math.PI/2+7*Math.max(.01,pr));x.stroke();
   text(pd.label,pd.x,pd.y-42,11,"#365314");text("$"+Math.ceil(pd.cost-(s.paid[pd.id]||0)),pd.x,pd.y+6,16,"#713f12")}
- for(const c of custs){text(c.e,c.x,c.y,30,"#000");if(c.mood)text(c.mood,c.x+16,c.y-20,16,"#000");else if(c.st==="queue"){text("💵",c.x,c.y-30,14,"#000")}else if(c.st!=="leave"){const it=c.list[c.i];x.fillStyle=c.vip?"#fde68a":"#fff";x.fillRect(c.x-24,c.y-52,48,22);text(INFO[it.p].e+(it.q-it.got>1?"x"+(it.q-it.got):""),c.x,c.y-35,15,"#000")}}
+ for(const d of drops)text("💰",d.x,d.y,16,"#000");
+ for(const c of custs){text(c.e,c.x,c.y,30,"#000");if(c.vip)text("🎩",c.x,c.y-26,16,"#000");if(c.mood)text(c.mood,c.x+16,c.y-20,16,"#000");else if(c.st==="queue"){text("💵",c.x,c.y-30,14,"#000")}else if(c.st!=="leave"){const it=c.list[c.i];x.fillStyle=c.vip?"#fde68a":"#fff";x.fillRect(c.x-24,c.y-58,48,22);text(INFO[it.p].e+(it.q-it.got>1?"x"+(it.q-it.got):""),c.x,c.y-41,15,"#000")}}
  for(const w of workers){text("🐒",w.x,w.y,28,"#000");w.items.forEach((p,i)=>text(INFO[p].e,w.x,w.y-30-i*8,14,"#000"))}
  x.strokeStyle="#facc15";x.lineWidth=3;x.beginPath();x.arc(P.x,P.y-9,20,0,7);x.stroke();text("🐵",P.x,P.y,32,"#000");
  P.items.forEach((p,i)=>text(INFO[p].e,P.x,P.y-34-i*9,18,"#000"));
