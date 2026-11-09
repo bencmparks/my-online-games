@@ -116,7 +116,7 @@ function update(dt){
  custs=custs.filter(c=>!(c.st==="leave"&&c.y>=DOOR.y-2));
  vT-=dt;if(vT<=0){vT=45+Math.random()*45;const own=PRODS.filter(p=>s.pr[p]&&s.sh[p]&&!tag[p]);if(s.served>=8&&vands.length<2&&own.length)vands.push({x:DOOR.x,y:DOOR.y-20,p:own[Math.floor(Math.random()*own.length)],st:"go",tm:3,ox:Math.random()*80-40})}
  for(const v of vands){let tg=null;const I=INFO[v.p];
-  if(v.st!=="flee"&&Math.hypot(P.x-v.x,P.y-v.y)<45){v.st="flee";const b=Math.round((25+s.served/2)*MKT().pm);s.cash+=b;fl(v.x,v.y-30,"Caught! +$"+b,"#ca8a04")}
+  if(v.st!=="flee"&&Math.hypot(P.x-v.x,P.y-v.y)<45){v.st="flee";const b=500;s.cash+=b;fl(v.x,v.y-30,"Caught! +$"+b,"#ca8a04")}
   if(v.st==="go"){tg={x:I.sx+v.ox,y:I.sy+I.sd};if(Math.hypot(tg.x-v.x,tg.y-v.y)<4)v.st="spray"}
   else if(v.st==="spray"){v.tm-=dt;if(v.tm<=0){if(s.sh[v.p]){tag[v.p]=1;tagT[v.p]=0}v.st="flee"}}
   else tg={x:DOOR.x,y:DOOR.y};
