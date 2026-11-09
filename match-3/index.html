@@ -14,6 +14,8 @@
     .goals { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem; margin: 0 0 0.6rem; font-weight: bold; }
     .goal { padding: 0.3rem 0.7rem; border: 0.12rem solid #a78bfa; border-radius: 1rem; background: #312e81; }
     .goal.done { border-color: #4ade80; background: #14532d; animation: g-bump 0.4s; }
+    .gem[data-gem="key"] { background: radial-gradient(circle at 30% 25%, #fef9c3, #ca8a04 70%); box-shadow: 0 0 0.6rem #facc15, inset 0 0 0 0.12rem #fff7; }
+    .gem[data-gem="bubble"] { background: radial-gradient(circle at 30% 25%, rgb(255 255 255 / 90%), rgb(56 189 248 / 55%) 60%, rgb(14 116 144 / 85%)); box-shadow: 0 0 0.6rem #38bdf8, inset 0 0 0 0.15rem #bae6fd; cursor: not-allowed; }
     .gem[data-gem="box"] { border-radius: 0.4rem; background: linear-gradient(135deg, #b45309, #78350f); box-shadow: inset 0 0 0 0.15rem #fbbf24; cursor: not-allowed; }
     #status { min-height: 1.5rem; color: #e0e7ff; }
     .board { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 0.25rem; padding: 0.6rem; border: 0.25rem solid #a78bfa; border-radius: 1rem; background: #312e81; }
@@ -60,7 +62,7 @@
     <h1>Match 3</h1>
     <p class="stats"><span>Level: <strong id="level">1</strong></span><span>Score: <strong id="score">0</strong></span><span>Moves: <strong id="moves">20</strong></span><span>Best: <strong id="best">0</strong></span></p>
     <p id="goals" class="goals" aria-live="polite"></p>
-    <p id="status" aria-live="polite">Select two neighboring gems to swap them. Double-click a power-up, or swap it with a neighbor, to set it off. Match 5 in a row for a 🪩 disco ball, or a 2×2 square for a 🧨 dynamite. Swap two power-ups to merge them: a 🪩 disco merged with any power-up copies it onto every gem of the most common color and sets them all off!</p>
+    <p id="status" aria-live="polite">Select two neighboring gems to swap them. Bring 🔑 keys down to the bottom row (they never match). 🫧 Bubbles spread each turn and only power-ups can pop them. Double-click a power-up, or swap it with a neighbor, to set it off. Match 5 in a row for a 🪩 disco ball, or a 2×2 square for a 🧨 dynamite. Swap two power-ups to merge them: a 🪩 disco merged with any power-up copies it onto every gem of the most common color and sets them all off!</p>
     <div class="board" id="board" aria-label="Match 3 gem board"></div>
     <button id="new-game" type="button">New game</button> <button id="levels-btn" type="button">Levels</button> <button id="infinity-btn" type="button">♾️ Infinity mode</button>
     <div id="levels" class="levels" hidden></div>
@@ -68,7 +70,7 @@
   <script src="../shared/profile.js"></script>
   <script>
     const size = 10;
-    const gems = ["❤️", "⭐", "🍀", "💧"], BOX = "📦";
+    const gems = ["❤️", "⭐", "🍀", "💧"], BOX = "📦", KEY = "🔑", BUBBLE = "🫧", solid = (value) => value === BOX || value === KEY || value === BUBBLE, goalIcon = (goal) => goal.key ? KEY : goal.bubble ? BUBBLE : goal.box ? BOX : goal.gem;
     const goalsElement = document.querySelector("#goals");
     let goals = [], levelBusy = false, lastTap = null;
     const LEVEL_COUNT = 100;
@@ -78,7 +80,7 @@
       levelsElement.replaceChildren(...Array.from({ length: LEVEL_COUNT }, (_, index) => {
         const number = index + 1, button = document.createElement("button");
         button.type = "button"; button.className = `lv${number === level ? " current" : ""}`; button.disabled = number > unlocked();
-        const goalText = levelDef(number).goals.map((goal) => `${goal.box ? BOX : goal.gem}${goal.n}`).join(" ");
+        const goalText = levelDef(number).goals.map((goal) => `${goalIcon(goal)}${goal.n}`).join(" ");
         button.innerHTML = number > unlocked() ? `🔒 ${number}<small>Locked</small>` : `${number}<small>${goalText}</small>`;
         button.addEventListener("click", () => playLevel(number));
         return button;
@@ -86,7 +88,7 @@
     }
     function playLevel(number) {
       if (number > unlocked() || resolving) return;
-      level = number; score = 0; resolving = false; levelBusy = false; infinity = false; startLevel();
+      level = number; score = 0; resolving = false; levelBusy = false; infinity = false; bubbleHit = false; startLevel();
       statusElement.textContent = `Level ${level}: reach the goals before you run out of moves.`;
       levelsElement.hidden = true; render();
     }
@@ -96,8 +98,12 @@
       if (kind === 0) list.push({ gem: first, n: pair, left: pair }, { gem: second, n: pair, left: pair });
       if (kind === 1 || kind === 3) list.push({ gem: first, n: count, left: count });
       if (kind === 2 || kind === 3) list.push({ box: true, n: boxes, left: boxes });
-      const moves = 14 + Math.floor(lv / 15) + [2, 0, 3, 4][kind];
-      return { goals: list, moves, boxes: kind >= 2 ? boxes + 2 : 0 };
+      let moves = 14 + Math.floor(lv / 15) + [2, 0, 3, 4][kind], keys = 0, bubbles = 0;
+      const withKeys = lv % 6 === 3 || lv % 12 === 0, withBubbles = lv % 6 === 5 || lv % 12 === 0;
+      if (withKeys || withBubbles) list.length = 0;
+      if (withKeys) { keys = Math.min(2 + Math.floor(lv / 6), 6); list.push({ key: true, n: keys, left: keys }); moves += 6; }
+      if (withBubbles) { bubbles = Math.min(3 + Math.floor(lv / 4), 12); list.push({ bubble: true, n: bubbles, left: bubbles }); moves += 4; }
+      return { goals: list, moves, boxes: !withKeys && !withBubbles && kind >= 2 ? boxes + 2 : 0, keys, bubbles };
     }
     function startLevel() {
       const def = levelDef(level);
@@ -107,10 +113,36 @@
           do { board[row][column] = randomGem(); } while (findMatches().some((match) => match.row === row && match.column === column));
         }
       }
+      const put = (value, count, rowFrom, rowTo) => {
+        for (let placed = 0, tries = 0; placed < count && tries < 500; tries += 1) {
+          const row = rowFrom + Math.floor(Math.random() * (rowTo - rowFrom + 1)), column = Math.floor(Math.random() * size);
+          if (gems.includes(board[row][column])) { board[row][column] = value; placed += 1; }
+        }
+      };
       for (let placed = 0; placed < (infinity ? 0 : def.boxes);) {
         const row = Math.floor(Math.random() * (size - 2)), column = Math.floor(Math.random() * size);
         if (board[row][column] !== BOX) { board[row][column] = BOX; placed += 1; }
       }
+      if (!infinity) { put(KEY, def.keys, 0, 1); put(BUBBLE, def.bubbles, 2, size - 3); }
+    }
+    function countOf(value) { return board.flat().filter((item) => item === value).length; }
+    function collectKeys() {
+      let got = 0;
+      for (let column = 0; column < size; column += 1) if (board[size - 1][column] === KEY) {
+        board[size - 1][column] = ""; got += 1;
+        for (const goal of goals) if (goal.key) goal.left -= 1;
+      }
+      if (got) { score += got * 50; statusElement.textContent = `🔑 Key collected! +${got * 50}`; }
+      return got;
+    }
+    let bubbleHit = false;
+    function spreadBubbles() {
+      const bubbles = []; board.forEach((line, row) => line.forEach((value, column) => { if (value === BUBBLE) bubbles.push({ row, column }); }));
+      for (const from of bubbles.sort(() => Math.random() - 0.5)) {
+        const options = [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dr, dc]) => ({ row: from.row + dr, column: from.column + dc })).filter((to) => gems.includes(board[to.row]?.[to.column]));
+        if (options.length) { const to = options[Math.floor(Math.random() * options.length)]; board[to.row][to.column] = BUBBLE; return true; }
+      }
+      return false;
     }
     function goalsDone() { return !infinity && goals.every((goal) => goal.left <= 0); }
     const boardElement = document.querySelector("#board");
@@ -163,19 +195,19 @@
         button.className = `gem${selected?.row === row && selected?.column === column ? " selected" : ""}`;
         const effect = anim[`${row},${column}`];
         if (effect) { button.classList.add(effect.type); for (const [name, value] of Object.entries(effect.vars)) button.style.setProperty(name, value); }
-        button.type = "button"; button.textContent = board[row][column]; button.dataset.gem = ({ "❤️": "red", "⭐": "yellow", "🍀": "green", "💧": "blue", [BOX]: "box" })[board[row][column]] || "special"; button.disabled = resolving || moves === 0;
+        button.type = "button"; button.textContent = board[row][column]; button.dataset.gem = ({ "❤️": "red", "⭐": "yellow", "🍀": "green", "💧": "blue", [BOX]: "box", [KEY]: "key", [BUBBLE]: "bubble" })[board[row][column]] || "special"; button.disabled = resolving || moves === 0;
         button.setAttribute("aria-label", `Gem at row ${row + 1}, column ${column + 1}`);
         button.addEventListener("click", () => chooseGem(row, column));
         boardElement.append(button);
       }
       anim = {};
       scoreElement.textContent = score; movesElement.textContent = infinity ? "∞" : moves; levelElement.textContent = infinity ? "∞" : level;
-      goalsElement.replaceChildren(...goals.map((goal) => { const item = document.createElement("span"); item.className = `goal${goal.left <= 0 ? " done" : ""}`; item.textContent = `${goal.box ? BOX : goal.gem} ${goal.left <= 0 ? "✔" : goal.left}`; return item; }));
+      goalsElement.replaceChildren(...goals.map((goal) => { const item = document.createElement("span"); item.className = `goal${goal.left <= 0 ? " done" : ""}`; item.textContent = `${goalIcon(goal)} ${goal.left <= 0 ? "✔" : goal.left}`; return item; }));
       bestElement.textContent = infinity ? (progress.infinityBest || 0) : progress.bestScore;
     }
 
     function chooseGem(row, column) {
-      if (board[row][column] === BOX || levelBusy) return;
+      if (board[row][column] === BOX || board[row][column] === BUBBLE || levelBusy) return;
       const tapped = lastTap; lastTap = { row, column, time: Date.now() };
       if (isPowerup(board[row][column]) && tapped && tapped.row === row && tapped.column === column && lastTap.time - tapped.time < 450) {
         lastTap = null; selected = null; activatePowerup(row, column); return;
@@ -213,14 +245,14 @@
       for (let row = 0; row < size; row += 1) {
         let start = 0; for (let column = 1; column <= size; column += 1) {
           if (column < size && board[row][column] === board[row][start]) continue;
-          if (column - start >= 3 && board[row][start] !== BOX) for (let index = start; index < column; index += 1) found.set(`${row},${index}`, { row, column: index });
+          if (column - start >= 3 && !solid(board[row][start])) for (let index = start; index < column; index += 1) found.set(`${row},${index}`, { row, column: index });
           start = column;
         }
       }
       for (let column = 0; column < size; column += 1) {
         let start = 0; for (let row = 1; row <= size; row += 1) {
           if (row < size && board[row][column] === board[start][column]) continue;
-          if (row - start >= 3 && board[start][column] !== BOX) for (let index = start; index < row; index += 1) found.set(`${index},${column}`, { row: index, column });
+          if (row - start >= 3 && !solid(board[start][column])) for (let index = start; index < row; index += 1) found.set(`${index},${column}`, { row: index, column });
           start = row;
         }
       }
@@ -250,9 +282,11 @@
             if (!seen.has(key)) { seen.add(key); current.push(extra); chainCount += 1; }
           }
         }
+        current = current.filter((match) => board[match.row][match.column] !== KEY);
+        if (current.some((match) => board[match.row][match.column] === BUBBLE)) bubbleHit = true;
         for (const match of current) {
           const value = board[match.row][match.column];
-          for (const goal of goals) if ((goal.box && value === BOX) || (goal.gem && value === goal.gem)) goal.left -= 1;
+          for (const goal of goals) if ((goal.box && value === BOX) || (goal.bubble && value === BUBBLE) || (goal.gem && value === goal.gem)) goal.left -= 1;
         }
         score += (powerupSize + chainCount) * 10;
         if (chainCount) statusElement.textContent = "💥 Chain reaction!";
@@ -264,7 +298,7 @@
         const powerupSquare = powerup ? current[0] : null;
         for (const match of current) board[match.row][match.column] = "";
         if (powerupSquare) board[powerupSquare.row][powerupSquare.column] = powerup;
-        dropGems(); statusElement.textContent = "Gravity drops new gems into place!"; render();
+        dropGems(); if (collectKeys()) dropGems(); else statusElement.textContent = "Gravity drops new gems into place!"; render();
         await wait(340);
         current = findMatches();
       }
@@ -278,6 +312,11 @@
       return cells.some(({ row, column }) => [[0, 1], [1, 0]].some(([dr, dc]) => Array.from({ length: 5 }, (_, step) => `${row + dr * step},${column + dc * step}`).every((key) => keys.has(key)) && Array.from({ length: 5 }, (_, step) => board[row + dr * step]?.[column + dc * step]).every((value) => value === board[row][column])));
     }
     async function finishTurn() {
+      if (collectKeys()) { dropGems(); render(); await wait(300); const more = findMatches(); if (more.length) await resolveMatches(more); }
+      if (!infinity && !goalsDone() && moves > 0 && countOf(BUBBLE) > 0) {
+        if (!bubbleHit && spreadBubbles()) statusElement.textContent = "🫧 The bubbles spread! Clear them with power-ups.";
+      }
+      bubbleHit = false;
       if (goalsDone()) {
         levelBusy = true; score += moves * 5;
         statusElement.textContent = `Level ${level} complete! +${moves * 5} bonus for spare moves.`; render();
