@@ -6,12 +6,14 @@ canvas{display:block;width:100%;height:auto;margin:.8rem auto;border:.2rem solid
 .hud{display:flex;justify-content:center;gap:1.2rem;flex-wrap:wrap;font-weight:700;color:#fde68a}
 .row{display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap;margin:.5rem 0}.row button{padding:.6rem 1.4rem;border:0;border-radius:.6rem;background:#f59e0b;color:#111;font-weight:700;font-size:1rem;cursor:pointer}
 #shop{display:grid;grid-template-columns:repeat(auto-fit,minmax(10.5rem,1fr));gap:.5rem;margin:.6rem 0}#shop button{padding:.5rem;border:.1rem solid #b45309;border-radius:.6rem;background:#3b1d08;color:#f5e9dc;font-size:.85rem;cursor:pointer}#shop button:disabled{opacity:.45;cursor:default}#shop b{display:block;color:#86efac}
+#spd button{padding:.4rem .8rem;font-size:.9rem;background:#3b1d08;color:#f5e9dc;border:.1rem solid #b45309}#spd button.on{background:#f59e0b;color:#111}
 button{touch-action:manipulation}</style></head>
 <body><main><a href="../">← All games</a><h1>🍔 Cafe Tycoon</h1>
 <p>Buy a <strong>kitchen</strong> and a <strong>table</strong> and customers will show up. Move with <strong>WASD / arrows</strong> (or tap the room). Stand at the kitchen and press <strong>E</strong> (or the Action button) to cook the dish a customer ordered, carry it to their table and press <strong>E</strong> to serve it. They eat, then leave <strong>money and trash</strong>: press <strong>E</strong> at the table to collect and clean up. Be quick, hungry customers get angry and leave! Spend your money on more tables, a faster stove, new menu items, ads, and employees (cooks, waiters and cleaners) to run the cafe for you.</p>
 <div class="hud"><span id="cash"></span><span id="served"></span><span id="tip"></span></div>
 <canvas id="c" width="800" height="520" aria-label="Cafe Tycoon game"></canvas>
 <div class="row"><button id="act">Action (E)</button></div>
+<div class="row" id="spd" aria-label="Game speed"><span style="align-self:center;font-weight:700;color:#fde68a">Speed:</span></div>
 <h2 style="margin:.6rem 0 0;font-size:1.1rem;color:#fde68a">Shop</h2><div id="shop"></div>
 <div class="row"><button id="reset" style="background:#7f1d1d;color:#fff;font-size:.85rem">Reset progress</button></div>
 </main>
@@ -113,6 +115,9 @@ document.querySelector("#act").onclick=act;
 addEventListener("keydown",e=>{if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Space"].includes(e.code))e.preventDefault();keys[e.code]=true;if(!e.repeat&&(e.code==="KeyE"||e.code==="Space"||e.code==="Enter"))act()});
 addEventListener("keyup",e=>{keys[e.code]=false});
 C.addEventListener("pointerdown",e=>{const r=C.getBoundingClientRect();P.mt={x:(e.clientX-r.left)/r.width*W,y:(e.clientY-r.top)/r.height*H}});
-function loop(ts){const dt=Math.min(.05,(ts-last)/1000||0);last=ts;update(dt);draw();ui();requestAnimationFrame(loop)}
+let speed=+localStorage.getItem(KEY+"Speed")||1;
+for(let n=1;n<=10;n++){const b=document.createElement("button");b.textContent=n+"x";b.dataset.n=n;b.onclick=()=>{speed=n;try{localStorage.setItem(KEY+"Speed",n)}catch(e){}markSpeed()};document.querySelector("#spd").append(b)}
+function markSpeed(){document.querySelectorAll("#spd button").forEach(b=>b.classList.toggle("on",+b.dataset.n===speed))}markSpeed();
+function loop(ts){let dt=Math.min(.05,(ts-last)/1000||0)*speed;last=ts;while(dt>0){const d=Math.min(dt,.05);update(d);dt-=d}draw();ui();requestAnimationFrame(loop)}
 syncTables();syncWorkers();requestAnimationFrame(loop);setInterval(save,5000);
 </script></body></html>
