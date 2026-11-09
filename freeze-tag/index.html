@@ -93,7 +93,7 @@ function setup(g){
  chasers=[];for(let i=0;i<cn;i++)chasers.push(mk(nF?250:500,{pause:60,fr:true}));
  const rn=g?g.nm:(nF?15:20)-nR;
  mates=[];for(let i=0;i<rn;i++)mates.push(mk(nF?300:90,{c:`hsl(${i*37%360} 70% 52%)`,wx:0,wy:0,wt:0,fg:null,ft:0}));
- boxes=[];for(const o of[...chasers,...mates]){const pl=POOL[o.fr?1:0];o.kit=pl[ri(0,pl.length-1)]}pj=[];fx=[];walls=[];traps=[];decoys=[];
+ boxes=[];for(const o of[...chasers,...mates]){if(!!o.fr!==!!P.fr)continue;const pl=POOL[o.fr?1:0];o.kit=pl[ri(0,pl.length-1)]}pj=[];fx=[];walls=[];traps=[];decoys=[];
  time=(nF?Math.max(150,300-level*10):Math.min(240,150+level*10))*60;msg="";msgT=0}
 function begin(){setup();mode="pick";hostReady=guestReady=myReady=false;showPick();if(PF)net.send({t:"setup",sd:curSeed,mi:mapI,hr:role,gr:PF.fr?"freezer":"runner",lv:level,nm:mates.length,nc:chasers.length});netTxt()}
 function tryStart(){if(mode!=="pick")return;if(!PF||(hostReady&&guestReady)){startRound();if(PF)net.send({t:"go"})}}
@@ -285,7 +285,7 @@ function update(){
   if(td<22){c.pause=90;if(freeze(tg)){if(isH(tg))sayTo(tg,"❄️ You're frozen! A teammate can thaw you by touching you");else if(!P.fr&&Math.hypot(tg.x-P.x,tg.y-P.y)<400)say("❄️ A teammate got frozen! Go touch them!")}else if(isH(tg))sayTo(tg,"🛡 Shield absorbed the freeze!")}}
  for(const h of hu())if(h.fr)for(const o of all)if(!o.fz&&Math.hypot(o.x-h.x,o.y-h.y)<24&&freeze(o)){rew(h,20);sayTo(h,"❄️ Froze one! +20 and a freezer coin")}
  for(const b of boxes){if(!b.on){if(--b.t<=0){const[a,e]=spot([],0);b.x=a;b.y=e;b.on=true}continue}
-  for(const o of[...hu(),...mates,...chasers]){if(o.fz||o.kit||Math.hypot(o.x-b.x,o.y-b.y)>24)continue;
+  for(const o of[...hu(),...mates,...chasers]){if(o.fz||o.kit||(!isH(o)&&!!o.fr!==!!P.fr)||Math.hypot(o.x-b.x,o.y-b.y)>24)continue;
    const pl=POOL[o.fr?1:0];o.kit=pl[ri(0,pl.length-1)];b.on=false;b.t=900;sayTo(o,`🎁 Got ${KITS[o.kit]}! Press Q`);break}}
  for(const tr of traps){
   if(tr.k==="goo"||tr.k==="smoke"){for(const o of all)if(!o.fz&&Math.hypot(o.x-tr.x,o.y-tr.y)<90){if(tr.k==="goo")o.sl=5;else o.gh=Math.max(o.gh|0,5)}continue}
