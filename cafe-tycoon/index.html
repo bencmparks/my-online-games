@@ -137,13 +137,14 @@ function update(dt){
  for(const pd of pads()){if(Math.hypot(P.x-pd.x,P.y-pd.y)<38&&s.cash>0){const paid=s.paid[pd.id]||0,a=Math.min(s.cash,Math.max(10,pd.cost/2.5)*dt,pd.cost-paid);s.cash-=a;s.paid[pd.id]=paid+a;if(s.paid[pd.id]>=pd.cost-.01)buy(pd)}}}
 function text(t,px,py,sz,col,al="center"){x.font=sz+"px Arial";x.textAlign=al;x.fillStyle=col;x.fillText(t,px,py)}
 const FUR=["#8b5a2b","#a06a3a","#6b4423","#c08457","#4a3320"],SHIRT=["#ef4444","#3b82f6","#22c55e","#f59e0b","#a855f7","#ec4899"];
-function ape(px,py,fur,shirt,o={}){const bob=o.still?0:Math.abs(Math.sin(performance.now()/140+px*.05))*2.5;py-=bob;
+let apeI=0;const apePrev=[];
+function ape(px,py,fur,shirt,o={}){const pv=apePrev[apeI]||(apePrev[apeI]={x:px,y:py,t:0});apeI++;const mv=Math.hypot(px-pv.x,py-pv.y)>.15;pv.x=px;pv.y=py;if(mv)pv.t=performance.now();const walk=!o.still&&performance.now()-pv.t<150,ph=performance.now()/90,st=walk?Math.sin(ph):0,bob=walk?Math.abs(st)*3.5:0;py-=bob;
  x.fillStyle="rgb(0 0 0 / 22%)";x.beginPath();x.ellipse(px,py+bob+15,14,5,0,0,7);x.fill();
  x.strokeStyle=fur;x.lineWidth=4;x.lineCap="round";x.beginPath();x.moveTo(px+8,py+8);x.quadraticCurveTo(px+25,py+9,px+20,py-5);x.stroke();
- x.fillStyle=fur;x.beginPath();x.ellipse(px-7,py+13,6,4,0,0,7);x.ellipse(px+7,py+13,6,4,0,0,7);x.fill();
+ x.fillStyle=fur;x.beginPath();x.ellipse(px-7,py+13+bob+Math.max(0,st)*-4,6,4,0,0,7);x.ellipse(px+7,py+13+bob+Math.max(0,-st)*-4,6,4,0,0,7);x.fill();
  x.beginPath();x.ellipse(px,py+3,12,12,0,0,7);x.fill();
  x.fillStyle=shirt;x.beginPath();x.ellipse(px,py+5,10.5,9,0,0,7);x.fill();
- x.fillStyle=fur;x.beginPath();x.arc(px-13,py+4,4.5,0,7);x.arc(px+13,py+4,4.5,0,7);x.fill();
+ x.fillStyle=fur;x.beginPath();x.arc(px-13,py+4+st*3,4.5,0,7);x.arc(px+13,py+4-st*3,4.5,0,7);x.fill();
  x.beginPath();x.arc(px-16,py-14,7.5,0,7);x.arc(px+16,py-14,7.5,0,7);x.fill();
  x.fillStyle="#f9a8b8";x.beginPath();x.arc(px-16,py-14,4,0,7);x.arc(px+16,py-14,4,0,7);x.fill();
  x.fillStyle=fur;x.beginPath();x.arc(px,py-14,16.5,0,7);x.fill();
@@ -155,7 +156,7 @@ function ape(px,py,fur,shirt,o={}){const bob=o.still?0:Math.abs(Math.sin(perform
  if(o.hat==="top"){x.fillStyle="#111";x.fillRect(px-17,py-31,34,5);x.fillRect(px-10,py-47,20,17);x.fillStyle="#facc15";x.fillRect(px-10,py-35,20,4)}
  if(o.hat==="cap"){x.fillStyle=o.cap;x.beginPath();x.arc(px,py-19,14.5,Math.PI,0);x.fill();x.beginPath();x.ellipse(px+9,py-20,11,3.5,0,0,7);x.fill()}}
 const skin=c=>Math.abs(Math.floor(c.ox*13));
-function draw(){
+function draw(){apeI=0;
  cam.x=Math.max(0,Math.min(WW-VW,P.x-VW/2));cam.y=Math.max(0,Math.min(WH-VH,P.y-VH/2));
  x.save();x.translate(-Math.round(cam.x),-Math.round(cam.y));
  x.fillStyle=MKT().bg;x.fillRect(0,0,WW,WH);x.fillStyle=MKT().tl;for(let i=0;i<WW;i+=100)for(let j=0;j<WH;j+=100)if((i+j)/100%2)x.fillRect(i,j,100,100);
