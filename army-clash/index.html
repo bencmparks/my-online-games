@@ -10,7 +10,7 @@ button{padding:.55rem .8rem;border:0;border-radius:.5rem;color:#fff;font:inherit
 p{margin:.3rem 0;font-size:.9rem;color:#cbd5e1}
 </style></head>
 <body><main><a href="../">← All games</a><h1>⚔️ Army Clash</h1>
-<div class="row"><button class="m on" id="mR">🤖 vs Robot</button><button class="m" id="m2">👥 2 Players</button><button class="m on" id="dN">Normal</button><button class="m" id="dH">Hard</button></div>
+<div class="row"><button class="m on" id="mR">🤖 vs Robot</button><button class="m" id="m2">👥 2 Players</button><button class="m on" id="dN">Normal</button><button class="m" id="dH">Hard (robot cheats)</button></div>
 <canvas id="c" width="800" height="400"></canvas>
 <div class="row" id="b1"></div><div class="row" id="b2"></div>
 <p id="help"></p>
@@ -19,9 +19,9 @@ const c=document.getElementById("c"),x=c.getContext("2d"),$=s=>document.querySel
 const TYPES=[{n:"Soldier",e:"🪖",cost:50,hp:60,dmg:8,rng:20,spd:42,cd:.7,r:9},{n:"Archer",e:"🏹",cost:80,hp:35,dmg:7,rng:120,spd:36,cd:.9,r:8},{n:"Tank",e:"🛡️",cost:150,hp:240,dmg:16,rng:26,spd:26,cd:1,r:14},{n:"Rocket",e:"🚀",cost:120,hp:30,dmg:30,rng:170,spd:30,cd:2.2,r:8}];
 const KEYS=[["KeyA","KeyS","KeyD","KeyF"],["KeyJ","KeyK","KeyL","Semicolon"]],COL=["#2563eb","#dc2626"],GY=300;
 let vsBot=true,hard=false,S;
-function reset(){S={u:[],coin:[100,100],base:[600,600],t:0,over:-1,fx:[],cdBot:2,flash:[0,0]}}
+function reset(){S={u:[],coin:[100,hard&&vsBot?300:100],base:[600,600],t:0,over:-1,fx:[],cdBot:2,flash:[0,0]}}
 function spawn(side,k){const T=TYPES[k];if(S.over>=0||S.coin[side]<T.cost)return;S.coin[side]-=T.cost;
- S.u.push({s:side,k,x:side?740:60,y:GY+(Math.random()*30-15),hp:T.hp,cd:0,ph:Math.random()*6})}
+ const hb=hard&&vsBot&&side?1.3:1;S.u.push({s:side,k,x:side?740:60,y:GY+(Math.random()*30-15),hp:T.hp*hb,mhp:T.hp*hb,cd:0,ph:Math.random()*6})}
 function btns(){for(let s=0;s<2;s++){const d=$(s?"#b2":"#b1");d.innerHTML="";if(s&&vsBot){d.innerHTML="<p>🤖 Robot army</p>";continue}
  TYPES.forEach((T,k)=>{const b=document.createElement("button");b.className=s?"b2":"b1";b.textContent=T.e+" "+T.n+" $"+T.cost+" ["+KEYS[s][k].replace("Key","").replace("Semicolon",";")+"]";b.onpointerdown=e=>{e.preventDefault();spawn(s,k)};d.append(b)})}
  $("#help").textContent=vsBot?"Blue: A S D F spawn Soldier / Archer / Tank / Rocket. Destroy the red base!":"Blue: A S D F. Red: J K L ;. Coins grow over time and from kills. Destroy the other base!"}
@@ -32,12 +32,20 @@ $("#dH").onclick=()=>{hard=true;$("#dH").classList.add("on");$("#dN").classList.
 addEventListener("keydown",e=>{for(let s=0;s<2;s++){const k=KEYS[s].indexOf(e.code);if(k>=0&&!(s&&vsBot)){spawn(s,k);e.preventDefault()}}
  if((e.code==="Enter"||e.code==="Space")&&S.over>=0&&S.boom.t>1.3){reset();e.preventDefault()}});
 c.onclick=()=>{if(S.over>=0&&S.boom.t>1.3)reset()};
-function bot(dt){S.cdBot-=dt;if(S.cdBot>0)return;S.cdBot=(hard?.9:1.8)+Math.random()*(hard?1:2);
- const foes=S.u.filter(u=>u.s===0);const heavy=foes.filter(u=>u.k===2).length,arch=foes.filter(u=>u.k===1||u.k===3).length;
- let k=Math.random()*4|0;if(hard){if(heavy>1&&S.coin[1]>=120)k=3;else if(arch>2)k=0;else if(S.coin[1]>=150&&Math.random()<.4)k=2}
- if(S.coin[1]>=TYPES[k].cost)spawn(1,k);else if(S.coin[1]>=50&&Math.random()<.5)spawn(1,0)}
+function bot(dt){S.cdBot-=dt;if(S.cdBot>0)return;
+ if(!hard){S.cdBot=1.8+Math.random()*2;let k=Math.random()*4|0;if(S.coin[1]>=TYPES[k].cost)spawn(1,k);else if(S.coin[1]>=50&&Math.random()<.5)spawn(1,0);return}
+ S.cdBot=.35+Math.random()*.35;
+ const foes=S.u.filter(u=>u.s===0),mine=S.u.filter(u=>u.s===1),n=k=>foes.filter(u=>u.k===k).length,m=k=>mine.filter(u=>u.k===k).length;
+ const threat=foes.some(u=>u.x>380),co=S.coin[1];let k;
+ if(threat&&co>=50){k=m(2)<2&&co>=150?2:0}
+ else if(n(2)>=2&&co>=120)k=3;
+ else if(n(1)+n(3)>=3&&co>=50)k=0;
+ else if(m(2)<Math.ceil((m(0)+m(1)+m(3))/3)&&co>=150)k=2;
+ else if(m(1)+m(3)<m(0)+m(2)&&co>=80)k=Math.random()<.5?1:3;
+ else if(co>=50)k=0;else return;
+ if(co>=TYPES[k].cost)spawn(1,k)}
 function boom(s){const bx=s?740:60,p=[];for(let i=0;i<70;i++){const a=Math.random()*6.283,v=60+Math.random()*260;p.push({x:bx+(Math.random()*40-20),y:GY-20+(Math.random()*60-30),vx:Math.cos(a)*v,vy:Math.sin(a)*v-120,r:3+Math.random()*7,c:["#f97316","#facc15","#ef4444","#475569","#fff"][i%5]})}S.boom={s,t:0,p}}
-function upd(dt){if(S.boom){S.boom.t+=dt;for(const q of S.boom.p){q.x+=q.vx*dt;q.y+=q.vy*dt;q.vy+=420*dt}for(const u of S.u){u.moving=false}}if(S.over>=0)return;S.t+=dt;const inc=(hard&&vsBot?14:12)*dt;S.coin[0]+=inc;S.coin[1]+=hard&&vsBot?inc*1.3:inc;if(vsBot)bot(dt);
+function upd(dt){if(S.boom){S.boom.t+=dt;for(const q of S.boom.p){q.x+=q.vx*dt;q.y+=q.vy*dt;q.vy+=420*dt}for(const u of S.u){u.moving=false}}if(S.over>=0)return;S.t+=dt;const inc=12*dt;S.coin[0]+=inc;S.coin[1]+=hard&&vsBot?inc*2:inc;if(vsBot)bot(dt);
  for(const u of S.u){const T=TYPES[u.k],dir=u.s?-1:1;u.cd-=dt;u.ph+=dt*(u.moving?10:0);
   let tg=null,bd=1e9;for(const v of S.u)if(v.s!==u.s){const d=Math.abs(v.x-u.x);if(d<bd){bd=d;tg=v}}
   const bx=u.s?60:740,bdist=Math.abs(bx-u.x);let tgt=null;
@@ -59,7 +67,7 @@ function drawU(u){const T=TYPES[u.k],dir=u.s?-1:1,sw=Math.sin(u.ph)*4,bob=u.movi
  x.fillStyle=u.hit?"#fff":COL[u.s];x.beginPath();x.arc(px,py,T.r,0,7);x.fill();
  x.strokeStyle="#000";x.lineWidth=1.5;x.stroke();
  txt(T.e,px+dir*2,py+5,T.r+4,"#000");
- const w=T.r*2;x.fillStyle="#000";x.fillRect(px-w/2,py-T.r-8,w,3);x.fillStyle="#22c55e";x.fillRect(px-w/2,py-T.r-8,w*u.hp/T.hp,3)}
+ const w=T.r*2;x.fillStyle="#000";x.fillRect(px-w/2,py-T.r-8,w,3);x.fillStyle="#22c55e";x.fillRect(px-w/2,py-T.r-8,w*u.hp/u.mhp,3)}
 function draw(){x.clearRect(0,0,800,400);x.save();if(S.boom&&S.boom.t<.8)x.translate((Math.random()-.5)*14*(1-S.boom.t/.8),(Math.random()-.5)*14*(1-S.boom.t/.8));x.fillStyle="#7dd3fc";x.fillRect(0,0,800,150);x.fillStyle="#fff8";for(let i=0;i<4;i++){x.beginPath();x.ellipse(120+i*210,50+i%2*25,40,13,0,0,7);x.fill()}
  x.fillStyle="#86c26b";x.fillRect(0,150,800,250);x.fillStyle="#a8895a";x.fillRect(0,GY-22,800,64);
  drawBase(0);drawBase(1);S.u.slice().sort((a,b)=>a.y-b.y).forEach(drawU);
