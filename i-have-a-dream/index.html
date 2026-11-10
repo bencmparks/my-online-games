@@ -15,7 +15,7 @@ a{color:#fcd34d}h1{margin:.3rem 0;color:#fcd34d;font-size:1.5rem}p{margin:.4rem 
 @media(max-width:34rem){.grid{grid-template-columns:repeat(3,1fr)}}
 </style></head>
 <body><main><a href="../">← All games</a><h1>🕊️ I Have a Dream</h1>
-<p id="sub"></p>
+<p id="sub"></p><button class="go" id="memb" onclick="mem()" style="margin-bottom:.5rem">📜 Memorize mode (paste the speech)</button>
 <div class="stats"><span id="lv"></span><span id="sc"></span><span id="best"></span></div>
 <div id="area"></div><div id="msg"></div>
 <button class="go" id="go" hidden></button>
@@ -51,5 +51,22 @@ function quiz(){const[q,a,o]=ROUNDS[r].quiz[qi];tries=0;
 function fin(){const go=$("#go");go.hidden=false;
  if(r<ROUNDS.length-1){$("#msg").textContent="🎉 Round complete!";go.textContent="Next round →";go.onclick=()=>{r++;start()}}
  else{if(score>best){best=score;localStorage.setItem("dreamBest",best)}$("#area").innerHTML='<div class="quote">You completed the speech challenge! Dr. King spoke on August 28, 1963 at the Lincoln Memorial during the March on Washington, sharing his dream that people be judged by the content of their character.</div>';$("#msg").textContent="🏆 Final score "+score+" (best "+best+")";go.textContent="Play again";go.onclick=()=>{r=0;score=0;qi=0;start()}}}
+const LV=[.2,.4,.6,.8,1];let passages=[],pi=0,lvl=0,ms=0;
+const norm=s=>s.toLowerCase().replace(/[^a-z0-9']/g,"");
+function mem(){$("#memb").hidden=true;$("#sub").textContent="Paste the speech text you want to memorize (kept only in this browser).";$("#lv").textContent="Memorize";$("#sc").textContent="";$("#best").textContent="";$("#msg").textContent="";
+ const ta=document.createElement("textarea");ta.value=localStorage.getItem("dreamText")||"";ta.placeholder="Paste text here";ta.style.cssText="width:100%;height:10rem;font:inherit;padding:.5rem;border-radius:.5rem";
+ const g=$("#go");g.hidden=false;g.textContent="Start memorizing";
+ g.onclick=()=>{const t=ta.value.trim();if(!t){$("#msg").textContent="Paste some text first";return}localStorage.setItem("dreamText",t);
+  const S=(t.match(/[^.!?\n]+[.!?]*/g)||[]).map(s=>s.trim()).filter(Boolean);passages=[];for(let i=0;i<S.length;i+=3)passages.push(S.slice(i,i+3).join(" "));pi=0;lvl=0;ms=0;memShow()};
+ $("#area").replaceChildren(ta)}
+function memShow(){const words=passages[pi].split(/\s+/);const n=Math.max(1,Math.ceil(words.length*LV[lvl]));const hide=new Set(shuf(words.map((_,i)=>i)).slice(0,n));
+ $("#lv").textContent="Passage "+(pi+1)+"/"+passages.length+" · Level "+(lvl+1)+"/5";$("#sc").textContent="Score "+ms;$("#sub").textContent=Math.round(LV[lvl]*100)+"% of the words are hidden. Type them in.";$("#msg").textContent="";
+ const q=document.createElement("div");q.className="quote";q.style.lineHeight="2.2";const ins=[];
+ words.forEach((w,i)=>{if(hide.has(i)){const m=w.match(/^(\W*)(.*?)(\W*)$/);const inp=document.createElement("input");inp.style.cssText="width:"+Math.max(3,m[2].length+1)+"ch;font:inherit;text-align:center;margin:0 .1rem;border:0;border-bottom:2px solid #b45309;background:#fff8e8";inp.dataset.a=m[2];ins.push(inp);q.append(m[1],inp,m[3]+" ")}else q.append(w+" ")});
+ $("#area").replaceChildren(q);const g=$("#go");g.hidden=false;g.textContent="Check";
+ g.onclick=()=>{let ok=0;ins.forEach(i=>{const c=norm(i.value)===norm(i.dataset.a);if(c)ok++;i.style.background=c?"#bbf7d0":"#fecaca"});
+  if(ok/ins.length>=.9){ins.forEach(i=>{i.value=i.dataset.a;i.disabled=true;i.style.background="#bbf7d0"});ms+=ok*10;$("#sc").textContent="Score "+ms;$("#msg").textContent="✅ "+ok+"/"+ins.length;
+   g.textContent="Next →";g.onclick=()=>{lvl++;if(lvl>=LV.length){lvl=0;pi++}if(pi>=passages.length){$("#area").innerHTML='<div class="quote">🏆 You memorized it all! Final score '+ms+'</div>';$("#msg").textContent="";g.textContent="Play again";g.onclick=()=>{pi=0;lvl=0;ms=0;memShow()};return}memShow()}}
+  else $("#msg").textContent="❌ "+ok+"/"+ins.length+" correct. Fix the red ones and check again."}}
 start();
 </script></body></html>
