@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Fredderic Patterson | My Online Games</title><style>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Fredrick Patterson | My Online Games</title><style>
 :root{color-scheme:dark;font-family:Georgia,serif;background:#1c1410;color:#f5e9d3}*{box-sizing:border-box}
 body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#4a3220,#1c1410 75%)}
 main{width:min(100%,42rem);padding:1rem;border:.2rem solid #d4a35a;border-radius:1rem;background:rgb(28 20 16 / 95%)}
@@ -11,17 +11,17 @@ a{color:#fcd34d}h1{margin:.3rem 0;text-align:center;color:#fcd34d;font-size:1.5r
 .book{margin-top:.7rem;padding:.6rem;border:1px dashed #d4a35a;border-radius:.5rem;font-size:.9rem}.book h3{margin:0 0 .3rem;color:#fcd34d;font-size:1rem}.book ul{margin:0;padding-left:1.2rem}
 .help{text-align:center;font-size:.85rem;opacity:.8;margin:.4rem 0 0}
 </style></head>
-<body><main><a href="../">← All games</a><h1>📜 Fredderic Patterson</h1>
+<body><main><a href="../">← All games</a><h1>📜 Fredrick Patterson</h1>
 <div class="wrap"><canvas id="c" width="640" height="400"></canvas><div id="ov"></div></div>
 <p class="help">Move: WASD / arrows or tap the map · Choose: E / Space near something, or tap it</p>
-<div class="book"><h3>📖 Fredderic's family record</h3><ul id="bk"></ul></div>
+<div class="book"><h3>📖 Fredrick's family record</h3><ul id="bk"></ul></div>
 </main>
 <script>
 const $=s=>document.querySelector(s),cv=$("#c"),x=cv.getContext("2d"),W=640,H=400;
 const yrs=(c,a)=>({q:c,opts:a});
 const D=(l,ok)=>({l,ok:!!ok}),Pn=(l,e,ok,r)=>({l,e,ok:!!ok,r});
 const L=[
-{n:"1871 — You are born",bg:"#d9c4a0",intro:"You are <b>Fredderic Patterson</b>, a Black person born in <b>1871</b>. Remember that year!<br><br><b>Catch the falling years!</b> Move left and right and touch <b>1871</b> three times. Any other year costs a ♥.",
+{n:"1871 — You are born",bg:"#d9c4a0",intro:"You are <b>Fredrick Patterson</b>, a Black person born in <b>1871</b>. Remember that year!<br><br><b>Catch the falling years!</b> Move left and right and touch <b>1871</b> three times. Any other year costs a ♥.",
  rounds:[{kind:"fall",need:3,ask:"Catch the year you were born: 1871",opts:[D("1861"),D("1871",1),D("1881"),D("1891"),D("1851")],right:"✔ 1871!",wrong:"Not that year — you were born in 1871.",fact:"Born in 1871."}]},
 {n:"Washington, DC",bg:"#9bbf9a",intro:"You were born in <b>Washington, DC</b>, the capital of the United States.<br><br>Chase down the city where you were born. The signs run fast, so touch the right one!",
  rounds:[{kind:"chase",ask:"Catch the city where you were born",opts:[Pn("Baltimore","🏙️",0,"Baltimore? No — you were born in Washington, DC."),Pn("Richmond","🌆",0,"Richmond? No — you were born in Washington, DC."),Pn("Washington, DC","🏛️",1,"Yes! You were born in Washington, DC."),Pn("Philadelphia","🌇",0,"Philadelphia? No — you were born in Washington, DC.")],fact:"Born in Washington, DC."}]},
@@ -48,7 +48,7 @@ const L=[
  {kind:"drive",len:3600,opts:[],ask:"Drive it! Dodge obstacles and stop at red lights",fact:"Found and drove the lost Patterson-Greenfield automobile."}]},
 {n:"Life recap",bg:"#c7b8e0",intro:"Match each <b>clue</b> with the right <b>fact</b> about your life: when and where you were born, your parents, your wife, your business and when you died.",
  rounds:[{kind:"memory",tags:["clue","fact"],ask:"Match each clue with the fact",cards:[["Born","1871","a"],["City","Washington, DC","b"],["Parents","Josephene & Charles","c"],["Wife","Bettie","d"],["Business","Auto business","e"],["Died","1932","f"]],fact:"Recap: 1871, Washington DC, Josephene & Charles, Bettie, auto business, 1932."}]},
-{n:"Final exam: Be Fredderic",bg:"#e5c76b",intro:"<b>Final exam!</b> Answer ten questions as Fredderic Patterson, with no hints. Wrong answers cost a ♥.",
+{n:"Final exam: Be Fredrick",bg:"#e5c76b",intro:"<b>Final exam!</b> Answer ten questions as Fredrick Patterson, with no hints. Wrong answers cost a ♥.",
  rounds:[
  {kind:"chase",ask:"Catch the year you were born",opts:[Pn("1861","📅",0,"No — 1871."),Pn("1871","📅",1,"Correct: 1871."),Pn("1881","📅",0,"No — 1871."),Pn("1891","📅",0,"No — 1871.")],fact:"Exam: born 1871 ✔"},
  {kind:"door",ask:"Where were you born?",opts:[D("Richmond"),D("Washington, DC",1),D("Baltimore"),D("Boston")],right:"Correct: Washington, DC.",wrong:"No — Washington, DC.",fact:"Exam: Washington, DC ✔"},
@@ -106,7 +106,7 @@ function nextRound(){
 function end(){
  st="end";const stars=miss===0?3:miss<=3?2:1;
  if(score>best){best=score;localStorage.setItem("fredericBest",best)}
- ov("🏆 You are Fredderic Patterson!","Score: <b>"+score+"</b> (best "+best+")<br>"+"⭐".repeat(stars)+"☆".repeat(3-stars)+" — "+miss+" mistake"+(miss===1?"":"s")+"<br><br>Born <b>1871</b> in <b>Washington, DC</b> to <b>Josephene</b> and <b>Charles</b>. Siblings <b>Mary, Dollie, Samuel, Catherine</b>. Married <b>Bettie</b>. The <b>first Black man to own an auto business</b>. Died <b>1932</b>. Your father <b>Charles</b> escaped slavery around <b>1861</b> on foot. Pivoted to <b>school buses</b>, hearse bodies and delivery trucks. Ghost car: the <b>Patterson-Greenfield</b>, still hunted by collectors.","Play again",()=>{li=0;score=0;miss=0;journal={};startLevel()});
+ ov("🏆 You are Fredrick Patterson!","Score: <b>"+score+"</b> (best "+best+")<br>"+"⭐".repeat(stars)+"☆".repeat(3-stars)+" — "+miss+" mistake"+(miss===1?"":"s")+"<br><br>Born <b>1871</b> in <b>Washington, DC</b> to <b>Josephene</b> and <b>Charles</b>. Siblings <b>Mary, Dollie, Samuel, Catherine</b>. Married <b>Bettie</b>. The <b>first Black man to own an auto business</b>. Died <b>1932</b>. Your father <b>Charles</b> escaped slavery around <b>1861</b> on foot. Pivoted to <b>school buses</b>, hearse bodies and delivery trucks. Ghost car: the <b>Patterson-Greenfield</b>, still hunted by collectors.","Play again",()=>{li=0;score=0;miss=0;journal={};startLevel()});
 }
 function pick(o){
  if(o.k==="card")return cardPick(o);
@@ -148,7 +148,7 @@ function hikeUpdate(dt){
  if(shake>0)shake-=dt;
  if(D.d>=r.len&&!D.done&&st==="play"){D.done=1;score+=100+hearts*20;journal[li+"-"+ri]=r.fact;bk();msg="⭐ Charles made it to freedom!";wait=2}
 }
-function hurt(m){hearts--;miss++;shake=.3;msg=m;if(hearts<=0){st="fail";setTimeout(()=>ov("Fredderic needs another try","Out of hearts! Let's learn it again.","Retry",startLevel),1100)}}
+function hurt(m){hearts--;miss++;shake=.3;msg=m;if(hearts<=0){st="fail";setTimeout(()=>ov("Fredrick needs another try","Out of hearts! Let's learn it again.","Retry",startLevel),1100)}}
 function driveUpdate(dt){
  const D=drv,r=R(),brake=keys.s||keys.arrowdown||keys[" "]||pbrake;
  D.v+=((brake?0:170)-D.v)*Math.min(1,dt*(brake?7:2.5));
