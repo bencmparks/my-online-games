@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Army Clash | My Online Games</title><style>
+:root{color-scheme:dark;font-family:system-ui,sans-serif;background:#0f172a;color:#f1f5f9}*{box-sizing:border-box}
+body{display:grid;place-items:center;min-height:100vh;margin:0;padding:.6rem;background:#0f172a}
+main{width:min(100%,52rem);text-align:center}a{color:#93c5fd}h1{margin:.2rem 0;font-size:1.4rem}
+canvas{width:100%;border:.2rem solid #475569;border-radius:.6rem;background:#86c26b;touch-action:none}
+.row{display:flex;gap:.4rem;justify-content:center;flex-wrap:wrap;margin:.4rem 0}
+button{padding:.55rem .8rem;border:0;border-radius:.5rem;color:#fff;font:inherit;font-weight:700;cursor:pointer}
+.b1{background:#2563eb}.b2{background:#dc2626}.m{background:#475569}.m.on{background:#16a34a}
+p{margin:.3rem 0;font-size:.9rem;color:#cbd5e1}
+</style></head>
+<body><main><a href="../">← All games</a><h1>⚔️ Army Clash</h1>
+<div class="row"><button class="m on" id="mR">🤖 vs Robot</button><button class="m" id="m2">👥 2 Players</button><button class="m on" id="dN">Normal</button><button class="m" id="dH">Hard</button></div>
+<canvas id="c" width="800" height="400"></canvas>
+<div class="row" id="b1"></div><div class="row" id="b2"></div>
+<p id="help"></p>
+<script>
+const c=document.getElementById("c"),x=c.getContext("2d"),$=s=>document.querySelector(s);
+const TYPES=[{n:"Soldier",e:"🪖",cost:50,hp:60,dmg:8,rng:20,spd:42,cd:.7,r:9},{n:"Archer",e:"🏹",cost:80,hp:35,dmg:7,rng:120,spd:36,cd:.9,r:8},{n:"Tank",e:"🛡️",cost:150,hp:240,dmg:16,rng:26,spd:26,cd:1,r:14},{n:"Rocket",e:"🚀",cost:120,hp:30,dmg:30,rng:170,spd:30,cd:2.2,r:8}];
+const KEYS=[["KeyA","KeyS","KeyD","KeyF"],["KeyJ","KeyK","KeyL","Semicolon"]],COL=["#2563eb","#dc2626"],GY=300;
+let vsBot=true,hard=false,S;
+function reset(){S={u:[],coin:[100,100],base:[600,600],t:0,over:-1,fx:[],cdBot:2,flash:[0,0]}}
+function spawn(side,k){const T=TYPES[k];if(S.over>=0||S.coin[side]<T.cost)return;S.coin[side]-=T.cost;
+ S.u.push({s:side,k,x:side?740:60,y:GY+(Math.random()*30-15),hp:T.hp,cd:0,ph:Math.random()*6})}
+function btns(){for(let s=0;s<2;s++){const d=$(s?"#b2":"#b1");d.innerHTML="";if(s&&vsBot){d.innerHTML="<p>🤖 Robot army</p>";continue}
+ TYPES.forEach((T,k)=>{const b=document.createElement("button");b.className=s?"b2":"b1";b.textContent=T.e+" "+T.n+" $"+T.cost+" ["+KEYS[s][k].replace("Key","").replace("Semicolon",";")+"]";b.onpointerdown=e=>{e.preventDefault();spawn(s,k)};d.append(b)})}
+ $("#help").textContent=vsBot?"Blue: A S D F spawn Soldier / Archer / Tank / Rocket. Destroy the red base!":"Blue: A S D F. Red: J K L ;. Coins grow over time and from kills. Destroy the other base!"}
+function mode(b){vsBot=b;$("#mR").classList.toggle("on",b);$("#m2").classList.toggle("on",!b);btns();reset()}
+$("#mR").onclick=()=>mode(true);$("#m2").onclick=()=>mode(false);
+$("#dN").onclick=()=>{hard=false;$("#dN").classList.add("on");$("#dH").classList.remove("on");reset()};
+$("#dH").onclick=()=>{hard=true;$("#dH").classList.add("on");$("#dN").classList.remove("on");reset()};
+addEventListener("keydown",e=>{for(let s=0;s<2;s++){const k=KEYS[s].indexOf(e.code);if(k>=0&&!(s&&vsBot)){spawn(s,k);e.preventDefault()}}
+ if((e.code==="Enter"||e.code==="Space")&&S.over>=0){reset();e.preventDefault()}});
+c.onclick=()=>{if(S.over>=0)reset()};
+function bot(dt){S.cdBot-=dt;if(S.cdBot>0)return;S.cdBot=(hard?.9:1.8)+Math.random()*(hard?1:2);
+ const foes=S.u.filter(u=>u.s===0);const heavy=foes.filter(u=>u.k===2).length,arch=foes.filter(u=>u.k===1||u.k===3).length;
+ let k=Math.random()*4|0;if(hard){if(heavy>1&&S.coin[1]>=120)k=3;else if(arch>2)k=0;else if(S.coin[1]>=150&&Math.random()<.4)k=2}
+ if(S.coin[1]>=TYPES[k].cost)spawn(1,k);else if(S.coin[1]>=50&&Math.random()<.5)spawn(1,0)}
+function upd(dt){if(S.over>=0)return;S.t+=dt;const inc=(hard&&vsBot?14:12)*dt;S.coin[0]+=inc;S.coin[1]+=hard&&vsBot?inc*1.3:inc;if(vsBot)bot(dt);
+ for(const u of S.u){const T=TYPES[u.k],dir=u.s?-1:1;u.cd-=dt;u.ph+=dt*(u.moving?10:0);
+  let tg=null,bd=1e9;for(const v of S.u)if(v.s!==u.s){const d=Math.abs(v.x-u.x);if(d<bd){bd=d;tg=v}}
+  const bx=u.s?60:740,bdist=Math.abs(bx-u.x);let tgt=null;
+  if(tg&&bd<=T.rng+TYPES[tg.k].r)tgt=tg;else if(bdist<=T.rng+22)tgt="base";
+  u.moving=!tgt;
+  if(tgt){if(u.cd<=0){u.cd=T.cd;const rg=T.rng>60;if(tgt==="base"){S.base[1-u.s]-=T.dmg*(u.k===3?1.4:1);S.flash[1-u.s]=.15;if(rg)S.fx.push({a:u.x,b:u.s?60:740,y:u.y,l:.18,k:u.k})}
+    else{tgt.hp-=T.dmg;tgt.hit=.12;if(rg)S.fx.push({a:u.x,b:tgt.x,y:u.y,l:.18,k:u.k});if(tgt.hp<=0)S.coin[u.s]+=TYPES[tgt.k].cost*.3}}}
+  else{const blocked=S.u.some(v=>v!==u&&v.s===u.s&&Math.abs(v.y-u.y)<10&&(v.x-u.x)*dir>0&&(v.x-u.x)*dir<22);if(!blocked)u.x+=dir*T.spd*dt}}
+ S.u=S.u.filter(u=>u.hp>0);for(const f of S.fx)f.l-=dt;S.fx=S.fx.filter(f=>f.l>0);
+ for(let s=0;s<2;s++){S.flash[s]=Math.max(0,S.flash[s]-dt);if(S.base[s]<=0){S.base[s]=0;S.over=1-s}}
+ for(const u of S.u)if(u.hit)u.hit=Math.max(0,u.hit-dt)}
+function txt(t,px,py,sz,col,al="center"){x.font="bold "+sz+"px system-ui";x.textAlign=al;x.fillStyle=col;x.fillText(t,px,py)}
+function drawBase(s){const bx=s?740:60,f=S.flash[s]>0;x.fillStyle=f?"#fff":COL[s];x.fillRect(bx-26,GY-62,52,80);x.fillStyle="#0006";x.fillRect(bx-26,GY-62,52,10);
+ for(let i=0;i<3;i++)x.fillRect(bx-26+i*20,GY-72,12,10);x.fillStyle="#1e293b";x.fillRect(bx-8,GY-14,16,32);
+ x.fillStyle="#000";x.fillRect(bx-34,GY-88,68,8);x.fillStyle=S.base[s]>200?"#22c55e":"#ef4444";x.fillRect(bx-34,GY-88,68*S.base[s]/600,8)}
+function drawU(u){const T=TYPES[u.k],dir=u.s?-1:1,sw=Math.sin(u.ph)*4,bob=u.moving?Math.abs(Math.sin(u.ph))*2:0,px=u.x,py=u.y-bob;
+ x.fillStyle="#0003";x.beginPath();x.ellipse(px,u.y+T.r,T.r,4,0,0,7);x.fill();
+ x.fillStyle=u.hit?"#fff":"#334155";x.fillRect(px-4+sw*.5,py+T.r-6,3,7);x.fillRect(px+1-sw*.5,py+T.r-6,3,7);
+ x.fillStyle=u.hit?"#fff":COL[u.s];x.beginPath();x.arc(px,py,T.r,0,7);x.fill();
+ x.strokeStyle="#000";x.lineWidth=1.5;x.stroke();
+ txt(T.e,px+dir*2,py+5,T.r+4,"#000");
+ const w=T.r*2;x.fillStyle="#000";x.fillRect(px-w/2,py-T.r-8,w,3);x.fillStyle="#22c55e";x.fillRect(px-w/2,py-T.r-8,w*u.hp/T.hp,3)}
+function draw(){x.clearRect(0,0,800,400);x.fillStyle="#7dd3fc";x.fillRect(0,0,800,150);x.fillStyle="#fff8";for(let i=0;i<4;i++){x.beginPath();x.ellipse(120+i*210,50+i%2*25,40,13,0,0,7);x.fill()}
+ x.fillStyle="#86c26b";x.fillRect(0,150,800,250);x.fillStyle="#a8895a";x.fillRect(0,GY-22,800,64);
+ drawBase(0);drawBase(1);S.u.slice().sort((a,b)=>a.y-b.y).forEach(drawU);
+ for(const f of S.fx){x.strokeStyle=f.k===3?"#f97316":"#facc15";x.lineWidth=f.k===3?4:2;x.beginPath();x.moveTo(f.a,f.y-4);x.lineTo(f.b,f.y-4);x.stroke()}
+ x.fillStyle="#0009";x.fillRect(0,0,800,34);txt("🪙 "+Math.floor(S.coin[0]),70,24,18,"#93c5fd");txt(vsBot?"🤖 "+Math.floor(S.coin[1]):"🪙 "+Math.floor(S.coin[1]),730,24,18,"#fca5a5");
+ txt(vsBot?"You vs Robot"+(hard?" (Hard)":""):"Player 1 vs Player 2",400,24,16,"#fff");
+ if(S.over>=0){x.fillStyle="#000a";x.fillRect(0,130,800,130);txt(S.over===0?(vsBot?"🏆 You win!":"🏆 Blue wins!"):(vsBot?"🤖 Robot wins!":"🏆 Red wins!"),400,195,40,"#fde047");txt("Click or press Enter to play again",400,235,18,"#fff")}}
+let last=performance.now();function loop(n){const dt=Math.min(.05,(n-last)/1000);last=n;upd(dt);draw();requestAnimationFrame(loop)}
+reset();btns();requestAnimationFrame(loop);
+</script></main></body></html>
