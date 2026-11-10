@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>I Have a Dream | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Georgia,serif;background:#0f172a;color:#f1f5f9}*{box-sizing:border-box}
+body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#1e3a8a,#0f172a 75%)}
+main{width:min(100%,44rem);padding:1.1rem;border:.2rem solid #fbbf24;border-radius:1rem;background:rgb(15 23 42 / 95%);text-align:center}
+a{color:#fcd34d}h1{margin:.3rem 0;color:#fcd34d;font-size:1.5rem}p{margin:.4rem 0;line-height:1.5}
+.stats{display:flex;justify-content:space-around;font-weight:700;margin:.5rem 0}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;margin:.7rem 0}
+.card{min-height:5.6rem;padding:.4rem;border:2px solid #fbbf24;border-radius:.6rem;background:#1e3a8a;color:#fcd34d;font:inherit;font-size:.82rem;cursor:pointer;display:grid;place-items:center;line-height:1.25}
+.card.up{background:#fff;color:#1e293b;font-weight:700}.card.done{background:#15803d;color:#fff;cursor:default}
+.opts{display:grid;gap:.5rem;margin:.7rem 0}.opts button,.go{padding:.7rem;border:0;border-radius:.5rem;background:#b45309;color:#fff;font:inherit;font-size:1rem;cursor:pointer}
+.opts button:hover,.go:hover{background:#d97706}.opts button.good{background:#15803d}.opts button.bad{background:#444;opacity:.6}
+.quote{padding:.9rem;border-radius:.6rem;background:#f5e9d3;color:#2a1c10;font-size:1.1rem;font-style:italic}
+#msg{min-height:1.6rem;font-weight:700;color:#fde68a}
+@media(max-width:34rem){.grid{grid-template-columns:repeat(3,1fr)}}
+</style></head>
+<body><main><a href="../">← All games</a><h1>🕊️ I Have a Dream</h1>
+<p id="sub"></p>
+<div class="stats"><span id="lv"></span><span id="sc"></span><span id="best"></span></div>
+<div id="area"></div><div id="msg"></div>
+<button class="go" id="go" hidden></button>
+</main>
+<script>
+const $=s=>document.querySelector(s);
+// Short famous lines and facts from Martin Luther King Jr.'s speech, 28 August 1963, Lincoln Memorial.
+const ROUNDS=[
+{t:"Facts about the speech",d:"Match each clue with its fact.",pairs:[["Speaker","Martin Luther King Jr."],["Date","August 28, 1963"],["Place","Lincoln Memorial"],["Event","March on Washington"]]},
+{t:"Famous lines",d:"Match the start of each line with how it ends.",pairs:[["I have a dream","today!"],["...not be judged by the color of their skin","but by the content of their character"],["Free at last!","Free at last!"],["Let freedom ring","from every mountainside"],["Now is the time","to make justice a reality for all"],["The moral universe","bends toward justice"]].slice(0,4)},
+{t:"The big picture",d:"Match the clue with the idea. Bigger board!",pairs:[["Dream","Equality for all people"],["Content of character","Judge people by who they are"],["Freedom ring","Freedom everywhere"],["Lincoln Memorial","Where 250,000 gathered"],["1963","Year of the March"],["Nonviolence","Peaceful protest"]]},
+{t:"Complete the line",quiz:[["I have a dream that my four little children will be judged not by the color of their skin but by the ___ of their character.","content",["color","content","size","name"]],["The speech was given at the ___ Memorial.","Lincoln",["Jefferson","Washington","Lincoln","Roosevelt"]],["The speech was given in the year ___.","1963",["1953","1963","1973","1968"]],["Let freedom ___.","ring",["ring","sing","fly","run"]],["The speech was part of the March on ___.","Washington",["Atlanta","Selma","Washington","Memphis"]]]}
+];
+const shuf=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
+let r=0,score=0,flips=0,open=[],lock=false,qi=0,tries=0,best=+localStorage.getItem("dreamBest")||0;
+function head(){const R=ROUNDS[r];$("#sub").textContent=R.d||"Finish the famous line.";$("#lv").textContent="Round "+(r+1)+"/"+ROUNDS.length+": "+R.t;$("#sc").textContent="Score "+score;$("#best").textContent="Best "+best;$("#msg").textContent="";$("#go").hidden=true}
+function start(){head();const R=ROUNDS[r];if(R.quiz)return quiz();flips=0;open=[];lock=false;const cards=[];R.pairs.forEach(([a,b],i)=>{cards.push({t:a,k:i,s:0});cards.push({t:b,k:i,s:1})});
+ const g=document.createElement("div");g.className="grid";
+ shuf(cards).forEach(c=>{const b=document.createElement("button");b.className="card";b.textContent="?";b.onclick=()=>flip(b,c);g.append(b)});
+ $("#area").replaceChildren(g)}
+function flip(b,c){if(lock||b.classList.contains("up")||b.classList.contains("done"))return;b.classList.add("up");b.textContent=c.t;open.push([b,c]);
+ if(open.length<2)return;flips++;const[[b1,c1],[b2,c2]]=open;
+ if(c1.k===c2.k&&c1.s!==c2.s){b1.className=b2.className="card done";open=[];score+=100;$("#msg").textContent="✅ Match!";
+  if(document.querySelectorAll(".card.done").length===ROUNDS[r].pairs.length*2){score+=Math.max(0,200-flips*10);fin()}}
+ else{lock=true;score=Math.max(0,score-10);$("#msg").textContent="❌ Not a match";setTimeout(()=>{[b1,b2].forEach(x=>{x.className="card";x.textContent="?"});open=[];lock=false},800)}
+ $("#sc").textContent="Score "+score}
+function quiz(){const[q,a,o]=ROUNDS[r].quiz[qi];tries=0;
+ const area=$("#area");area.innerHTML="";const d=document.createElement("div");d.className="quote";d.textContent=q;const op=document.createElement("div");op.className="opts";
+ shuf(o).forEach(t=>{const b=document.createElement("button");b.textContent=t;b.onclick=()=>{if(t===a){b.classList.add("good");op.querySelectorAll("button").forEach(x=>x.disabled=true);score+=tries?25:100;$("#sc").textContent="Score "+score;$("#msg").textContent="✅ Correct!";
+   qi++;const go=$("#go");go.hidden=false;go.textContent=qi<ROUNDS[r].quiz.length?"Next line →":"Finish";go.onclick=()=>{go.hidden=true;qi<ROUNDS[r].quiz.length?(head(),quiz()):fin()}}
+  else{tries++;b.classList.add("bad");b.disabled=true;$("#msg").textContent="❌ Try again"}};op.append(b)});
+ area.append(d,op)}
+function fin(){const go=$("#go");go.hidden=false;
+ if(r<ROUNDS.length-1){$("#msg").textContent="🎉 Round complete!";go.textContent="Next round →";go.onclick=()=>{r++;start()}}
+ else{if(score>best){best=score;localStorage.setItem("dreamBest",best)}$("#area").innerHTML='<div class="quote">You completed the speech challenge! Dr. King spoke on August 28, 1963 at the Lincoln Memorial during the March on Washington, sharing his dream that people be judged by the content of their character.</div>';$("#msg").textContent="🏆 Final score "+score+" (best "+best+")";go.textContent="Play again";go.onclick=()=>{r=0;score=0;qi=0;start()}}}
+start();
+</script></body></html>
