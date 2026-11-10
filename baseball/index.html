@@ -6,13 +6,14 @@ canvas{display:block;width:100%;max-width:50rem;height:auto;margin:.8rem auto;bo
 .row{display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap}.row button{padding:.6rem 1.4rem;border:0;border-radius:.6rem;background:#f97316;color:#fff;font-weight:700;font-size:1rem;cursor:pointer}
 </style></head>
 <body><main><a href="../">← All games</a><h1>⚾ Baseball</h1>
-<p>Step up to bat! <strong>Move the mouse</strong> (or <strong>arrow keys</strong>, or <strong>drag your finger</strong>) to line the bat circle up with the ball, then <strong>click</strong> (or <strong>lift your finger</strong>) or press <strong>Space</strong> to swing just as it reaches the plate. Good timing and aim mean bigger hits. With a runner on, press <strong>S</strong> (or the Steal Base button) as the pitch is thrown to try to steal — but get caught and it's an out. Each inning you bat, then play defence: move your fielder (mouse or arrows) onto the red target to catch the CPU's hits. 3 innings — outscore the CPU!</p>
+<p>Step up to bat! <strong>Move the mouse</strong> (or <strong>arrow keys</strong>, or <strong>drag your finger</strong>) to line the bat circle up with the ball, then <strong>click</strong> (or <strong>lift your finger</strong>) or press <strong>Space</strong> to swing just as it reaches the plate. Good timing and aim mean bigger hits. With a runner on, press <strong>S</strong> (or the Steal Base button) as the pitch is thrown to try to steal — but get caught and it's an out. Each inning you bat, then you pitch and play defence: aim the red crosshair (mouse or arrows), choose Fastball, Curveball or Changeup (<strong>1</strong>/<strong>2</strong>/<strong>3</strong>), and click or press Space when the meter is centered for an accurate pitch. Corners and mixing up pitches fool the CPU; centered, repeated pitches get hit. Then move your fielder onto the red target to catch its hits. 3 innings — outscore the CPU!</p>
 <canvas id="c" width="800" height="500" aria-label="Baseball game"></canvas>
 <div class="row"><button id="swing" style="min-height:48px">🏏 Swing!</button><button id="steal">🏃 Steal Base</button><button id="mode">Mode: Easy</button><button id="eye">🦅 Eagle Eye: Off</button></div>
+<div class="row" id="ptypes" style="display:none;margin-top:.6rem"><button data-p="fast">1 ⚡ Fastball</button><button data-p="curve">2 🌀 Curveball</button><button data-p="change">3 🐢 Changeup</button></div>
 </main>
 <script>
 const C=document.querySelector("#c"),x=C.getContext("2d"),W=800,H=500,KEY="baseballBest",INN=3;
-let half="bat",oRuns=0,flipNext=false,fl={x:400,y:330,tx:400,ty:330},eagle=false,mode="title",inn=1,outs=0,balls=0,strikes=0,runs=0,bases=[0,0,0],best=0,msg="",msgT=0,t=0,pitch=null,bat={x:400,y:380},swingT=0,hit=null,wait=0,frame=0,keys={};
+let pt="fast",lastPt="",mt=0,half="bat",oRuns=0,flipNext=false,fl={x:400,y:330,tx:400,ty:330},eagle=false,mode="title",inn=1,outs=0,balls=0,strikes=0,runs=0,bases=[0,0,0],best=0,msg="",msgT=0,t=0,pitch=null,bat={x:400,y:380},swingT=0,hit=null,wait=0,frame=0,keys={};
 const D={
  easy:{spd:1.5,dec:.05,tim:.2,pos:90,ang:.12,fThr:.1,fP:.4,outQ:.1,catchR:32,fSpd:300,hitT:1.7,cpuK:.2},
  hard:{spd:.55,dec:.1,tim:.04,pos:22,ang:.025,fThr:.02,fP:.75,outQ:.3,catchR:22,fSpd:260,hitT:1.2,cpuK:.1}};
@@ -38,17 +39,38 @@ function doFlip(){
  if(half==="bat"){half="field";fl.x=fl.tx=400;fl.y=fl.ty=330;say("Your defence! Catch the ball!",1.8)}
  else{half="bat";if(inn>=INN){endGame();return}inn+=1;say(`Inning ${inn}`,1.4)}
  mode="ready";wait=1}
-function newCpuPitch(){fl.x=fl.tx=400;fl.y=fl.ty=330;mode="cpu";wait=.9;say("CPU at bat...",.9)}
-function cpuHit(){
- if(Math.random()<P.cpuK){say("Strikeout!",1.2);addOut();mode="ready";wait=.9;return}
- const homer=Math.random()<.1,dist=homer?rnd(350,420):rnd(60,250),ang=rnd(-42,42);
+function newCpuPitch(){fl.x=fl.tx=400;fl.y=fl.ty=330;pitch=null;mode="aim";mt=0;say("Your pitch! Aim, pick a pitch (1/2/3), click when the meter is centered",2.2)}
+const PT={fast:{n:"Fastball",dur:.85},curve:{n:"Curveball",dur:1.1},change:{n:"Changeup",dur:1.35}};
+function throwPitch(){
+ if(mode!=="aim")return;
+ const es=(diff==="easy"?40:60)+(pt==="curve"?12:0),err=Math.abs(Math.sin(mt))*es,a=rnd(0,6.283),tx=Math.max(250,Math.min(550,bat.x+Math.cos(a)*err)),ty=Math.max(280,Math.min(480,bat.y+Math.sin(a)*err));
+ const dx=Math.abs(tx-400),dy=Math.abs(ty-380),inZone=dx<=65&&dy<=65,corner=Math.max(dx,dy)/65,rep=pt===lastPt;lastPt=pt;
+ let out;
+ if(!inZone){if(Math.random()<(diff==="easy"?.2:.4)*(corner<1.5?1:.4)){const r=Math.random();out=r<.6?"whiff":r<.85?"foul":"weak"}else out="ball"}
+ else if(Math.random()>(diff==="easy"?.8:.9))out="called";
+ else{const c=Math.max(.08,(diff==="easy"?.5:.72)*(1-.4*corner)+(rep?.15:0)-(pt==="curve"?.05:0)-(pt==="change"?.08:0));
+  out=Math.random()>c?"whiff":Math.random()<.2?"foul":"contact"}
+ pitch={type:pt,dur:PT[pt].dur,tx,ty,curve:pt==="curve"?(Math.random()<.5?-1:1):0,drop:pt==="curve"?35:0,p:0,strike:inZone,out,corner:Math.min(1,corner)};
+ mode="pthrow";msg="";msgT=0}
+function cpuStrike(s){strikes+=1;if(strikes>=3){say("Strikeout!",1.4);addOut()}else say(s,1)}
+function resolveCpu(){
+ const o=pitch.out,c=pitch.corner;
+ if(o==="contact"){cpuHit(c);pitch=null;return}
+ pitch=null;mode="ready";wait=.8;
+ if(o==="whiff")cpuStrike("Swing and a miss!");
+ else if(o==="called")cpuStrike("Called strike");
+ else if(o==="foul"){if(strikes<2)strikes+=1;say("Foul ball",1)}
+ else if(o==="weak"){say("Weak grounder — out!",1.3);addOut()}
+ else ball()}
+function cpuHit(c){
+ const homer=Math.random()<.1*(1-c),dist=homer?rnd(350,420):rnd(60,250)*(1-.2*c),ang=rnd(-42,42);
  hit={ang,dist,t:0,foul:false,homer};mode="chit";say("Hit! Catch it!",1)}
 function landing(){const a=hit.ang*Math.PI/180,r=hit.dist*1.6;return{x:400+Math.sin(a)*r,y:430-Math.cos(a)*r}}
 function finishCpuHit(){
- if(hit.homer){const sc=advance(4);say(`CPU home run! ${sc} run${sc>1?"s":""}`,1.8)}
+ if(hit.homer){balls=0;strikes=0;const sc=advance(4);say(`CPU home run! ${sc} run${sc>1?"s":""}`,1.8)}
  else{const l=landing();
   if(Math.hypot(fl.x-l.x,fl.y-l.y)<P.catchR){say("Caught! Out!",1.4);addOut()}
-  else{const n=hit.dist<130?1:hit.dist<190?2:3,sc=advance(n);say(`Missed it! CPU ${["single","double","triple"][n-1]}`+(sc?` — ${sc} run${sc>1?"s":""}`:""),1.8)}}
+  else{balls=0;strikes=0;const n=hit.dist<130?1:hit.dist<190?2:3,sc=advance(n);say(`Missed it! CPU ${["single","double","triple"][n-1]}`+(sc?` — ${sc} run${sc>1?"s":""}`:""),1.8)}}
  hit=null;mode="ready";wait=1}
 function endGame(){mode="over";half="bat";if(runs>best){best=runs;try{localStorage.setItem(KEY+diff,best)}catch(e){}}}
 function advance(n){let sc=0;
@@ -72,7 +94,8 @@ function steal(){
  if(ok){bases[i]=0;if(i===2){runs+=1;say("Stole home! +1 run",1.4)}else{bases[i+1]=1;say(`Stolen base! Safe at ${i?"third":"second"}`,1.4)}}
  else{bases[i]=0;pitch=null;mode="ready";wait=.8;say("Caught stealing!",1.4);addOut()}}
 function swing(){
- if(mode==="over"||mode==="title"){if(mode==="over"||mode==="title"){reset()}return}
+ if(mode==="over"||mode==="title"){reset();return}
+ if(mode==="aim"){throwPitch();return}
  if(mode!=="pitch"||swingT>0)return;
  swingT=.25;
  const b=ballPos(pitch),d=Math.hypot(bat.x-b.x,bat.y-b.y),dt=pitch.p-.92,tim=1-Math.abs(dt)/P.tim,pos=1-d/P.pos;
@@ -98,7 +121,7 @@ function finishHit(){
   s=({single:"Single!",double:"Double!",triple:"Triple!",homer:"HOME RUN!"})[r]+(sc?` ${sc} run${sc>1?"s":""} score!`:"");say(s,1.8);balls=0;strikes=0}
  hit=null;pitch=null;if(mode!=="over"){mode="ready";wait=1.1}}
 function update(dt){
- frame+=1;if(msgT>0)msgT-=dt;
+ frame+=1;if(msgT>0)msgT-=dt;swB.textContent=half==="field"?"⚾ Throw!":"🏏 Swing!";ptB.style.display=half==="field"&&(mode==="aim"||mode==="pthrow")?"flex":"none";
  if(keys.ArrowLeft)bat.x-=300*dt;if(keys.ArrowRight)bat.x+=300*dt;if(keys.ArrowUp)bat.y-=300*dt;if(keys.ArrowDown)bat.y+=300*dt;
  bat.x=Math.max(250,Math.min(550,bat.x));bat.y=Math.max(290,Math.min(470,bat.y));
  if(swingT>0)swingT-=dt;
@@ -110,7 +133,8 @@ function update(dt){
  if(mode==="ready"){wait-=dt;if(wait<=0){if(flipNext)doFlip();else if(half==="field")newCpuPitch();else newPitch()}}
  else if(mode==="pitch"){pitch.p+=dt/pitch.dur;if(pitch.p>=1.12&&swingT<=0)resolveTake();else if(pitch.p>=1.12)resolveTake()}
  else if(mode==="miss"){wait-=dt;if(wait<=0){pitch=null;mode="ready";wait=.6}}
- else if(mode==="cpu"){wait-=dt;if(wait<=0)cpuHit()}
+ else if(mode==="aim"){mt+=dt*(diff==="easy"?3:5)}
+ else if(mode==="pthrow"){pitch.p+=dt/pitch.dur;if(!pitch.sw&&pitch.p>=.86&&["whiff","foul","contact","weak"].includes(pitch.out)){pitch.sw=1;swingT=.25}if(pitch.p>=1)resolveCpu()}
  else if(mode==="chit"){hit.t+=dt/P.hitT;if(hit.t>=1)finishCpuHit()}
  else if(mode==="hit"){hit.t+=dt/(hit.foul?.9:1.5);if(hit.t>=1)finishHit()}}
 function text(s,a,b,size,color,al="center"){x.font=`bold ${size}px Arial`;x.textAlign=al;x.fillStyle=color;x.lineWidth=5;x.strokeStyle="#0f172a";x.lineJoin="round";x.strokeText(s,a,b);x.fillText(s,a,b)}
@@ -168,21 +192,25 @@ function drawField(){
  x.fillStyle="#fff";x.strokeStyle="#dc2626";x.lineWidth=2;x.beginPath();x.arc(px,py-h,8,0,6.3);x.fill();x.stroke()}
 function draw(){
  if(mode==="title"){drawStadium();text("⚾ BASEBALL",W/2,200,60,"#fde047");text("Time your swing and hit it out of the park!",W/2,260,24,"#fff");text(`Mode: ${diff==="easy"?"Easy":"Hard"} (press M to switch)  Best: ${best}`,W/2,310,20,"#bbf7d0");text("Click or press Space to play ball",W/2,370,24,"#fff");return}
- if(half==="field"&&mode!=="over"||mode==="hit"){drawField()}
+ const pv=mode==="aim"||mode==="pthrow";
+ if(half==="field"&&mode!=="over"&&!pv||mode==="hit"){drawField()}
  else{
-  if(eagle){drawEagle()}else{drawStadium();drawPitcher();drawBatter();
+  if(eagle&&half==="bat"){drawEagle()}else{drawStadium();drawPitcher();drawBatter();
   x.strokeStyle="rgba(255,255,255,.75)";x.lineWidth=2;x.strokeRect(335,315,130,130);
   if(pitch){const b=ballPos(pitch);
    x.fillStyle="rgba(0,0,0,.25)";x.beginPath();x.ellipse(b.x,b.y+b.r*1.2,b.r,b.r*.35,0,0,6.3);x.fill();
    x.fillStyle="#fff";x.strokeStyle="#dc2626";x.lineWidth=Math.max(1,b.r/6);x.beginPath();x.arc(b.x,b.y,b.r,0,6.3);x.fill();x.stroke()}
   const sw=swingT>0?1-swingT/.25:0;
-  x.strokeStyle=swingT>0?"#fde047":"rgba(253,224,71,.6)";x.lineWidth=3;x.beginPath();x.arc(bat.x,bat.y,P.pos,0,6.3);x.stroke();
-  x.save();x.translate(bat.x,bat.y);x.rotate(swingT>0?-1.2+sw*2.6:-.9);x.fillStyle="#b45309";x.strokeStyle="#451a03";x.lineWidth=3;x.beginPath();x.roundRect(-4,-95,12,100,5);x.fill();x.stroke();x.restore()}}
+  if(half==="bat"){x.strokeStyle=swingT>0?"#fde047":"rgba(253,224,71,.6)";x.lineWidth=3;x.beginPath();x.arc(bat.x,bat.y,P.pos,0,6.3);x.stroke();
+  x.save();x.translate(bat.x,bat.y);x.rotate(swingT>0?-1.2+sw*2.6:-.9);x.fillStyle="#b45309";x.strokeStyle="#451a03";x.lineWidth=3;x.beginPath();x.roundRect(-4,-95,12,100,5);x.fill();x.stroke();x.restore()}
+  else if(mode==="aim"){x.strokeStyle="#ef4444";x.lineWidth=3;x.beginPath();x.arc(bat.x,bat.y,16,0,6.3);x.moveTo(bat.x-26,bat.y);x.lineTo(bat.x+26,bat.y);x.moveTo(bat.x,bat.y-26);x.lineTo(bat.x,bat.y+26);x.stroke();
+   x.fillStyle="rgba(15,23,42,.8)";x.fillRect(560,12,220,34);x.fillStyle="#16a34a";x.fillRect(650,16,40,26);x.fillStyle="#fde047";x.fillRect(667,16,6,26);x.fillStyle="#fff";x.fillRect(670+Math.sin(mt)*104,14,4,30);
+   text(`Pitch: ${PT[pt].n}`,W/2,40,18,"#fff")}}}
  // scoreboard
  x.fillStyle="rgba(15,23,42,.8)";x.fillRect(8,8,250,78);
  const mine=half==="bat"?runs:oRuns,cpu=half==="bat"?oRuns:runs;
  text(`Inning ${inn}/${INN} ${half==="bat"?"▲":"▼"}`,18,32,15,"#fff","left");text(`You ${mine}  CPU ${cpu}`,18,58,18,"#fde047","left");text(`Best ${best}`,18,80,14,"#bbf7d0","left");
- text(half==="bat"?`B ${balls} S ${strikes} O ${outs}`:`O ${Math.min(outs,3)}`,175,32,14,"#fff","left");
+ text(`B ${balls} S ${strikes} O ${Math.min(outs,3)}`,175,32,14,"#fff","left");
  for(let i=0;i<3;i+=1){const p=[[225,66],[205,48],[185,66]][i];x.fillStyle=bases[i]?"#f97316":"#475569";x.save();x.translate(p[0],p[1]);x.rotate(Math.PI/4);x.fillRect(-6,-6,12,12);x.restore()}
  if(msgT>0)text(msg,W/2,110,34,"#fff");
  if(mode==="over"){x.fillStyle="rgba(2,6,23,.78)";x.fillRect(0,0,W,H);text("Game Over",W/2,200,56,"#fde047");text(`You ${runs} – CPU ${oRuns}`,W/2,260,30,"#fff");text(runs>oRuns?"You win! 🎉":runs<oRuns?"CPU wins":"Tie game",W/2,225,26,"#fff");text(runs>=best&&runs>0?"New best!":`Best: ${best}`,W/2,305,22,"#bbf7d0");text("Click or press Space to play again",W/2,370,22,"#fff")}}
@@ -194,6 +222,7 @@ C.addEventListener("pointerdown",e=>{e.preventDefault();const p=pos(e);bat.x=p.x
 C.addEventListener("pointerup",e=>{if(e.pointerType!=="mouse"){const p=pos(e);bat.x=p.x;bat.y=p.y;fl.tx=p.x;fl.ty=p.y;swing()}});
 document.querySelector("#swing").onclick=swing;
 const stealB=document.querySelector("#steal");stealB.onclick=()=>{steal();stealB.blur()};
+const ptB=document.querySelector("#ptypes");const swB=document.querySelector("#swing");ptB.querySelectorAll("button").forEach(b=>b.onclick=()=>{pt=b.dataset.p;b.blur()});
 const eyeB=document.querySelector("#eye");
 function toggleEye(){eagle=!eagle;eyeB.textContent="🦅 Eagle Eye: "+(eagle?"On":"Off");eyeB.blur()}
 eyeB.onclick=toggleEye;
@@ -201,7 +230,7 @@ const modeB=document.querySelector("#mode");
 function setDiff(d){diff=d;P=D[d];loadBest();modeB.textContent="Mode: "+(d==="easy"?"Easy":"Hard");try{localStorage.setItem("baseballDiff",d)}catch(e){}}
 function toggleDiff(){modeB.blur();if(mode==="title"||mode==="over")setDiff(diff==="easy"?"hard":"easy");else say("Change mode between games",1.4)}
 modeB.onclick=toggleDiff;setDiff(diff);
-addEventListener("keydown",e=>{if(e.code.startsWith("Arrow")){e.preventDefault();keys[e.code]=true}if(e.code==="KeyV")toggleEye();if(e.code==="KeyS")steal();if(e.code==="KeyM")toggleDiff();if(e.code==="Space"||e.code==="Enter"){e.preventDefault();swing()}});
+addEventListener("keydown",e=>{if(e.code.startsWith("Arrow")){e.preventDefault();keys[e.code]=true}if(e.code==="KeyV")toggleEye();if(e.code==="Digit1")pt="fast";if(e.code==="Digit2")pt="curve";if(e.code==="Digit3")pt="change";if(e.code==="KeyS")steal();if(e.code==="KeyM")toggleDiff();if(e.code==="Space"||e.code==="Enter"){e.preventDefault();swing()}});
 addEventListener("keyup",e=>{keys[e.code]=false});
 requestAnimationFrame(loop);
 </script></body></html>
