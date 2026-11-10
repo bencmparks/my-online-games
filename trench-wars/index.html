@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Trench Wars | My Online Games</title><style>
+:root{color-scheme:dark;font-family:system-ui,sans-serif;background:#0f172a;color:#f1f5f9}*{box-sizing:border-box}
+body{display:grid;place-items:center;min-height:100vh;margin:0;padding:.6rem;background:#0f172a}
+main{width:min(100%,52rem);text-align:center}a{color:#93c5fd}h1{margin:.2rem 0;font-size:1.4rem}
+canvas{width:100%;border:.2rem solid #475569;border-radius:.6rem;background:#6b7d4a;touch-action:none}
+.row{display:flex;gap:.4rem;justify-content:center;flex-wrap:wrap;margin:.4rem 0}
+button{padding:.5rem .8rem;border:0;border-radius:.5rem;background:#475569;color:#fff;font:inherit;font-weight:700;cursor:pointer}button.on{background:#16a34a}
+p{margin:.3rem 0;font-size:.9rem;color:#cbd5e1}
+</style></head>
+<body><main><a href="../">← All games</a><h1>🪖 Trench Wars</h1>
+<div class="row"><button id="mR" class="on">🤖 vs Robot</button><button id="m2">👥 2 Players</button><button id="dN" class="on">Normal</button><button id="dH">Hard</button><button id="rs">Restart</button></div>
+<canvas id="c" width="800" height="500"></canvas>
+<p id="help"></p>
+<script>
+const c=document.getElementById("c"),x=c.getContext("2d"),$=s=>document.querySelector(s);
+const W=800,H=500,COL=["#3b82f6","#ef4444"],DK=["#1e3a8a","#7f1d1d"];
+const WALLS=[[370,60,60,60],[370,380,60,60],[380,220,40,60],[190,120,40,70],[190,310,40,70],[570,120,40,70],[570,310,40,70],[120,230,30,40],[650,230,30,40],[280,40,30,30],[490,430,30,30],[280,430,30,30],[490,40,30,30]];
+const KEYS=[{u:"KeyW",d:"KeyS",l:"KeyA",r:"KeyD",f:"Space"},{u:"ArrowUp",d:"ArrowDown",l:"ArrowLeft",r:"ArrowRight",f:"Enter"}];
+const down={};let vsBot=true,hard=false,S;
+function reset(){S={u:[],b:[],tk:[60,60],t:0,over:-1,sp:[0,0],resp:[0,0],fx:[]};for(let s=0;s<2;s++)S.u.push(mk(s,true));
+ for(let s=0;s<2;s++)for(let i=0;i<3;i++)S.u.push(mk(s,false))}
+function mk(s,cmd){return{s,cmd,x:s?W-40:40,y:cmd?H/2:60+Math.random()*(H-120),hp:cmd?100:30,mhp:cmd?100:30,ang:s?Math.PI:0,cd:0,ph:Math.random()*6,mv:0,st:Math.random()*2|0,flash:0}}
+function wallHit(px,py,r){for(const[a,b,w,h]of WALLS)if(px>a-r&&px<a+w+r&&py>b-r&&py<b+h+r)return true;return false}
+function move(u,dx,dy,sp,dt){const r=u.cmd?11:8;let nx=u.x+dx*sp*dt,ny=u.y+dy*sp*dt;
+ nx=Math.max(r,Math.min(W-r,nx));ny=Math.max(r,Math.min(H-r,ny));
+ if(!wallHit(nx,u.y,r))u.x=nx;if(!wallHit(u.x,ny,r))u.y=ny;u.mv=(dx||dy)?.1:u.mv}
+function shoot(u,ang){S.b.push({x:u.x+Math.cos(ang)*14,y:u.y+Math.sin(ang)*14,vx:Math.cos(ang)*520,vy:Math.sin(ang)*520,s:u.s,l:.7,d:u.cmd?13:9});u.cd=u.cmd?.2:.65;u.flash=.06}
+function nearest(u,range){let best=null,bd=range;for(const v of S.u)if(v.s!==u.s){const d=Math.hypot(v.x-u.x,v.y-u.y);if(d<bd){bd=d;best=v}}return best}
+function los(a,b){for(let i=1;i<10;i++){const px=a.x+(b.x-a.x)*i/10,py=a.y+(b.y-a.y)*i/10;if(wallHit(px,py,0))return false}return true}
+function upd(dt){if(S.over>=0)return;S.t+=dt;
+ for(let s=0;s<2;s++){S.sp[s]-=dt;const n=S.u.filter(u=>u.s===s&&!u.cmd).length;if(S.sp[s]<=0&&n<7){S.sp[s]=2.6;S.u.push(mk(s,false))}
+  if(!S.u.some(u=>u.s===s&&u.cmd)){S.resp[s]-=dt;if(S.resp[s]<=0)S.u.push(mk(s,true))}}
+ for(const u of S.u){u.cd-=dt;u.flash-=dt;u.mv-=dt;const T=nearest(u,u.cmd?330:250),dir=u.s?-1:1;
+  if(u.cmd&&(!vsBot||!u.s)){const k=KEYS[u.s];let dx=(down[k.r]?1:0)-(down[k.l]?1:0),dy=(down[k.d]?1:0)-(down[k.u]?1:0);
+   if(dx||dy){const m=Math.hypot(dx,dy);dx/=m;dy/=m;u.ang=Math.atan2(dy,dx);move(u,dx,dy,150,dt);u.ph+=dt*12}
+   if(down[k.f]&&u.cd<=0)shoot(u,u.ang)}
+  else if(u.cmd){const sp=hard?150:110,err=hard?.06:.22;
+   if(T){const d=Math.hypot(T.x-u.x,T.y-u.y),a=Math.atan2(T.y-u.y,T.x-u.x);u.ang=a;let mx=0,my=0;
+    if(d>200){mx=Math.cos(a);my=Math.sin(a)}else if(d<120){mx=-Math.cos(a);my=-Math.sin(a)}
+    u.st=(u.st+dt*(hard?1.6:1))%6;const sw=Math.sin(u.st*1.3+(u.s*2))>0?1:-1;mx+=-Math.sin(a)*sw*.9;my+=Math.cos(a)*sw*.9;
+    const m=Math.hypot(mx,my)||1;move(u,mx/m,my/m,sp,dt);u.ph+=dt*12;
+    if(u.cd<=0&&d<320&&los(u,T))shoot(u,a+(Math.random()-.5)*err*2)}
+   else{move(u,dir*-1,Math.sin(S.t)*.3,sp,dt);u.ang=Math.PI}}
+  else{if(T){const d=Math.hypot(T.x-u.x,T.y-u.y),a=Math.atan2(T.y-u.y,T.x-u.x);u.ang=a;if(d>150)move(u,Math.cos(a),Math.sin(a),65,dt);else move(u,-Math.sin(a)*(u.st?1:-1)*.4,Math.cos(a)*(u.st?1:-1)*.4,40,dt);u.ph+=dt*10;
+    if(u.cd<=0&&los(u,T)){shoot(u,a+(Math.random()-.5)*.5)}}
+   else{u.ang=dir>0?0:Math.PI;const ty=H/2+(u.st?-90:90);const a=Math.atan2(ty-u.y,(u.s?60:W-60)-u.x);move(u,Math.cos(a),Math.sin(a),65,dt);u.ph+=dt*10}}}
+ for(const b of S.b){b.x+=b.vx*dt;b.y+=b.vy*dt;b.l-=dt;if(wallHit(b.x,b.y,1)||b.x<0||b.x>W||b.y<0||b.y>H){b.l=0;continue}
+  for(const u of S.u)if(u.s!==b.s&&u.hp>0&&Math.hypot(u.x-b.x,u.y-b.y)<(u.cmd?11:8)){u.hp-=b.d;u.hit=.1;b.l=0;S.fx.push({x:b.x,y:b.y,l:.2});
+   if(u.hp<=0){S.tk[u.s]-=u.cmd?3:1;if(u.cmd)S.resp[u.s]=2.5;for(let i=0;i<8;i++)S.fx.push({x:u.x,y:u.y,l:.5,vx:Math.cos(i)*80,vy:Math.sin(i)*80})}break}}
+ S.b=S.b.filter(b=>b.l>0);S.u=S.u.filter(u=>u.hp>0);for(const f of S.fx){f.l-=dt;if(f.vx){f.x+=f.vx*dt;f.y+=f.vy*dt}}S.fx=S.fx.filter(f=>f.l>0);
+ for(const u of S.u)if(u.hit)u.hit=Math.max(0,u.hit-dt);
+ for(let s=0;s<2;s++)if(S.tk[s]<=0){S.tk[s]=0;S.over=1-s}}
+function txt(t,px,py,sz,col,al="center"){x.font="bold "+sz+"px system-ui";x.textAlign=al;x.fillStyle=col;x.fillText(t,px,py)}
+function drawU(u){const r=u.cmd?11:8,st=u.mv>0?Math.sin(u.ph)*3:0;x.save();x.translate(u.x,u.y);
+ x.fillStyle="#0004";x.beginPath();x.ellipse(0,r*.6,r,r*.6,0,0,7);x.fill();
+ x.rotate(u.ang);x.fillStyle="#222";x.fillRect(4,-2,r+9,4);if(u.flash>0){x.fillStyle="#fde047";x.beginPath();x.arc(r+13,0,5,0,7);x.fill()}
+ x.fillStyle="#d9b38c";x.beginPath();x.arc(0,-r*.8+st*.3,3.5,0,7);x.arc(0,r*.8-st*.3,3.5,0,7);x.fill();
+ x.fillStyle=u.hit?"#fff":COL[u.s];x.beginPath();x.arc(0,0,r,0,7);x.fill();x.strokeStyle=DK[u.s];x.lineWidth=2;x.stroke();
+ x.fillStyle=u.hit?"#fff":DK[u.s];x.beginPath();x.arc(1,0,r*.58,0,7);x.fill();x.restore();
+ const w=r*2.4;x.fillStyle="#000";x.fillRect(u.x-w/2,u.y-r-9,w,4);x.fillStyle=u.hp/u.mhp>.4?"#22c55e":"#ef4444";x.fillRect(u.x-w/2,u.y-r-9,w*u.hp/u.mhp,4);
+ if(u.cmd)txt("★",u.x,u.y-r-12,13,"#fde047")}
+function draw(){x.fillStyle="#6b7d4a";x.fillRect(0,0,W,H);x.fillStyle="#5d6e3f";for(let i=0;i<40;i++)x.fillRect((i*97)%W,(i*53)%H,26,10);
+ x.fillStyle="#3b82f633";x.fillRect(0,0,70,H);x.fillStyle="#ef444433";x.fillRect(W-70,0,70,H);
+ x.strokeStyle="#0003";x.setLineDash([8,8]);x.beginPath();x.moveTo(W/2,0);x.lineTo(W/2,H);x.stroke();x.setLineDash([]);
+ for(const[a,b,w,h]of WALLS){x.fillStyle="#6b4f2a";x.fillRect(a,b,w,h);x.strokeStyle="#3f2d14";x.lineWidth=2;x.strokeRect(a,b,w,h);x.fillStyle="#8a6a3a";x.fillRect(a+3,b+3,w-6,5)}
+ for(const u of S.u)drawU(u);
+ for(const b of S.b){x.strokeStyle=b.s?"#fca5a5":"#bfdbfe";x.lineWidth=3;x.beginPath();x.moveTo(b.x,b.y);x.lineTo(b.x-b.vx*.02,b.y-b.vy*.02);x.stroke()}
+ for(const f of S.fx){x.fillStyle=f.vx?"#ef4444":"#fde047";x.globalAlpha=Math.min(1,f.l*3);x.beginPath();x.arc(f.x,f.y,f.vx?4:3,0,7);x.fill();x.globalAlpha=1}
+ x.fillStyle="#000a";x.fillRect(0,0,W,30);
+ for(let s=0;s<2;s++){const bx=s?W-310:10;x.fillStyle="#000";x.fillRect(bx,8,300,14);x.fillStyle=COL[s];const w=300*S.tk[s]/60;x.fillRect(s?bx+300-w:bx,8,w,14)}
+ txt("Tickets "+S.tk[0],80,20,13,"#fff");txt(S.tk[1]+" Tickets",W-80,20,13,"#fff");txt(vsBot?"You vs Robot"+(hard?" (Hard)":""):"Player 1 vs Player 2",W/2,20,13,"#fff");
+ for(let s=0;s<2;s++)if(!S.u.some(u=>u.s===s&&u.cmd)&&S.over<0&&!(vsBot&&s))txt("Respawning...",s?W-110:110,H-14,14,"#fff");
+ if(S.over>=0){x.fillStyle="#000a";x.fillRect(0,170,W,150);txt(S.over===0?(vsBot?"🏆 You win!":"🏆 Blue wins!"):(vsBot?"🤖 Robot wins!":"🏆 Red wins!"),W/2,245,44,"#fde047");txt("Click or press Enter to play again",W/2,290,18,"#fff")}}
+function help(){$("#help").textContent=vsBot?"Move with WASD (you face where you walk), Space to shoot. Your squad helps. Drain the enemy's tickets: each kill costs them tickets, commander kills cost 3.":"Blue: WASD + Space. Red: arrow keys + Enter. Squads fight for you. Drain the other side's tickets."}
+function mode(b){vsBot=b;$("#mR").classList.toggle("on",b);$("#m2").classList.toggle("on",!b);help();reset()}
+$("#mR").onclick=()=>mode(true);$("#m2").onclick=()=>mode(false);$("#rs").onclick=reset;
+$("#dN").onclick=()=>{hard=false;$("#dN").classList.add("on");$("#dH").classList.remove("on");reset()};
+$("#dH").onclick=()=>{hard=true;$("#dH").classList.add("on");$("#dN").classList.remove("on");reset()};
+addEventListener("keydown",e=>{down[e.code]=true;if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code))e.preventDefault();if(e.code==="Enter"&&S.over>=0)reset()});
+addEventListener("keyup",e=>down[e.code]=false);c.onclick=()=>{if(S.over>=0)reset()};
+let last=performance.now();function loop(n){const dt=Math.min(.05,(n-last)/1000);last=n;upd(dt);draw();requestAnimationFrame(loop)}
+reset();help();requestAnimationFrame(loop);
+</script></main></body></html>
