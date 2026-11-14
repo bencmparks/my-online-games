@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Game Party | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#1e1b4b;color:#f8fafc}
+*{box-sizing:border-box}
+body{margin:0;padding:1rem;min-height:100vh;background:linear-gradient(135deg,#4c1d95,#be185d 50%,#0369a1)}
+main{max-width:52rem;margin:0 auto;padding:1rem 1.25rem;border-radius:1.2rem;background:rgb(15 23 42/85%)}
+a{color:#fde047}h1{margin:.3rem 0}h2{margin:.2rem 0 .5rem;font-size:1.1rem}
+button,select,input{font:inherit;padding:.45rem .8rem;border-radius:.5rem;border:1px solid #94a3b8;background:#fef08a;color:#172554;font-weight:bold}
+button{cursor:pointer}button:disabled{opacity:.5;cursor:default}
+input,select{background:#fff;font-weight:normal}
+.box{border:1px solid #475569;border-radius:.8rem;padding:.8rem;margin:.8rem 0;background:rgb(30 41 59/70%)}
+.row{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin:.3rem 0}
+.code{font-size:2.2rem;letter-spacing:.3rem;color:#fde047;font-weight:bold}
+.tag{display:inline-block;padding:.1rem .5rem;border-radius:1rem;background:#334155;margin:.1rem}
+.tag.me{background:#7c3aed}.tag.host{background:#b45309}
+#status{color:#fde047}
+.board{display:grid;gap:.3rem;margin:.5rem auto;width:max-content}
+.cell{width:4rem;height:4rem;padding:0;font-size:2rem;background:#e0f2fe;color:#0f172a}
+.c4 .cell{border-radius:50%;width:3rem;height:3rem;background:#1e3a8a}
+.c4 .cell.p0{background:#ef4444}.c4 .cell.p1{background:#facc15}
+.x{color:#dc2626}.o{color:#2563eb}
+.rps button{font-size:2rem;padding:.4rem 1rem}
+.req{display:flex;gap:.5rem;align-items:center;margin:.25rem 0}
+</style></head><body><main>
+<a href="../">← All games</a>
+<h1>🎉 Game Party</h1>
+<p>One person hosts a party and shares the 4-letter code. Friends join with it, send game requests, and the host picks what to play and who plays. Everyone else watches live.</p>
+<div id="entry" class="box">
+  <div class="row"><label>Your name <input id="name" maxlength="16" placeholder="Player"></label></div>
+  <div class="row"><button id="host" type="button">Host a party</button>
+  <input id="code" maxlength="4" size="6" placeholder="CODE" aria-label="Party code" style="text-transform:uppercase;text-align:center">
+  <button id="join" type="button">Join party</button></div>
+</div>
+<p id="status" aria-live="polite"></p>
+<div id="party" hidden>
+  <div class="box"><div class="row">Party code: <span class="code" id="pcode"></span><button id="leave" type="button">Leave</button></div>
+  <div>Members: <span id="members"></span></div></div>
+  <div id="hostPanel" class="box" hidden>
+    <h2>Host controls</h2>
+    <div class="row"><label>Game <select id="gsel"></select></label>
+    <label>Player 1 <select id="p1"></select></label>
+    <label>Player 2 <select id="p2"></select></label>
+    <button id="start" type="button">Start game</button><button id="stop" type="button">End game</button></div>
+    <h2>Game requests</h2><div id="reqs">No requests yet.</div>
+  </div>
+  <div id="reqPanel" class="box" hidden>
+    <h2>Request a game</h2>
+    <div class="row"><select id="rsel"></select><button id="send" type="button">Send request</button></div>
+  </div>
+  <div class="box"><h2 id="mtitle">Waiting for the host to pick a game…</h2><div id="view"></div></div>
+</div>
+<script>
+const $=s=>document.querySelector(s);
+const WINS=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+/* Game logic runs only on the host. Seats are 0 and 1. winner: -1 playing, 0/1 seat, 2 draw. */
+const GAMES={
+  ttt:{name:"Tic-Tac-Toe",
+    init:()=>({board:Array(9).fill(""),turn:0,winner:-1}),
+    move(s,seat,m){if(s.winner>=0||seat!==s.turn||!(m.i>=0&&m.i<9)||s.board[m.i]!=="")return null;
+      s.board[m.i]=seat?"O":"X";
+      if(WINS.some(l=>l.every(i=>s.board[i]===s.board[l[0]]&&s.board[l[0]])))s.winner=seat;
+      else if(s.board.every(Boolean))s.winner=2;else s.turn=1-seat;return s;},
+    render(s,seat,send,el){const b=document.createElement("div");b.className="board";b.style.gridTemplateColumns="repeat(3,auto)";
+      s.board.forEach((v,i)=>{const c=document.createElement("button");c.className="cell "+(v==="X"?"x":"o");c.textContent=v;
+        c.disabled=s.winner>=0||seat!==s.turn||!!v;c.onclick=()=>send({i});b.append(c)});el.append(b);}},
+  c4:{name:"Connect 4",
+    init:()=>({board:Array(42).fill(-1),turn:0,winner:-1}),
+    move(s,seat,m){if(s.winner>=0||seat!==s.turn||!(m.c>=0&&m.c<7))return null;
+      let r=5;while(r>=0&&s.board[r*7+m.c]!==-1)r--;if(r<0)return null;s.board[r*7+m.c]=seat;
+      const at=(y,x)=>y>=0&&y<6&&x>=0&&x<7?s.board[y*7+x]:-2;
+      for(let y=0;y<6;y++)for(let x=0;x<7;x++)for(const[dy,dx]of[[0,1],[1,0],[1,1],[1,-1]])
+        if([0,1,2,3].every(k=>at(y+dy*k,x+dx*k)===seat))s.winner=seat;
+      if(s.winner<0&&s.board.every(v=>v!==-1))s.winner=2;if(s.winner<0)s.turn=1-seat;return s;},
+    render(s,seat,send,el){const b=document.createElement("div");b.className="board c4";b.style.gridTemplateColumns="repeat(7,auto)";
+      s.board.forEach((v,i)=>{const c=document.createElement("button");c.className="cell"+(v>=0?" p"+v:"");
+        c.disabled=s.winner>=0||seat!==s.turn;c.setAttribute("aria-label","Column "+(i%7+1));c.onclick=()=>send({c:i%7});b.append(c)});el.append(b);}},
+  rps:{name:"Rock Paper Scissors (first to 2)",
+    init:()=>({scores:[0,0],picks:[null,null],last:null,winner:-1}),
+    pub:s=>({...s,picks:s.picks.map(p=>p!==null)}),
+    move(s,seat,m){if(s.winner>=0||s.picks[seat]!==null||!["🪨","📄","✂️"].includes(m.p))return null;
+      s.picks[seat]=m.p;
+      if(s.picks[0]!==null&&s.picks[1]!==null){const[a,b]=s.picks,o=["🪨","📄","✂️"];
+        const d=(o.indexOf(a)-o.indexOf(b)+3)%3;if(d===1)s.scores[0]++;else if(d===2)s.scores[1]++;
+        s.last=[a,b];s.picks=[null,null];
+        if(s.scores[0]>=2)s.winner=0;else if(s.scores[1]>=2)s.winner=1;}
+      return s;},
+    render(s,seat,send,el){const d=document.createElement("div");d.className="rps";
+      d.innerHTML=`<p>Score: ${s.scores[0]} – ${s.scores[1]}${s.last?` &nbsp; Last round: ${s.last[0]} vs ${s.last[1]}`:""}</p>`;
+      if(seat>=0&&s.winner<0){["🪨","📄","✂️"].forEach(p=>{const b=document.createElement("button");b.textContent=p;
+        b.disabled=s.picks[seat];b.onclick=()=>send({p});d.append(b)});}
+      const w=document.createElement("p");w.textContent=s.winner<0?`Picked: ${s.picks.map((p,i)=>(i?"P2 ":"P1 ")+(p?"✅":"…")).join("  ")}`:"";d.append(w);el.append(d);}}
+};
+let peer=null,conns=new Map(),isHost=false,myId=null,code="",myName="";
+let members=[],requests=[],match=null,hostState=null,nextId=1;
+const CHARS="ABCDEFGHJKLMNPQRSTUVWXYZ";
+const setStatus=t=>$("#status").textContent=t;
+const nameOf=id=>(members.find(m=>m.id===id)||{name:"(left)"}).name;
+for(const[k,g]of Object.entries(GAMES))for(const sel of["#gsel","#rsel"])$(sel).add(new Option(g.name,k));
+let loading=null;
+function loadPeer(){if(window.Peer)return Promise.resolve();
+  return loading||(loading=new Promise((ok,bad)=>{const s=document.createElement("script");s.src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js";
+    s.onload=ok;s.onerror=()=>{loading=null;bad(new Error("Could not load the online library. Check your connection."))};document.head.append(s)}))}
+function enter(on){$("#entry").hidden=on;$("#party").hidden=!on;$("#hostPanel").hidden=!(on&&isHost);$("#reqPanel").hidden=!(on&&!isHost);$("#pcode").textContent=code}
+function cleanup(msg){try{peer&&peer.destroy()}catch(e){}peer=null;conns.clear();members=[];requests=[];match=null;hostState=null;isHost=false;myId=null;enter(false);setStatus(msg||"")}
+
+/* host side */
+function publicMatch(){if(!match)return null;const g=GAMES[match.game];return{game:match.game,players:match.players,state:g.pub?g.pub(hostState):hostState}}
+function broadcast(){const msg={t:"state",members,requests,match:publicMatch()};
+  conns.forEach(c=>c.open&&c.send(msg));apply(msg)}
+function startMatch(game,p1,p2){if(p1===p2||!members.some(m=>m.id===p1)||!members.some(m=>m.id===p2)){setStatus("Pick two different players.");return}
+  match={game,players:[p1,p2]};hostState=GAMES[game].init();requests=requests.filter(r=>!(r.id===p1||r.id===p2));setStatus("");broadcast()}
+function hostMove(id,m){if(!match)return;const seat=match.players.indexOf(id);if(seat<0)return;
+  const r=GAMES[match.game].move(hostState,seat,m);if(r){hostState=r;broadcast()}}
+function removeMember(id){members=members.filter(m=>m.id!==id);requests=requests.filter(r=>r.id!==id);conns.delete(id);
+  if(match&&match.players.includes(id)){match=null;hostState=null;setStatus("A player left, so the game ended.")}broadcast()}
+function hostParty(){
+  code=Array.from({length:4},()=>CHARS[Math.floor(Math.random()*CHARS.length)]).join("");
+  isHost=true;myId="host";members=[{id:"host",name:myName,host:true}];
+  peer=new Peer("mog-party-"+code);
+  peer.on("error",e=>cleanup(e.type==="unavailable-id"?"That code is in use, try again.":"Connection problem: "+(e.type||"unknown")));
+  peer.on("open",()=>{enter(true);setStatus("Party open! Share the code.");broadcast()});
+  peer.on("connection",c=>{let id=null;
+    c.on("data",d=>{
+      if(d.t==="hello"&&!id){if(members.length>=12){c.close();return}id="m"+nextId++;conns.set(id,c);
+        members.push({id,name:String(d.name||"Player").slice(0,16)});c.send({t:"welcome",id});broadcast()}
+      else if(!id)return;
+      else if(d.t==="request"&&GAMES[d.game]){requests=requests.filter(r=>r.id!==id);requests.push({id,game:d.game});broadcast()}
+      else if(d.t==="move")hostMove(id,d.m)});
+    c.on("close",()=>id&&removeMember(id));c.on("error",()=>id&&removeMember(id))});
+}
+/* guest side */
+function joinParty(c){
+  code=c;peer=new Peer();
+  peer.on("error",e=>cleanup(e.type==="peer-unavailable"?"No party found with that code.":"Connection problem: "+(e.type||"unknown")));
+  peer.on("open",()=>{const conn=peer.connect("mog-party-"+c,{reliable:true});conns.set("host",conn);
+    conn.on("open",()=>{conn.send({t:"hello",name:myName});enter(true);setStatus("Joined the party!")});
+    conn.on("data",d=>{if(d.t==="welcome")myId=d.id;else if(d.t==="state")apply(d)});
+    conn.on("close",()=>cleanup("The host closed the party."));conn.on("error",()=>cleanup("Connection lost."))});
+}
+function sendMove(m){if(isHost)hostMove("host",m);else{const c=conns.get("host");c&&c.open&&c.send({t:"move",m})}}
+
+/* shared rendering */
+function apply(d){members=d.members;requests=d.requests;match=d.match;render()}
+function fill(sel){const v=sel.value;sel.replaceChildren(...members.map(m=>new Option(m.name+(m.id===myId?" (you)":""),m.id)));
+  if(members.some(m=>m.id===v))sel.value=v}
+function render(){
+  $("#members").replaceChildren(...members.map(m=>{const s=document.createElement("span");s.className="tag"+(m.id===myId?" me":"")+(m.host?" host":"");
+    s.textContent=(m.host?"👑 ":"")+m.name;return s}));
+  const view=$("#view");view.replaceChildren();
+  if(isHost){const a=$("#p1").value,b=$("#p2").value;fill($("#p1"));fill($("#p2"));
+    if(!a)$("#p1").value="host";if(!b&&members[1])$("#p2").value=members[1].id;
+    $("#stop").disabled=!match;
+    const box=$("#reqs");box.replaceChildren();
+    if(!requests.length)box.textContent="No requests yet.";
+    requests.forEach(r=>{const row=document.createElement("div");row.className="req";
+      row.append(`${nameOf(r.id)} wants ${GAMES[r.game].name}`);
+      const ok=document.createElement("button");ok.textContent="Play with them";ok.onclick=()=>{$("#gsel").value=r.game;$("#p1").value="host";$("#p2").value=r.id;startMatch(r.game,"host",r.id)};
+      const no=document.createElement("button");no.textContent="Dismiss";no.onclick=()=>{requests=requests.filter(x=>x!==r);broadcast()};
+      row.append(ok,no);box.append(row)});}
+  if(!match){$("#mtitle").textContent=isHost?"Pick a game and two players to start.":"Waiting for the host to pick a game…";return}
+  const g=GAMES[match.game],seat=match.players.indexOf(myId),s=match.state;
+  const [n1,n2]=match.players.map(nameOf);
+  $("#mtitle").textContent=`${g.name}: ${n1} vs ${n2}`;
+  const info=document.createElement("p");
+  info.textContent=s.winner>=0?(s.winner===2?"It's a draw!":`${[n1,n2][s.winner]} wins!`)
+    :seat<0?"👀 You are watching.":s.turn===undefined?"Make your pick!":s.turn===seat?`Your turn! (${seat?"O / yellow":"X / red"})`:`Waiting for ${[n1,n2][s.turn]}…`;
+  view.append(info);g.render(s,seat,sendMove,view);
+  if(isHost&&s.winner>=0){const b=document.createElement("button");b.textContent="Rematch";b.onclick=()=>startMatch(match.game,match.players[0],match.players[1]);view.append(b)}
+}
+const begin=fn=>{myName=$("#name").value.trim()||"Player";localStorage.setItem("partyName",myName);setStatus("Connecting…");loadPeer().then(fn).catch(e=>setStatus(e.message))};
+$("#name").value=localStorage.getItem("partyName")||"";
+$("#host").onclick=()=>begin(hostParty);
+$("#join").onclick=()=>{const c=$("#code").value.trim().toUpperCase();if(c.length!==4){setStatus("Enter the 4-letter code.");return}begin(()=>joinParty(c))};
+$("#leave").onclick=()=>cleanup("You left the party.");
+$("#start").onclick=()=>startMatch($("#gsel").value,$("#p1").value,$("#p2").value);
+$("#stop").onclick=()=>{match=null;hostState=null;broadcast()};
+$("#send").onclick=()=>{const c=conns.get("host");if(c&&c.open){c.send({t:"request",game:$("#rsel").value});setStatus("Request sent!")}};
+addEventListener("beforeunload",()=>{try{peer&&peer.destroy()}catch(e){}});
+</script></main></body></html>
