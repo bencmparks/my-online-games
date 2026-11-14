@@ -13,26 +13,38 @@ p{margin:.3rem 0;font-size:.9rem;color:#cbd5e1}
 <div class="row"><button class="m on" id="mR">🤖 vs Robot</button><button class="m" id="m2">👥 2 Players</button><button class="m on" id="dN">Normal</button><button class="m" id="dH">Hard (robot cheats)</button></div>
 <canvas id="c" width="800" height="400"></canvas>
 <div class="row" id="b1"></div><div class="row" id="b2"></div>
-<p id="help"></p>
+<p id="help"></p><div class="row" id="shop"></div>
 <script>
 const c=document.getElementById("c"),x=c.getContext("2d"),$=s=>document.querySelector(s);
 const TYPES=[{n:"Soldier",e:"🪖",cost:50,hp:60,dmg:8,rng:20,spd:42,cd:.7,r:9},{n:"Archer",e:"🏹",cost:80,hp:35,dmg:7,rng:120,spd:36,cd:.9,r:8},{n:"Tank",e:"🛡️",cost:150,hp:240,dmg:16,rng:26,spd:26,cd:1,r:14},{n:"Rocket",e:"🚀",cost:120,hp:30,dmg:30,rng:170,spd:30,cd:2.2,r:8}];
-const KEYS=[["KeyA","KeyS","KeyD","KeyF"],["KeyJ","KeyK","KeyL","Semicolon"]],COL=["#2563eb","#dc2626"],GY=300;
+const KEYS=[["KeyA","KeyS","KeyD","KeyF"],["KeyJ","KeyK","KeyL","Semicolon"]],MK=["KeyG","Quote"],COL=["#2563eb","#dc2626"],GY=300;
 let vsBot=true,hard=false,S;
-function reset(){S={u:[],coin:[100,hard&&vsBot?300:100],base:[600,600],t:0,over:-1,fx:[],cdBot:2,flash:[0,0]}}
+const UPS=[{k:"dmg",n:"⚔️ Damage",d:"+12% damage"},{k:"hp",n:"❤️ Unit Health",d:"+15% unit HP"},{k:"inc",n:"💰 Income",d:"+20% coin income"},{k:"start",n:"🪙 Starting Coins",d:"+30 start coins"},{k:"base",n:"🏰 Base Armor",d:"+20% base HP"},{k:"loot",n:"☠️ Kill Bounty",d:"+5% of kills' cost"}],MAXL=8;
+let up={},bank=0;try{up=JSON.parse(localStorage.getItem("army-clash-up")||"{}");bank=+localStorage.getItem("army-clash-bank")||0}catch(e){}
+const lv=k=>up[k]||0,ucost=k=>100*(lv(k)+1),bonus=k=>vsBot?lv(k):0;
+const saveU=()=>{try{localStorage.setItem("army-clash-up",JSON.stringify(up));localStorage.setItem("army-clash-bank",bank)}catch(e){}};
+function shop(){const d=$("#shop");if(!vsBot){d.innerHTML="<p>Upgrades apply in 🤖 vs Robot mode only.</p>";return}
+ d.innerHTML="<p style='width:100%'>🏦 Bank: 🪙 "+bank+" (earn coins by playing; win for a bonus)</p>";
+ for(const u of UPS){const b=document.createElement("button"),l=lv(u.k);b.className="b1";b.disabled=l>=MAXL||bank<ucost(u.k);b.style.opacity=b.disabled?.5:1;
+  b.textContent=u.n+" "+l+"/"+MAXL+" – "+u.d+(l>=MAXL?" (MAX)":" · 🪙"+ucost(u.k));b.onclick=()=>{if(l<MAXL&&bank>=ucost(u.k)){bank-=ucost(u.k);up[u.k]=l+1;saveU();shop();reset()}};d.append(b)}}
+function reset(){const mb=600*(1+.2*bonus("base"));S={u:[],coin:[100+30*bonus("start"),hard&&vsBot?300:100],base:[mb,600],mb:[mb,600],ms:[],ex:[],mcd:[0,0],kills:0,t:0,over:-1,fx:[],cdBot:2,flash:[0,0]}}
+function missile(side){if(S.over>=0||S.coin[side]<200||S.mcd[side]>0)return;const foes=S.u.filter(u=>u.s!==side);let tx=side?60:740,best=-1;
+ for(const f of foes){const n=foes.filter(g=>Math.abs(g.x-f.x)<70).length;if(n>best){best=n;tx=f.x}}
+ S.coin[side]-=200;S.mcd[side]=8;const sx=side?740:60;S.ms.push({s:side,sx,tx,t:0})}
 function spawn(side,k){const T=TYPES[k];if(S.over>=0||S.coin[side]<T.cost)return;S.coin[side]-=T.cost;
- const hb=hard&&vsBot&&side?1.3:1;S.u.push({s:side,k,x:side?740:60,y:GY+(Math.random()*30-15),hp:T.hp*hb,mhp:T.hp*hb,cd:0,ph:Math.random()*6})}
+ const hb=hard&&vsBot&&side?1.3:(side?1:1+.15*bonus("hp"));S.u.push({s:side,k,x:side?740:60,y:GY+(Math.random()*30-15),hp:T.hp*hb,mhp:T.hp*hb,cd:0,ph:Math.random()*6})}
 function btns(){for(let s=0;s<2;s++){const d=$(s?"#b2":"#b1");d.innerHTML="";if(s&&vsBot){d.innerHTML="<p>🤖 Robot army</p>";continue}
- TYPES.forEach((T,k)=>{const b=document.createElement("button");b.className=s?"b2":"b1";b.textContent=T.e+" "+T.n+" $"+T.cost+" ["+KEYS[s][k].replace("Key","").replace("Semicolon",";")+"]";b.onpointerdown=e=>{e.preventDefault();spawn(s,k)};d.append(b)})}
- $("#help").textContent=vsBot?"Blue: A S D F spawn Soldier / Archer / Tank / Rocket. Destroy the red base!":"Blue: A S D F. Red: J K L ;. Coins grow over time and from kills. Destroy the other base!"}
-function mode(b){vsBot=b;$("#mR").classList.toggle("on",b);$("#m2").classList.toggle("on",!b);btns();reset()}
+ TYPES.forEach((T,k)=>{const b=document.createElement("button");b.className=s?"b2":"b1";b.textContent=T.e+" "+T.n+" $"+T.cost+" ["+KEYS[s][k].replace("Key","").replace("Semicolon",";")+"]";b.onpointerdown=e=>{e.preventDefault();spawn(s,k)};d.append(b)});
+ const mb=document.createElement("button");mb.className=s?"b2":"b1";mb.textContent="🚀 Missile Strike $200 ["+MK[s].replace("Key","").replace("Quote","'")+"]";mb.onpointerdown=e=>{e.preventDefault();missile(s)};d.append(mb)}
+ $("#help").textContent=vsBot?"Blue: A S D F spawn Soldier / Archer / Tank / Rocket, G fires a 🚀 Missile Strike ($200, 8s cooldown). Destroy the red base!":"Blue: A S D F, G missile. Red: J K L ;, ' missile. Coins grow over time and from kills. Destroy the other base!"}
+function mode(b){vsBot=b;$("#mR").classList.toggle("on",b);$("#m2").classList.toggle("on",!b);btns();reset();shop()}
 $("#mR").onclick=()=>mode(true);$("#m2").onclick=()=>mode(false);
 $("#dN").onclick=()=>{hard=false;$("#dN").classList.add("on");$("#dH").classList.remove("on");reset()};
 $("#dH").onclick=()=>{hard=true;$("#dH").classList.add("on");$("#dN").classList.remove("on");reset()};
-addEventListener("keydown",e=>{for(let s=0;s<2;s++){const k=KEYS[s].indexOf(e.code);if(k>=0&&!(s&&vsBot)){spawn(s,k);e.preventDefault()}}
+addEventListener("keydown",e=>{for(let s=0;s<2;s++){if(e.code===MK[s]&&!(s&&vsBot)){missile(s);e.preventDefault()}const k=KEYS[s].indexOf(e.code);if(k>=0&&!(s&&vsBot)){spawn(s,k);e.preventDefault()}}
  if((e.code==="Enter"||e.code==="Space")&&S.over>=0&&S.boom.t>1.3){reset();e.preventDefault()}});
 c.onclick=()=>{if(S.over>=0&&S.boom.t>1.3)reset()};
-function bot(dt){S.cdBot-=dt;if(S.cdBot>0)return;
+function bot(dt){S.cdBot-=dt;if(S.cdBot>0)return;if(S.coin[1]>=350&&S.mcd[1]<=0&&S.u.some(u=>u.s===0)&&Math.random()<(hard?.5:.15))missile(1);
  if(!hard){S.cdBot=1.8+Math.random()*2;let k=Math.random()*4|0;if(S.coin[1]>=TYPES[k].cost)spawn(1,k);else if(S.coin[1]>=50&&Math.random()<.5)spawn(1,0);return}
  S.cdBot=.35+Math.random()*.35;
  const foes=S.u.filter(u=>u.s===0),mine=S.u.filter(u=>u.s===1),n=k=>foes.filter(u=>u.k===k).length,m=k=>mine.filter(u=>u.k===k).length;
@@ -45,22 +57,27 @@ function bot(dt){S.cdBot-=dt;if(S.cdBot>0)return;
  else if(co>=50)k=0;else return;
  if(co>=TYPES[k].cost)spawn(1,k)}
 function boom(s){const bx=s?740:60,p=[];for(let i=0;i<70;i++){const a=Math.random()*6.283,v=60+Math.random()*260;p.push({x:bx+(Math.random()*40-20),y:GY-20+(Math.random()*60-30),vx:Math.cos(a)*v,vy:Math.sin(a)*v-120,r:3+Math.random()*7,c:["#f97316","#facc15","#ef4444","#475569","#fff"][i%5]})}S.boom={s,t:0,p}}
-function upd(dt){if(S.boom){S.boom.t+=dt;for(const q of S.boom.p){q.x+=q.vx*dt;q.y+=q.vy*dt;q.vy+=420*dt}for(const u of S.u){u.moving=false}}if(S.over>=0)return;S.t+=dt;const inc=12*dt;S.coin[0]+=inc;S.coin[1]+=hard&&vsBot?inc*2:inc;if(vsBot)bot(dt);
+function upd(dt){if(S.boom){S.boom.t+=dt;for(const q of S.boom.p){q.x+=q.vx*dt;q.y+=q.vy*dt;q.vy+=420*dt}for(const u of S.u){u.moving=false}}if(S.over>=0)return;S.t+=dt;S.mcd[0]=Math.max(0,S.mcd[0]-dt);S.mcd[1]=Math.max(0,S.mcd[1]-dt);
+ for(const m of S.ms){m.t+=dt/1.1;if(m.t>=1&&!m.done){m.done=1;S.ex.push({x:m.tx,l:.5});const ob=1-m.s,bx=ob?740:60,dm=m.s?1:1+.12*bonus("dmg");
+  for(const v of S.u)if(v.s!==m.s&&Math.abs(v.x-m.tx)<80){v.hp-=90*dm;v.hit=.15;if(v.hp<=0)S.coin[m.s]+=TYPES[v.k].cost*.3}
+  if(Math.abs(bx-m.tx)<90){S.base[ob]-=60*dm;S.flash[ob]=.15}}}
+ S.ms=S.ms.filter(m=>!m.done);for(const e of S.ex)e.l-=dt;S.ex=S.ex.filter(e=>e.l>0);
+ const inc=12*dt;S.coin[0]+=inc*(1+.2*bonus("inc"));S.coin[1]+=hard&&vsBot?inc*2:inc;if(vsBot)bot(dt);
  for(const u of S.u){const T=TYPES[u.k],dir=u.s?-1:1;u.cd-=dt;u.ph+=dt*(u.moving?10:0);
   let tg=null,bd=1e9;for(const v of S.u)if(v.s!==u.s){const d=Math.abs(v.x-u.x);if(d<bd){bd=d;tg=v}}
   const bx=u.s?60:740,bdist=Math.abs(bx-u.x);let tgt=null;
   if(tg&&bd<=T.rng+TYPES[tg.k].r)tgt=tg;else if(bdist<=T.rng+22)tgt="base";
   u.moving=!tgt;
-  if(tgt){if(u.cd<=0){u.cd=T.cd;const rg=T.rng>60;if(tgt==="base"){S.base[1-u.s]-=T.dmg*(u.k===3?1.4:1);S.flash[1-u.s]=.15;if(rg)S.fx.push({a:u.x,b:u.s?60:740,y:u.y,l:.18,k:u.k})}
-    else{tgt.hp-=T.dmg;tgt.hit=.12;if(rg)S.fx.push({a:u.x,b:tgt.x,y:u.y,l:.18,k:u.k});if(tgt.hp<=0)S.coin[u.s]+=TYPES[tgt.k].cost*.3}}}
-  else{const blocked=S.u.some(v=>v!==u&&v.s===u.s&&Math.abs(v.y-u.y)<10&&(v.x-u.x)*dir>0&&(v.x-u.x)*dir<22);if(!blocked)u.x+=dir*T.spd*dt}}
+  if(tgt){if(u.cd<=0){u.cd=T.cd;const rg=T.rng>60;if(tgt==="base"){S.base[1-u.s]-=T.dmg*(u.k===3?1.4:1)*(u.s?1:1+.12*bonus("dmg"));S.flash[1-u.s]=.15;if(rg)S.fx.push({a:u.x,b:u.s?60:740,y:u.y,l:.18,k:u.k})}
+    else{tgt.hp-=T.dmg*(u.s?1:1+.12*bonus("dmg"));tgt.hit=.12;if(rg)S.fx.push({a:u.x,b:tgt.x,y:u.y,l:.18,k:u.k});if(tgt.hp<=0){S.coin[u.s]+=TYPES[tgt.k].cost*(.3+(u.s?0:.05*bonus("loot")));if(!u.s)S.kills++}}}}
+  else{const blocked=vsBot&&u.s===1&&S.u.some(v=>v!==u&&v.s===u.s&&Math.abs(v.y-u.y)<10&&(v.x-u.x)*dir>0&&(v.x-u.x)*dir<22);if(!blocked)u.x+=dir*T.spd*dt}}
  S.u=S.u.filter(u=>u.hp>0);for(const f of S.fx)f.l-=dt;S.fx=S.fx.filter(f=>f.l>0);
- for(let s=0;s<2;s++){S.flash[s]=Math.max(0,S.flash[s]-dt);if(S.base[s]<=0){S.base[s]=0;S.over=1-s;boom(s)}}
+ for(let s=0;s<2;s++){S.flash[s]=Math.max(0,S.flash[s]-dt);if(S.base[s]<=0){S.base[s]=0;S.over=1-s;boom(s);if(vsBot){S.earn=50+S.kills*8+(S.over===0?250:0);bank+=S.earn;saveU();shop()}}}
  for(const u of S.u)if(u.hit)u.hit=Math.max(0,u.hit-dt)}
 function txt(t,px,py,sz,col,al="center"){x.font="bold "+sz+"px system-ui";x.textAlign=al;x.fillStyle=col;x.fillText(t,px,py)}
 function drawBase(s){const bx=s?740:60,f=S.flash[s]>0;if(S.boom&&S.boom.s===s){const t=S.boom.t;if(t<.25){x.fillStyle="#fff";x.fillRect(bx-26,GY-62,52,80)}else{x.fillStyle="#3b3b3b";for(let i=0;i<4;i++)x.fillRect(bx-26+i*13,GY+10-(i%2)*8,12,8+(i%2)*8)}return}x.fillStyle=f?"#fff":COL[s];x.fillRect(bx-26,GY-62,52,80);x.fillStyle="#0006";x.fillRect(bx-26,GY-62,52,10);
  for(let i=0;i<3;i++)x.fillRect(bx-26+i*20,GY-72,12,10);x.fillStyle="#1e293b";x.fillRect(bx-8,GY-14,16,32);
- x.fillStyle="#000";x.fillRect(bx-34,GY-88,68,8);x.fillStyle=S.base[s]>200?"#22c55e":"#ef4444";x.fillRect(bx-34,GY-88,68*S.base[s]/600,8)}
+ x.fillStyle="#000";x.fillRect(bx-34,GY-88,68,8);x.fillStyle=S.base[s]>S.mb[s]/3?"#22c55e":"#ef4444";x.fillRect(bx-34,GY-88,68*S.base[s]/S.mb[s],8)}
 function drawU(u){const T=TYPES[u.k],dir=u.s?-1:1,sw=Math.sin(u.ph)*4,bob=u.moving?Math.abs(Math.sin(u.ph))*2:0,px=u.x,py=u.y-bob;
  x.fillStyle="#0003";x.beginPath();x.ellipse(px,u.y+T.r,T.r,4,0,0,7);x.fill();
  x.fillStyle=u.hit?"#fff":"#334155";x.fillRect(px-4+sw*.5,py+T.r-6,3,7);x.fillRect(px+1-sw*.5,py+T.r-6,3,7);
@@ -71,13 +88,15 @@ function drawU(u){const T=TYPES[u.k],dir=u.s?-1:1,sw=Math.sin(u.ph)*4,bob=u.movi
 function draw(){x.clearRect(0,0,800,400);x.save();if(S.boom&&S.boom.t<.8)x.translate((Math.random()-.5)*14*(1-S.boom.t/.8),(Math.random()-.5)*14*(1-S.boom.t/.8));x.fillStyle="#7dd3fc";x.fillRect(0,0,800,150);x.fillStyle="#fff8";for(let i=0;i<4;i++){x.beginPath();x.ellipse(120+i*210,50+i%2*25,40,13,0,0,7);x.fill()}
  x.fillStyle="#86c26b";x.fillRect(0,150,800,250);x.fillStyle="#a8895a";x.fillRect(0,GY-22,800,64);
  drawBase(0);drawBase(1);S.u.slice().sort((a,b)=>a.y-b.y).forEach(drawU);
+ for(const m of S.ms){const k=Math.min(1,m.t),mx=m.sx+(m.tx-m.sx)*k,my=GY-60-Math.sin(k*Math.PI)*130;x.fillStyle="#f97316";x.beginPath();x.arc(mx-(m.tx-m.sx)*.02,my+4,4,0,7);x.fill();txt("🚀",mx,my,20,"#000")}
+ for(const e of S.ex){const k=1-e.l/.5;x.globalAlpha=1-k;x.fillStyle="#fde68a";x.beginPath();x.arc(e.x,GY,20+k*70,0,7);x.fill();x.strokeStyle="#f97316";x.lineWidth=4;x.stroke();x.globalAlpha=1}
  for(const f of S.fx){x.strokeStyle=f.k===3?"#f97316":"#facc15";x.lineWidth=f.k===3?4:2;x.beginPath();x.moveTo(f.a,f.y-4);x.lineTo(f.b,f.y-4);x.stroke()}
  x.fillStyle="#0009";x.fillRect(0,0,800,34);txt("🪙 "+Math.floor(S.coin[0]),70,24,18,"#93c5fd");txt(vsBot?"🤖 "+Math.floor(S.coin[1]):"🪙 "+Math.floor(S.coin[1]),730,24,18,"#fca5a5");
  txt(vsBot?"You vs Robot"+(hard?" (Hard)":""):"Player 1 vs Player 2",400,24,16,"#fff");
  if(S.boom){const b=S.boom,bx=b.s?740:60,t=b.t;if(t<.7){const g=x.createRadialGradient(bx,GY-20,0,bx,GY-20,40+t*220);g.addColorStop(0,"#fff");g.addColorStop(.35,"#fde047");g.addColorStop(.7,"#f97316aa");g.addColorStop(1,"#f9731600");x.fillStyle=g;x.beginPath();x.arc(bx,GY-20,40+t*220,0,7);x.fill()}
   for(const q of b.p){x.globalAlpha=Math.max(0,1-t/2.2);x.fillStyle=q.c;x.beginPath();x.arc(q.x,q.y,q.r,0,7);x.fill()}x.globalAlpha=1;if(t>.3&&t<1.8)txt("💥",bx,GY-30-t*30,70-t*10,"#000")}
  x.restore();
- if(S.over>=0&&S.boom.t>1.3){x.fillStyle="#000a";x.fillRect(0,130,800,130);txt(S.over===0?(vsBot?"🏆 You win!":"🏆 Blue wins!"):(vsBot?"🤖 Robot wins!":"🏆 Red wins!"),400,195,40,"#fde047");txt("Click or press Enter to play again",400,235,18,"#fff")}}
+ if(S.over>=0&&S.boom.t>1.3){x.fillStyle="#000a";x.fillRect(0,130,800,130);txt(S.over===0?(vsBot?"🏆 You win!":"🏆 Blue wins!"):(vsBot?"🤖 Robot wins!":"🏆 Red wins!"),400,195,40,"#fde047");txt("Click or press Enter to play again",400,235,18,"#fff");if(S.earn)txt("+🪙"+S.earn+" to bank — spend it on upgrades below",400,255,14,"#fde047")}}
 let last=performance.now();function loop(n){const dt=Math.min(.05,(n-last)/1000);last=n;upd(dt);draw();requestAnimationFrame(loop)}
-reset();btns();requestAnimationFrame(loop);
+reset();btns();shop();requestAnimationFrame(loop);
 </script></main></body></html>

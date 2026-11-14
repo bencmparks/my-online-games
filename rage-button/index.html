@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Rage Button | My Online Games</title><style>
+:root{color-scheme:dark;font-family:system-ui,sans-serif;background:#0f172a;color:#f1f5f9}*{box-sizing:border-box}
+body{display:grid;place-items:center;min-height:100vh;margin:0;padding:.6rem;background:#0f172a}
+main{width:min(100%,40rem);text-align:center}a{color:#93c5fd}h1{margin:.2rem 0;font-size:1.5rem}
+#hud{display:flex;justify-content:space-between;font-weight:700;margin:.4rem 0;color:#fca5a5}
+#stage{position:relative;height:22rem;border:.2rem solid #475569;border-radius:.6rem;background:#1e293b;overflow:hidden;user-select:none}
+#msg{margin:.5rem 0;min-height:2.4em;font-weight:700;color:#fde047}
+button{font:inherit;font-weight:700;border:0;border-radius:.5rem;padding:.7rem 1.1rem;color:#fff;background:#dc2626;cursor:pointer}
+.abs{position:absolute}.bar{height:1.6rem;background:#0f172a;border-radius:.4rem;overflow:hidden;width:70%;margin:0 auto}.bar i{display:block;height:100%;width:0;background:#22c55e}
+.pop{position:absolute;width:11rem;background:#f1f5f9;color:#0f172a;border:2px solid #64748b;border-radius:.4rem;padding:1.3rem .5rem .5rem;font-size:.8rem}
+.pop .x{position:absolute;top:2px;right:2px;padding:0 .35rem;font-size:.8rem;background:#94a3b8;border-radius:.2rem}
+.pop .x.real{font-size:.5rem;padding:0 .15rem;background:#cbd5e1;color:#64748b}
+.grid{display:grid;grid-template-columns:repeat(3,4.2rem);gap:.3rem;justify-content:center;margin-top:1rem}
+.grid button{font-size:2rem;background:#334155;padding:.3rem}.grid button.on{background:#16a34a}
+.center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.7rem;padding:1rem}
+@keyframes fadep{0%,100%{opacity:1}50%{opacity:.12}}@keyframes shk{0%{transform:translate(1px,1px)}25%{transform:translate(-2px,1px)}50%{transform:translate(2px,-2px)}75%{transform:translate(-1px,2px)}100%{transform:translate(1px,-1px)}}@keyframes wob{0%,100%{transform:rotate(-2.5deg)}50%{transform:rotate(2.5deg)}}
+#stage.m-fade{animation:fadep 2.2s infinite}#stage.m-shake{animation:shk .12s infinite}#stage.m-wobble{animation:wob 2.4s ease-in-out infinite}#stage.m-hidecursor,#stage.m-hidecursor *{cursor:none!important}
+</style></head>
+<body><main><a href="../">← All games</a><h1>😡 Rage Button</h1>
+<div id="hud"><span id="lvl"></span><span id="fails"></span><span id="best"></span><span id="nav"><button id="bk">◀ Back</button> <button id="fw">Forward ▶</button></span></div>
+<div id="stage"></div><div id="msg"></div>
+<script>
+const $=s=>document.querySelector(s),st=$("#stage"),BK="rage-button-best";
+let lvl=0,fails=0,best=+localStorage.getItem(BK)||0,timers=[],cleanups=[];
+const rnd=(a,b)=>a+Math.random()*(b-a),say=t=>$("#msg").textContent=t;
+const every=(f,ms)=>timers.push(setInterval(f,ms));
+let floorLvl=0,maxLvl=0;
+function go(d){const n=lvl+d;if(n<floorLvl||n>maxLvl||n>=L.length)return;lvl=n;if(d<0)floorLvl=n;load()}
+$("#bk").onclick=()=>go(-1);$("#fw").onclick=()=>go(1);
+function hud(){$("#bk").disabled=lvl<=floorLvl;$("#fw").disabled=lvl>=maxLvl;$("#lvl").textContent="Level "+Math.min(lvl+1,L.length,lvl<50?50:99)+"/"+(lvl<50?50:99);$("#fails").textContent="Rage: "+fails;$("#best").textContent=best?"Best: "+best:""}
+function fail(t){fails++;hud();say(t)}
+function next(){lvl++;if(lvl>maxLvl)maxLvl=lvl;if(lvl>=L.length)return win();load()}
+function clear(){timers.forEach(clearInterval);timers=[];cleanups.forEach(f=>f());cleanups=[];st.innerHTML="";st.className="";st.style.cssText=""}
+function load(){clear();hud();L[lvl]();const m=LM[lvl];if(m&&m.id!=="none"){m.apply();$("#msg").textContent+=" ["+m.n+"]"}}
+function btn(txt,x,y){const b=document.createElement("button");b.textContent=txt;b.className="abs";b.style.left=x+"px";b.style.top=y+"px";st.append(b);return b}
+function on(t,e,f){t.addEventListener(e,f);cleanups.push(()=>t.removeEventListener(e,f))}
+function win(){clear();st.innerHTML="<div class='center'><div style='font-size:4rem'>🏆</div><h2>You win!</h2><p>Total rage: "+fails+"</p><button id=ag>Play again</button></div>";
+ if(!best||fails<best){best=fails;localStorage.setItem(BK,best)}hud();say("Was that so hard? (yes)");$("#ag").onclick=()=>{lvl=0;floorLvl=0;maxLvl=0;fails=0;load()}}
+const L=[
+// 1: dodging button
+()=>{say("Just press the button.");let d=0;const b=btn("PRESS ME",st.clientWidth/2-45,st.clientHeight/2-20);
+ on(st,"mousemove",e=>{if(d>=7)return;const r=b.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;if(Math.hypot(e.clientX-cx,e.clientY-cy)<90){d++;b.style.left=rnd(10,st.clientWidth-110)+"px";b.style.top=rnd(10,st.clientHeight-60)+"px";say(d===7?"Fine. It's tired. Go ahead.":["Too slow!","Nope!","Almost!","Haha!","Missed!","So close!"][d%6])}});
+ b.onclick=()=>next()},
+// 2: fake progress
+()=>{say("Hold the button to charge. Don't let go!");let p=0,cheated=false,held=false;const bar=document.createElement("div");bar.className="bar abs";bar.style.left="15%";bar.style.top="35%";bar.innerHTML="<i></i>";st.append(bar);
+ const b=btn("HOLD",st.clientWidth/2-30,st.clientHeight*.6),f=bar.firstChild;
+ b.onpointerdown=()=>held=true;
+ on(window,"pointerup",()=>{if(held&&p<100){held=false;if(p>0)fail("You let go!");p=0;f.style.width="0"}});
+ every(()=>{if(!held)return;p+=1.6;if(p>=96&&!cheated){cheated=true;p=30;fail("Oops, the bar glitched. Back to 30%.")}f.style.width=Math.min(p,100)+"%";if(p>=100){held=false;next()}},50)},
+// 3: counter bug
+()=>{say("Click exactly 10 times.");let n=0,bug=false;const c=document.createElement("div");c.className="center";c.innerHTML="<div id=n style='font-size:4rem'>0</div>";st.append(c);const b=btn("CLICK",st.clientWidth/2-35,st.clientHeight-70);
+ b.onclick=()=>{n++;if(n===7&&!bug){bug=true;n=2;fail("Counter bug! Sorry.")}$("#n").textContent=n;if(n===10)next()}},
+// 4: popups
+()=>{say("Close the popup. It's just one popup.");let k=0;const mk=real=>{const p=document.createElement("div");p.className="pop";p.style.left=rnd(0,st.clientWidth-190)+"px";p.style.top=rnd(0,st.clientHeight-100)+"px";p.innerHTML="🎁 You won a free prize!<br>Click to claim.";
+  const x=document.createElement("button");x.className="x"+(real?" real":"");x.textContent="✕";x.onclick=e=>{e.stopPropagation();if(real)return next();fail("That was an ad.");if(++k<6)mk(false)};p.append(x);p.onclick=()=>{fail("You clicked the ad!");mk(false)};st.append(p)};
+  for(let i=0;i<4;i++)mk(false);mk(true)},
+// 5: don't move
+()=>{say("Don't move the mouse for 4 seconds.");let t=4,last=0,armed=false;const c=document.createElement("div");c.className="center";c.innerHTML="<div id=t style='font-size:5rem'>4</div>";st.append(c);
+ setTimeout(()=>armed=true,400);
+ on(window,"mousemove",()=>{const now=performance.now();if(!armed||now-last<80)return;last=now;if(t<4){t=4;fail("You moved!");$("#t").textContent=4}});
+ every(()=>{t-=.1;if(t<=0){next();return}$("#t").textContent=Math.ceil(t)},100)},
+// 6: rigged choices
+()=>{say("Pick the correct button.");let tries=0;const c=document.createElement("div");c.className="center";st.append(c);
+ ["A","B","C"].forEach(l=>{const b=document.createElement("button");b.textContent="Option "+l;b.onclick=()=>{tries++;if(tries<3)fail(["Wrong!","Wrong again!"][tries-1]);else next()};c.append(b)})},
+// 7: shuffling captcha
+()=>{say("Prove you're human: click all the bikes 🚲");let fixed=false,sel=0;const g=document.createElement("div");g.className="grid";st.append(g);
+ const E=["🚗","🚌","🚲","🚦","🚲","🏍️","🚲","🛴","🚕"],draw=()=>{g.innerHTML="";E.sort(()=>Math.random()-.5);E.forEach(e=>{const b=document.createElement("button");b.textContent=e;b.onclick=()=>{if(e!=="🚲"){fail("That's not a bike.");sel=0;draw();return}b.classList.add("on");sel++;if(sel===3){if(!fixed){fixed=true;E[E.indexOf("🚗")]="🚲";sel=0;fail("Verification failed. There was another bike.");draw()}else next()}};g.append(b)})};draw()},
+// 8: fake loading
+()=>{say("Loading your reward... please wait.");let p=0,stalled=0,reset=false;const bar=document.createElement("div");bar.className="bar abs";bar.style.left="15%";bar.style.top="40%";bar.innerHTML="<i></i>";st.append(bar);const f=bar.firstChild;
+ every(()=>{if(stalled>0){stalled-=.1;if(stalled<=0&&!reset){reset=true;p=0;fail("Loading failed. Restarting...")}return}p+=1.2;if(p>=99&&!reset){p=99;stalled=3;say("99%... still loading...")}f.style.width=Math.min(p,100)+"%";if(p>=100)next()},100)},
+// 9: inverted slider
+()=>{say("Drag the slider to 100.");const c=document.createElement("div");c.className="center";c.innerHTML="<input id=sl type=range min=0 max=100 value=0 style='width:70%'><div id=sv style='font-size:3rem'>0</div>";st.append(c);const sl=$("#sl");
+ sl.oninput=()=>{const v=100-sl.value;$("#sv").textContent=v;if(v>=100)next();else if(v<=0&&sl.value==100)fail("Wrong way!")};sl.value=100;$("#sv").textContent=0},
+// 10: odd one out
+()=>{say("Click the odd one out.");const c=document.createElement("div");c.className="grid";c.style.gridTemplateColumns="repeat(6,3.3rem)";st.append(c);let round=0;
+ const draw=()=>{c.innerHTML="";const odd=Math.floor(rnd(0,24));for(let i=0;i<24;i++){const b=document.createElement("button");b.textContent=i===odd?"Q":"O";b.style.fontSize="1.6rem";b.style.padding=".3rem";b.onclick=()=>{if(i===odd){if(++round>=3)next();else{say("Round "+(round+1)+"/3");draw()}}else{round=0;fail("Wrong. Back to round 1.");draw()}};c.append(b)}};draw()},
+// 11: password rules
+()=>{say("Create a password.");const c=document.createElement("div");c.className="center";c.innerHTML="<input id=pw style='font-size:1.2rem;padding:.4rem;width:70%'><div id=rules style='text-align:left'></div>";st.append(c);
+ const R=[["At least 8 characters",s=>s.length>=8],["An uppercase letter",s=>/[A-Z]/.test(s)],["A number",s=>/\d/.test(s)],["A symbol (!@#$%)",s=>/[!@#$%]/.test(s)],["No vowels",s=>!/[aeiou]/i.test(s)],["Exactly 10 characters",s=>s.length===10]];let shown=1;
+ $("#pw").oninput=e=>{const s=e.target.value;let ok=true,h="";for(let i=0;i<shown;i++){const p=R[i][1](s);h+=(p?"✅ ":"❌ ")+R[i][0]+"<br>";if(!p)ok=false}if(ok){if(shown<R.length){shown++;fail("New rule!");return e.target.oninput(e)}else return next()}$("#rules").innerHTML=h};$("#pw").oninput({target:$("#pw")})},
+// 12: bouncing target
+()=>{say("Click the target 5 times. Don't miss!");let hits=0,x=100,y=100,vx=160,vy=120;const t=document.createElement("button");t.className="abs";t.textContent="🎯";t.style.cssText="font-size:1.6rem;padding:.1rem .4rem";st.append(t);
+ t.onpointerdown=e=>{e.stopPropagation();hits++;vx*=1.25;vy*=1.25;say("Hits: "+hits+"/5");if(hits>=5)next()};
+ on(st,"pointerdown",()=>{if(hits>0)fail("Missed! Back to 0.");hits=0;vx=Math.sign(vx)*160;vy=Math.sign(vy)*120});
+ every(()=>{x+=vx*.016;y+=vy*.016;const W=st.clientWidth-50,H=st.clientHeight-45;if(x<0||x>W){vx=-vx;x=Math.max(0,Math.min(W,x))}if(y<0||y>H){vy=-vy;y=Math.max(0,Math.min(H,y))}t.style.left=x+"px";t.style.top=y+"px"},16)},
+// 13: keyboard arrow memory
+()=>{say("Memorize the arrows, then type them with your KEYBOARD.");const A=["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"],S={ArrowUp:"⬆️",ArrowDown:"⬇️",ArrowLeft:"⬅️",ArrowRight:"➡️"};let seq=Array.from({length:5},()=>A[Math.floor(rnd(0,4))]),pos=0,hidden=false;
+ const c=document.createElement("div");c.className="center";c.innerHTML="<div id=ar style='font-size:2.5rem;min-height:3.5rem'></div><div id=pr style='font-size:1.2rem'></div>";st.append(c);
+ const skip=btn("SKIP LEVEL",10,st.clientHeight-50);skip.onclick=()=>fail("Nice try. Use the keyboard.");
+ const show=()=>{hidden=false;pos=0;$("#ar").textContent=seq.map(k=>S[k]).join(" ");$("#pr").textContent="";timers.push(setTimeout(()=>{hidden=true;$("#ar").textContent="❓ ❓ ❓ ❓ ❓"},2200))};
+ on(window,"keydown",e=>{if(!A.includes(e.code)||!hidden)return;e.preventDefault();if(e.code===seq[pos]){pos++;$("#pr").textContent="✔ ".repeat(pos);if(pos===5)next()}else{seq=Array.from({length:5},()=>A[Math.floor(rnd(0,4))]);fail("Wrong! New sequence.");show()}});show()},
+// 14: are you sure
+()=>{say("Confirm that you want to continue.");let n=0;const c=document.createElement("div");c.className="center";st.append(c);
+ const draw=()=>{c.innerHTML="<div style='font-size:1.3rem'>Are you sure? ("+(n+1)+"/5)</div><div id=yn style='display:flex;gap:1rem'></div>";const yes=document.createElement("button"),no=document.createElement("button");yes.textContent="Yes";yes.style.background="#16a34a";no.textContent="No";
+  yes.onclick=()=>{if(++n>=5)next();else draw()};no.onclick=()=>{n=0;fail("You said no. Start over!");draw()};const yn=$("#yn");Math.random()<.5?yn.append(yes,no):yn.append(no,yes);if(n>=2&&Math.random()<.5){yes.textContent="Yes!";no.textContent="Yes";no.style.background="#16a34a";yes.style.background="#dc2626"}};draw()},
+// 15: runaway claim button
+()=>{say("Last one! Claim your prize.");const b=btn("CLAIM PRIZE",st.clientWidth/2-50,st.clientHeight/2-20);let c=0;
+ b.onmouseenter=()=>{if(c<5){c++;b.style.left=rnd(10,st.clientWidth-130)+"px";b.style.top=rnd(10,st.clientHeight-60)+"px";b.textContent=["NOT HERE","TOO SLOW","NICE TRY","WRONG WAY","ONE MORE"][c-1]}else b.textContent="CLAIM PRIZE"};
+ b.onclick=()=>{if(c<5){fail("Missed!");return}next()}}
+];
+// Levels 15-99: 12 mechanics repeated with rising difficulty (finale stays last)
+const FIN=L.pop();
+const T=[
+ d=>{const max=6+d*2;let n=0;say("Press the button. It dodges more each time.");const b=btn("PRESS ME",st.clientWidth/2-45,st.clientHeight/2-20);
+  on(st,"mousemove",e=>{if(n>=max)return;const r=b.getBoundingClientRect();if(Math.hypot(e.clientX-r.left-r.width/2,e.clientY-r.top-r.height/2)<80+d*6){n++;b.style.left=rnd(10,st.clientWidth-110)+"px";b.style.top=rnd(10,st.clientHeight-60)+"px";say(n>=max?"Fine, go ahead.":"Dodged "+n+"/"+max)}});b.onclick=next},
+ d=>{const glitches=1+Math.floor(d/2),rate=1.6/(1+d*.12);let p=0,g=0,held=false;say("Hold to charge. Don't let go!");const bar=document.createElement("div");bar.className="bar abs";bar.style.left="15%";bar.style.top="35%";bar.innerHTML="<i></i>";st.append(bar);
+  const f=bar.firstChild,b=btn("HOLD",st.clientWidth/2-30,st.clientHeight*.6);b.onpointerdown=()=>held=true;
+  on(window,"pointerup",()=>{if(held&&p<100){held=false;if(p>0)fail("You let go!");p=0;f.style.width="0"}});
+  every(()=>{if(!held)return;p+=rate;if(p>=96&&g<glitches){g++;p=20;fail("Glitch "+g+"/"+glitches+"! Back to 20%.")}f.style.width=Math.min(p,100)+"%";if(p>=100){held=false;next()}},50)},
+ d=>{const target=10+d*3,bugs=1+Math.floor(d/3);let n=0,b0=0;say("Click exactly "+target+" times.");const c=document.createElement("div");c.className="center";c.innerHTML="<div id=n style='font-size:4rem'>0</div>";st.append(c);
+  btn("CLICK",st.clientWidth/2-35,st.clientHeight-70).onclick=()=>{n++;if(n===target-3&&b0<bugs){b0++;n=Math.floor(n/3);fail("Counter bug! ("+b0+"/"+bugs+")")}$("#n").textContent=n;if(n>=target)next()}},
+ d=>{say("Close the popups. Just one real X.");let k=0;const lim=6+d*2,mk=real=>{const p=document.createElement("div");p.className="pop";p.style.left=rnd(0,st.clientWidth-190)+"px";p.style.top=rnd(0,st.clientHeight-100)+"px";p.innerHTML="🎁 Free prize!<br>Click to claim.";
+   const x=document.createElement("button");x.className="x"+(real?" real":"");x.textContent="✕";x.onclick=e=>{e.stopPropagation();if(real)return next();fail("That was an ad.");if(++k<lim)mk(false)};p.append(x);p.onclick=()=>{fail("You clicked the ad!");mk(false)};st.append(p)};
+  for(let i=0;i<3+d*2;i++)mk(false);mk(true)},
+ d=>{let t=Math.min(10,4+d),last=0,armed=false;const T0=t;say("Don't move the mouse for "+T0+" seconds.");const c=document.createElement("div");c.className="center";c.innerHTML="<div id=t style='font-size:5rem'>"+t+"</div>";st.append(c);
+  timers.push(setTimeout(()=>armed=true,400));
+  on(window,"mousemove",()=>{const now=performance.now();if(!armed||now-last<80)return;last=now;if(t<T0){t=T0;fail("You moved!");$("#t").textContent=T0}});
+  every(()=>{t-=.1;if(t<=0){next();return}$("#t").textContent=Math.ceil(t)},100)},
+ d=>{const opts=3+Math.min(d,3),need=2+d;let tries=0;say("Pick the correct button.");const c=document.createElement("div");c.className="center";c.style.flexDirection="row";c.style.flexWrap="wrap";st.append(c);
+  const draw=()=>{c.innerHTML="";const ids=Array.from({length:opts},(_,i)=>i).sort(()=>Math.random()-.5);ids.forEach(i=>{const b=document.createElement("button");b.textContent="Option "+String.fromCharCode(65+i);b.onclick=()=>{tries++;if(tries<need){fail("Wrong! ("+tries+"/"+need+")");draw()}else next()};c.append(b)})};draw()},
+ d=>{const rounds=1+Math.floor(d/3);let fixedN=0,sel=0;say("Click all the bikes 🚲");const g=document.createElement("div");g.className="grid";st.append(g);
+  const E=["🚗","🚌","🚲","🚦","🚲","🏍️","🚲","🛴","🚕"],draw=()=>{g.innerHTML="";E.sort(()=>Math.random()-.5);E.forEach(e=>{const b=document.createElement("button");b.textContent=e;b.onclick=()=>{if(e!=="🚲"){fail("That's not a bike.");sel=0;draw();return}b.classList.add("on");sel++;
+    if(sel===E.filter(z=>z==="🚲").length){if(fixedN<rounds){fixedN++;const i=E.findIndex(z=>z!=="🚲");E[i]="🚲";sel=0;fail("Verification failed. Another bike appeared.");draw()}else next()}};g.append(b)})};draw()},
+ d=>{const need=5+d;let hits=0,x=100,y=100,vx=150+d*10,vy=110+d*8;const bv=[vx,vy];say("Click the target "+need+" times. Don't miss!");const t=document.createElement("button");t.className="abs";t.textContent="🎯";t.style.cssText="font-size:1.6rem;padding:.1rem .4rem";st.append(t);
+  t.onpointerdown=e=>{e.stopPropagation();hits++;vx*=1.1;vy*=1.1;say("Hits: "+hits+"/"+need);if(hits>=need)next()};
+  on(st,"pointerdown",()=>{if(hits>0)fail("Missed! Back to 0.");hits=0;vx=Math.sign(vx)*bv[0];vy=Math.sign(vy)*bv[1]});
+  every(()=>{x+=vx*.016;y+=vy*.016;const W=st.clientWidth-50,H=st.clientHeight-45;if(x<0||x>W){vx=-vx;x=Math.max(0,Math.min(W,x))}if(y<0||y>H){vy=-vy;y=Math.max(0,Math.min(H,y))}t.style.left=x+"px";t.style.top=y+"px"},16)},
+ d=>{const need=3+Math.floor(d/2),zw=Math.max(5,12-d);let streak=0,pos=0,dir=1,zone=0;say("Stop the marker in the green "+need+" times in a row.");const tr=document.createElement("div");tr.className="abs";tr.style.cssText="left:10%;width:80%;top:35%;height:2rem;background:#0f172a;border-radius:.4rem";const z=document.createElement("div"),m=document.createElement("div");
+  z.style.cssText="position:absolute;top:0;height:100%;background:#16a34a;border-radius:.3rem;width:"+zw+"%";m.style.cssText="position:absolute;top:-4px;width:6px;height:calc(100% + 8px);background:#fde047";tr.append(z,m);st.append(tr);
+  const place=()=>{zone=rnd(5,95-zw);z.style.left=zone+"%"};place();const b=btn("STOP",st.clientWidth/2-30,st.clientHeight*.65);
+  every(()=>{pos+=dir*(1+d*.1+streak*.35);if(pos>100||pos<0){dir=-dir;pos=Math.max(0,Math.min(100,pos))}m.style.left=pos+"%"},16);
+  b.onclick=()=>{if(pos>=zone&&pos<=zone+zw){streak++;say("Streak "+streak+"/"+need);if(streak>=need)return next();place()}else{streak=0;fail("Missed the zone!");place()}}},
+ d=>{const need=5+d*2;let n=0;say("Confirm that you want to continue.");const c=document.createElement("div");c.className="center";st.append(c);
+  const draw=()=>{c.innerHTML="<div style='font-size:1.3rem'>Are you sure? ("+(n+1)+"/"+need+")</div><div id=yn style='display:flex;gap:1rem'></div>";const yes=document.createElement("button"),no=document.createElement("button");yes.textContent="Yes";yes.style.background="#16a34a";no.textContent="No";
+   yes.onclick=()=>{if(++n>=need)next();else draw()};no.onclick=()=>{n=0;fail("You said no. Start over!");draw()};const yn=$("#yn");Math.random()<.5?yn.append(yes,no):yn.append(no,yes)};draw()},
+ d=>{const rounds=3+d,N=d>=4?36:24,cols=d>=4?9:6;let r=0;say("Click the odd one out.");const c=document.createElement("div");c.className="grid";c.style.gridTemplateColumns="repeat("+cols+",2.9rem)";st.append(c);
+  const draw=()=>{c.innerHTML="";const odd=Math.floor(rnd(0,N));for(let i=0;i<N;i++){const b=document.createElement("button");b.textContent=i===odd?"Q":"O";b.style.cssText="font-size:1.3rem;padding:.2rem";b.onclick=()=>{if(i===odd){if(++r>=rounds)next();else{say("Round "+(r+1)+"/"+rounds);draw()}}else{r=0;fail("Wrong. Back to round 1.");draw()}};c.append(b)}};draw()},
+ d=>{const len=3+Math.min(d,6);let seq=[],pos=0,lies=1,show=false;say("Watch the sequence...");const c=document.createElement("div");c.className="grid";c.style.gridTemplateColumns="repeat(2,5rem)";st.append(c);
+  const cols=["#ef4444","#3b82f6","#22c55e","#eab308"],bs=cols.map((col,i)=>{const b=document.createElement("button");b.style.cssText="height:5rem;background:"+col+";opacity:.5";b.onclick=()=>press(i);c.append(b);return b});
+  const flash=i=>{bs[i].style.opacity=1;timers.push(setTimeout(()=>bs[i].style.opacity=.5,300))};
+  const play=()=>{seq=Array.from({length:len},()=>Math.floor(rnd(0,4)));pos=0;show=true;say("Watch...");seq.forEach((s,i)=>timers.push(setTimeout(()=>flash(s),600+i*650)));timers.push(setTimeout(()=>{show=false;say("Your turn! ("+len+" steps)")},600+len*650))};
+  const press=i=>{if(show)return;flash(i);if(i!==seq[pos]){fail("Wrong!");play();return}pos++;if(pos===len){if(lies>0){lies--;fail("That was just the practice round.");play()}else next()}};play()},
+ d=>{const target=15+d*2,ms=Math.max(250,700-d*50);let n=0;say("Reach "+target+" clicks. The counter leaks!");const c=document.createElement("div");c.className="center";c.innerHTML="<div id=n style='font-size:4rem'>0</div>";st.append(c);
+  btn("CLICK",st.clientWidth/2-35,st.clientHeight-70).onclick=()=>{n++;$("#n").textContent=n;if(n>=target)next()};
+  every(()=>{if(n>0){n--;$("#n").textContent=n}},ms)}
+];
+T.push(
+ d=>{const len=4+d,A=["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"],S={ArrowUp:"⬆️",ArrowDown:"⬇️",ArrowLeft:"⬅️",ArrowRight:"➡️"},mkSeq=()=>Array.from({length:len},()=>A[Math.floor(rnd(0,4))]);let seq=mkSeq(),pos=0,hidden=false;say("Memorize the arrows, then use your KEYBOARD.");
+  const c=document.createElement("div");c.className="center";c.innerHTML="<div id=ar style='font-size:2rem;min-height:3rem'></div><div id=pr style='font-size:1.2rem'></div>";st.append(c);btn("SKIP LEVEL",10,st.clientHeight-50).onclick=()=>fail("Nice try. Use the keyboard.");
+  const show=()=>{hidden=false;pos=0;$("#ar").textContent=seq.map(k=>S[k]).join(" ");$("#pr").textContent="";timers.push(setTimeout(()=>{hidden=true;$("#ar").textContent=seq.map(()=>"❓").join(" ")},Math.max(1200,2600-d*250)))};
+  on(window,"keydown",e=>{if(!A.includes(e.code)||!hidden)return;e.preventDefault();if(e.code===seq[pos]){pos++;$("#pr").textContent="✔ ".repeat(pos);if(pos===len)next()}else{seq=mkSeq();fail("Wrong! New sequence.");show()}});show()},
+ d=>{const W=["BANANA","KEYBOARD","RAGEQUIT","FRUSTRATION","COMPUTER","MOUSEPAD","INTERNET","LATENCY","BUFFERING"];let w=W[Math.floor(rnd(0,W.length))]+(d>2?W[Math.floor(rnd(0,W.length))]:""),changed=false;say("Type the word exactly.");
+  const c=document.createElement("div");c.className="center";c.innerHTML="<div id=w style='font-size:2rem;letter-spacing:.15rem;word-break:break-all'></div><input id=ti style='font-size:1.3rem;padding:.4rem;text-align:center'>";st.append(c);$("#w").textContent=w;const ti=$("#ti");ti.focus();
+  ti.oninput=()=>{const v=ti.value.toUpperCase();if(!w.startsWith(v)){ti.value="";fail("Typo! Start over.");return}
+   if(!changed&&d>=2&&v.length>=Math.ceil(w.length/2)&&v.length<w.length){changed=true;w=w.slice(0,v.length)+w.slice(v.length).split("").reverse().join("");$("#w").textContent=w;fail("The word changed!");return}
+   if(v===w)next()}},
+ d=>{const need=3+d,tmax=Math.max(3,7-d);let k=0,tl=tmax,ans=0;say("Solve "+need+" in a row before time runs out!");const c=document.createElement("div");c.className="center";c.innerHTML="<div id=q style='font-size:2.5rem'></div><div id=tm></div><input id=ai type=number style='font-size:1.3rem;padding:.4rem;width:8rem;text-align:center'>";st.append(c);const ai=$("#ai");ai.focus();
+  const mk=()=>{const a=Math.floor(rnd(2,9+d*3)),b=Math.floor(rnd(2,9+d*2)),m=Math.random()<.5;ans=m?a*b:a+b;$("#q").textContent=a+(m?" × ":" + ")+b+" = ?";tl=tmax;ai.value=""};mk();
+  ai.onkeydown=e=>{if(e.key!=="Enter")return;if(+ai.value===ans){if(++k>=need)next();else{say("Correct "+k+"/"+need);mk()}}else{k=0;fail("Wrong! Back to 0.");mk()}};
+  every(()=>{tl-=.1;$("#tm").textContent="⏱ "+Math.max(0,tl).toFixed(1);if(tl<=0){k=0;fail("Too slow!");mk()}},100)},
+ d=>{const C=[["RED","#ef4444"],["BLUE","#3b82f6"],["GREEN","#22c55e"],["YELLOW","#eab308"]],need=4+d;let r=0;say("Click the color the word NAMES, not its ink.");const c=document.createElement("div");c.className="center";st.append(c);
+  const draw=()=>{c.innerHTML="";const wi=Math.floor(rnd(0,4));let ink=Math.floor(rnd(0,4));if(ink===wi)ink=(ink+1)%4;const w=document.createElement("div");w.textContent=C[wi][0];w.style.cssText="font-size:3rem;font-weight:900;color:"+C[ink][1];c.append(w);const row=document.createElement("div");row.style.cssText="display:flex;gap:.5rem";
+   [0,1,2,3].sort(()=>Math.random()-.5).forEach(i=>{const b=document.createElement("button");b.style.cssText="background:"+C[i][1]+";width:4rem;height:3rem";b.onclick=()=>{if(i===wi){if(++r>=need)next();else{say("Correct "+r+"/"+need);draw()}}else{r=0;fail("Wrong! Back to 0.");draw()}};row.append(b)});c.append(row)};draw()},
+ d=>{const need=8+d*2,life=Math.max(450,1100-d*120);let hits=0,cur=null;say("Click the targets before they vanish!");
+  const spawn=()=>{if(cur)cur.remove();const b=btn("💥",rnd(10,st.clientWidth-60),rnd(10,st.clientHeight-50));cur=b;b.onclick=()=>{hits++;say("Hit "+hits+"/"+need);if(hits>=need)return next();spawn()};timers.push(setTimeout(()=>{if(cur===b){hits=0;fail("Too slow! Back to 0.");spawn()}},life))};spawn()},
+ d=>{say("Find the hidden button. Follow the hints.");const x0=rnd(20,st.clientWidth-80),y0=rnd(20,st.clientHeight-60),liar=d>=4,b=btn("HERE",x0,y0);b.style.opacity=".03";
+  on(st,"mousemove",e=>{const r=st.getBoundingClientRect(),dd=Math.hypot(e.clientX-r.left-x0,e.clientY-r.top-y0);let k=dd<40?0:dd<120?1:dd<250?2:3;if(liar&&dd>=40)k=3-k+(k===3?0:0);say(["🔥 Burning!","🌡️ Hot","Warm","🧊 Cold"][Math.max(0,Math.min(3,k))])});b.onclick=next},
+ d=>{say("Drag the ball into the goal.");const g=document.createElement("div");g.className="abs";g.style.cssText="width:5rem;height:5rem;border:3px dashed #22c55e;border-radius:50%;display:grid;place-items:center";g.textContent="🥅";st.append(g);
+  const mv=()=>{g.style.left=rnd(80,st.clientWidth-90)+"px";g.style.top=rnd(10,st.clientHeight-90)+"px"};mv();every(mv,Math.max(700,1900-d*250));
+  const ball=btn("⚽",20,st.clientHeight-70);ball.style.touchAction="none";let drag=false;
+  ball.onpointerdown=e=>{drag=true;e.preventDefault()};
+  on(window,"pointermove",e=>{if(!drag)return;const r=st.getBoundingClientRect();ball.style.left=e.clientX-r.left-18+"px";ball.style.top=e.clientY-r.top-18+"px"});
+  on(window,"pointerup",()=>{if(!drag)return;drag=false;const a=ball.getBoundingClientRect(),b=g.getBoundingClientRect(),cx=a.left+a.width/2,cy=a.top+a.height/2;if(cx>b.left&&cx<b.right&&cy>b.top&&cy<b.bottom)next();else{fail("Missed the goal!");ball.style.left="20px";ball.style.top=st.clientHeight-70+"px"}})},
+ d=>{const need=3+d,win=Math.max(90,200-d*15),per=900,t0=performance.now();let streak=0;say("Click when the circle flashes. "+need+" in a row.");const o=document.createElement("div");o.className="abs";o.style.cssText="left:calc(50% - 3rem);top:25%;width:6rem;height:6rem;border-radius:50%;background:#334155";st.append(o);
+  const ph=()=>(performance.now()-t0)%per;every(()=>{o.style.background=ph()<win?"#fde047":"#334155"},16);
+  btn("CLICK ON THE BEAT",st.clientWidth/2-80,st.clientHeight-70).onclick=()=>{const p=ph();if(p<win||p>per-win/2){streak++;say("On beat "+streak+"/"+need);if(streak>=need)next()}else{streak=0;fail("Off beat!")}}}
+);
+const LM=[];
+T.push(
+ d=>{const tgt=3+d,tol=Math.max(.12,.45-d*.08);let t=performance.now();say("Stop the timer at exactly "+tgt+".00s (±"+tol.toFixed(2)+"). It hides after 1 second!");const c=document.createElement("div");c.className="center";c.innerHTML="<div id=sw style='font-size:4rem'></div>";st.append(c);
+  every(()=>{const el=(performance.now()-t)/1000;$("#sw").textContent=el<1?el.toFixed(2):"?.??"},30);
+  btn("STOP",st.clientWidth/2-30,st.clientHeight-70).onclick=()=>{const el=(performance.now()-t)/1000;if(Math.abs(el-tgt)<=tol)next();else{fail("You stopped at "+el.toFixed(2)+"s.");t=performance.now()}}},
+ d=>{const tgt=Math.floor(rnd(10,90)),tol=Math.max(0,2-d);say("Set the slider to "+tgt+", then LOCK. It drifts!");const c=document.createElement("div");c.className="center";c.innerHTML="<div style='font-size:2rem'>Target: "+tgt+"</div><input id=sl type=range min=0 max=100 value=50 style='width:70%'><div id=sv style='font-size:2rem'>50</div>";st.append(c);const sl=$("#sl"),sh=()=>$("#sv").textContent=sl.value;sl.oninput=sh;
+  every(()=>{sl.value=Math.max(0,Math.min(100,+sl.value+Math.round(rnd(-d,d))));sh()},150);const b=document.createElement("button");b.textContent="LOCK";b.onclick=()=>{if(Math.abs(+sl.value-tgt)<=tol)next();else fail("It's "+sl.value+", not "+tgt+".")};c.append(b)},
+ d=>{const n=3+Math.min(d,3),E=["🍎","🍌","🍇","🍒","🍉","🥝"].slice(0,n);let deck=[...E,...E].map(e=>({e,done:0})).sort(()=>Math.random()-.5),open=[],miss=0,lock=false;say("Match all the pairs. Every 3rd miss reshuffles everything!");const g=document.createElement("div");g.className="grid";g.style.gridTemplateColumns="repeat(4,4rem)";st.append(g);
+  const draw=()=>{g.innerHTML="";deck.forEach((q,i)=>{const b=document.createElement("button");b.textContent=q.done||open.includes(i)?q.e:"❓";b.onclick=()=>{if(lock||q.done||open.includes(i))return;open.push(i);draw();if(open.length===2){const[a,c]=open;if(deck[a].e===deck[c].e){deck[a].done=deck[c].done=1;open=[];if(deck.every(z=>z.done))return next();draw()}else{lock=true;miss++;timers.push(setTimeout(()=>{open=[];lock=false;if(miss%3===0){fail("Reshuffled!");deck.forEach(z=>z.done=0);deck.sort(()=>Math.random()-.5)}draw()},700))}}};g.append(b)})};draw()},
+ d=>{const need=5+d*2;let n=0;say("Click "+need+" GREEN buttons. Colors keep changing!");const g=document.createElement("div");g.className="grid";g.style.gridTemplateColumns="repeat(4,4.2rem)";st.append(g);const bs=[];
+  const paint=()=>bs.forEach(b=>{const gr=Math.random()<.35;b.dataset.c=gr?"g":"r";b.style.background=gr?"#16a34a":"#dc2626"});
+  for(let i=0;i<12;i++){const b=document.createElement("button");b.textContent="●";b.onclick=()=>{if(b.dataset.c==="g"){n++;say("Green "+n+"/"+need);if(n>=need)next();else paint()}else{n=0;fail("That was red! Back to 0.");paint()}};g.append(b);bs.push(b)}paint();every(paint,Math.max(700,1600-d*200))}
+);
+// Every generated level pairs one mechanic with one visual twist, and no mechanic+twist pair repeats
+const MODS=[{id:"none",n:"",apply(){}},{id:"blur",n:"Blurry",apply(){st.style.filter="blur(1.3px)"}},{id:"hue",n:"Inverted colors",apply(){st.style.filter="invert(1) hue-rotate(180deg)"}},{id:"dark",n:"Lights out",apply(){st.style.filter="brightness(.35)"}},
+ {id:"fade",n:"Flickering",apply(){st.className="m-fade"}},{id:"hidecursor",n:"No cursor",apply(){st.className="m-hidecursor"}},{id:"shake",n:"Earthquake",apply(){st.className="m-shake"}},{id:"wobble",n:"Seasick",apply(){st.className="m-wobble"}},
+ {id:"spotlight",n:"Spotlight",apply(){const f=e=>{const r=st.getBoundingClientRect();st.style.setProperty("--mx",e.clientX-r.left+"px");st.style.setProperty("--my",e.clientY-r.top+"px")};st.style.setProperty("--mx","50%");st.style.setProperty("--my","50%");st.style.maskImage=st.style.webkitMaskImage="radial-gradient(circle 80px at var(--mx) var(--my),#000 60%,rgba(0,0,0,.07) 100%)";on(st,"mousemove",f)}},
+ {id:"gray",n:"Grayscale",apply(){st.style.filter="grayscale(1) contrast(.85)"}}];
+const BAN={10:["blur","dark"],16:["hue","gray","dark","blur"],18:["dark"]},used=new Set();
+for(let i=0;i<85;i++){const m=i%T.length,d=1+Math.floor(i/T.length),f=T[m];let k=(3*i+Math.floor(i/T.length))%MODS.length,tries=0;
+ while((used.has(m+"|"+MODS[k].id)||(BAN[m]||[]).includes(MODS[k].id))&&tries++<MODS.length)k=(k+1)%MODS.length;used.add(m+"|"+MODS[k].id);LM[L.length]=MODS[k];L.push(()=>f(d))}
+L.push(FIN);
+load();
+</script></main></body></html>

@@ -7,7 +7,7 @@ canvas{display:block;width:100%;height:auto;margin:.8rem auto;border:.2rem solid
 .row{display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap;margin:.5rem 0}.row button{padding:.4rem .8rem;font-size:.9rem;background:#1a2e05;color:#f1f5e9;border:.1rem solid #65a30d;border-radius:.6rem;cursor:pointer;font-weight:700}.row button.on{background:#a3e635;color:#111}
 button{touch-action:manipulation}</style></head>
 <body><main><a href="../">← All games</a><h1>🐵 Ape Market</h1>
-<p>Build a giant supermarket! <strong>Walk</strong> (WASD / arrows, or tap the map) around the big store. Grab fruit, corn, eggs and more from the <strong>farms</strong> up top and drop them on the matching <strong>shelves</strong>. Carry raw goods to <strong>machines</strong> (corn → 🍿, bananas → 🧃, milk → 🧀) and shelve what they make. Catch sneaky 😈 vandals before they spray graffiti on a shelf (clean it by standing there). Rich apes in top hats pay triple and drop 💰 as they walk (grab it!). Ape customers shop their whole list, then line up at a <strong>register</strong>: stand there to ring them up and walk over the <strong>💵 pile</strong> to collect. Stand on glowing <strong>pads</strong> to unlock new goods, registers, cashiers, helpers, bigger shelves, better prices and more.</p>
+<p>Build a giant supermarket! <strong>Walk</strong> (WASD / arrows, or tap the map) around the big store. Grab fruit, corn, eggs and more from the <strong>farms</strong> up top and drop them on the matching <strong>shelves</strong>. Carry raw goods to <strong>machines</strong> (corn → 🍿, bananas → 🧃, milk → 🧀) and shelve what they make. A 👮 security guard patrols and chases vandals too. Catch sneaky 😈 vandals before they spray graffiti on a shelf (clean it by standing there). Rich apes in top hats pay triple and drop 💰 as they walk (grab it!). Ape customers shop their whole list, then line up at a <strong>register</strong>: stand there to ring them up and walk over the <strong>💵 pile</strong> to collect. Stand on glowing <strong>pads</strong> to unlock new goods, registers, cashiers, helpers, bigger shelves, better prices and more.</p>
 <div class="hud"><span id="cash"></span><span id="served"></span><span id="carry"></span><span id="staff"></span></div>
 <canvas id="c" width="800" height="520" aria-label="Ape Market game"></canvas>
 <div class="row" id="spd" aria-label="Game speed"><span style="align-self:center;font-weight:700;color:#d9f99d">Speed:</span></div>
@@ -63,6 +63,7 @@ const saveMeta=()=>{try{localStorage.setItem("ape-market-meta",JSON.stringify(me
 function applyMarket(){const g=Array.from(MKT().g),nm=MKT().nm.split(",");PRODS.forEach((p,i)=>{INFO[p].e=g[i];INFO[p].n=nm[i];INFO[p].icon=i<5?g[i]:"⚙️"});document.querySelector("h1").textContent=MKT().ic+" "+MKT().n;document.title=MKT().n+" | My Online Games";C.setAttribute("aria-label",MKT().n+" game")}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(s))}catch(e){}};
 const P={x:300,y:430,items:[],pk:0},keys={},cam={x:0,y:0};
+const guard={x:DOOR.x-120,y:DOOR.y-80,pt:0};
 let vands=[],tag={},tagT={},vT=40,drops=[],prod,mach,shelf,custs,queues,piles,payT,workers,floats,spawnT,last=0,hudKey="",speed=+localStorage.getItem(SPK)||1;
 function initWorld(){prod={};mach={};shelf={};for(const p of PRODS){prod[p]={n:p==="banana"?4:0,t:0};mach[p]={in:0,out:0,t:0};shelf[p]=0}
  custs=[];drops=[];vands=[];tag={};tagT={};vT=40;queues=[[],[],[]];piles=[0,0,0];payT=[0,0,0];workers=[];floats=[];spawnT=2;P.items=[]}
@@ -117,10 +118,14 @@ function update(dt){
  vT-=dt;if(vT<=0){vT=45+Math.random()*45;const own=PRODS.filter(p=>s.pr[p]&&s.sh[p]&&!tag[p]);if(s.served>=8&&vands.length<2&&own.length)vands.push({x:DOOR.x,y:DOOR.y-20,p:own[Math.floor(Math.random()*own.length)],st:"go",tm:3,ox:Math.random()*80-40})}
  for(const v of vands){let tg=null;const I=INFO[v.p];
   if(v.st!=="flee"&&Math.hypot(P.x-v.x,P.y-v.y)<45){v.st="flee";const b=500;s.cash+=b;fl(v.x,v.y-30,"Caught! +$"+b,"#ca8a04")}
+  if(v.st!=="flee"&&Math.hypot(guard.x-v.x,guard.y-v.y)<40){v.st="flee";const b=250;s.cash+=b;fl(v.x,v.y-30,"👮 Guard caught it! +$"+b,"#2563eb")}
   if(v.st==="go"){tg={x:I.sx+v.ox,y:I.sy+I.sd};if(Math.hypot(tg.x-v.x,tg.y-v.y)<4)v.st="spray"}
   else if(v.st==="spray"){v.tm-=dt;if(v.tm<=0){if(s.sh[v.p]){tag[v.p]=1;tagT[v.p]=0}v.st="flee"}}
   else tg={x:DOOR.x,y:DOOR.y};
   if(tg){const d=Math.hypot(tg.x-v.x,tg.y-v.y);if(d>1){const m=Math.min(d,170*dt);v.x+=(tg.x-v.x)/d*m;v.y+=(tg.y-v.y)/d*m}}}
+ {let gt=null,gd=1e9;for(const v of vands)if(v.st!=="flee"){const d=Math.hypot(guard.x-v.x,guard.y-v.y);if(d<gd){gd=d;gt=v}}
+  if(gt)gt={x:gt.x,y:gt.y};else{guard.pt+=dt;const a=guard.pt*.25;gt={x:DOOR.x+Math.cos(a)*300,y:DOOR.y-160+Math.sin(a*1.7)*90}}
+  const d=Math.hypot(gt.x-guard.x,gt.y-guard.y);if(d>2){const m=Math.min(d,(gd<1e9?200:70)*dt);guard.x+=(gt.x-guard.x)/d*m;guard.y+=(gt.y-guard.y)/d*m}}
  vands=vands.filter(v=>!(v.st==="flee"&&v.y>=DOOR.y-2));
  for(const p of PRODS){if(tag[p]&&Math.hypot(P.x-INFO[p].sx,P.y-INFO[p].sy)<85){tagT[p]+=dt;if(tagT[p]>=1.5){tag[p]=0;tagT[p]=0;fl(INFO[p].sx,INFO[p].sy-40,"Cleaned!","#16a34a")}}else tagT[p]=0}
  for(const w of workers){const go=(px,py)=>{const d=Math.hypot(px-w.x,py-w.y);if(d<=3)return true;w.x+=(px-w.x)/d*Math.min(d,150*dt);w.y+=(py-w.y)/d*Math.min(d,150*dt);return false};
@@ -180,6 +185,7 @@ function draw(){apeI=0;
  for(const v of vands){ape(v.x,v.y+4,"#2b2b2b","#111",{hat:"cap",cap:"#dc2626"});text(v.st==="spray"?"🎨💦":"🎨",v.x,v.y-34,18,"#000")}
  for(const d of drops)text("💰",d.x,d.y,16,"#000");
  for(const c of custs){const k=skin(c),vo=c.vip?-14:0;ape(c.x,c.y+4,c.vip?"#d4a017":FUR[k%5],c.vip?"#facc15":SHIRT[k%6],{hat:c.vip?"top":""});if(c.mood)text(c.mood,c.x+20,c.y-24+vo,18,"#000");else if(c.st==="queue"){text("💵",c.x,c.y-34+vo,16,"#000")}else if(c.st!=="leave"){const it=c.list[c.i];x.fillStyle=c.vip?"#fde68a":"#fff";x.fillRect(c.x-24,c.y-62+vo,48,22);text(INFO[it.p].e+(it.q-it.got>1?"x"+(it.q-it.got):""),c.x,c.y-45+vo,15,"#000")}}
+ ape(guard.x,guard.y+4,"#6b4423","#1e3a8a",{hat:"cap",cap:"#1e3a8a"});text("👮",guard.x,guard.y-34,18,"#000");
  for(const w of workers){ape(w.x,w.y+4,FUR[2],"#16a34a",{hat:"cap",cap:"#15803d"});w.items.forEach((p,i)=>text(INFO[p].e,w.x,w.y-36-i*9,15,"#000"))}
  ape(P.x,P.y+4,"#7a4a1f","#ef4444",{hat:"cap",cap:"#facc15",still:!(keys.KeyW||keys.KeyA||keys.KeyS||keys.KeyD||keys.ArrowUp||keys.ArrowDown||keys.ArrowLeft||keys.ArrowRight||P.mt)});
  P.items.forEach((p,i)=>text(INFO[p].e,P.x,P.y-38-i*10,18,"#000"));
