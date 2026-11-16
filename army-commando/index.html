@@ -60,7 +60,9 @@ function kill(v,by){
   v.alive=false;
   for(const t of v.trail)trail[t]=0;
   v.trail=[];
-  for(let i=0;i<owner.length;i++)if(owner[i]===v.id)owner[i]=0;
+  const heir=by&&by!==v?by.id:0;
+  if(heir&&v.bot&&!by.bot)flash=.25;
+  for(let i=0;i<owner.length;i++)if(owner[i]===v.id)owner[i]=heir;
   if(by&&by!==v)by.kills++;
   v.respawn=3;
   if(!v.bot){over=true;const p=Math.round(pct(1)||0);cntT=0;if(lastPct>best){best=lastPct;localStorage.setItem(BK,best)}}
