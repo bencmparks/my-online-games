@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Army Commando | My Online Games</title>
+<style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#0f1a12;color:#f8fafc}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:grid;place-items:center;padding:1rem;background:linear-gradient(135deg,#0f1a12,#1f2f1d)}
+main{width:min(100%,56rem);text-align:center}
+a{color:#bbf7d0}
+h1{margin:.3rem 0;color:#86efac}
+p{margin:.35rem 0;color:#d1fae5}
+canvas{display:block;width:100%;height:auto;border:.3rem solid #3f5b3a;border-radius:.75rem;background:#0b130d;touch-action:none;cursor:crosshair}
+button{margin:.5rem .25rem 0;padding:.6rem 1.1rem;border:1px solid #4b7a4b;border-radius:.5rem;background:#86efac;color:#102019;font:inherit;font-weight:bold;cursor:pointer}
+</style>
+</head>
+<body>
+<main>
+<a href="../">← All games</a>
+<h1>Army Commando</h1>
+<p>Lead your commando out of your camp, claim ground and march back to lock it in. Cut an enemy's trail to eliminate them, and don't let anyone cut yours. Move with WASD or arrows, or click or tap where you want to go.</p>
+<canvas id="c" width="800" height="560"></canvas>
+<button id="again">New game</button>
+</main>
+<script>
+const c=document.getElementById("c"),x=c.getContext("2d");
+const CW=100,CH=70,CS=8,BK="army-commando-best";
+const owner=new Uint8Array(CW*CH),trail=new Uint8Array(CW*CH);
+const idx=(a,b)=>b*CW+a;
+const COLS=["#22c55e","#ef4444","#3b82f6","#eab308","#a855f7","#f97316","#14b8a6"];
+const NAMES=["You","Alpha","Bravo","Charlie","Delta","Echo","Foxtrot"];
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const DIRS=[[1,0],[-1,0],[0,1],[0,-1]];
+let ag=[],over=false,best=+localStorage.getItem(BK)||0,cnt=[],cntT=0,flash=0,msg="",msgT=0;
+const mouse={x:-1,y:-1,use:false};
+
+function spawn(a){
+  for(let t=0;t<80;t++){
+    const cx=3+Math.floor(Math.random()*(CW-6)),cy=3+Math.floor(Math.random()*(CH-6));
+    let free=true;
+    for(let j=-4;j<=4&&free;j++)for(let i=-4;i<=4;i++){const X=cx+i,Y=cy+j;if(X<0||Y<0||X>=CW||Y>=CH)continue;if(owner[idx(X,Y)]||trail[idx(X,Y)]){free=false;break}}
+    if(!free&&t<79)continue;
+    a.cx=cx;a.cy=cy;
+    for(let j=-2;j<=2;j++)for(let i=-2;i<=2;i++)owner[idx(cx+i,cy+j)]=a.id;
+    break;
+  }
+  const d=DIRS[Math.random()*4|0];
+  Object.assign(a,{dx:d[0],dy:d[1],nd:d,prog:0,trail:[],out:false,alive:true,steps:0,limit:rnd(6,16),hx:a.cx,hy:a.cy});
+}
+function newGame(){
+  owner.fill(0);trail.fill(0);over=false;ag=[];
+  for(let i=0;i<7;i++){const a={id:i+1,name:NAMES[i],col:COLS[i],bot:i>0,kills:0,respawn:0,aggr:Math.random()<.5,speed:i?6.2+Math.random()*1.2:8};ag.push(a);spawn(a)}
+  msg="Go!";msgT=1.5;
+}
+function pct(id){let s=0;for(let i=0;i<owner.length;i++)if(owner[i]===id)s++;return 100*s/owner.length}
+function kill(v,by){
+  if(!v.alive)return;
+  v.alive=false;
+  for(const t of v.trail)trail[t]=0;
+  v.trail=[];
+  for(let i=0;i<owner.length;i++)if(owner[i]===v.id)owner[i]=0;
+  if(by&&by!==v)by.kills++;
+  v.respawn=3;
+  if(!v.bot){over=true;const p=Math.round(pct(1)||0);cntT=0;if(lastPct>best){best=lastPct;localStorage.setItem(BK,best)}}
+  else if(by&&!by.bot){msg="Eliminated "+v.name+"!";msgT=1.5}
+}
+let lastPct=0;
+
+function claim(a){
+  for(const t of a.trail){owner[t]=a.id;trail[t]=0}
+  a.trail=[];a.out=false;
+  const seen=new Uint8Array(owner.length),q=[];
+  const push=(X,Y)=>{const k=idx(X,Y);if(!seen[k]&&owner[k]!==a.id){seen[k]=1;q.push(k)}};
+  for(let i=0;i<CW;i++){push(i,0);push(i,CH-1)}
+  for(let j=0;j<CH;j++){push(0,j);push(CW-1,j)}
+  for(let h=0;h<q.length;h++){
+    const k=q[h],X=k%CW,Y=(k/CW)|0;
+    if(X>0)push(X-1,Y);if(X<CW-1)push(X+1,Y);if(Y>0)push(X,Y-1);if(Y<CH-1)push(X,Y+1);
+  }
+  let sx=0,sy=0,n=0;
+  for(let k=0;k<owner.length;k++){
+    if(!seen[k]&&owner[k]!==a.id){
+      const tv=trail[k];
+      owner[k]=a.id;
+      if(tv){const v=ag[tv-1];if(v&&v!==a)kill(v,a)}
+    }
+    if(owner[k]===a.id){sx+=k%CW;sy+=(k/CW)|0;n++}
+  }
+  if(n){a.hx=sx/n;a.hy=sy/n}
+  a.steps=0;a.limit=rnd(6,18);
+  if(!a.bot)flash=.25;
+}
+function enter(a){
+  const k=idx(a.cx,a.cy);
+  if(trail[k]){
+    const v=ag[trail[k]-1];
+    if(v===a){kill(a,null);return}
+    kill(v,a);
+  }
+  if(owner[k]===a.id){if(a.out)claim(a)}
+  else{trail[k]=a.id;a.trail.push(k);if(!a.out){a.out=true;a.steps=0}}
+}
+function botPick(a){
+  a.steps++;
+  const ok=d=>{
+    const nx=a.cx+d[0],ny=a.cy+d[1];
+    if(nx<1||ny<1||nx>=CW-1||ny>=CH-1)return false;
+    if(d[0]===-a.dx&&d[1]===-a.dy)return false;
+    return trail[idx(nx,ny)]!==a.id;
+  };
+  const opts=DIRS.filter(ok);
+  if(!opts.length)return [a.dx,a.dy];
+  const goHome=a.out&&a.steps>a.limit;
+  let pick=opts[0],bs=-1e9;
+  for(const d of opts){
+    let s=Math.random()*.8;
+    if(d[0]===a.dx&&d[1]===a.dy)s+=a.out?1.4:2.2;
+    if(goHome){
+      const before=Math.abs(a.hx-a.cx)+Math.abs(a.hy-a.cy),after=Math.abs(a.hx-(a.cx+d[0]))+Math.abs(a.hy-(a.cy+d[1]));
+      s+=(before-after)*3;
+    }else if(a.out&&a.aggr){
+      let nd=1e9;
+      for(const v of ag)if(v!==a&&v.alive)for(const t of v.trail){const d2=Math.abs((t%CW)-(a.cx+d[0]))+Math.abs(((t/CW)|0)-(a.cy+d[1]));if(d2<nd)nd=d2}
+      if(nd<14)s+=(14-nd)*.25;
+    }
+    if(s>bs){bs=s;pick=d}
+  }
+  return pick;
+}
+function pickPlayerDir(a){
+  if(mouse.use&&mouse.x>=0){
+    const dx=mouse.x-(a.cx+.5),dy=mouse.y-(a.cy+.5);
+    if(Math.abs(dx)>1||Math.abs(dy)>1){
+      const d=Math.abs(dx)>Math.abs(dy)?[Math.sign(dx),0]:[0,Math.sign(dy)];
+      if(!(d[0]===-a.dx&&d[1]===-a.dy&&a.out))a.nd=d;
+    }
+  }
+}
+const keyDir={ArrowUp:[0,-1],KeyW:[0,-1],ArrowDown:[0,1],KeyS:[0,1],ArrowLeft:[-1,0],KeyA:[-1,0],ArrowRight:[1,0],KeyD:[1,0]};
+addEventListener("keydown",e=>{
+  const d=keyDir[e.code];
+  if(d){e.preventDefault();mouse.use=false;const p=ag[0];if(p.alive&&!(d[0]===-p.dx&&d[1]===-p.dy&&p.out))p.nd=d}
+  if(e.code==="Enter"&&over)newGame();
+});
+function pos(e){const r=c.getBoundingClientRect();mouse.x=(e.clientX-r.left)/r.width*CW;mouse.y=(e.clientY-r.top)/r.height*CH;mouse.use=true}
+c.addEventListener("pointerdown",e=>{if(over){newGame();return}pos(e);try{c.setPointerCapture(e.pointerId)}catch(_){}});
+c.addEventListener("pointermove",e=>{if(e.pointerType!=="mouse"&&!(e.buttons&1))return;pos(e)});
+document.getElementById("again").onclick=newGame;
+
+function step(a){
+  if(a.bot)a.nd=botPick(a);
+  else pickPlayerDir(a);
+  const d=a.nd,nx=a.cx+d[0],ny=a.cy+d[1];
+  a.dx=d[0];a.dy=d[1];
+  if(nx<0||ny<0||nx>=CW||ny>=CH)return false;
+  a.cx=nx;a.cy=ny;enter(a);return true;
+}
+function update(dt){
+  msgT-=dt;flash=Math.max(0,flash-dt);
+  for(const a of ag){
+    if(!a.alive){
+      if(a.bot){a.respawn-=dt;if(a.respawn<=0){spawn(a);a.alive=true}}
+      continue;
+    }
+    if(over)continue;
+    a.prog+=a.speed*dt;
+    while(a.prog>=1&&a.alive){a.prog-=1;if(!step(a)){a.prog=0;break}}
+  }
+  cntT-=dt;
+  if(cntT<=0){
+    cntT=.4;cnt=ag.map(()=>0);
+    for(let i=0;i<owner.length;i++)if(owner[i])cnt[owner[i]-1]++;
+    if(!over)lastPct=Math.round(100*cnt[0]/owner.length);
+  }
+}
+function draw(){
+  x.fillStyle="#0b130d";x.fillRect(0,0,c.width,c.height);
+  for(let j=0;j<CH;j++)for(let i=0;i<CW;i++){
+    const k=idx(i,j),o=owner[k],t=trail[k];
+    if(o){x.fillStyle=COLS[o-1]+"aa";x.fillRect(i*CS,j*CS,CS,CS)}
+    else if((i+j)%2===0){x.fillStyle="#0f1d12";x.fillRect(i*CS,j*CS,CS,CS)}
+    if(t){x.fillStyle=COLS[t-1];x.fillRect(i*CS+1,j*CS+1,CS-2,CS-2)}
+  }
+  x.strokeStyle="#3f5b3a";x.lineWidth=2;x.strokeRect(1,1,c.width-2,c.height-2);
+  for(const a of ag){
+    if(!a.alive)continue;
+    const X=(a.cx+.5-a.dx*(1-a.prog))*CS,Y=(a.cy+.5-a.dy*(1-a.prog))*CS;
+    x.fillStyle="#0006";x.beginPath();x.arc(X,Y+3,8,0,7);x.fill();
+    x.fillStyle=a.col;x.beginPath();x.arc(X,Y,8,0,7);x.fill();
+    x.fillStyle="#2f4f2f";x.beginPath();x.arc(X,Y-1,8,Math.PI,0);x.fill();
+    x.fillStyle="#fff";x.fillRect(X-4,Y,8,2);
+    x.strokeStyle="#000";x.lineWidth=1.5;x.beginPath();x.arc(X,Y,8,0,7);x.stroke();
+    if(a.id===1){x.fillStyle="#fff";x.font="bold 11px Arial";x.textAlign="center";x.fillText("YOU",X,Y-13)}
+  }
+  if(flash>0){x.fillStyle="rgba(255,255,255,"+flash*.5+")";x.fillRect(0,0,c.width,c.height)}
+  const tot=owner.length,mine=cnt[0]||0;
+  x.fillStyle="#000a";x.fillRect(0,0,250,56);
+  x.textAlign="left";x.font="bold 16px Arial";x.fillStyle="#fff";
+  x.fillText("Territory "+(100*mine/tot).toFixed(1)+"%",10,22);
+  x.font="13px Arial";x.fillStyle="#bbf7d0";x.fillText("Kills "+ag[0].kills+"   Best "+best+"%",10,44);
+  const lb=ag.map((a,i)=>({a,n:cnt[i]||0})).sort((p,q)=>q.n-p.n).slice(0,5);
+  x.fillStyle="#000a";x.fillRect(c.width-150,0,150,10+lb.length*18);
+  x.textAlign="left";x.font="bold 13px Arial";
+  lb.forEach((r,i)=>{x.fillStyle=r.a.col;x.fillText((i+1)+". "+r.a.name+" "+(100*r.n/tot).toFixed(1)+"%",c.width-144,18+i*18)});
+  x.textAlign="center";
+  if(msgT>0){x.font="bold 36px Arial";x.fillStyle="rgba(255,255,255,"+Math.min(1,msgT)+")";x.fillText(msg,c.width/2,90)}
+  if(over){
+    x.fillStyle="#000b";x.fillRect(0,200,c.width,160);x.fillStyle="#fca5a5";x.font="bold 44px Arial";
+    x.fillText("Commando down",c.width/2,260);x.fillStyle="#fff";x.font="20px Arial";
+    x.fillText("Territory "+lastPct+"% · Kills "+ag[0].kills+" · Tap or press Enter to play again",c.width/2,300);
+  }
+}
+let last=performance.now();
+function loop(t){const dt=Math.min(.05,(t-last)/1000);last=t;update(dt);draw();requestAnimationFrame(loop)}
+newGame();requestAnimationFrame(loop);
+</script>
+</body>
+</html>

@@ -10,7 +10,7 @@ any time I ask to create a new game a new minigame add a link  to the game page
 Keep a list of my games here.
 
 - Connect 4 (`connect-4/`)
-- Zombie Apocalypse (`zombie-apocalypse/`)
+- Zombie Apocalypse (`zombie-apocalypse/`, with first-person 3D version at `zombie-apocalypse/3d.html`)
 - Brick Breaker (`breakout/`)
 - Flamingo Clicker (`flamingo-clicker/`)
 - Memory Match (`memory-match/`)
@@ -103,5 +103,7 @@ Keep a list of my games here.
 - Rage Button (`rage-button/`, 100 rage-bait levels with 25 mechanics (dodging, keyboard memory, typing, speed math, color-word trick, whack targets, hidden button, drag-to-moving-goal, rhythm, stopwatch, drifting slider, card match, green buttons...) and 10 visual twists (blurry, inverted, lights out, flickering, no cursor, earthquake, seasick, spotlight, grayscale) so no mechanic+twist combo repeats: dodging button, fake progress bar, counter bug, popup ads, don't-move, rigged choices, lying captcha, runaway prize; tracks rage count and best)
 - Ape Market (`cafe-tycoon/`, big scrolling Monkey Mart-style supermarket with 9 themed markets (Ape, Fish, Bakery, Candy, Toy, Pet, Pizza, Tech, Space; each unlocked by serving 50 customers in the previous one, separate saves, bigger prices and costs): 8 goods (5 farms + 3 machines), shelves, 3 registers with cashiers, helper monkeys, rich ape customers (rare), graffiti vandals, buyable shelves spread around the map, 13 upgrade pads; has 1x-10x speed)
 - I Have a Dream (i-have-a-dream/, memory-match game about Martin Luther King Jr.'s 1963 speech: facts, famous lines, big board, complete-the-line quiz)
+- Rebellion Riot (`rebellion-riot/`, formerly the run-and-gun Army Commando; mouse or touch aim, grenades, power-ups, coins and unlimited upgrades shop, helpers (buddy soldiers, gun drones, field medic), tank boss at the end of each endless mission)
+- Army Commando (`army-commando/`, hex.io-style territory capture: leave your camp, claim ground, return to lock it in, cut enemy trails; 6 robot armies; keys or touch)
 - Army Clash (rmy-clash/, real-time army battle: spawn soldiers, archers, tanks and rockets to destroy the enemy base; 2 players or vs robot army with Normal/Hard)
 - Trench Wars (	rench-wars/, top-down army shooter: commander plus squads, 3 maps, mouse aim, grenades, dash, pickups (medkit, rapid fire, shotgun, shield), sound effects, match stats, ticket drain; 2 players or vs robot commander with Easy/Normal/Hard)

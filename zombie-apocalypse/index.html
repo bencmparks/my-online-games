@@ -193,7 +193,7 @@
 </head>
 <body>
   <main>
-    <a class="back-link" href="../">← All games</a>
+    <a class="back-link" href="../">← All games</a> · <a class="back-link" href="3d.html">Play the 3D version</a>
     <h1>Zombie Apocalypse</h1>
     <p class="instructions">Move with WASD, arrow keys, or the on-screen joystick. Click or tap the field, or hold 🔥, to fire. Watch for fast runners, tough brutes, and valuable boosts.</p>
     <canvas id="game" width="720" height="480" aria-label="Zombie Apocalypse game"></canvas>
@@ -504,9 +504,9 @@
       moveCompanion(protectorDog, { x: player.x + 32, y: player.y - 28 }, 180, deltaTime);
       for (let index = coins.length - 1; index >= 0; index -= 1) if (Math.hypot(protectorDog.x - coins[index].x, protectorDog.y - coins[index].y) < 28) collectCoin(index);
       const target = zombies.reduce((closest, zombie) => !closest || Math.hypot(zombie.x - protectorDog.x, zombie.y - protectorDog.y) < Math.hypot(closest.x - protectorDog.x, closest.y - protectorDog.y) ? zombie : closest, null);
-      if (target && protectorDog.attackCooldown === 0 && Math.hypot(target.x - protectorDog.x, target.y - protectorDog.y) < 115) {
-        target.health -= 1;
-        protectorDog.attackCooldown = 0.9;
+      if (target && protectorDog.attackCooldown === 0 && Math.hypot(target.x - protectorDog.x, target.y - protectorDog.y) < 180) {
+        target.health -= 4;
+        protectorDog.attackCooldown = 0.35;
         createParticles(target.x, target.y, "#fef3c7", 4);
         if (target.health <= 0) defeatZombie(target);
       }
