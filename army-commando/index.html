@@ -37,11 +37,12 @@ let ag=[],over=false,best=+localStorage.getItem(BK)||0,cnt=[],cntT=0,flash=0,msg
 const mouse={x:-1,y:-1,use:false};
 
 function spawn(a){
-  for(let t=0;t<80;t++){
+  for(let t=0;t<300;t++){
     const cx=3+Math.floor(Math.random()*(CW-6)),cy=3+Math.floor(Math.random()*(CH-6));
+    const strict=t<150,R=strict?4:3;
     let free=true;
-    for(let j=-4;j<=4&&free;j++)for(let i=-4;i<=4;i++){const X=cx+i,Y=cy+j;if(X<0||Y<0||X>=CW||Y>=CH)continue;if(owner[idx(X,Y)]||trail[idx(X,Y)]){free=false;break}}
-    if(!free&&t<79)continue;
+    for(let j=-R;j<=R&&free;j++)for(let i=-R;i<=R;i++){const X=cx+i,Y=cy+j;if(X<0||Y<0||X>=CW||Y>=CH)continue;const k=idx(X,Y);if(strict?(owner[k]||trail[k]):(owner[k]===1&&a.id!==1)){free=false;break}}
+    if(!free&&t<299)continue;
     a.cx=cx;a.cy=cy;
     for(let j=-2;j<=2;j++)for(let i=-2;i<=2;i++)owner[idx(cx+i,cy+j)]=a.id;
     break;
