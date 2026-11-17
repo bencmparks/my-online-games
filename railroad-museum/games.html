@@ -107,6 +107,27 @@
     }
     again.onclick = function () { qi = 0; sc = 0; show(); }; show();
   })();
+      (function () {
+        var tr = document.getElementById('sd-train'), tk = document.getElementById('track'), go = document.getElementById('sd-go'), msg = document.getElementById('sd-msg'), x = 0, v = 0, run = false, tries = 0, score = 0, raf;
+        function bestV() { try { return +localStorage.getItem('rrmStopBest') || 0; } catch (e) { return 0; } }
+        function sb() { document.getElementById('sd-best').textContent = bestV() || '–'; } sb();
+        function loop() { if (!run) return; var w = tk.clientWidth - tr.offsetWidth; x += v; if (x > w) { x = w; v = -v; } if (x < 0) { x = 0; v = -v; } tr.style.left = x + 'px'; raf = requestAnimationFrame(loop); }
+        function brake() {
+          if (!run) return; run = false; cancelAnimationFrame(raf);
+          var w = tk.clientWidth - tr.offsetWidth, off = Math.abs(x - w / 2), pts = Math.max(0, Math.round(100 - off / (w / 2) * 100));
+          score += pts; document.getElementById('sd-score').textContent = score;
+          msg.textContent = pts > 90 ? '🎉 Perfect stop! +' + pts : pts > 60 ? '👍 Nice! +' + pts : '😬 Overshot... +' + pts;
+          if (tries >= 3) { if (score > bestV()) { try { localStorage.setItem('rrmStopBest', score); } catch (e) {} } sb(); msg.textContent += ' · Final: ' + score; go.textContent = 'Play again'; }
+          else go.textContent = 'Next try';
+          go.hidden = false;
+        }
+        go.onclick = function () {
+          if (tries >= 3) { tries = 0; score = 0; document.getElementById('sd-score').textContent = 0; }
+          tries++; document.getElementById('sd-try').textContent = tries; msg.innerHTML = '&nbsp;'; x = 0; v = 4 + tries * 1.5; run = true; go.hidden = true; loop();
+        };
+        document.addEventListener('keydown', function (e) { if (e.code === 'Space' && run) { e.preventDefault(); brake(); } });
+        tk.onclick = brake; tk.style.cursor = 'pointer';
+      })();
   </script>
 <script>(function(){var b=document.getElementById("theme"),h=document.documentElement;function s(){var d=h.classList.contains("dark");b.textContent=d?"☀️ Light":"🌙 Dark";b.setAttribute("aria-pressed",d)}b.onclick=function(){h.classList.toggle("dark");try{localStorage.setItem("rrmDark",h.classList.contains("dark")?"1":"0")}catch(e){}s()};s()})()</script>
 </body>
