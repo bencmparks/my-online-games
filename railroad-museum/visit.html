@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Visit | Richmond Railroad Museum</title>
+  <link rel="stylesheet" href="style.css"><script>try{if(localStorage.getItem("rrmDark")==="1")document.documentElement.classList.add("dark")}catch(e){}</script>
+</head>
+<body>
+  <div class="concept">Redesign concept. Content from richmondrailroadmuseum.com.</div>
+  <div class="topbar"><div class="wrap"><span>Open Sat 11–4 · Sun 1–4</span><span>📞 <a href="tel:8042314324">804-231-4324</a> · 102 Hull Street, Richmond VA</span></div></div>
+  <header class="site"><div class="wrap">
+    <a class="brand" href="index.html"><span class="mark">🚂</span><span>Richmond Railroad Museum<small>Historic Southern Railway Station</small></span></a>
+    <button id="theme" class="theme-btn" type="button" aria-pressed="false">🌙 Dark</button>
+    <button class="menu-btn" aria-expanded="false" aria-controls="nav">☰ Menu</button>
+    <nav id="nav"><a href="index.html">Home</a><a class="on" href="visit.html">Visit</a><a href="exhibits.html">Exhibits</a><a href="archives.html">Archives</a><a href="news.html">News</a><a href="games.html">Games</a><a href="contact.html">Contact</a></nav>
+  </div></header>
+  <div class="page-head"><div class="wrap"><h1>Plan Your Visit</h1><p>Everything you need to know before you come</p></div></div>
+
+  <section><div class="wrap split">
+    <div>
+      <h2>Hours of operation</h2>
+      <div class="hours"><b>Saturday</b><span>11:00 a.m. – 4:00 p.m.</span><b>Sunday</b><span>1:00 p.m. – 4:00 p.m.</span></div>
+      <p>Call the Museum with your questions during our weekend hours of operation at <a href="tel:8042314324">804-231-4324</a> or leave a voicemail at all other times. Questions may be emailed to <a href="mailto:info@richmondrailroadmuseum.com">info@richmondrailroadmuseum.com</a>.</p>
+    </div>
+    <div class="card">
+      <h3>At a glance</h3>
+      <ul>
+        <li>Allow about <strong>one hour</strong> for a full visit and guided tour</li>
+        <li>Air conditioned facility</li>
+        <li><strong>Free parking</strong> adjacent to the Museum</li>
+        <li>Gift shop on site</li>
+      </ul>
+    </div>
+  </div></section>
+
+  <section class="alt"><div class="wrap split">
+    <div>
+      <h2>Find us</h2>
+      <p>The Richmond Railroad Museum is located in the restored historic Southern Railway Station at</p>
+      <address><strong>102 Hull Street<br>Richmond, VA</strong></address>
+      <p>The museum is located just south of the James River in the Manchester neighborhood.</p>
+      <a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=102+Hull+Street+Richmond+VA">Get directions</a>
+    </div>
+    <iframe title="Map to the Richmond Railroad Museum" class="photo" width="100%" height="320" loading="lazy" src="https://www.openstreetmap.org/export/embed.html?bbox=-77.4600%2C37.5200%2C-77.4300%2C37.5350&amp;layer=mapnik"></iframe>
+  </div></section>
+
+  <section><div class="wrap"><div class="notice"><strong>Holiday season:</strong> No Santa Train excursions will be operating in 2024 or for the foreseeable future. The Museum and onsite equipment are decorated for the Holidays by Thanksgiving. Come on by!</div></div></section>
+
+  <footer><div class="wrap"><p class="small">Operated by the Old Dominion Chapter of the National Railway Historical Society. Redesign concept.</p></div></footer>
+  <script>document.querySelector('.menu-btn').onclick=function(){var n=document.getElementById('nav');this.setAttribute('aria-expanded',n.classList.toggle('open'))}</script>
+<script>(function(){var b=document.getElementById("theme"),h=document.documentElement;function s(){var d=h.classList.contains("dark");b.textContent=d?"☀️ Light":"🌙 Dark";b.setAttribute("aria-pressed",d)}b.onclick=function(){h.classList.toggle("dark");try{localStorage.setItem("rrmDark",h.classList.contains("dark")?"1":"0")}catch(e){}s()};s()})()</script>
+</body>
+</html>

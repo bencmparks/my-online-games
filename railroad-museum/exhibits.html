@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Exhibits | Richmond Railroad Museum</title>
+  <link rel="stylesheet" href="style.css"><script>try{if(localStorage.getItem("rrmDark")==="1")document.documentElement.classList.add("dark")}catch(e){}</script>
+</head>
+<body>
+  <div class="concept">Redesign concept. Content from richmondrailroadmuseum.com.</div>
+  <div class="topbar"><div class="wrap"><span>Open Sat 11–4 · Sun 1–4</span><span>📞 <a href="tel:8042314324">804-231-4324</a> · 102 Hull Street, Richmond VA</span></div></div>
+  <header class="site"><div class="wrap">
+    <a class="brand" href="index.html"><span class="mark">🚂</span><span>Richmond Railroad Museum<small>Historic Southern Railway Station</small></span></a>
+    <button id="theme" class="theme-btn" type="button" aria-pressed="false">🌙 Dark</button>
+    <button class="menu-btn" aria-expanded="false" aria-controls="nav">☰ Menu</button>
+    <nav id="nav"><a href="index.html">Home</a><a href="visit.html">Visit</a><a class="on" href="exhibits.html">Exhibits</a><a href="archives.html">Archives</a><a href="news.html">News</a><a href="games.html">Games</a><a href="contact.html">Contact</a></nav>
+  </div></header>
+  <div class="page-head"><div class="wrap"><h1>Exhibits</h1><p>Inside the depot and out on the grounds</p></div></div>
+
+  <section><div class="wrap">
+    <span class="sign">Museum interior</span>
+    <h2>Inside the station</h2>
+    <div class="grid">
+      <div class="card"><h3>Virginia railroading</h3><p style="margin:0">Historic Virginia railroading materials and equipment.</p></div>
+      <div class="card"><h3>Architecture</h3><p style="margin:0">Authentic architectural fixtures and furnishings from the restored station.</p></div>
+      <div class="card"><h3>Model railroad</h3><p style="margin:0">Richmond's largest HO scale model railroad.</p></div>
+      <div class="card"><h3>Gift shop</h3><p style="margin:0">Take a piece of railroading home with you.</p></div>
+    </div>
+  </div></section>
+
+  <section class="alt"><div class="wrap">
+    <span class="sign">Museum grounds</span>
+    <h2>Out on the tracks</h2>
+    <div class="split">
+      <figure><img class="photo" src="https://images.squarespace-cdn.com/content/v1/5e4c26fed707b922df0038e4/1582077584211-9L1RZOH44L7AIU9590DW/steamlocomotive.jpg" alt="Porter steam locomotive at the Richmond Railroad Museum" loading="lazy"><figcaption>Porter Engine at the Richmond Railroad Museum</figcaption></figure>
+      <div class="card"><ul><li>Porter tank style steam locomotive</li><li>Baggage car</li><li>Caboose</li><li>Track cars</li><li>Signals</li><li>Railroad artifacts</li></ul></div>
+    </div>
+  </div></section>
+
+  <section><div class="wrap">
+    <span class="sign">New on the layout</span>
+    <div class="split" style="margin-top:1rem">
+      <figure><img class="photo" src="https://images.squarespace-cdn.com/content/v1/5e4c26fed707b922df0038e4/1605400288208-XDESSPJWEVC5ZWVHT54B/IMG_0079.JPG" alt="Model of the Virginia Governor's Mansion" loading="lazy"></figure>
+      <div><h2>Governor's Mansion model</h2><p>A new model of an old Governor's Mansion has arrived at the model railroad layout. Modelers Hal and Mary Davidson have recently put the finishing touches on this custom model of the Virginia Governor's Mansion. The model is based on a 1930 postcard.</p></div>
+    </div>
+  </div></section>
+
+  <footer><div class="wrap"><p class="small">Operated by the Old Dominion Chapter of the National Railway Historical Society. Redesign concept.</p></div></footer>
+  <script>document.querySelector('.menu-btn').onclick=function(){var n=document.getElementById('nav');this.setAttribute('aria-expanded',n.classList.toggle('open'))}</script>
+<script>(function(){var b=document.getElementById("theme"),h=document.documentElement;function s(){var d=h.classList.contains("dark");b.textContent=d?"☀️ Light":"🌙 Dark";b.setAttribute("aria-pressed",d)}b.onclick=function(){h.classList.toggle("dark");try{localStorage.setItem("rrmDark",h.classList.contains("dark")?"1":"0")}catch(e){}s()};s()})()</script>
+</body>
+</html>
