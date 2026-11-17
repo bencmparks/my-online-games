@@ -36,7 +36,7 @@
     <button class="menu-btn" aria-expanded="false" aria-controls="nav">☰ Menu</button>
     <nav id="nav"><a href="index.html">Home</a><a href="visit.html">Visit</a><a href="exhibits.html">Exhibits</a><a href="archives.html">Archives</a><a href="news.html">News</a><a class="on" href="games.html">Games</a><a href="contact.html">Contact</a></nav>
   </div></header>
-  <div class="page-head"><div class="wrap"><h1>Mini Games</h1><p>Five quick games while you wait for the next train</p></div></div>
+  <div class="page-head"><div class="wrap"><h1>Mini Games</h1><p>Seven quick games while you wait for the next train</p></div></div>
 
   <section><div class="wrap game">
     <span class="sign">Game 1</span>
@@ -85,6 +85,26 @@
     <div class="signals" id="ss"><button type="button" data-i="0" style="background:#e53935;color:#e53935" aria-label="Red"></button><button type="button" data-i="1" style="background:#43a047;color:#43a047" aria-label="Green"></button><button type="button" data-i="2" style="background:#fdd835;color:#fdd835" aria-label="Yellow"></button><button type="button" data-i="3" style="background:#1e88e5;color:#1e88e5" aria-label="Blue"></button></div>
     <p class="msg" id="ss-msg" aria-live="polite"></p>
     <button class="btn" id="ss-go" type="button">Start</button>
+  </div></section>
+
+  <section class="alt"><div class="wrap game">
+    <span class="sign">Game 6</span>
+    <h2>Rail Word Scramble</h2>
+    <p>Unscramble the railroad word. Use Hint if you're stuck (costs points).</p>
+    <p class="stat">Word <span id="ws-n">1</span> of 6 · Score <span id="ws-score">0</span> · Best <span id="ws-best">–</span></p>
+    <p id="ws-letters" style="font:bold 2.2rem 'Trebuchet MS',sans-serif;letter-spacing:.35em;color:var(--green);margin:.6rem 0"></p>
+    <form id="ws-form" autocomplete="off"><input id="ws-in" aria-label="Your answer" maxlength="14" style="padding:.6rem;font:1.1rem Georgia,serif;border:2px solid var(--brass);border-radius:.4rem;text-transform:uppercase;text-align:center;background:var(--paper);color:var(--ink)"> <button class="btn" type="submit">Check</button> <button class="btn ghost" id="ws-hint" type="button" style="color:var(--green);border-color:var(--green)">Hint</button></form>
+    <p class="msg" id="ws-msg" aria-live="polite"></p>
+    <button class="btn" id="ws-again" type="button" hidden>Play again</button>
+  </div></section>
+
+  <section><div class="wrap game">
+    <span class="sign">Game 7</span>
+    <h2>Track Switch</h2>
+    <p>Send each train to the depot that matches its color. Press <strong>Space</strong>, the arrow keys, or tap the track to flip the switch. 3 wrong turns and you're out.</p>
+    <p class="stat">Score <span id="ts-score">0</span> · Misses <span id="ts-miss">0</span>/3 · Best <span id="ts-best">–</span></p>
+    <canvas id="ts" width="480" height="360" aria-label="Track Switch game"></canvas>
+    <p><button class="btn" id="ts-go" type="button">Start</button></p>
   </div></section>
 
   <footer><div class="wrap"><p class="small">Operated by the Old Dominion Chapter of the National Railway Historical Society. Redesign concept.</p></div></footer>
@@ -240,6 +260,58 @@
       };
     });
     $('ss-go').onclick = function () { seq = []; $('ss-go').hidden = true; nextRound(); };
+  })();
+
+  /* Rail Word Scramble */
+  (function () {
+    var WORDS = ['LOCOMOTIVE', 'CABOOSE', 'STATION', 'CONDUCTOR', 'ENGINE', 'TRACK', 'SIGNAL', 'TICKET', 'DEPOT', 'FREIGHT', 'PLATFORM', 'WHISTLE', 'CARRIAGE', 'RAILROAD', 'TENDER', 'SWITCH'], list, n, sc, word, hint;
+    function sb() { $('ws-best').textContent = load('rrmWordBest') || '–'; } sb();
+    function scr(w) { var a = w.split(''), s; do { s = a.slice().sort(function () { return Math.random() - .5; }).join(''); } while (s === w); return s; }
+    function begin() { list = WORDS.slice().sort(function () { return Math.random() - .5; }).slice(0, 6); n = 0; sc = 0; $('ws-score').textContent = 0; $('ws-again').hidden = true; $('ws-form').hidden = false; next(); }
+    function next() { word = list[n]; hint = 0; $('ws-n').textContent = n + 1; $('ws-letters').textContent = scr(word); $('ws-in').value = ''; $('ws-msg').textContent = ''; $('ws-in').focus(); }
+    function done() { var nb = sc > load('rrmWordBest'); if (nb) save('rrmWordBest', sc); sb(); $('ws-letters').textContent = '🚂'; $('ws-msg').textContent = 'Final score: ' + sc + (nb ? ' – new best!' : ''); $('ws-form').hidden = true; $('ws-again').hidden = false; if (nb && sc > 0) confetti(); }
+    function advance() { n++; if (n < 6) setTimeout(next, 900); else setTimeout(done, 900); }
+    $('ws-form').onsubmit = function (e) {
+      e.preventDefault(); var g = $('ws-in').value.trim().toUpperCase(); if (!g) return;
+      if (g === word) { var p = Math.max(2, 10 - hint * 3); sc += p; $('ws-score').textContent = sc; $('ws-msg').textContent = '✅ ' + word + '! +' + p; beep(800, .15); advance(); }
+      else { $('ws-msg').textContent = '❌ Not quite, try again'; beep(200, .25); }
+    };
+    $('ws-hint').onclick = function () { hint++; $('ws-msg').textContent = '💡 It starts with ' + word.slice(0, hint) + ' (' + word.length + ' letters)'; };
+    $('ws-again').onclick = begin; begin();
+  })();
+
+  /* Track Switch */
+  (function () {
+    var cv = $('ts'), cx = cv.getContext('2d'), W = 480, H = 360, JY = 170, sw, trains, score, miss, run = false, raf, spawn, DEP = ['#e53935', '#1e88e5'], LX = [90, 390];
+    function sb() { $('ts-best').textContent = load('rrmSwitchBest') || '–'; } sb();
+    function reset() { sw = 0; trains = []; score = 0; miss = 0; spawn = 30; $('ts-score').textContent = 0; $('ts-miss').textContent = 0; }
+    function flip() { if (run) { sw = 1 - sw; beep(400, .06); } }
+    function draw() {
+      cx.fillStyle = '#cfe9d6'; cx.fillRect(0, 0, W, H);
+      cx.strokeStyle = '#5b4a30'; cx.lineWidth = 8;
+      cx.beginPath(); cx.moveTo(W / 2, 0); cx.lineTo(W / 2, JY); cx.stroke();
+      [0, 1].forEach(function (i) { cx.strokeStyle = sw === i ? '#222' : '#9a8f78'; cx.lineWidth = sw === i ? 10 : 6; cx.beginPath(); cx.moveTo(W / 2, JY); cx.lineTo(LX[i], JY + 90); cx.lineTo(LX[i], H - 70); cx.stroke(); });
+      [0, 1].forEach(function (i) { cx.fillStyle = DEP[i]; cx.fillRect(LX[i] - 45, H - 70, 90, 60); cx.fillStyle = '#fff'; cx.font = 'bold 14px Trebuchet MS'; cx.textAlign = 'center'; cx.fillText('DEPOT', LX[i], H - 36); });
+      cx.fillStyle = '#222'; cx.beginPath(); cx.arc(W / 2, JY, 9, 0, 7); cx.fill(); cx.fillStyle = '#fff'; cx.font = 'bold 12px Trebuchet MS'; cx.fillText(sw ? '▶' : '◀', W / 2, JY + 4);
+      trains.forEach(function (t) { cx.fillStyle = DEP[t.c]; cx.fillRect(t.x - 14, t.y - 14, 28, 28); cx.fillStyle = '#fff'; cx.font = '18px serif'; cx.fillText('🚂', t.x, t.y + 6); });
+    }
+    function end() { run = false; cancelAnimationFrame(raf); var nb = score > load('rrmSwitchBest'); if (nb) save('rrmSwitchBest', score); sb(); draw(); cx.fillStyle = 'rgba(0,0,0,.55)'; cx.fillRect(0, 0, W, H); cx.fillStyle = '#fff'; cx.font = 'bold 26px Trebuchet MS'; cx.textAlign = 'center'; cx.fillText('Game over: ' + score + (nb ? ' – new best!' : ''), W / 2, H / 2); $('ts-go').textContent = 'Play again'; $('ts-go').hidden = false; if (nb && score > 0) confetti(); }
+    function step() {
+      if (!run) return; var sp = 2.2 + Math.min(3.5, score / 12);
+      if (--spawn <= 0) { trains.push({ x: W / 2, y: -10, c: Math.random() < .5 ? 0 : 1, d: -1 }); spawn = Math.max(40, 95 - score * 2); }
+      for (var i = trains.length - 1; i >= 0; i--) {
+        var t = trains[i];
+        if (t.d < 0 && t.y >= JY) { t.d = sw; }
+        if (t.d >= 0) { var tx = LX[t.d]; if (t.y < JY + 90) { t.x += (tx - W / 2) / 90 * sp; } else t.x = tx; }
+        t.y += sp;
+        if (t.y >= H - 56) { if (t.d === t.c) { score++; beep(800, .1); $('ts-score').textContent = score; } else { miss++; beep(160, .3); $('ts-miss').textContent = miss; } trains.splice(i, 1); }
+      }
+      draw(); if (miss >= 3) { end(); return; } raf = requestAnimationFrame(step);
+    }
+    cv.addEventListener('pointerdown', function (e) { e.preventDefault(); flip(); });
+    document.addEventListener('keydown', function (e) { if (run && (e.code === 'Space' || e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'ArrowUp' || e.key === 'ArrowDown')) { e.preventDefault(); if (e.key === 'ArrowLeft') { sw = 0; } else if (e.key === 'ArrowRight') { sw = 1; } else flip(); } });
+    $('ts-go').onclick = function () { reset(); run = true; $('ts-go').hidden = true; step(); };
+    reset(); draw();
   })();
   </script>
 <script>(function(){var b=document.getElementById("theme"),h=document.documentElement;function s(){var d=h.classList.contains("dark");b.textContent=d?"☀️ Light":"🌙 Dark";b.setAttribute("aria-pressed",d)}b.onclick=function(){h.classList.toggle("dark");try{localStorage.setItem("rrmDark",h.classList.contains("dark")?"1":"0")}catch(e){}s()};s()})()</script>
