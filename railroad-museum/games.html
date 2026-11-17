@@ -36,7 +36,7 @@
     <button class="menu-btn" aria-expanded="false" aria-controls="nav">☰ Menu</button>
     <nav id="nav"><a href="index.html">Home</a><a href="visit.html">Visit</a><a href="exhibits.html">Exhibits</a><a href="archives.html">Archives</a><a href="news.html">News</a><a class="on" href="games.html">Games</a><a href="contact.html">Contact</a></nav>
   </div></header>
-  <div class="page-head"><div class="wrap"><h1>Mini Games</h1><p>Seven quick games while you wait for the next train</p></div></div>
+  <div class="page-head"><div class="wrap"><h1>Mini Games</h1><p>Six quick games while you wait for the next train</p></div></div>
 
   <section><div class="wrap game">
     <span class="sign">Game 1</span>
@@ -89,17 +89,6 @@
 
   <section class="alt"><div class="wrap game">
     <span class="sign">Game 6</span>
-    <h2>Rail Word Scramble</h2>
-    <p>Unscramble the railroad word. Use Hint if you're stuck (costs points).</p>
-    <p class="stat">Word <span id="ws-n">1</span> of 6 · Score <span id="ws-score">0</span> · Best <span id="ws-best">–</span></p>
-    <p id="ws-letters" style="font:bold 2.2rem 'Trebuchet MS',sans-serif;letter-spacing:.35em;color:var(--green);margin:.6rem 0"></p>
-    <form id="ws-form" autocomplete="off"><input id="ws-in" aria-label="Your answer" maxlength="14" style="padding:.6rem;font:1.1rem Georgia,serif;border:2px solid var(--brass);border-radius:.4rem;text-transform:uppercase;text-align:center;background:var(--paper);color:var(--ink)"> <button class="btn" type="submit">Check</button> <button class="btn ghost" id="ws-hint" type="button" style="color:var(--green);border-color:var(--green)">Hint</button></form>
-    <p class="msg" id="ws-msg" aria-live="polite"></p>
-    <button class="btn" id="ws-again" type="button" hidden>Play again</button>
-  </div></section>
-
-  <section><div class="wrap game">
-    <span class="sign">Game 7</span>
     <h2>Track Switch</h2>
     <p>Send each train to the depot that matches its color. Press <strong>Space</strong>, the arrow keys, or tap the track to flip the switch. 3 wrong turns and you're out.</p>
     <p class="stat">Score <span id="ts-score">0</span> · Misses <span id="ts-miss">0</span>/3 · Best <span id="ts-best">–</span></p>
@@ -260,24 +249,6 @@
       };
     });
     $('ss-go').onclick = function () { seq = []; $('ss-go').hidden = true; nextRound(); };
-  })();
-
-  /* Rail Word Scramble */
-  (function () {
-    var WORDS = ['LOCOMOTIVE', 'CABOOSE', 'STATION', 'CONDUCTOR', 'ENGINE', 'TRACK', 'SIGNAL', 'TICKET', 'DEPOT', 'FREIGHT', 'PLATFORM', 'WHISTLE', 'CARRIAGE', 'RAILROAD', 'TENDER', 'SWITCH'], list, n, sc, word, hint;
-    function sb() { $('ws-best').textContent = load('rrmWordBest') || '–'; } sb();
-    function scr(w) { var a = w.split(''), s; do { s = a.slice().sort(function () { return Math.random() - .5; }).join(''); } while (s === w); return s; }
-    function begin() { list = WORDS.slice().sort(function () { return Math.random() - .5; }).slice(0, 6); n = 0; sc = 0; $('ws-score').textContent = 0; $('ws-again').hidden = true; $('ws-form').hidden = false; next(); }
-    function next() { word = list[n]; hint = 0; $('ws-n').textContent = n + 1; $('ws-letters').textContent = scr(word); $('ws-in').value = ''; $('ws-msg').textContent = ''; $('ws-in').focus(); }
-    function done() { var nb = sc > load('rrmWordBest'); if (nb) save('rrmWordBest', sc); sb(); $('ws-letters').textContent = '🚂'; $('ws-msg').textContent = 'Final score: ' + sc + (nb ? ' – new best!' : ''); $('ws-form').hidden = true; $('ws-again').hidden = false; if (nb && sc > 0) confetti(); }
-    function advance() { n++; if (n < 6) setTimeout(next, 900); else setTimeout(done, 900); }
-    $('ws-form').onsubmit = function (e) {
-      e.preventDefault(); var g = $('ws-in').value.trim().toUpperCase(); if (!g) return;
-      if (g === word) { var p = Math.max(2, 10 - hint * 3); sc += p; $('ws-score').textContent = sc; $('ws-msg').textContent = '✅ ' + word + '! +' + p; beep(800, .15); advance(); }
-      else { $('ws-msg').textContent = '❌ Not quite, try again'; beep(200, .25); }
-    };
-    $('ws-hint').onclick = function () { hint++; $('ws-msg').textContent = '💡 It starts with ' + word.slice(0, hint) + ' (' + word.length + ' letters)'; };
-    $('ws-again').onclick = begin; begin();
   })();
 
   /* Track Switch */
