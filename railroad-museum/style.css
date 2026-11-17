@@ -59,3 +59,23 @@ footer { background: var(--green); color: #e8dcc0; padding: 2.5rem 0 1.5rem; bor
 footer a { color: #f0d9a0; } footer h3 { color: var(--cream); margin-top: 0; }
 footer .small { font-size: .85rem; opacity: .8; margin-top: 1.5rem; text-align: center; }
 .concept { background: #111; color: #ddd; font: .8rem "Trebuchet MS", sans-serif; text-align: center; padding: .35rem; }
+
+.theme-btn { background: transparent; border: 2px solid var(--green); color: var(--green); border-radius: .3rem; padding: .35rem .7rem; font: bold .85rem "Trebuchet MS", sans-serif; cursor: pointer; }
+html.dark { --green: #14281f; --green2: #1d3a2d; --cream: #0e1a14; --paper: #14241b; --brass: #d4a846; --red: #f0a58a; --ink: #e4ece6; color-scheme: dark; }
+html.dark h1, html.dark h2, html.dark h3 { color: #8fd3a8; }
+html.dark .page-head h1, html.dark .brand, html.dark .hero h1, html.dark footer h3 { color: #e4ece6; }
+html.dark .brand .mark { background: #1d3a2d; }
+html.dark nav a, html.dark .theme-btn { color: #8fd3a8; }
+html.dark .theme-btn { border-color: #3f7a58; }
+html.dark nav a:hover, html.dark nav a.on { background: #2d5443; color: #fff; }
+html.dark .card { border-color: #284638; }
+html.dark section.alt .card { background: #0e1a14; }
+html.dark .notice { background: #2a2615; }
+html.dark .photo, html.dark .gallery img { border-color: #1d3a2d; }
+html.dark figcaption, html.dark .article .by { color: #a5b8ab; }
+html.dark .btn { color: #101a14; } html.dark .btn.ghost { color: #fff; }
+html.dark .hours b { color: #8fd3a8; }
+html.dark .topbar, html.dark header.site .wrap { }
+html.dark footer { background: #0a130e; }
+html.dark .menu-btn { background: #2d5443; }
+html.dark .topbar, html.dark .sign, html.dark .page-head, html.dark .page-head p, html.dark footer { color: #e4ece6; } html.dark .topbar { background: #14281f; } html.dark .sign { background: #1d3a2d; } html.dark .page-head { background: #14281f; } html.dark footer .small, html.dark .topbar span { color: #c9d8ce; }
