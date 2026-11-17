@@ -19,7 +19,7 @@ canvas{display:block;width:100%;height:auto;border:.3rem solid #3f5b3a;border-ra
 <main>
 <a href="../">← All games</a>
 <h1>Rebellion Riot</h1>
-<p>A/D move, W or Space jump, mouse aim, click or J shoot, G or right-click throw a grenade. Defeat the tank at the end of each mission. Missions never end.</p>
+<p>A/D move, W or Space jump, mouse aim, click or J shoot, G or right-click throw a grenade. Fight through the robot army and smash the giant robot at the end of each mission. Missions never end.</p>
 <canvas id="c" width="800" height="400"></canvas>
 <div id="touch"><button data-k="KeyA">◀</button><button data-k="KeyD">▶</button><button data-k="Space">⤒ Jump</button><button data-k="fire">🔥 Fire</button><button data-k="gren">💣</button></div>
 <style>#touch{display:none;gap:.5rem;justify-content:center;margin-top:.6rem;user-select:none;-webkit-user-select:none;touch-action:none}#touch button{min-width:4rem;min-height:3.6rem;border:2px solid #4b7a4b;border-radius:.8rem;background:#22331f;color:#f8fafc;font:bold 1.1rem Arial;touch-action:none}@media(pointer:coarse){#touch{display:flex}}</style>
@@ -36,12 +36,12 @@ const lv=k=>sv.up[k]||0,ucost=k=>lv(k)>=8?10:100*(lv(k)+1),saveS=()=>{try{localS
 const UPS=[
   ["dmg","🔫 Gun Damage","+20% bullet damage"],["rate","⚡ Fire Rate","+6% faster shooting"],["hp","❤️ Max Health","+1 heart"],
   ["spd","👟 Speed","+5% run speed"],["gren","💣 Grenade Stock","+1 grenade each mission"],["gdmg","💥 Grenade Damage","+20% grenade damage"],
-  ["coin","🪙 Coin Bonus","+10% coins"],["buddy","🪖 Buddy Soldier","a helper soldier who shoots enemies"],
-  ["drone","🛸 Gun Drone","a flying helper that shoots enemies"],["medic","⛑️ Field Medic","heals you every few seconds"]];
+  ["coin","🪙 Coin Bonus","+10% coins"],["buddy","🪖 Buddy Soldier","a helper soldier who shoots robots"],
+  ["drone","🛸 Gun Drone","a flying helper that shoots robots"],["medic","⛑️ Field Medic","heals you every few seconds"]];
 const shopEl=document.getElementById("shop");
 let buyAll=false;
 function shop(){
-  shopEl.innerHTML="<p>🏦 Coins: <b>"+Math.floor(sv.bank)+"</b> — earn coins by defeating enemies. Upgrades apply right away.</p>";
+  shopEl.innerHTML="<p>🏦 Coins: <b>"+Math.floor(sv.bank)+"</b> — earn coins by smashing robots. Upgrades apply right away.</p>";
   const t=document.createElement("button");t.textContent="🛒 Buy All: "+(buyAll?"ON":"OFF");t.onclick=()=>{buyAll=!buyAll;shop()};shopEl.append(t);
   for(const [k,n,d] of UPS){
     const b=document.createElement("button");b.disabled=sv.bank<ucost(k);
@@ -246,6 +246,17 @@ function soldier(e,col,helm){
   x.fillStyle=fl?"#fff":helm;x.beginPath();x.arc(px,GY-37,8,Math.PI,0);x.fill();
   x.fillStyle="#111";x.fillRect(px+(f>0?3:-19),GY-26,16,4);
 }
+function robot(e,col,eye){
+  const px=e.x-G.cam,f=e.face||1,fl=e.flash>0,b=Math.sin((e.x+G.t*60)/9)*2;
+  x.fillStyle="#0004";x.beginPath();x.ellipse(px,GY,14,4,0,0,7);x.fill();
+  x.fillStyle="#475569";x.fillRect(px-8,GY-12,6,12+b*.3);x.fillRect(px+2,GY-12,6,12-b*.3);
+  x.fillStyle=fl?"#fff":col;x.fillRect(px-10,GY-31,20,20);
+  x.fillStyle=fl?"#fff":"#94a3b8";x.fillRect(px-6,GY-27,12,5);
+  x.fillStyle=fl?"#fff":"#64748b";x.fillRect(px-7,GY-42,14,11);
+  x.fillStyle=eye;x.fillRect(px+(f>0?0:-6),GY-39,6,4);
+  x.fillStyle="#475569";x.fillRect(px-1,GY-48,2,6);x.fillStyle=eye;x.beginPath();x.arc(px,GY-49,2.5,0,7);x.fill();
+  x.fillStyle="#111";x.fillRect(px+(f>0?3:-19),GY-26,16,4);
+}
 function draw(){
   const P=G.P,cam=G.cam;
   const sky=x.createLinearGradient(0,0,0,GY);sky.addColorStop(0,"#7dd3fc");sky.addColorStop(1,"#fde68a");
@@ -266,17 +277,21 @@ function draw(){
   }
   for(const e of G.en){
     const ex=e.x-cam;if(ex<-150||ex>W+150)continue;
-    if(e.t==="grunt")soldier(e,"#8a3b2f","#6b2020");
-    else if(e.t==="runner")soldier(e,"#b45309","#78350f");
-    else if(e.t==="sniper")soldier(e,"#334155","#0f172a");
+    if(e.t==="grunt")robot(e,"#7f1d1d","#f87171");
+    else if(e.t==="runner")robot(e,"#b45309","#fde047");
+    else if(e.t==="sniper")robot(e,"#1e293b","#38bdf8");
     else{
       const fl=e.flash>0;
-      x.fillStyle="#222";x.fillRect(ex-65,GY-16,130,16);
-      x.fillStyle=fl?"#fff":"#556b2f";x.fillRect(ex-55,GY-44,110,30);
-      x.fillStyle=fl?"#fff":"#6b8e3a";x.fillRect(ex-30,GY-62,60,20);
-      x.fillStyle="#2b3a1a";x.fillRect(ex+(e.face>0?20:-80),GY-56,60,8);
-      x.fillStyle="#450a0a";x.fillRect(ex-60,GY-86,120,8);
-      x.fillStyle="#ef4444";x.fillRect(ex-60,GY-86,120*Math.max(0,e.hp)/e.mhp,8);
+      x.fillStyle="#334155";x.fillRect(ex-50,GY-30,28,30);x.fillRect(ex+22,GY-30,28,30);
+      x.fillStyle="#1e293b";x.fillRect(ex-56,GY-10,40,10);x.fillRect(ex+16,GY-10,40,10);
+      x.fillStyle=fl?"#fff":"#64748b";x.fillRect(ex-45,GY-66,90,40);
+      x.fillStyle=fl?"#fff":"#94a3b8";x.fillRect(ex-30,GY-62,60,12);
+      x.fillStyle=fl?"#fff":"#475569";x.fillRect(ex-24,GY-86,48,22);
+      x.fillStyle="#ef4444";x.fillRect(ex+(e.face>0?2:-20),GY-78,18,7);
+      x.fillStyle="#2b2b2b";x.fillRect(ex+(e.face>0?30:-90),GY-56,60,9);
+      x.fillStyle="#ef4444";x.beginPath();x.arc(ex,GY-44,5,0,7);x.fill();
+      x.fillStyle="#450a0a";x.fillRect(ex-60,GY-102,120,8);
+      x.fillStyle="#ef4444";x.fillRect(ex-60,GY-102,120*Math.max(0,e.hp)/e.mhp,8);
     }
   }
   for(const g of G.gr){x.fillStyle="#1f2937";x.beginPath();x.arc(g.x-cam,g.y-4,5,0,7);x.fill()}
