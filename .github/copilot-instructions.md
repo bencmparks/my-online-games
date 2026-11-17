@@ -106,5 +106,6 @@ Keep a list of my games here.
 - Rebellion Riot (`rebellion-riot/`, formerly the run-and-gun Army Commando; mouse or touch aim, grenades, power-ups, coins and unlimited upgrades shop, helpers (buddy soldiers, gun drones, field medic), fight a robot army with a giant robot boss at the end of each endless mission)
 - Army Commando (`army-commando/`, hex.io-style territory capture: leave your camp, claim ground, return to lock it in, cut enemy trails; 6 robot armies; keys or touch)
 - Army Clash (rmy-clash/, real-time army battle: spawn soldiers, archers, tanks and rockets to destroy the enemy base; 2 players or vs robot army with Normal/Hard)
+- Capture the Flag (`capture-the-flag/`, 3 vs 3 vs robots; grab the flag, tag in your own half, dash, first to 3; keyboard or touch)
 - Trench Wars (`trench-wars/`, top-down army shooter: commander plus squads, 3 maps, mouse aim, grenades, dash, pickups (medkit, rapid fire, shotgun, shield), sound effects, match stats, ticket drain or Capture the Commander mode (a fallen commander is captured; carry him to your base to score, rescue your own, first to 3); 2 players or vs robot commander with Easy/Normal/Hard)
 - Richmond Railroad Museum (`railroad-museum/`, multi-page redesign concept of richmondrailroadmuseum.com: Home, Visit, Exhibits, Archives, News, Contact)

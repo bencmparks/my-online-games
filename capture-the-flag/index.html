@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"><title>Capture the Flag | My Online Games</title><style>
+:root{color-scheme:dark;font-family:system-ui,sans-serif;background:#0f172a;color:#f1f5f9}*{box-sizing:border-box}
+body{display:grid;place-items:center;min-height:100vh;margin:0;padding:.6rem;background:#0f172a}
+main{width:min(100%,52rem);text-align:center}a{color:#93c5fd}h1{margin:.2rem 0;font-size:1.5rem}
+canvas{width:100%;border:.2rem solid #475569;border-radius:.6rem;background:#3f6b3a;touch-action:none;cursor:pointer}
+.row{display:flex;gap:.4rem;justify-content:center;flex-wrap:wrap;margin:.4rem 0}
+button{padding:.55rem .9rem;border:0;border-radius:.5rem;background:#475569;color:#fff;font:inherit;font-weight:700;cursor:pointer;touch-action:manipulation}button.on{background:#16a34a}
+#dash{background:#2563eb}p{margin:.3rem 0;font-size:.9rem;color:#cbd5e1}
+</style></head>
+<body><main><a href="../">← All games</a><h1>🚩 Capture the Flag</h1>
+<p>Grab the red flag and carry it back to your base. Tag enemies in your own half to send them home. Get tagged in their half and you drop the flag! First to 3 wins. Move with WASD / arrows or touch and drag. Space or the Dash button to sprint.</p>
+<div class="row"><button class="d" data-d="0">Easy</button><button class="d on" data-d="1">Normal</button><button class="d" data-d="2">Hard</button><button id="dash">💨 Dash</button><button id="rs">Restart</button></div>
+<canvas id="c" width="800" height="500"></canvas>
+<script>
+const c=document.getElementById("c"),x=c.getContext("2d");
+const W=800,H=500,R=11,WIN=3,COL=["#3b82f6","#ef4444"],NAME=["Blue","Red"];
+const HOME=[{x:55,y:250},{x:745,y:250}];
+const WALLS=[[370,70,60,30],[370,400,60,30],[385,235,30,30],[190,140,28,70],[190,290,28,70],[582,140,28,70],[582,290,28,70],[110,60,40,22],[110,418,40,22],[650,60,40,22],[650,418,40,22]];
+const down={},tgt={on:false,x:0,y:0};let diff=1,S;
+const half=px=>px<400?0:1;
+const wallHit=(px,py,r)=>WALLS.some(([a,b,w,h])=>px>a-r&&px<a+w+r&&py>b-r&&py<b+h+r);
+function mk(team,role,bot,i){const sx=HOME[team].x+(team?-45:45),sy=250+(i-1)*95;
+  return{team,role,bot,x:sx,y:sy,sx,sy,stun:0,dash:0,dc:0,fx:team?-1:1,fy:0,id:i+team*3,lx:sx,ly:sy,lt:0,side:0,sdir:1,lim:false}}
+function reset(){
+  S={u:[mk(0,"you",false,1),mk(0,"att",true,0),mk(0,"def",true,2),mk(1,"att",true,0),mk(1,"att",true,1),mk(1,"def",true,2)],
+   f:[{team:0,x:HOME[0].x,y:HOME[0].y,c:null,t:0},{team:1,x:HOME[1].x,y:HOME[1].y,c:null,t:0}],sc:[0,0],over:-1,msg:"Go get the red flag!",msgT:2.5,t:0};
+}
+const carrying=u=>S.f.some(f=>f.c===u);
+function say(t){S.msg=t;S.msgT=2.2}
+function drop(u){for(const f of S.f)if(f.c===u){f.c=null;f.x=u.x;f.y=u.y;f.t=0}}
+function tagged(u,by){
+  if(carrying(u))say(NAME[by.team]+" tagged the flag carrier!");
+  drop(u);u.stun=2;u.x=u.sx;u.y=u.sy;u.dash=0;
+}
+function mv(u,dx,dy,sp,dt){
+  const m=Math.hypot(dx,dy);if(!m)return;dx/=m;dy/=m;u.fx=dx;u.fy=dy;
+  const nx=Math.max(R,Math.min(W-R,u.x+dx*sp*dt)),ny=Math.max(R,Math.min(H-R,u.y+dy*sp*dt));
+  if(!wallHit(nx,u.y,R))u.x=nx;if(!wallHit(u.x,ny,R))u.y=ny;
+}
+function ai(u,dt){
+  const own=S.f[u.team],foe=S.f[1-u.team],hm=HOME[u.team];
+  let gx,gy;u.lim=false;
+  if(carrying(u)){gx=hm.x;gy=hm.y}
+  else if(u.role==="att"){
+    if(foe.c&&foe.c.team===u.team){gx=foe.c.x;gy=foe.c.y}
+    else if(own.c&&own.c.team!==u.team){gx=own.c.x;gy=own.c.y}
+    else{gx=foe.x;gy=foe.y}
+  }else{
+    const away=Math.hypot(own.x-hm.x,own.y-hm.y)>2;
+    if(own.c){gx=own.c.x;gy=own.c.y}
+    else if(away){gx=own.x;gy=own.y}
+    else{
+      let best=null,bd=200;
+      for(const e of S.u)if(e.team!==u.team&&e.stun<=0&&half(e.x)===u.team){const d=Math.hypot(e.x-u.x,e.y-u.y);if(d<bd){bd=d;best=e}}
+      u.lim=true;
+      if(best){gx=best.x;gy=best.y}else{gx=hm.x+(u.team?-120:120);gy=250+Math.sin(S.t*.9+u.id)*130}
+    }
+  }
+  let dx=gx-u.x,dy=gy-u.y;const dist=Math.hypot(dx,dy)||1;dx/=dist;dy/=dist;
+  for(const e of S.u){
+    if(e.team===u.team||e.stun>0||half(e.x)!==e.team)continue;
+    const d=Math.hypot(e.x-u.x,e.y-u.y)||1;
+    if(u.role!=="def"&&d<95){const k=(95-d)/95*2.2+.3;dx+=(u.x-e.x)/d*k;dy+=(u.y-e.y)/d*k}
+  }
+  u.lt+=dt;
+  if(u.lt>.4){if(Math.hypot(u.x-u.lx,u.y-u.ly)<5&&dist>25){u.side=.5;u.sdir=Math.random()<.5?1:-1}u.lx=u.x;u.ly=u.y;u.lt=0}
+  if(u.side>0){u.side-=dt;const px=-dy*u.sdir,py=dx*u.sdir;dx=px;dy=py}
+  const mult=[.8,.95,1.12][diff];let sp=150*mult*(carrying(u)?.94:1);
+  if(u.dash>0)sp*=2.1;
+  else if(u.dc<=0&&carrying(u)&&diff>0&&S.u.some(e=>e.team!==u.team&&e.stun<=0&&Math.hypot(e.x-u.x,e.y-u.y)<80)){u.dash=.22;u.dc=2.6}
+  if(dist>6)mv(u,dx,dy,sp,dt);
+  if(u.lim){if(u.team===0&&u.x>388)u.x=388;if(u.team===1&&u.x<412)u.x=412}
+}
+function player(u,dt){
+  let dx=(down.KeyD||down.ArrowRight?1:0)-(down.KeyA||down.ArrowLeft?1:0),dy=(down.KeyS||down.ArrowDown?1:0)-(down.KeyW||down.ArrowUp?1:0);
+  if(!dx&&!dy&&tgt.on){const ex=tgt.x-u.x,ey=tgt.y-u.y;if(Math.hypot(ex,ey)>8){dx=ex;dy=ey}}
+  let sp=165*(carrying(u)?.94:1);if(u.dash>0)sp*=2.1;
+  if(dx||dy)mv(u,dx,dy,sp,dt);
+}
+function doDash(){const u=S.u[0];if(S.over>=0||u.stun>0||u.dash>0||u.dc>0)return;u.dash=.22;u.dc=1.8}
+function update(dt){
+  if(S.over>=0)return;
+  S.t+=dt;S.msgT-=dt;
+  const order=S.u.slice().sort(()=>Math.random()-.5);
+  for(const u of order){
+    u.dc-=dt;u.stun-=dt;if(u.dash>0)u.dash-=dt;
+    if(u.stun>0)continue;
+    if(u.bot)ai(u,dt);else player(u,dt);
+  }
+  for(const a of S.u)for(const b of S.u){
+    if(a.team!==0||b.team!==1||a.stun>0||b.stun>0)continue;
+    if(Math.hypot(a.x-b.x,a.y-b.y)>2*R-2)continue;
+    const aHome=half(a.x)===0,bHome=half(b.x)===1;
+    if(aHome&&!bHome)tagged(b,a);else if(bHome&&!aHome)tagged(a,b);
+  }
+  for(const f of S.f){
+    if(f.c){
+      f.x=f.c.x;f.y=f.c.y;
+      const t=f.c.team,h=HOME[t];
+      if(Math.hypot(f.x-h.x,f.y-h.y)<48){
+        S.sc[t]++;say(NAME[t]+" captured the flag! "+S.sc[0]+" – "+S.sc[1]);
+        f.c=null;f.x=HOME[f.team].x;f.y=HOME[f.team].y;f.t=0;
+        if(S.sc[t]>=WIN)S.over=t;
+      }
+      continue;
+    }
+    const away=Math.hypot(f.x-HOME[f.team].x,f.y-HOME[f.team].y)>2;
+    if(away){f.t+=dt;if(f.t>10){f.x=HOME[f.team].x;f.y=HOME[f.team].y;f.t=0;say(NAME[f.team]+" flag returned")}}
+    for(const u of S.u){
+      if(u.stun>0||Math.hypot(u.x-f.x,u.y-f.y)>R+10)continue;
+      if(u.team!==f.team&&!carrying(u)){f.c=u;f.t=0;say(u===S.u[0]?"You have the red flag! Run home!":NAME[u.team]+" has the "+NAME[f.team].toLowerCase()+" flag!");break}
+      if(u.team===f.team&&away){f.x=HOME[f.team].x;f.y=HOME[f.team].y;f.t=0;say(NAME[f.team]+" flag returned");break}
+    }
+  }
+}
+function flag(px,py,col,wave){
+  x.fillStyle="#e5e7eb";x.fillRect(px-1.5,py-24,3,26);
+  x.fillStyle=col;x.beginPath();x.moveTo(px+1.5,py-24);x.lineTo(px+20,py-18+Math.sin(wave)*2);x.lineTo(px+1.5,py-11);x.fill();
+}
+function draw(){
+  x.fillStyle="#3f6b3a";x.fillRect(0,0,W,H);
+  x.fillStyle="#3b82f61f";x.fillRect(0,0,400,H);x.fillStyle="#ef44441f";x.fillRect(400,0,400,H);
+  for(let i=0;i<14;i++)for(let j=0;j<9;j++){if((i+j)%2){x.fillStyle="#0000000a";x.fillRect(i*57,j*56,57,56)}}
+  x.strokeStyle="#ffffff88";x.lineWidth=3;x.setLineDash([12,10]);x.beginPath();x.moveTo(400,0);x.lineTo(400,H);x.stroke();x.setLineDash([]);
+  x.beginPath();x.arc(400,250,50,0,7);x.stroke();
+  for(let t=0;t<2;t++){x.strokeStyle=COL[t];x.lineWidth=3;x.beginPath();x.arc(HOME[t].x,HOME[t].y,48,0,7);x.stroke();x.fillStyle=COL[t]+"33";x.fill()}
+  for(const [a,b,w,h] of WALLS){x.fillStyle="#0005";x.fillRect(a+3,b+4,w,h);x.fillStyle="#78716c";x.fillRect(a,b,w,h);x.strokeStyle="#44403c";x.lineWidth=2;x.strokeRect(a,b,w,h)}
+  for(const f of S.f){
+    if(f.c)continue;
+    const away=Math.hypot(f.x-HOME[f.team].x,f.y-HOME[f.team].y)>2;
+    if(away){x.strokeStyle=COL[f.team];x.lineWidth=2;x.beginPath();x.arc(f.x,f.y,16,-1.57,-1.57+6.283*Math.max(0,1-f.t/10));x.stroke()}
+    flag(f.x,f.y,COL[f.team],S.t*6+f.team);
+  }
+  for(const u of S.u.slice().sort((a,b)=>a.y-b.y)){
+    x.globalAlpha=u.stun>0?.45:1;
+    x.fillStyle="#0004";x.beginPath();x.ellipse(u.x+2,u.y+R*.8,R,R*.55,0,0,7);x.fill();
+    if(u.dash>0){x.fillStyle="#fff6";x.beginPath();x.arc(u.x-u.fx*10,u.y-u.fy*10,R*.8,0,7);x.fill()}
+    x.fillStyle=COL[u.team];x.beginPath();x.arc(u.x,u.y,R,0,7);x.fill();
+    x.strokeStyle=u===S.u[0]?"#fde047":"#000";x.lineWidth=u===S.u[0]?3:1.5;x.stroke();
+    x.fillStyle="#fff";x.beginPath();x.arc(u.x+u.fx*4,u.y+u.fy*4-1,3,0,7);x.fill();
+    x.globalAlpha=1;
+    if(carrying(u))flag(u.x+4,u.y-4,COL[1-u.team],S.t*8);
+    if(u===S.u[0]){x.fillStyle="#fff";x.font="bold 11px system-ui";x.textAlign="center";x.fillText("YOU",u.x,u.y-R-5)}
+  }
+  x.fillStyle="#000b";x.fillRect(0,0,W,30);x.textAlign="center";x.font="bold 16px system-ui";
+  x.fillStyle=COL[0];x.fillText("Blue "+S.sc[0],110,21);x.fillStyle="#fff";x.fillText("First to "+WIN,400,21);x.fillStyle=COL[1];x.fillText(S.sc[1]+" Red",690,21);
+  const you=S.u[0];
+  if(you.dc>0){x.fillStyle="#000b";x.fillRect(10,H-20,90,10);x.fillStyle="#2563eb";x.fillRect(10,H-20,90*(1-Math.min(1,you.dc/1.8)),10)}
+  if(you.stun>0){x.fillStyle="#fff";x.font="bold 18px system-ui";x.fillText("Tagged! Back to base…",400,H-24)}
+  if(S.msgT>0&&S.over<0){x.globalAlpha=Math.min(1,S.msgT);x.fillStyle="#000a";x.fillRect(150,50,500,36);x.fillStyle="#fde047";x.font="bold 18px system-ui";x.fillText(S.msg,400,74);x.globalAlpha=1}
+  if(S.over>=0){
+    x.fillStyle="#000b";x.fillRect(0,150,W,190);x.fillStyle="#fde047";x.font="bold 46px system-ui";
+    x.fillText(S.over===0?"🏆 You win!":"🤖 Red wins!",400,225);x.fillStyle="#fff";x.font="20px system-ui";
+    x.fillText("Final score "+S.sc[0]+" – "+S.sc[1],400,265);x.fillText("Click or press Enter to play again",400,305);
+  }
+}
+document.querySelectorAll(".d").forEach(b=>b.onclick=()=>{diff=+b.dataset.d;document.querySelectorAll(".d").forEach(o=>o.classList.toggle("on",o===b));reset();b.blur()});
+document.getElementById("rs").onclick=function(){reset();this.blur()};
+document.getElementById("dash").onclick=function(){doDash();this.blur()};
+addEventListener("keydown",e=>{down[e.code]=true;if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code))e.preventDefault();
+  if((e.code==="Space"||e.code==="ShiftLeft"||e.code==="ShiftRight")&&!e.repeat)doDash();
+  if(e.code==="Enter"&&S.over>=0)reset()});
+addEventListener("keyup",e=>down[e.code]=false);
+addEventListener("blur",()=>{for(const k in down)down[k]=false;tgt.on=false});
+function pt(e){const r=c.getBoundingClientRect();tgt.x=(e.clientX-r.left)/r.width*W;tgt.y=(e.clientY-r.top)/r.height*H}
+c.addEventListener("pointerdown",e=>{if(S.over>=0){reset();return}pt(e);tgt.on=true;try{c.setPointerCapture(e.pointerId)}catch(_){}});
+c.addEventListener("pointermove",e=>{if(tgt.on)pt(e)});
+addEventListener("pointerup",()=>{tgt.on=false});addEventListener("pointercancel",()=>{tgt.on=false});
+let last=performance.now();
+function loop(n){const dt=Math.min(.05,(n-last)/1000);last=n;update(dt);draw();requestAnimationFrame(loop)}
+reset();requestAnimationFrame(loop);
+</script></main></body></html>
