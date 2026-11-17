@@ -33,26 +33,28 @@ const COLS=["#22c55e","#ef4444","#3b82f6","#eab308","#a855f7","#f97316","#14b8a6
 const NAMES=["You","Alpha","Bravo","Charlie","Delta","Echo","Foxtrot"];
 const rnd=(a,b)=>a+Math.random()*(b-a);
 const DIRS=[[1,0],[-1,0],[0,1],[0,-1]];
-let ag=[],over=false,best=+localStorage.getItem(BK)||0,cnt=[],cntT=0,flash=0,msg="",msgT=0;
+let ag=[],over=false,won=false,winT=0,fall=[],best=+localStorage.getItem(BK)||0,cnt=[],cntT=0,flash=0,msg="",msgT=0;
 const mouse={x:-1,y:-1,use:false};
 
 function spawn(a){
-  for(let t=0;t<300;t++){
-    const cx=3+Math.floor(Math.random()*(CW-6)),cy=3+Math.floor(Math.random()*(CH-6));
-    const strict=t<150,R=strict?4:3;
+  let found=false;
+  for(let t=0;t<300&&!found;t++){
+    const cx=3+Math.floor(Math.random()*(CW-6)),cy=3+Math.floor(Math.random()*(CH-6)),R=4;
     let free=true;
-    for(let j=-R;j<=R&&free;j++)for(let i=-R;i<=R;i++){const X=cx+i,Y=cy+j;if(X<0||Y<0||X>=CW||Y>=CH)continue;const k=idx(X,Y);if(strict?(owner[k]||trail[k]):(owner[k]===1&&a.id!==1)){free=false;break}}
-    if(!free&&t<299)continue;
+    for(let j=-R;j<=R&&free;j++)for(let i=-R;i<=R;i++){const X=cx+i,Y=cy+j;if(X<0||Y<0||X>=CW||Y>=CH)continue;const k=idx(X,Y);if(owner[k]||trail[k]){free=false;break}}
+    if(!free)continue;
+    found=true;
     a.cx=cx;a.cy=cy;
     for(let j=-2;j<=2;j++)for(let i=-2;i<=2;i++)owner[idx(cx+i,cy+j)]=a.id;
-    break;
   }
+  if(!found){a.alive=false;a.trail=[];a.respawn=1;return false}
   const d=DIRS[Math.random()*4|0];
   Object.assign(a,{dx:d[0],dy:d[1],nd:d,prog:0,trail:[],out:false,alive:true,steps:0,limit:rnd(6,16),hx:a.cx,hy:a.cy});
+  return true;
 }
 function newGame(){
-  owner.fill(0);trail.fill(0);over=false;ag=[];
-  for(let i=0;i<7;i++){const a={id:i+1,name:NAMES[i],col:COLS[i],bot:i>0,kills:0,respawn:0,aggr:Math.random()<.5,speed:i?6.2+Math.random()*1.2:8};ag.push(a);spawn(a)}
+  owner.fill(0);trail.fill(0);over=false;won=false;fall=[];ag=[];
+  for(let i=0;i<7;i++){const a={id:i+1,name:NAMES[i],col:COLS[i],bot:i>0,kills:0,respawn:0,aggr:Math.random()<.5,speed:i?6.2+Math.random()*1.2:8};ag.push(a);a.alive=false;a.trail=[];spawn(a)}
   msg="Go!";msgT=1.5;
 }
 function pct(id){let s=0;for(let i=0;i<owner.length;i++)if(owner[i]===id)s++;return 100*s/owner.length}
@@ -70,6 +72,21 @@ function kill(v,by){
   else if(by&&!by.bot){msg="Eliminated "+v.name+"!";msgT=1.5}
 }
 let lastPct=0;
+const WINPCT=50;
+function win(){
+  over=won=true;winT=0;msgT=0;
+  if(lastPct>best){best=lastPct;localStorage.setItem(BK,best)}
+  const m=document.createElement("canvas");m.width=CW;m.height=CH;const g=m.getContext("2d");
+  g.fillStyle="#fff";g.font="bold 36px Arial";g.textAlign="center";g.textBaseline="middle";
+  g.fillText("YOU",CW/2,CH*.27);g.fillText("WIN",CW/2,CH*.73);
+  const px=g.getImageData(0,0,CW,CH).data;
+  fall=[];
+  for(let k=0;k<CW*CH;k++){
+    if(px[k*4+3]>128)fall.push({k,stay:true});
+    else if(owner[k]||trail[k])fall.push({k,stay:false,delay:Math.random()*1.2,vx:rnd(-20,20)});
+  }
+  for(const a of ag)a.alive=false;
+}
 
 function claim(a){
   for(const t of a.trail){owner[t]=a.id;trail[t]=0}
@@ -164,7 +181,7 @@ function update(dt){
   msgT-=dt;flash=Math.max(0,flash-dt);
   for(const a of ag){
     if(!a.alive){
-      if(a.bot){a.respawn-=dt;if(a.respawn<=0){spawn(a);a.alive=true}}
+      if(a.bot&&!over){a.respawn-=dt;if(a.respawn<=0)spawn(a)}
       continue;
     }
     if(over)continue;
@@ -175,12 +192,24 @@ function update(dt){
   if(cntT<=0){
     cntT=.4;cnt=ag.map(()=>0);
     for(let i=0;i<owner.length;i++)if(owner[i])cnt[owner[i]-1]++;
-    if(!over)lastPct=Math.round(100*cnt[0]/owner.length);
+    if(!over){lastPct=Math.round(100*cnt[0]/owner.length);if(lastPct>=WINPCT)win()}
   }
 }
 function draw(){
   x.fillStyle="#0b130d";x.fillRect(0,0,c.width,c.height);
-  for(let j=0;j<CH;j++)for(let i=0;i<CW;i++){
+  if(won){
+    winT+=1/60;
+    for(const f of fall){
+      const i=f.k%CW,j=(f.k/CW)|0;
+      if(f.stay){x.fillStyle="#facc15";x.fillRect(i*CS,j*CS,CS,CS);continue}
+      const t=winT-f.delay;
+      if(t<=0){x.fillStyle=COLS[(owner[f.k]||trail[f.k])-1]+"aa";x.fillRect(i*CS,j*CS,CS,CS);continue}
+      const Y=j*CS+400*t*t,X=i*CS+f.vx*t;
+      if(Y>c.height)continue;
+      x.fillStyle=COLS[(owner[f.k]||trail[f.k])-1]+"aa";x.fillRect(X,Y,CS,CS);
+    }
+  }
+  else for(let j=0;j<CH;j++)for(let i=0;i<CW;i++){
     const k=idx(i,j),o=owner[k],t=trail[k];
     if(o){x.fillStyle=COLS[o-1]+"aa";x.fillRect(i*CS,j*CS,CS,CS)}
     else if((i+j)%2===0){x.fillStyle="#0f1d12";x.fillRect(i*CS,j*CS,CS,CS)}
@@ -209,7 +238,9 @@ function draw(){
   lb.forEach((r,i)=>{x.fillStyle=r.a.col;x.fillText((i+1)+". "+r.a.name+" "+(100*r.n/tot).toFixed(1)+"%",c.width-144,18+i*18)});
   x.textAlign="center";
   if(msgT>0){x.font="bold 36px Arial";x.fillStyle="rgba(255,255,255,"+Math.min(1,msgT)+")";x.fillText(msg,c.width/2,90)}
-  if(over){
+  if(won){
+    x.fillStyle="#fff";x.font="20px Arial";x.fillText("Territory "+lastPct+"% · Kills "+ag[0].kills+" · Tap or press Enter to play again",c.width/2,c.height-20);
+  }else if(over){
     x.fillStyle="#000b";x.fillRect(0,200,c.width,160);x.fillStyle="#fca5a5";x.font="bold 44px Arial";
     x.fillText("Commando down",c.width/2,260);x.fillStyle="#fff";x.font="20px Arial";
     x.fillText("Territory "+lastPct+"% · Kills "+ag[0].kills+" · Tap or press Enter to play again",c.width/2,300);
