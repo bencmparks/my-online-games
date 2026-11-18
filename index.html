@@ -53,6 +53,9 @@
     }
 
     .sortbar { margin: .6rem 0; } .sortbar button { min-height: 0; padding: .35rem .7rem; border-radius: .4rem; border: 1px solid #94a3b8; background: #fef08a; color: #172554; font: inherit; font-weight: bold; cursor: pointer; } .arranging .game-card { cursor: grab; outline: 2px dashed #6366f1; position: relative; } .game-card.dragging { opacity: .4; } .mv { position: absolute; top: .4rem; display: flex; gap: .3rem; right: .4rem; } .mv button { min-height: 0; width: 2rem; height: 2rem; padding: 0; background: #fff; border: 1px solid #6366f1; border-radius: .4rem; cursor: pointer; font-size: 1rem; } .sortbar select { padding: .4rem; border-radius: .4rem; border: 1px solid #94a3b8; font: inherit; } html.dark .sortbar { color: #e2e8f0; } html.dark .sortbar select { background: #0f172a; color: #e2e8f0; border-color: #475569; }
+    #search { width: 100%; padding: .7rem 1rem; border-radius: 999px; border: .15rem solid rgb(255 255 255 / 70%); background: rgb(255 255 255 / 92%); color: #172554; font: inherit; font-size: 1.05rem; }
+    html.dark #search { background: #0f172a; color: #e2e8f0; border-color: #475569; }
+    #noMatch { color: #fef3c7; font-weight: bold; }
     .games {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
@@ -188,6 +191,7 @@
     <h1 id="greeting">Hi!</h1>
     <p class="intro">Pick a game and start playing.</p>
     <a class="game-card" href="profile/">Create or unlock a local profile to save progress in this browser.</a>
+    <p class="sortbar"><input id="search" type="search" placeholder="🔍 Search games..." aria-label="Search games" autocomplete="off"> <span id="noMatch" hidden>No games match your search.</span></p>
     <p class="sortbar"><label>Sort games: <select id="sort"><option value="default">Original order</option><option value="newest">Newest first</option><option value="az">A to Z</option><option value="za">Z to A</option><option value="most">Most played</option><option value="recent">Recently played</option><option value="custom">My own order</option></select></label> <button id="arrange" type="button" hidden>Arrange: off</button> <span id="arrangeHint" hidden>Drag cards, or use the arrows, to put them where you want.</span></p>
     <section class="games" aria-label="Games">
       <a class="game-card" href="connect-4/">
@@ -394,7 +398,21 @@
       if (!sel.value) sel.value = 'default';
       sel.onchange = function () { apply(); modeUi(); }; apply(); modeUi();
     })();
-  </script>  <div id="preview" aria-hidden="true"></div>
+  </script>  <script>
+    (function () {
+      var q = document.getElementById("search"), none = document.getElementById("noMatch"), box = document.querySelector(".games");
+      function filter() {
+        var s = q.value.trim().toLowerCase(), words = s.split(/\s+/).filter(Boolean), shown = 0;
+        Array.prototype.forEach.call(box.querySelectorAll(".game-card"), function (a) {
+          var txt = a.textContent.toLowerCase(), ok = words.every(function (w) { return txt.indexOf(w) >= 0; });
+          a.style.display = ok ? "" : "none"; if (ok) shown++;
+        });
+        none.hidden = shown > 0;
+      }
+      q.addEventListener("input", filter);
+    })();
+  </script>
+  <div id="preview" aria-hidden="true"></div>
   <script>
     (function () {
       var b = document.getElementById('dark-toggle'), h = document.documentElement;
