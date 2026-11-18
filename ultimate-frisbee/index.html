@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ultimate Frisbee</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0b1d12;color:#eaffea;font-family:system-ui,sans-serif}
+  main{width:min(960px,96vw);text-align:center}
+  h1{margin:.4rem 0}
+  a{color:#9fe}
+  canvas{width:100%;background:#2d8a3e;border:4px solid #fff;border-radius:8px;touch-action:none;cursor:crosshair}
+  #hud{display:flex;justify-content:space-between;font-weight:700;font-size:1.2rem;margin:.3rem 0}
+  #msg{min-height:1.5em;color:#ffe066;font-weight:700}
+  button{font:inherit;font-weight:700;padding:.5rem 1.2rem;border-radius:8px;border:0;background:#ffe066;cursor:pointer}
+  p{margin:.4rem 0;opacity:.9}
+</style>
+</head>
+<body>
+<main>
+  <a href="../">← Back to games</a>
+  <h1>🥏 Ultimate Frisbee</h1>
+  <div id="hud"><span>You 0</span><span>First to 5</span><span>Robots 0</span></div>
+  <canvas id="c" width="900" height="500"></canvas>
+  <div id="msg">Click Start</div>
+  <p>Move with WASD / arrows. You can't run while holding the disc: click where you want to throw it (or press Space to throw at the nearest open teammate). Catch the disc in the right end zone to score. A dropped or intercepted disc is a turnover, and holding it longer than 8 seconds is a turnover too. On touch, drag to move and tap to throw.</p>
+  <button id="go">Start</button>
+</main>
+<script>
+const cv=document.getElementById("c"),g=cv.getContext("2d"),W=900,H=500,EZ=90,hud=document.getElementById("hud").children,msg=document.getElementById("msg"),goBtn=document.getElementById("go");
+const keys=new Set(),mouse={x:W/2,y:H/2};
+let P=[],disc,score=[0,0],run=false,holder=null,stall=0,freeze=0,touch=null,last=0;
+function mk(team,x,y,me){return{team,x,y,hx:x,hy:y,me,sp:me?170:team?125:140}}
+function reset(att){ // att: team that starts with the disc (0 = you)
+  P=[mk(0,W/2-150,H/2,true),mk(0,W/2-190,H/2-120),mk(0,W/2-190,H/2+120),mk(1,W/2+150,H/2),mk(1,W/2+190,H/2-120),mk(1,W/2+190,H/2+120)];
+  holder=P[att?3:0];disc={x:holder.x,y:holder.y,vx:0,vy:0,fly:0,team:holder.team};stall=0;
+}
+function throwTo(tx,ty,from){
+  const dx=tx-from.x,dy=ty-from.y,d=Math.hypot(dx,dy)||1,sp=520;
+  disc={x:from.x,y:from.y,vx:dx/d*sp,vy:dy/d*sp,fly:Math.min(d,480)/sp+.15,team:from.team,from};holder=null;stall=0;
+}
+function turnover(x,y,team){
+  disc={x:Math.max(10,Math.min(W-10,x)),y:Math.max(10,Math.min(H-10,y)),vx:0,vy:0,fly:0,team,loose:true};holder=null;
+}
+function pointFor(t){msg.textContent=t===0?"You scored! 🎉":"Robots scored!";score[t]++;draw();hud[0].textContent="You "+score[0];hud[2].textContent="Robots "+score[1];
+  if(score[t]>=5){run=false;msg.textContent=t===0?"You win! 🏆":"Robots win. Try again!";goBtn.style.display="";goBtn.textContent="Play again";return}
+  freeze=1.4;setTimeout(()=>{if(run)reset(1-t)},1400)}
+function aiTeam(p,dt){
+  const dir=p.team===0?1:-1,carrier=holder&&holder.team===p.team;let tx=p.x,ty=p.y;
+  if(p===holder){return}
+  if(p.me){
+    let mx=0,my=0;if(keys.has("a")||keys.has("arrowleft"))mx--;if(keys.has("d")||keys.has("arrowright"))mx++;if(keys.has("w")||keys.has("arrowup"))my--;if(keys.has("s")||keys.has("arrowdown"))my++;
+    if(touch){const dx=touch.x-p.x,dy=touch.y-p.y,d=Math.hypot(dx,dy);if(d>12){mx=dx/d;my=dy/d}}
+    const l=Math.hypot(mx,my)||1;p.x+=mx/l*p.sp*dt*(mx||my?1:0);p.y+=my/l*p.sp*dt*(mx||my?1:0);return}
+  if(disc.loose||(!holder&&disc.team!==p.team&&disc.fly<=0)){const near=P.filter(q=>q.team===p.team).sort((a,b)=>Math.hypot(a.x-disc.x,a.y-disc.y)-Math.hypot(b.x-disc.x,b.y-disc.y))[0];if(near===p){tx=disc.x;ty=disc.y}else{tx=p.hx;ty=p.hy}}
+  else if(!holder&&disc.fly>0){ // in flight: receiver runs to it, others hold shape
+    if(disc.team===p.team){const rec=P.filter(q=>q.team===p.team&&q!==disc.from).sort((a,b)=>Math.hypot(a.x-disc.x,a.y-disc.y)-Math.hypot(b.x-disc.x,b.y-disc.y))[0];if(rec===p){tx=disc.x;ty=disc.y}}
+    else{const ex=P.filter(q=>q.team!==p.team).sort((a,b)=>Math.hypot(a.x-disc.x,a.y-disc.y)-Math.hypot(b.x-disc.x,b.y-disc.y))[0];tx=(ex.x+(p.team===0?-1:1)*10);ty=ex.y;if(Math.hypot(disc.x-p.x,disc.y-p.y)<150){tx=disc.x;ty=disc.y}}}
+  else if(carrier){ // cut downfield into open space
+    p.cut=(p.cut||0)-dt;if(p.cut<=0){p.cut=1+Math.random()*1.5;p.gx=Math.max(30,Math.min(W-30,holder.x+dir*(80+Math.random()*300)));p.gy=40+Math.random()*(H-80)}
+    tx=p.gx;ty=p.gy}
+  else { // defend: mark the nearest attacker
+    const foes=P.filter(q=>q.team!==p.team&&q!==holder);const idx=P.filter(q=>q.team===p.team).indexOf(p);const mark=foes[idx%foes.length];
+    if(mark){tx=mark.x-dir*(p.team===1?-1:1)*0+(p.team===1?24:-24);ty=mark.y}
+    if(holder&&Math.hypot(holder.x-p.x,holder.y-p.y)<260&&idx===0){tx=holder.x+(p.team===1?30:-30);ty=holder.y}}
+  const dx=tx-p.x,dy=ty-p.y,d=Math.hypot(dx,dy);if(d>4){p.x+=dx/d*p.sp*dt;p.y+=dy/d*p.sp*dt}
+}
+function aiThrow(){
+  const t=holder.team,dir=t===0?1:-1,mates=P.filter(q=>q.team===t&&q!==holder),foes=P.filter(q=>q.team!==t);
+  let best=null,bs=-1e9;
+  mates.forEach(m=>{const open=Math.min(...foes.map(f=>Math.hypot(f.x-m.x,f.y-m.y)));const adv=(m.x-holder.x)*dir;const d=Math.hypot(m.x-holder.x,m.y-holder.y);if(d>460)return;const lane=foes.some(f=>distSeg(f,holder,m)<22)?-80:0;const inEz=(t===0?m.x>W-EZ:m.x<EZ)?400:0;const s=Math.min(open,90)+adv*1.6+lane+inEz;if(s>bs){bs=s;best=m}});
+  if(best)throwTo(best.x+(best.team===0?25:-25),best.y,holder);else turnover(holder.x,holder.y,t===0?1:0);
+}
+function distSeg(p,a,b){const dx=b.x-a.x,dy=b.y-a.y,l=dx*dx+dy*dy||1;let t=((p.x-a.x)*dx+(p.y-a.y)*dy)/l;t=Math.max(0,Math.min(1,t));return Math.hypot(a.x+dx*t-p.x,a.y+dy*t-p.y)}
+function update(dt){
+  if(freeze>0){freeze-=dt;return}
+  P.forEach(p=>aiTeam(p,dt));
+  P.forEach(p=>{p.x=Math.max(10,Math.min(W-10,p.x));p.y=Math.max(10,Math.min(H-10,p.y))});
+  if(holder){disc.x=holder.x;disc.y=holder.y;stall+=dt;
+    if(!holder.me){holder.think=(holder.think||0)+dt;if(holder.think>.9){holder.think=0;aiThrow()}}
+    if(stall>8){msg.textContent="Stalled! Turnover.";turnover(holder.x,holder.y,holder.team===0?1:0)}}
+  else{
+    if(disc.fly>0){disc.x+=disc.vx*dt;disc.y+=disc.vy*dt;disc.fly-=dt;
+      if(disc.x<0||disc.x>W||disc.y<0||disc.y>H){turnover(disc.x,disc.y,disc.team===0?1:0);msg.textContent="Out of bounds! Turnover."}
+      else{const c=P.filter(p=>p!==disc.from&&Math.hypot(p.x-disc.x,p.y-disc.y)<20).sort((a,b)=>(a.team===disc.team)-(b.team===disc.team))[0];
+        if(c){if(c.team===disc.team){holder=c;stall=0;disc.fly=0;if((c.team===0&&c.x>W-EZ)||(c.team===1&&c.x<EZ)){pointFor(c.team);return}}else{holder=c;stall=0;disc.fly=0;msg.textContent=c.me?"You intercepted it!":"Intercepted!"}}
+        else if(disc.fly<=0){turnover(disc.x,disc.y,disc.team===0?1:0);msg.textContent="Dropped! Turnover."}}}
+    else{const c=P.filter(p=>Math.hypot(p.x-disc.x,p.y-disc.y)<20)[0];if(c){holder=c;stall=0}}}
+}
+function draw(){
+  g.fillStyle="#2d8a3e";g.fillRect(0,0,W,H);
+  for(let i=0;i<10;i++){g.fillStyle=i%2?"#2f903f":"#2a8439";g.fillRect(EZ+i*(W-2*EZ)/10,0,(W-2*EZ)/10,H)}
+  g.fillStyle="rgba(80,140,255,.35)";g.fillRect(0,0,EZ,H);g.fillStyle="rgba(255,90,90,.35)";g.fillRect(W-EZ,0,EZ,H);
+  g.strokeStyle="#fff";g.lineWidth=3;g.strokeRect(2,2,W-4,H-4);g.beginPath();g.moveTo(EZ,0);g.lineTo(EZ,H);g.moveTo(W-EZ,0);g.lineTo(W-EZ,H);g.stroke();
+  g.font="bold 14px system-ui";g.textAlign="center";g.fillStyle="#fff";g.fillText("YOUR END ZONE",EZ/2,H/2);g.fillText("SCORE HERE ▶",W-EZ/2,H/2);
+  P.forEach(p=>{g.beginPath();g.arc(p.x,p.y,13,0,7);g.fillStyle=p.team?"#e53935":"#1e88e5";g.fill();g.lineWidth=p.me?4:2;g.strokeStyle=p.me?"#ffe066":"#fff";g.stroke();
+    if(p.me){g.fillStyle="#fff";g.fillText("YOU",p.x,p.y-20)}});
+  if(holder){g.beginPath();g.arc(holder.x,holder.y,19,0,7);g.strokeStyle="#fff";g.setLineDash([4,4]);g.lineWidth=2;g.stroke();g.setLineDash([])}
+  if(disc){g.beginPath();g.ellipse(disc.x+(holder?14:0),disc.y-(holder?14:0),9,4,disc.fly>0?disc.x*.1:0,0,7);g.fillStyle="#fff700";g.fill();g.strokeStyle="#000";g.lineWidth=1;g.stroke()}
+  if(holder&&holder.me&&run){g.strokeStyle="rgba(255,255,255,.5)";g.setLineDash([6,6]);g.beginPath();g.moveTo(holder.x,holder.y);g.lineTo(mouse.x,mouse.y);g.stroke();g.setLineDash([]);
+    g.fillStyle="#fff";g.fillText("Stall "+Math.max(0,8-stall).toFixed(1)+"s",holder.x,holder.y+34)}
+}
+function frame(t){const dt=Math.min((t-last)/1000,.04);last=t;if(run)update(dt);draw();requestAnimationFrame(frame)}
+function pos(e){const r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*W,y:(e.clientY-r.top)/r.height*H}}
+function humanThrow(tx,ty){if(!run||!holder||!holder.me||freeze>0)return;throwTo(tx,ty,holder)}
+cv.addEventListener("mousemove",e=>Object.assign(mouse,pos(e)));
+cv.addEventListener("pointerdown",e=>{const p=pos(e);Object.assign(mouse,p);if(e.pointerType==="touch"){if(holder&&holder.me)humanThrow(p.x,p.y);else touch=p}else humanThrow(p.x,p.y)});
+cv.addEventListener("pointermove",e=>{if(e.pointerType==="touch"&&touch)touch=pos(e)});
+cv.addEventListener("pointerup",()=>{touch=null});
+addEventListener("keydown",e=>{const k=e.key.toLowerCase();if(k===" "){e.preventDefault();if(holder&&holder.me){const m=P.filter(q=>q.team===0&&!q.me).sort((a,b)=>b.x-a.x)[0];if(m)humanThrow(m.x+25,m.y)}}else keys.add(k)});
+addEventListener("keyup",e=>keys.delete(e.key.toLowerCase()));
+goBtn.onclick=()=>{score=[0,0];hud[0].textContent="You 0";hud[2].textContent="Robots 0";reset(0);run=true;freeze=0;msg.textContent="Throw to a teammate and get the disc into the right end zone!";goBtn.style.display="none"};
+reset(0);requestAnimationFrame(frame);
+</script>
+</body>
+</html>

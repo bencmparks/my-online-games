@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Equestrian</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;display:grid;place-items:center;background:#16301c;color:#f4ffe8;font-family:system-ui,sans-serif}
+  main{width:min(960px,96vw);text-align:center}
+  h1{margin:.4rem 0}
+  a{color:#9fe}
+  canvas{width:100%;border:4px solid #fff;border-radius:8px;touch-action:none;background:#87ceeb}
+  #hud{display:flex;justify-content:space-between;font-weight:700;margin:.3rem 0}
+  #msg{min-height:1.5em;color:#ffe066;font-weight:700}
+  button{font:inherit;font-weight:700;padding:.5rem 1.2rem;border-radius:8px;border:0;background:#ffe066;cursor:pointer}
+  p{margin:.4rem 0;opacity:.9}
+</style>
+</head>
+<body>
+<main>
+  <a href="../">← Back to games</a>
+  <h1>🐴 Equestrian</h1>
+  <div id="hud"><span id="h1">Course 1</span><span id="h2">Fence 0/8</span><span id="h3">Faults 0</span><span id="h4">Time 0.0</span></div>
+  <canvas id="c" width="900" height="450"></canvas>
+  <div id="msg">Ride a show jumping course. Click Start.</div>
+  <p>Right/Left arrows (or D/A) to gallop faster or slower. Press Space or tap to jump; hold it for a higher jump. Clear every fence and water jump without knocking rails (+4 faults) or landing in the water (+4 faults). Finish with the fewest faults and the best time. Courses get harder. A refused fence is a fall: 3 falls and you are out!</p>
+  <button id="go">Start</button>
+</main>
+<script>
+const cv=document.getElementById("c"),g=cv.getContext("2d"),W=900,H=450,GY=360,X0=200;
+const $=id=>document.getElementById(id),msg=$("msg"),goBtn=$("go");
+let course=1,fences,horse,cam,t0,faults,falls,run=false,over=false,best=+localStorage.getItem("equestrian-best")||0,last=0,hold=0,done=false,total=0,floaters=[],speedKey=0,ended=0,time=0,cleared=0;
+const keys=new Set();
+function build(n){
+  const count=6+n*2,f=[];let x=700;
+  for(let i=0;i<count;i++){
+    const water=n>=2&&i%4===3,h=water?0:Math.min(110,38+Math.random()*(26+n*10));
+    f.push({x,h,water,w:water?150:12,down:false,done:false,fault:false});
+    x+=420+Math.random()*180+(water?60:0);
+  }
+  f.finish=x+250;return f;
+}
+function start(c){
+  course=c;fences=build(c);horse={y:GY,vy:0,v:260,air:true,hold:0,jumping:false,stun:0,leg:0};cam=0;faults=0;time=0;cleared=0;
+  if(typeof falls==="undefined"||falls>=3){falls=0;total=0}
+  done=false;over=false;run=true;msg.textContent="Course "+c+": gallop and jump!";goBtn.style.display="none";
+}
+function jump(){if(!run||horse.y<GY-1||horse.stun>0)return;horse.vy=-640;horse.jumping=true;horse.hold=0}
+function say(t,x,y,col){floaters.push({t,x,y,l:1.2,col})}
+function update(dt){
+  if(!run)return;
+  time+=dt;
+  const want=((keys.has("arrowright")||keys.has("d"))?1:0)-((keys.has("arrowleft")||keys.has("a"))?1:0);
+  const base=240+course*8;
+  horse.v+=((base+want*110)-horse.v)*Math.min(1,dt*3);
+  if(horse.stun>0){horse.stun-=dt;horse.v*=.97}
+  horse.leg+=dt*horse.v/22;
+  if(horse.jumping&&(keys.has(" ")||touchHold)&&horse.hold<.2&&horse.vy<0){horse.hold+=dt;horse.vy-=2300*dt}
+  else horse.jumping=false;
+  horse.vy+=1800*dt;horse.y+=horse.vy*dt;if(horse.y>=GY){horse.y=GY;horse.vy=0;horse.jumping=false}
+  cam+=horse.v*dt;
+  const hx=cam+X0;
+  fences.forEach((f,i)=>{
+    const air=GY-horse.y;
+    if(f.water){
+      if(!f.done&&hx>f.x+f.w+20){f.done=true;cleared++;say("Splash-free!",X0,GY-120,"#fff")}
+      if(!f.fault&&hx>f.x+10&&hx<f.x+f.w-10&&air<8){f.fault=true;faults+=4;horse.v*=.5;horse.stun=.6;say("Splash! +4",X0,GY-100,"#ff8080")}
+    }else{
+      if(!f.down&&hx+14>f.x&&hx-14<f.x+f.w&&air<f.h-4){f.down=true;f.fault=true;faults+=4;horse.v*=.55;horse.stun=.6;say("Rail down! +4",X0,GY-100,"#ff8080")}
+      if(!f.done&&hx>f.x+f.w+20){f.done=true;if(!f.fault){cleared++;say("Clear!",X0,GY-130,"#fff")}}
+    }
+  });
+  if(hx>fences.finish)finish();
+  hud();
+}
+function finish(){
+  run=false;const bonus=Math.max(0,Math.round(900-time*8));const pts=Math.max(0,Math.round(1000+bonus-faults*80));total+=pts;
+  if(total>best){best=total;localStorage.setItem("equestrian-best",best)}
+  msg.textContent="Course "+course+" done! Faults "+faults+", time "+time.toFixed(1)+"s, +"+pts+" points (total "+total+", best "+best+").";
+  goBtn.style.display="";goBtn.textContent="Next course";nextCourse=course+1;
+  if(faults>=16){falls++;msg.textContent+=" Too many faults: that's a fall ("+falls+"/3).";if(falls>=3){msg.textContent="Eliminated! Final score "+total+" (best "+best+").";goBtn.textContent="Play again";nextCourse=1}else nextCourse=course}
+}
+let nextCourse=1,touchHold=false;
+function hud(){$("h1").textContent="Course "+course;$("h2").textContent="Fence "+cleared+"/"+fences.length;$("h3").textContent="Faults "+faults+" | Falls "+falls;$("h4").textContent="Time "+time.toFixed(1)}
+function horseDraw(x,y,leg,air){
+  g.save();g.translate(x,y);
+  const tilt=air?Math.max(-.35,Math.min(.35,(horse.vy)/1800)):0;g.rotate(tilt);
+  const L=[0,Math.PI,Math.PI/2,-Math.PI/2].map((o,i)=>air?(i<2?-.8:.8):Math.sin(leg+o)*.7);
+  g.strokeStyle="#4a2a12";g.lineWidth=7;g.lineCap="round";
+  [[-26,0],[-18,1],[24,2],[32,3]].forEach(([lx,i])=>{g.beginPath();g.moveTo(lx,-34);g.lineTo(lx+Math.sin(L[i])*20,-34+Math.cos(L[i])*34);g.stroke()});
+  g.fillStyle="#8b4a1f";g.beginPath();g.ellipse(2,-48,40,20,0,0,7);g.fill();
+  g.beginPath();g.moveTo(30,-56);g.lineTo(52,-86);g.lineTo(70,-80);g.lineTo(62,-62);g.lineTo(40,-44);g.fill();
+  g.fillStyle="#3b1f0d";g.beginPath();g.moveTo(34,-60);g.lineTo(52,-88);g.lineTo(48,-60);g.fill();
+  g.beginPath();g.moveTo(-40,-52);g.quadraticCurveTo(-62,-40-Math.sin(leg)*6,-54,-20);g.lineTo(-38,-44);g.fill();
+  g.fillStyle="#fff";g.beginPath();g.arc(60,-80,2.5,0,7);g.fill();
+  g.fillStyle="#222";g.fillRect(0,-70,28,5);
+  g.fillStyle="#c62828";g.fillRect(-12,-72,22,10);
+  g.fillStyle="#1e88e5";g.fillRect(-8,-98,14,28);g.fillStyle="#f5cba7";g.beginPath();g.arc(-1,-106,9,0,7);g.fill();g.fillStyle="#111";g.beginPath();g.arc(-1,-110,10,Math.PI,0);g.fill();
+  g.restore();
+}
+function draw(){
+  const sky=g.createLinearGradient(0,0,0,GY);sky.addColorStop(0,"#6ec6ff");sky.addColorStop(1,"#dff3ff");g.fillStyle=sky;g.fillRect(0,0,W,H);
+  g.fillStyle="#7bb872";for(let i=-1;i<6;i++){const x=i*260-((cam*.25)%260);g.beginPath();g.moveTo(x,GY);g.quadraticCurveTo(x+130,GY-110,x+260,GY);g.fill()}
+  g.fillStyle="#4c9a3b";g.fillRect(0,GY,W,H-GY);g.fillStyle="#3f8530";for(let i=0;i<20;i++){const x=i*60-(cam%60);g.fillRect(x,GY,30,H-GY)}
+  if(!fences)return;
+  fences.forEach(f=>{
+    const sx=f.x-cam;if(sx>W+200||sx<-200)return;
+    if(f.water){g.fillStyle="#1e90ff";g.fillRect(sx,GY,f.w,H-GY);g.fillStyle="rgba(255,255,255,.5)";for(let i=0;i<5;i++)g.fillRect(sx+10+i*28+Math.sin(cam/20+i)*4,GY+10+i%2*14,14,3);g.fillStyle="#fff";g.fillRect(sx-4,GY-14,8,14);g.fillRect(sx+f.w-4,GY-14,8,14)}
+    else{g.fillStyle="#fff";g.fillRect(sx-4,GY-f.h-12,8,f.h+12);g.fillRect(sx+f.w-4,GY-f.h-12,8,f.h+12);
+      const bars=Math.max(1,Math.round(f.h/36));
+      for(let b=0;b<bars;b++){const ry=GY-f.h+(b*f.h)/bars;g.fillStyle=b%2?"#e53935":"#fff";if(f.down){g.save();g.translate(sx+f.w/2+20+b*8,GY-6);g.rotate(.15*(b+1));g.fillRect(-26,-3,52,6);g.restore()}else g.fillRect(sx-22,ry,56,6)}}
+  });
+  const fx=fences.finish-cam;g.fillStyle="#ffe066";g.fillRect(fx,GY-120,8,120);g.fillStyle="#fff";g.fillRect(fx,GY-120,80,24);g.fillStyle="#000";g.font="bold 14px system-ui";g.fillText("FINISH",fx+10,GY-103);
+  if(horse)horseDraw(X0,horse.y,horse.leg,horse.y<GY-1);
+  floaters=floaters.filter(f=>(f.l-=.016)>0);floaters.forEach(f=>{g.fillStyle=f.col;g.globalAlpha=Math.min(1,f.l);g.font="bold 20px system-ui";g.fillText(f.t,f.x-20,f.y-(1.2-f.l)*40);g.globalAlpha=1});
+  g.fillStyle="rgba(0,0,0,.4)";g.fillRect(10,10,150,14);g.fillStyle="#ffe066";g.fillRect(10,10,150*Math.min(1,(cam+X0)/(fences.finish||1)),14);
+}
+function frame(t){const dt=Math.min((t-last)/1000,.04);last=t;update(dt);draw();requestAnimationFrame(frame)}
+addEventListener("keydown",e=>{const k=e.key.toLowerCase();if(k===" "||k.startsWith("arrow"))e.preventDefault();if(k===" "&&!keys.has(" "))jump();keys.add(k)});
+addEventListener("keyup",e=>keys.delete(e.key.toLowerCase()));
+cv.addEventListener("pointerdown",e=>{touchHold=true;jump()});addEventListener("pointerup",()=>touchHold=false);
+goBtn.onclick=()=>{start(nextCourse)};
+draw();requestAnimationFrame(frame);
+</script>
+</body>
+</html>
