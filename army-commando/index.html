@@ -175,6 +175,12 @@ function step(a){
   const d=a.nd,nx=a.cx+d[0],ny=a.cy+d[1];
   a.dx=d[0];a.dy=d[1];
   if(nx<0||ny<0||nx>=CW||ny>=CH)return false;
+  const w=ag.find(o=>o!==a&&o.alive&&o.cx===nx&&o.cy===ny);
+  if(w){
+    // head-on: the player wins; between robots the one who moved in loses
+    if(a.bot&&!w.bot){kill(a,w);return false}
+    kill(w,a);
+  }
   a.cx=nx;a.cy=ny;enter(a);return true;
 }
 function update(dt){
