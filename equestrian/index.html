@@ -14,7 +14,7 @@
   canvas{width:100%;border:4px solid #fff;border-radius:8px;touch-action:none;background:#87ceeb;display:block}
   #story{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:.8rem;padding:1.5rem 2.5rem;background:rgba(10,25,12,.9);border-radius:6px;text-align:center}
   #story h2{margin:0;color:#ffe066}
-  #story p{max-width:42rem;font-size:1.05rem;line-height:1.5;margin:0}
+  #story p{max-width:42rem;font-size:1.1rem;line-height:1.5;margin:0;white-space:pre-line}#opts{display:flex;gap:.8rem;flex-wrap:wrap;justify-content:center}
   #hud{display:flex;justify-content:space-between;font-weight:700;margin:.3rem 0;gap:.5rem;flex-wrap:wrap}
   #msg{min-height:1.5em;color:#ffe066;font-weight:700}
   button{font:inherit;font-weight:700;padding:.5rem 1.2rem;border-radius:8px;border:0;background:#ffe066;cursor:pointer}
@@ -28,7 +28,7 @@
   <div id="hud"><span id="h1">Chapter 1</span><span id="h2">Fence 0/8</span><span id="h3">Faults 0</span><span id="h4">Time 0.0</span><span id="h5">Falls 0/3</span></div>
   <div class="wrap">
     <canvas id="c" width="900" height="450"></canvas>
-    <div id="story"><h2 id="sh"></h2><p id="st"></p><button id="go">Start</button></div>
+    <div id="story"><h2 id="sh"></h2><b id="sp" style="color:#9fe"></b><p id="st"></p><div id="opts"></div><button id="go">Start</button></div>
   </div>
   <div id="msg"></div>
   <p class="help">Right/Left arrows (or D/A) gallop faster or slower, but fast galloping drains stamina. Space or tap jumps (hold for higher). Grab carrots in the air to refill stamina. Clear fences, wide oxers, combinations and water jumps; each knocked rail or splash is +4 faults, and 16 faults is a fall. Three falls end the story. Later chapters add rivals, time limits, storms and darkness.</p>
@@ -38,24 +38,58 @@ const cv=document.getElementById("c"),g=cv.getContext("2d"),W=900,H=450,GY=360,X
 const $=id=>document.getElementById(id),msg=$("msg"),goBtn=$("go"),story=$("story");
 const CH=[
  {n:"The Village Fair",sky:["#6ec6ff","#dff3ff"],fences:6,water:0,ox:0,combo:0,rival:0,limit:0,carrots:2,
-  intro:"You are Willow Hart, a stable girl at Maple Hollow, and your chestnut mare Comet is the fastest jumper in the valley. The bank wants to take the stables unless you can pay the debt. The Village Fair has a prize purse. Ride clean and bring home the first ribbon.",
-  win:"The crowd cheers! The purse covers the month's rent. But a stranger in a black coat watches from the fence: Victor Vane, the Golden Horseshoe champion, who has bought the debt."},
+  intro:[["Narrator","Maple Hollow, the first warm morning of spring. The stables are quiet, and the bank's red notice is nailed to the barn door: PAY 5,000 GOLD BY THE LAST DAY OF SUMMER OR LOSE EVERYTHING."],
+   ["Old Tom","Don't read it again, Willow. It won't get any shorter. Your grandmother Hart built this place with her bare hands, and I'll not see it sold."],
+   ["Willow","Then we win. The Village Fair pays a purse, and Comet hasn't touched a rail in two years. Let's ride."]],
+  win:[["Narrator","Comet clears the last fence to roaring applause. The purse is small, but it feeds the horses for a month."],
+   ["Old Tom","Your grandmother's letter came in the post today. She wrote it years ago, and the postman only found it behind a sofa. Read it, girl."],
+   ["Granny's letter","\"Willow, if the bank ever comes, find the Founder's Horseshoe. It proves who the Hollow belongs to. The Vanes have wanted it for three generations.\""],
+   ["Narrator","Across the fair, a tall man in a black coat is watching you. Victor Vane, champion of the Golden Horseshoe Cup. He is the one who bought your debt."]]},
  {n:"The Lost Foal",sky:["#9ad47b","#e6f7c8"],fences:8,water:1,ox:0,combo:0,rival:0,limit:0,carrots:3,
-  intro:"A foal has run off into Greenwood Forest! The farmer begs for help. Fallen logs and a swollen stream block the way. Jump the stream without a splash and bring the foal home.",
-  win:"You find the foal shivering beside the stream. The grateful farmer gives you an old invitation: the Golden Horseshoe Cup is open to anyone who can win three qualifiers."},
+  intro:[["Narrator","A scared farmer arrives at dawn. His foal, Pepper, bolted into Greenwood Forest during the night, and the stream has flooded."],
+   ["Farmer","Nobody else has a horse that can jump that water. Please, Willow."],
+   ["Willow","Comet, stay steady. The logs first, then the stream. Don't splash!"]],
+  win:[["Narrator","You find Pepper shaking beside the stream, her foot caught in an old iron ring. Beside it is a rusted horseshoe stamped with a letter H."],
+   ["Willow","The Founder's Horseshoe? No... this is only the mould, a copy. But someone has been digging here, and the tracks are fresh."],
+   ["Farmer","Take this as thanks: an entry for the Golden Horseshoe qualifiers. Win three of them and you can ride in the Cup."]]},
  {n:"Qualifier: The Wide Oxers",sky:["#ffd89b","#fff1d6"],fences:8,water:1,ox:1,combo:0,rival:.95,limit:0,carrots:3,
-  intro:"The first qualifier. The wide oxers need a long, high leap, so build speed and hold the jump. A young rival, Rowan Pike, rides beside you. Finish ahead of him to qualify.",
-  win:"You and Rowan share a handshake. He warns you that Victor Vane has been tampering with the courses, cutting the rails and loosening the posts."},
+  intro:[["Narrator","The first qualifier. The oxers are wide enough to swallow a careless rider, so build up speed and hold the jump."],
+   ["Rowan","I'm Rowan Pike. I work in the Vane stables, but I'm riding for myself today. Don't let my black horse fool you; I'm no friend of Victor's."],
+   ["Willow","Then let's make this fair. Whoever crosses the line first, we shake hands."]],
+  win:[["Rowan","Good ride. Listen, before the next round: I saw Victor's manager, Mrs. Crane, in your stable yard last night. She carried a small hammer."],
+   {ask:"Do you trust Rowan?",opts:[["Trust him","rowan","trust"],["Watch him closely","rowan","doubt"]]},
+   ["Narrator","Whatever you decide, you now know someone is working against the Hollow."]]},
  {n:"Qualifier: Storm Ride",sky:["#6b7a8f","#aab6c4"],fences:9,water:1,ox:1,combo:1,rival:1,limit:95,carrots:4,storm:1,
-  intro:"Thunder rolls over the course. Rain makes the ground slippery and the officials set a time limit: finish in 95 seconds. Fence combinations come two at a time, so land, then jump again right away.",
-  win:"Soaked but smiling, you qualify for the Cup. Comet limps a little in the stable that night, and you find a bent horseshoe nail: sabotage."},
+  intro:[["Narrator","Thunder rolls over the second qualifier. The officials add a time limit of 95 seconds, and the combinations come two at a time."],
+   ["Old Tom","Land, balance, jump again. And mind the lightning, it spooks the young ones."],
+   ["Willow","Comet isn't young anymore. Ready, girl?"]],
+  win:[["Narrator","You qualify for the Cup, soaked and shaking. Back at the stable you find Comet favouring her left foreleg."],
+   ["Old Tom","Look at this. A bent nail driven into the shoe. Someone wanted you to fall."],
+   ["Willow","Mrs. Crane. It has to be. But we can't prove it, and tomorrow is the mountain trial."]]},
  {n:"The Midnight Gallop",sky:["#1b2650","#3b4a82"],fences:9,water:1,ox:1,combo:1,rival:1.05,limit:100,carrots:5,dark:1,
-  intro:"Victor's men have locked the stable gate. To reach the Cup in time you must ride the old mountain trail at night, with only moonlight and a time limit of 100 seconds. Rowan joins you to prove Victor's trick.",
-  win:"You arrive at dawn. Rowan shows the officials the bent nail and loosened posts. Victor is warned, but he is still allowed to ride."},
+  intro:[["Narrator","The qualifier's start gate has been moved to the far side of Raven Mountain, and the stable gate is chained shut. The only way is the old trail by moonlight, with 100 seconds to reach the line."],
+   ["Rowan","I'll ride with you. I know this trail, and I think I know what Mrs. Crane hid at the old mill."],
+   ["Willow","Then stay close. And Comet: no fear, just follow the lantern."]],
+  win:[["Narrator","At the old mill you find a locked chest. Inside lies the real Founder's Horseshoe, and a ledger in Mrs. Crane's handwriting."],
+   ["Rowan","\"Debt notice, forged. Hart land transferred to Vane Holdings.\" It was never Victor. Crane has been stealing from both families!"],
+   {ask:"What do you do with the ledger?",opts:[["Show it to the judges now","ledger","judges"],["Give it to Victor in the final","ledger","victor"]]},
+   ["Narrator","The Cup begins at sunrise."]]},
  {n:"The Golden Horseshoe Cup",sky:["#8fd3ff","#fff7d6"],fences:12,water:1,ox:1,combo:1,rival:1.1,limit:0,carrots:5,
-  intro:"The final. Victor Vane rides the finest horse in the country, and every fence is a trap for the tired. Pace yourself and beat him to the finish. The Hollow's future is yours to win.",
-  win:"Comet flies over the last water jump and crosses the line first! Victor tips his hat. The debt is paid, the stables are saved, and Willow Hart is the new champion of the Golden Horseshoe."}
+  intro:[["Narrator","The final. Twelve fences, the biggest crowd the valley has ever seen, and Victor Vane on the finest horse in the country."],
+   ["Victor","So you're the girl who found the mill. Mrs. Crane has vanished with half my prize money. I don't know what she told you, but I'd like to hear it after we ride."],
+   ["Willow","Then ride fair, Mr. Vane. Comet and I have a stable to save."]],
+  win:function(){const f=flags;
+   const a=[["Narrator","Comet sails over the last water jump and crosses the line first. The crowd erupts."]];
+   if(f.ledger==="judges")a.push(["Judge","The ledger is genuine. Mrs. Crane has been arrested, the forged debt is void, and the Hart land belongs to the Hart family."]);
+   else a.push(["Victor","You gave me the ledger, and trusted me with it. I'll take it to the court myself. The debt is void. I'm sorry my family's name caused this."]);
+   if(f.rowan==="trust")a.push(["Rowan","Told you I was on your side. Mind if I stay on at Maple Hollow? I'm tired of black coats."]);
+   else a.push(["Rowan","You were right to watch me, and I'm glad I proved it. Maybe there's a job for me at Maple Hollow?"]);
+   a.push(["Old Tom","Your grandmother would have cried like a baby."]);
+   a.push(["Narrator","The Founder's Horseshoe is nailed above the stable door. Willow Hart is the new champion of the Golden Horseshoe, and Maple Hollow is safe. THE END."]);return a}}
 ];
+let flags={};
+try{flags=JSON.parse(localStorage.getItem("equestrian-flags"))||{}}catch(e){}
+function saveFlags(){try{localStorage.setItem("equestrian-flags",JSON.stringify(flags))}catch(e){}}
 let ci=0,fences,carrots,horse,rival,cam,faults,falls=0,run=false,time=0,cleared=0,floaters=[],last=0,total=0,rain=[];
 let best=+localStorage.getItem("equestrian-best")||0,saved=+localStorage.getItem("equestrian-chapter")||0,touchHold=false,after=null;
 const keys=new Set();
@@ -72,7 +106,15 @@ function build(c){
   }
   f.finish=x+250;return f;
 }
-function show(title,text,btn,fn){$("sh").textContent=title;$("st").textContent=text;goBtn.textContent=btn;after=fn;story.style.display="flex";run=false}
+let pages=[],pgi=0,pgTitle="",pgBtn="",pgFn=null;
+function show(title,list,btn,fn){pages=typeof list==="string"?[["",list]]:list;pgi=0;pgTitle=title;pgBtn=btn;pgFn=fn;story.style.display="flex";run=false;page()}
+function page(){
+  const p=pages[pgi],opts=$("opts");opts.innerHTML="";$("sh").textContent=pgTitle;
+  if(p.ask){$("sp").textContent="Choose";$("st").textContent=p.ask;goBtn.style.display="none";
+    p.opts.forEach(o=>{const b=document.createElement("button");b.textContent=o[0];b.onclick=()=>{flags[o[1]]=o[2];saveFlags();pgi++;page()};opts.appendChild(b)});return}
+  $("sp").textContent=p[0];$("st").textContent=p[1];goBtn.style.display="";
+  goBtn.textContent=pgi<pages.length-1?"Next ▸":pgBtn;after=()=>{if(pgi<pages.length-1){pgi++;page()}else pgFn()};
+}
 function startRide(){
   const c=ch();fences=build(c);carrots=[];
   for(let i=0;i<c.carrots;i++){const a=fences[Math.min(fences.length-1,Math.floor((i+.5)*fences.length/c.carrots))];carrots.push({x:a.x-170-Math.random()*60,y:GY-90-Math.random()*50,got:false})}
@@ -121,22 +163,24 @@ function update(dt){
 }
 function end(ok,why){
   if(!run)return;run=false;const c=ch();
-  if(ok&&rival&&!rival.done||ok){
+  if(ok){
     const pts=Math.max(0,Math.round(1000+Math.max(0,900-time*8)-faults*80));total+=pts;
     if(total>best){best=total;localStorage.setItem("equestrian-best",best)}
     const last=ci===CH.length-1;
     if(!last){localStorage.setItem("equestrian-chapter",ci+1);saved=ci+1}
     const info="Faults "+faults+", time "+time.toFixed(1)+"s, +"+pts+" points (total "+total+", best "+best+").";
-    show(last?"🏆 You are the champion!":"Chapter complete: "+c.n,c.win+"\n\n"+info,last?"Play again":"Next chapter",()=>{if(last){reset();ci=0;intro()}else{ci++;intro()}});
+    const win=(typeof c.win==="function"?c.win():c.win).concat([["Results",info]]);
+    show(last?"🏆 You are the champion!":"Chapter complete: "+c.n,win,last?"Play again":"Next chapter",()=>{if(last){reset();ci=0;intro()}else{ci++;intro()}});
     if(last){localStorage.setItem("equestrian-chapter",0);saved=0}
   }else{
     falls++;
-    if(falls>=3){show("The story ends here…","You fell once too often, and the bank takes the stables. "+why+" Final score "+total+" (best "+best+").","Try again",()=>{reset();ci=0;intro()})}
-    else show("A fall! ("+falls+"/3)",(why||"You didn't make it.")+" Dust yourself off and try the chapter again.","Retry",intro)
+    if(falls>=3){show("The story ends here…",[["Narrator","You fell once too often. "+(why||"")+" Without a win, the bank takes Maple Hollow, and Comet is sold to a stranger. Final score "+total+" (best "+best+")."],["Old Tom","There's always another spring, Willow. Try again."]],"Try again",()=>{reset();ci=0;intro()})}
+    else show("A fall! ("+falls+"/3)",[["Old Tom",(why||"You didn't make it.")+" Dust yourself off, girl, and try again."]],"Retry",intro)
   }
 }
-function reset(){falls=0;total=0}
-function intro(){const c=ch();show("Chapter "+(ci+1)+": "+c.n,c.intro+(c.limit?"\n\nTime limit: "+c.limit+" seconds.":"")+(c.rival?"\nRival: finish ahead of them.":""),"Ride!",startRide);$("st").style.whiteSpace="pre-line"}
+function reset(){falls=0;total=0;flags={};saveFlags()}
+function intro(){const c=ch(),extra=(c.limit?" Time limit: "+c.limit+" seconds.":"")+(c.rival?" Finish ahead of your rival.":"");
+  const pg=c.intro.slice();pg.push(["Goal","Clear the course."+extra]);show("Chapter "+(ci+1)+": "+c.n,pg,"Ride!",startRide)}
 function hud(){$("h1").textContent="Chapter "+(ci+1);$("h2").textContent="Fence "+cleared+"/"+(fences?fences.length:0);$("h3").textContent="Faults "+faults;$("h4").textContent="Time "+time.toFixed(1)+(ch().limit?" / "+ch().limit:"");$("h5").textContent="Falls "+falls+"/3"}
 function horseDraw(x,y,leg,air,cols){
   g.save();g.translate(x,y);
@@ -185,10 +229,9 @@ addEventListener("keyup",e=>keys.delete(e.key.toLowerCase()));
 cv.addEventListener("pointerdown",()=>{touchHold=true;jump()});addEventListener("pointerup",()=>touchHold=false);
 goBtn.onclick=()=>{if(after)after()};
 function title(){
-  ci=Math.min(saved,CH.length-1);reset();
-  show("The Golden Horseshoe","Willow Hart and her mare Comet must win a string of contests to save Maple Hollow stables from a scheming champion. "+(saved?"You saved your progress at chapter "+(saved+1)+".":"Six chapters of jumps, rivals, storms and one midnight ride await."),saved?"Continue chapter "+(saved+1):"Begin the story",intro);
-}
-title();draw();requestAnimationFrame(frame);
+  ci=Math.min(saved,CH.length-1);if(!saved)reset();
+  show("The Golden Horseshoe",[["Narrator","Willow Hart and her mare Comet have until the end of summer to save Maple Hollow stables. A forged debt, a mysterious champion, and a horseshoe that could change everything."],["Narrator",saved?"You saved your progress at chapter "+(saved+1)+".":"Six chapters of jumps, rivals, storms and one midnight ride await. Your choices change the ending."]],saved?"Continue chapter "+(saved+1):"Begin the story",intro);
+}title();draw();requestAnimationFrame(frame);
 </script>
 </body>
 </html>
