@@ -20,7 +20,7 @@ button{margin:.5rem .25rem 0;padding:.6rem 1.1rem;border:1px solid #f59e0b;borde
 <main>
 <a href="../">← All games</a>
 <h1>🔥 2048 Elements</h1>
-<p>You are a pile of an element (dirt, rock, water, wind, fire, lava, ice, lightning, crystal, plasma, star), and the number above it is your mass. Steer with the mouse (or drag on a touch screen). Touch a pile with the same number to merge into a double, touch a smaller pile to eat it, and touch a bigger pile and you are crushed! The element tells the size, and eating enough levels you up to the next number. Reach 2048 to win, then keep growing: there are bigger piles past 2048 (galaxy, nebula, black hole). Anything you eat tags along behind you in a line, biggest first, touching you and each other. Two of the same element in the line merge into the next one, and one that matches you merges into you, with a pop and a flash. Rivals have tails too: if you are bigger than a pile in a rival's tail, touch it to steal it and every smaller pile behind it. Dash with Space, click or the button.</p>
+<p>You are a pile of an element (dirt, rock, water, wind, fire, lava, ice, lightning, crystal, plasma, star), and the number above it is your mass. Steer with the mouse (or drag on a touch screen). Touch a pile with the same number to merge into a double, touch a smaller pile to eat it, and touch a bigger pile and you are crushed! The element tells the size, and eating enough levels you up to the next number. Reach 2048 to win, then keep growing: there are bigger piles past 2048 (galaxy, nebula, black hole). Anything you eat tags along behind you in a line, biggest first, touching you and each other. Two of the same element in the line merge into the next one, and one that matches you merges into you, with a pop and a flash. Rivals have tails too: if you are bigger than a pile in a rival's tail, touch it to steal it and every smaller pile behind it, but touch a bigger pile in a tail and you are crushed. Dash with Space, click or the button.</p>
 <canvas id="c" width="900" height="600"></canvas>
 <button id="dash">💨 Dash</button><button id="again">New game</button>
 </main>
@@ -180,6 +180,10 @@ function update(dt){
     if(!b.alive)continue;
     for(let k=0;k<b.fol.length;k++){
       const f=b.fol[k];
+      if(P.v<f.v&&Math.hypot(P.x-f.x,P.y-f.y)<sz(P.v)+sz(f.v)-4){
+        P.alive=false;over=true;if(P.v>best){best=P.v;localStorage.setItem(BK,best)}
+        msg="";break;
+      }
       if(P.v>f.v&&Math.hypot(P.x-f.x,P.y-f.y)<sz(P.v)+sz(f.v)-4){
         const got=b.fol.splice(k);
         for(const g of got){fly(g.v,g.x,g.y,P);addFol(P,g.v)}
