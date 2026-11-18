@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Dragon Shield</title>
+<style>
+body{margin:0;background:#1a1226;color:#fff;font-family:system-ui,sans-serif;text-align:center;user-select:none;touch-action:none}
+a{color:#9fe870}canvas{background:#2a1d3a;max-width:100%;border:3px solid #000;image-rendering:pixelated;cursor:crosshair;touch-action:none}
+p{margin:6px 10px;font-size:14px}
+#tc{display:none;justify-content:space-between;padding:6px 14px}
+#tc div{display:flex;gap:6px}
+#tc button{width:56px;height:56px;font-size:22px;border-radius:50%;border:2px solid #fff6;background:#0007;color:#fff}
+@media(pointer:coarse){#tc{display:flex}}
+</style></head><body>
+<p><a href="../">&larr; Games</a></p>
+<canvas id="c" width="900" height="600"></canvas>
+<p>Move with WASD &bull; aim your shield with the mouse (or &larr; &rarr;) &bull; blocked fireballs fly back at the dragon &bull; Space / click = shield bash: time it as a fireball hits for a triple-damage parry</p>
+<div id="tc"><div><button id="bl">◀</button><button id="bu">▲</button><button id="bd">▼</button><button id="br">▶</button></div><div><button id="ba">⟲</button><button id="bb">🛡</button></div></div>
+<script>
+const cv=document.getElementById('c'),g=cv.getContext('2d');
+const W=900,H=600,CX=450,CY=300;
+const KINDS=[
+ {name:'Ember',col:'#e53935',dark:'#8e0000',proj:'#ff9800',pats:['aim','aim','spread']},
+ {name:'Frostfang',col:'#4fc3f7',dark:'#0277bd',proj:'#b3e5fc',ice:true,pats:['spread','aim','fast']},
+ {name:'Venomtail',col:'#66bb6a',dark:'#1b5e20',proj:'#cddc39',pats:['ring','aim','spread']},
+ {name:'Stormwing',col:'#ffd54f',dark:'#f57f17',proj:'#fff59d',pats:['fast','spread','ring']},
+];
+let state='title',wave=1,score=0,best=+(localStorage.getItem('dragon-shield-best')||0),p,d,shots=[],parts=[],banner=0,msg='';
+const keys={};let mx=CX,my=100,aimKey=false,bashPress=false,shake=0;
+function newDragon(){
+  const boss=wave%5==0,k=boss?{name:'Elder Wyrm',col:'#7e57c2',dark:'#311b92',proj:'#f06292',pats:['spread','ring','fast','aim']}:KINDS[(wave-1)%KINDS.length];
+  const max=14+wave*5+(boss?30:0);
+  d={k,boss,x:CX,y:60,ang:-1.57,dir:1,spd:.5+Math.min(.5,wave*.03),hp:max,max,cd:2,wind:0,pat:'aim',hit:0,sz:boss?1.5:1,flip:4};
+}
+function reset(){wave=1;score=0;p={x:CX,y:CY,a:-1.57,hp:5,inv:0,slow:0,bash:0,bashCd:0,flash:0};shots=[];parts=[];newDragon();banner=2;msg='Wave 1: '+d.k.name;state='play'}
+function puff(x,y,c,n=8){for(let i=0;i<n;i++)parts.push({x,y,vx:(Math.random()-.5)*300,vy:(Math.random()-.5)*300,t:.5,c})}
+function shoot(x,y,ang,sp,r){shots.push({x,y,vx:Math.cos(ang)*sp,vy:Math.sin(ang)*sp,r:r||9,refl:false,dmg:1})}
+function pattern(){
+  const a=Math.atan2(p.y-d.y,p.x-d.x),sp=230+Math.min(wave*12,160);
+  if(d.pat=='aim')shoot(d.x,d.y,a,sp,10*d.sz);
+  else if(d.pat=='fast')for(let i=0;i<2;i++)setTimeout(()=>{if(state=='play')shoot(d.x,d.y,Math.atan2(p.y-d.y,p.x-d.x),sp*1.5,8)},i*220);
+  else if(d.pat=='spread'){const n=d.boss?5:3;for(let i=0;i<n;i++)shoot(d.x,d.y,a+(i-(n-1)/2)*.28,sp*.9,9)}
+  else if(d.pat=='ring'){const n=14,gap=Math.random()*6.28;for(let i=2;i<n;i++)shoot(d.x,d.y,gap+i*6.283/n,sp*.65,9)}
+}
+function hurt(){
+  if(p.inv>0)return;
+  p.hp--;p.inv=1.2;p.flash=.3;shake=8;puff(p.x,p.y,'#e33',12);
+  if(d.k.ice)p.slow=1.5;
+  if(p.hp<=0){state='dead';if(score>best){best=score;localStorage.setItem('dragon-shield-best',best)}}
+}
+function update(dt){
+  if(state!=='play')return;
+  const sl=p.slow>0?.5:1;if(p.slow>0)p.slow-=dt;
+  let dx=(keys.d||keys.D?1:0)-(keys.a||keys.A?1:0),dy=(keys.s||keys.S?1:0)-(keys.w||keys.W?1:0);
+  if(keys.ArrowDown)dy=1;if(keys.ArrowUp)dy=-1;
+  const L=Math.hypot(dx,dy)||1;p.x+=dx/L*180*sl*dt;p.y+=dy/L*180*sl*dt;
+  p.x=Math.max(30,Math.min(W-30,p.x));p.y=Math.max(30,Math.min(H-30,p.y));
+  if(keys.ArrowLeft){p.a-=4*dt;aimKey=true}if(keys.ArrowRight){p.a+=4*dt;aimKey=true}
+  if(!aimKey)p.a=Math.atan2(my-p.y,mx-p.x);
+  if(p.inv>0)p.inv-=dt;if(p.flash>0)p.flash-=dt;if(p.bashCd>0)p.bashCd-=dt;if(p.bash>0)p.bash-=dt;
+  if(bashPress&&p.bashCd<=0){p.bash=.28;p.bashCd=.7}
+  bashPress=false;
+  d.ang+=d.dir*d.spd*dt;d.flip-=dt;if(d.flip<=0){d.dir*=-1;d.flip=3+Math.random()*4}
+  d.x=CX+Math.cos(d.ang)*340;d.y=CY+Math.sin(d.ang)*215;
+  if(d.hit>0)d.hit-=dt;
+  if(banner>0)banner-=dt;
+  else if(d.wind>0){d.wind-=dt;if(d.wind<=0){pattern();d.cd=Math.max(.8,2.2-wave*.07)}}
+  else{d.cd-=dt;if(d.cd<=0){d.pat=d.k.pats[Math.floor(Math.random()*d.k.pats.length)];d.wind=.55}}
+  for(const s of shots){
+    if(s.refl){const a=Math.atan2(d.y-s.y,d.x-s.x);s.vx=Math.cos(a)*560;s.vy=Math.sin(a)*560}
+    s.x+=s.vx*dt;s.y+=s.vy*dt;
+    if(!s.refl){
+      const dist=Math.hypot(s.x-p.x,s.y-p.y);
+      if(dist<50+s.r){
+        const an=Math.atan2(s.y-p.y,s.x-p.x);let df=Math.abs(an-p.a);df=Math.min(df,6.283-df);
+        if(df<(p.bash>0?1.3:.85)&&dist>14){s.refl=true;s.dmg=p.bash>0?3:1;s.r=s.dmg>1?14:10;score+=5;puff(s.x,s.y,'#fff',6);if(s.dmg>1)shake=5;continue}
+      }
+      if(dist<s.r+14){s.dead=true;hurt()}
+    }else if(Math.hypot(s.x-d.x,s.y-d.y)<34*d.sz){s.dead=true;d.hp-=s.dmg;d.hit=.15;score+=10*s.dmg;puff(s.x,s.y,d.k.proj,10)}
+    if(s.x<-60||s.x>W+60||s.y<-60||s.y>H+60)s.dead=true;
+  }
+  shots=shots.filter(s=>!s.dead);
+  if(d.hp<=0){
+    score+=100*wave;puff(d.x,d.y,d.k.col,40);shots=[];
+    wave++;p.hp=Math.min(5,p.hp+1);newDragon();banner=2.2;msg='Wave '+wave+': '+d.k.name+(d.boss?' (BOSS)':'');
+  }
+  parts.forEach(q=>{q.t-=dt;q.x+=q.vx*dt;q.y+=q.vy*dt});parts=parts.filter(q=>q.t>0);
+  if(shake>0)shake=Math.max(0,shake-30*dt);
+}
+function drawDragon(){
+  const o=d.sz,f=d.hit>0,a=Math.atan2(p.y-d.y,p.x-d.x);
+  g.save();g.translate(d.x,d.y);g.rotate(a);g.scale(o,o);
+  const body=f?'#fff':d.k.col,dk=f?'#fff':d.k.dark;
+  g.fillStyle=dk;g.fillRect(-48,-6,40,12);g.fillRect(-60,-3,14,6);
+  g.beginPath();g.moveTo(-10,-8);g.lineTo(-20,-46);g.lineTo(12,-12);g.fill();g.beginPath();g.moveTo(-10,8);g.lineTo(-20,46);g.lineTo(12,12);g.fill();
+  g.fillStyle=body;g.fillRect(-26,-14,44,28);g.fillRect(14,-10,26,20);g.fillStyle=dk;g.fillRect(36,-6,10,12);
+  g.fillStyle=d.wind>0?'#fff':'#ffeb3b';g.fillRect(28,-8,5,5);g.fillRect(28,3,5,5);
+  if(d.wind>0){g.fillStyle=d.k.proj;g.globalAlpha=.8;g.beginPath();g.arc(48,0,6+(.55-d.wind)*28,0,7);g.fill();g.globalAlpha=1}
+  g.restore();
+  g.fillStyle='#000a';g.fillRect(W/2-170,12,340,16);g.fillStyle=d.k.col;g.fillRect(W/2-168,14,336*Math.max(0,d.hp)/d.max,12);
+  g.fillStyle='#fff';g.font='bold 14px system-ui';g.textAlign='center';g.fillText(d.k.name+(d.boss?'  (BOSS)':''),W/2,44);
+}
+function drawPlayer(){
+  if(p.inv>0&&Math.floor(p.inv*16)%2)return;
+  g.save();g.translate(p.x,p.y);
+  g.fillStyle=p.slow>0?'#81d4fa':'#cfd8dc';g.fillRect(-12,-12,24,24);g.fillStyle='#546e7a';g.fillRect(-9,-9,18,18);g.fillStyle='#ffcc80';g.fillRect(-5,-5,10,10);
+  g.fillStyle='#e53935';g.fillRect(-2,-16,4,6);
+  g.rotate(p.a);
+  const w=p.bash>0?1.3:.85;
+  g.strokeStyle=p.bash>0?'#fff':'#ffd54f';g.lineWidth=p.bash>0?10:7;g.beginPath();g.arc(0,0,40,-w,w);g.stroke();
+  g.strokeStyle='#8d6e63';g.lineWidth=3;g.beginPath();g.arc(0,0,34,-w+.15,w-.15);g.stroke();
+  g.restore();
+}
+function draw(){
+  g.save();if(shake>0)g.translate((Math.random()-.5)*shake,(Math.random()-.5)*shake);
+  g.fillStyle='#2a1d3a';g.fillRect(-20,-20,W+40,H+40);
+  g.fillStyle='#34264a';for(let x=0;x<W;x+=60)for(let y=0;y<H;y+=60)if((x+y)/60%2==0)g.fillRect(x,y,60,60);
+  if(state==='title'){g.restore();return}
+  drawDragon();
+  for(const s of shots){g.fillStyle=s.refl?'#fff':d.k.proj;g.beginPath();g.arc(s.x,s.y,s.r,0,7);g.fill();g.fillStyle=s.refl?'#ffd54f':d.k.col;g.beginPath();g.arc(s.x,s.y,s.r*.55,0,7);g.fill()}
+  drawPlayer();
+  for(const q of parts){g.fillStyle=q.c;g.fillRect(q.x,q.y,5,5)}
+  g.restore();
+  g.textAlign='left';g.font='bold 20px system-ui';
+  for(let i=0;i<5;i++){g.fillStyle=i<p.hp?'#e53935':'#555';g.fillText('♥',14+i*24,32)}
+  g.fillStyle='#fff';g.font='16px system-ui';g.fillText('Wave '+wave+'   Score '+score,14,58);g.textAlign='right';g.fillText('Best '+best,W-14,32);
+  if(banner>0){g.textAlign='center';g.font='bold 34px system-ui';g.fillStyle='#fff';g.fillText(msg,W/2,CY-60)}
+}
+function overlay(t,s,b){g.fillStyle='#000b';g.fillRect(0,0,W,H);g.textAlign='center';g.fillStyle='#fff';g.font='bold 52px system-ui';g.fillText(t,W/2,230);g.font='22px system-ui';s.split('\n').forEach((l,i)=>g.fillText(l,W/2,280+i*30));g.fillStyle='#9fe870';g.fillText(b,W/2,420)}
+function titleScreen(){
+  g.fillStyle='#fff';g.textAlign='center';g.font='bold 60px system-ui';g.fillText('Dragon Shield',W/2,200);
+  g.font='22px system-ui';g.fillText("Raise your shield. Send the dragon's fire back at it.",W/2,260);
+  g.fillText('Best score: '+best,W/2,300);
+  g.fillStyle='#9fe870';g.fillText('Press Enter / click / tap to start',W/2,380);
+}
+let last=performance.now();
+function loop(t){
+  const dt=Math.min(.033,(t-last)/1000);last=t;
+  update(dt);draw();
+  if(state==='title')titleScreen();
+  if(state==='dead')overlay('Burned!','Reached wave '+wave+'\nScore '+score,'Press Enter / click to retry');
+  requestAnimationFrame(loop);
+}
+function action(){if(state!=='play')reset()}
+function pos(e){const r=cv.getBoundingClientRect();mx=(e.clientX-r.left)*W/r.width;my=(e.clientY-r.top)*H/r.height;aimKey=false}
+cv.addEventListener('pointermove',pos);
+cv.addEventListener('pointerdown',e=>{pos(e);if(state!=='play')action();else bashPress=true});
+addEventListener('keydown',e=>{
+  keys[e.key]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();
+  if(e.key=='Enter')action();
+  if(e.key==' ')bashPress=true;
+});
+addEventListener('keyup',e=>keys[e.key]=false);
+function hold(id,fn,up){const b=document.getElementById(id);b.addEventListener('pointerdown',e=>{e.preventDefault();if(state!=='play'){action();return}fn()});b.addEventListener('pointerup',up||(()=>{}));b.addEventListener('pointerleave',up||(()=>{}))}
+hold('bl',()=>keys.a=true,()=>keys.a=false);hold('br',()=>keys.d=true,()=>keys.d=false);
+hold('bu',()=>keys.w=true,()=>keys.w=false);hold('bd',()=>keys.s=true,()=>keys.s=false);
+hold('bb',()=>bashPress=true);
+hold('ba',()=>{p.a=Math.atan2(d.y-p.y,d.x-p.x);aimKey=true});
+p={x:CX,y:CY,a:-1.57,hp:5,inv:0,slow:0,bash:0,bashCd:0};newDragon();
+requestAnimationFrame(loop);
+</script></body></html>
