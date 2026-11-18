@@ -20,7 +20,7 @@ button{margin:.5rem .25rem 0;padding:.6rem 1.1rem;border:1px solid #f59e0b;borde
 <main>
 <a href="../">← All games</a>
 <h1>🔥 2048 Elements</h1>
-<p>You are a pile of an element (dirt, rock, water, wind, fire, lava, ice, lightning, crystal, plasma, star), and the number above it is your mass. Steer with the mouse (or drag on a touch screen). Touch a pile with the same number to merge into a double, touch a smaller pile to eat it, and touch a bigger pile and you are crushed! The element tells the size, and eating enough levels you up to the next number. Reach 2048 to win. Dash with Space, click or the button.</p>
+<p>You are a pile of an element (dirt, rock, water, wind, fire, lava, ice, lightning, crystal, plasma, star), and the number above it is your mass. Steer with the mouse (or drag on a touch screen). Touch a pile with the same number to merge into a double, touch a smaller pile to eat it, and touch a bigger pile and you are crushed! The element tells the size, and eating enough levels you up to the next number. Reach 2048 to win, then keep growing: there are bigger piles past 2048 (galaxy, nebula, black hole). Dash with Space, click or the button.</p>
 <canvas id="c" width="900" height="600"></canvas>
 <button id="dash">💨 Dash</button><button id="again">New game</button>
 </main>
@@ -39,12 +39,11 @@ function cube(name,v,bot){
 function foodItem(){const r=Math.random();return {x:rnd(40,WS-40),y:rnd(40,WS-40),v:r<.6?2:r<.9?4:8}}
 function gain(e,amt){
   e.pool+=amt;
-  while(e.pool>=e.v&&e.v<2048){e.pool-=e.v;e.v*=2;if(e===P)levelMsg()}
-  if(e.v>=2048){e.pool=0}
+  while(e.pool>=e.v){e.pool-=e.v;e.v*=2;if(e===P)levelMsg()}
 }
 function levelMsg(){
   msg="Your pile is now "+P.v+"!";msgT=1.5;
-  if(P.v>=2048&&!won){won=true;msg="2048! You win! Keep playing if you like.";msgT=6;if(P.v>best){best=P.v;localStorage.setItem(BK,best)}}
+  if(P.v>=2048&&!won){won=true;msg="2048! You win! Keep growing past it!";msgT=6;if(P.v>best){best=P.v;localStorage.setItem(BK,best)}}
 }
 function newGame(){
   P=cube("You",2,false);P.x=WS/2+rnd(-300,300);P.y=WS/2+rnd(-300,300);
@@ -124,7 +123,7 @@ function update(dt){
   zoom+=(tz-zoom)*Math.min(1,dt*2);
 }
 
-const ELS=["","Dirt","Rock","Water","Wind","Fire","Lava","Ice","Lightning","Crystal","Plasma","Star"];
+const ELS=["","Dirt","Rock","Water","Wind","Fire","Lava","Ice","Lightning","Crystal","Plasma","Star","Galaxy","Nebula","Black Hole"];
 function poly(p){x.beginPath();p.forEach((q,i)=>i?x.lineTo(q[0],q[1]):x.moveTo(q[0],q[1]));x.closePath();x.fill();x.stroke()}
 function bit(t,mx,my,r,k){
   x.save();x.translate(mx,my);x.lineWidth=Math.max(1,r*.12);
@@ -139,6 +138,7 @@ function bit(t,mx,my,r,k){
   else if(t===8){x.fillStyle="#fde047";x.strokeStyle="#a16207";poly([[r*.3,-r*1.2],[-r*.7,r*.1],[-r*.05,r*.1],[-r*.3,r*1.2],[r*.7,-r*.15],[r*.05,-r*.15]])}
   else if(t===9){x.fillStyle="#a78bfa";x.strokeStyle="#5b21b6";const h=[0,1,2,3,4,5].map(j=>[Math.cos(j*1.047)*r,Math.sin(j*1.047)*r]);poly(h);x.beginPath();h.forEach((q,j)=>{if(j%2===0){x.moveTo(0,0);x.lineTo(q[0],q[1])}});x.stroke()}
   else if(t===10){const g=x.createRadialGradient(-r*.3,-r*.3,r*.1,0,0,r);g.addColorStop(0,"#fff");g.addColorStop(.4,"#f0abfc");g.addColorStop(1,"#a21caf");x.shadowColor="#e879f9";x.shadowBlur=r*.8;x.fillStyle=g;x.beginPath();x.arc(0,0,r,0,7);x.fill()}
+  else if(t>=12){const g=x.createRadialGradient(0,0,r*.1,0,0,r);if(t>=14){g.addColorStop(0,"#000");g.addColorStop(.6,"#000");g.addColorStop(1,"#a78bfa");x.shadowColor="#c4b5fd"}else{g.addColorStop(0,"#fff");g.addColorStop(.35,t===12?"#818cf8":"#f472b6");g.addColorStop(1,"#1e1b4b");x.shadowColor=t===12?"#818cf8":"#f472b6"}x.shadowBlur=r*.9;x.fillStyle=g;x.beginPath();x.arc(0,0,r,0,7);x.fill();x.shadowBlur=0;x.strokeStyle="#fffc";x.lineCap="round";x.beginPath();x.arc(0,0,r*.65,k,k+3.5);x.stroke();x.beginPath();x.arc(0,0,r*.35,k+2,k+5);x.stroke()}
   else{x.fillStyle="#fde047";x.strokeStyle="#b45309";poly([0,1,2,3,4,5,6,7,8,9].map(j=>{const q=j%2?r*.5:r*1.15,a=j*.628-1.571;return[Math.cos(a)*q,Math.sin(a)*q]}))}
   x.restore();
 }
@@ -149,7 +149,7 @@ function drawCube(cx,cy,v,s,name,big){
     const a=k*2.4,d=Math.sqrt((k+.5)/n)*(s-mr),mx=cx+Math.cos(a)*d,my=cy+Math.sin(a)*d;
     bit(Math.round(Math.log2(v)),mx,my,mr*1.05,k);
   }
-  const t=v+" "+(ELS[Math.round(Math.log2(v))]||"Star");x.textAlign="center";x.textBaseline="alphabetic";
+  const t=v+" "+(ELS[Math.round(Math.log2(v))]||"Black Hole");x.textAlign="center";x.textBaseline="alphabetic";
   x.font="bold "+Math.max(12,Math.round(s*.45))+"px Arial";x.lineWidth=3;x.strokeStyle="#000c";x.strokeText(t,cx,cy-s-5);x.fillStyle="#fff";x.fillText(t,cx,cy-s-5);
   if(name){x.fillStyle="#fff";x.font="bold "+Math.max(12,s*.4)+"px Arial";x.fillText(name,cx,cy+s+Math.max(16,s*.5))}
 }
