@@ -195,8 +195,12 @@ const MODS=[{id:"none",n:"",apply(){}},{id:"blur",n:"Blurry",apply(){st.style.fi
  {id:"spotlight",n:"Spotlight",apply(){const f=e=>{const r=st.getBoundingClientRect();st.style.setProperty("--mx",e.clientX-r.left+"px");st.style.setProperty("--my",e.clientY-r.top+"px")};st.style.setProperty("--mx","50%");st.style.setProperty("--my","50%");st.style.maskImage=st.style.webkitMaskImage="radial-gradient(circle 80px at var(--mx) var(--my),#000 60%,rgba(0,0,0,.07) 100%)";on(st,"mousemove",f)}},
  {id:"gray",n:"Grayscale",apply(){st.style.filter="grayscale(1) contrast(.85)"}}];
 const BAN={10:["blur","dark"],16:["hue","gray","dark","blur"],18:["dark"]},used=new Set();
-for(let i=0;i<85;i++){const m=i%T.length,d=1+Math.floor(i/T.length),f=T[m];let k=(3*i+Math.floor(i/T.length))%MODS.length,tries=0;
- while((used.has(m+"|"+MODS[k].id)||(BAN[m]||[]).includes(MODS[k].id))&&tries++<MODS.length)k=(k+1)%MODS.length;used.add(m+"|"+MODS[k].id);LM[L.length]=MODS[k];L.push(()=>f(d))}
+const shuf=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const SURP=[()=>{st.style.transform="rotate(180deg)"},()=>{st.style.filter=(st.style.filter||"")+" invert(1)"},()=>{st.style.filter=(st.style.filter||"")+" blur(2px)"},()=>{st.style.transform="scaleX(-1)"}];
+const surprise=()=>{timers.push(setTimeout(()=>{const f0=st.style.filter,t0=st.style.transform;shuf(SURP.slice())[0]();say($("#msg").textContent+" 😈");timers.push(setTimeout(()=>{st.style.filter=f0;st.style.transform=t0},2200))},rnd(2500,9000)))};
+const order=Array.from({length:Math.ceil(85/T.length)},()=>shuf(T.map((_,i)=>i)));
+for(let i=0;i<85;i++){const d=1+Math.floor(i/T.length),m=order[d-1][i%T.length],f=T[m];let k=Math.floor(Math.random()*MODS.length),tries=0;
+ while((used.has(m+"|"+MODS[k].id)||(BAN[m]||[]).includes(MODS[k].id))&&tries++<MODS.length)k=(k+1)%MODS.length;used.add(m+"|"+MODS[k].id);LM[L.length]=MODS[k];L.push(()=>{f(d);if(i>=10&&Math.random()<.4)surprise()})}
 L.push(FIN);
 load();
 </script></main></body></html>
