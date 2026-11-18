@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Radish Dad</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;display:grid;place-items:center;background:#1f1a35;color:#fff;font-family:system-ui,sans-serif}
+  main{width:min(960px,96vw);text-align:center}
+  h1{margin:.4rem 0}
+  a{color:#9fe}
+  canvas{width:100%;border:4px solid #fff;border-radius:8px;touch-action:none;background:#8ad7ff;display:block}
+  #hud{display:flex;justify-content:space-between;font-weight:700;margin:.3rem 0}
+  #msg{min-height:1.5em;color:#ffe066;font-weight:700}
+  #touch{display:none;gap:.5rem;justify-content:space-between;margin-top:.5rem}
+  #touch button{flex:1;font-size:1.6rem;padding:.8rem}
+  button{font:inherit;font-weight:700;padding:.5rem 1.2rem;border-radius:8px;border:0;background:#ffe066;cursor:pointer}
+  p{margin:.4rem 0;opacity:.9}
+  @media (pointer:coarse){#touch{display:flex}}
+</style>
+</head>
+<body>
+<main>
+  <a href="../">← Back to games</a>
+  <h1>🥕 Radish Dad</h1>
+  <div id="hud"><span id="h1">Level 1</span><span id="h2">⭐ 0/3</span><span id="h3">Kids found 0</span><span id="h4">Deaths 0</span></div>
+  <canvas id="c" width="900" height="480"></canvas>
+  <div id="touch"><button id="bl">◀</button><button id="br">▶</button><button id="bj">⤒ Jump</button></div>
+  <div id="msg">Click the game or press Space to start.</div>
+  <p>Radish Dad lost his kids in the big, scary world! Arrow keys or A/D to move, Space, W or Up to jump (hold for a higher jump). Jump on burgers to squash them, but touching them from the side, spikes and pits mean you start over. Collect the 3 stars and find the lost kid at the end of each level.</p>
+</main>
+<script>
+const cv=document.getElementById("c"),g=cv.getContext("2d"),W=900,H=480,T=40,ROWS=12,$=id=>document.getElementById(id);
+const KIDS=["Little Radish Rosie","Baby Beet Benny","Turnip Tina","Radish Ray","Tiny Tim Radish","Rosebud Radish","Radish Rex","Daisy Radish","Ruby Radish","Radish Rocky","Pepper Radish","Radish Rufus"];
+const KQ=["Dad! I got lost looking for a snack!","Dad, a burger chased me!","I knew you'd find me!","Dad, did you bring cookies?","Can we go home now?","I was so scared... but also bored.","Dad! Watch me jump!","You're the best dad ever!","I only cried a little.","Dad, the burgers are everywhere!","One more kid to go, right?","Dad! You found us all! Let's go home!"];
+let rng=1;function rand(){rng=(rng*16807)%2147483647;return rng/2147483647}
+let lv=0,map,cols,stars,enemies,kid,p,cam=0,deaths=0,kids=+localStorage.getItem("radish-kids")||0,got=0,state="title",timer=0,last=0,parts=[];
+const keys=new Set();let jumpHeld=false,jumpBuf=0;
+function gen(n){
+  rng=n*7919+13;cols=60+n*5;map=Array.from({length:ROWS},()=>Array(cols).fill(" "));enemies=[];stars=[];
+  const GR=10;let x=0;
+  const ground=(a,b)=>{for(let c=a;c<b&&c<cols;c++){map[GR][c]="#";map[GR+1][c]="#"}};
+  ground(0,6);x=6;p={x:60,y:GR*T-34,w:28,h:34,vx:0,vy:0,on:false,face:1,dead:0};
+  const diff=Math.min(1,n/8);
+  while(x<cols-8){
+    const r=rand(),len=3+Math.floor(rand()*4);
+    if(r<.25+.1*diff){
+      const gw=2+Math.floor(rand()*(1.9+diff*.9));
+      if(rand()<.35){map[GR-3][x+Math.floor(gw/2)]="#";stars.push([x+Math.floor(gw/2),GR-4])}
+      x+=gw;ground(x,x+len);x+=len;
+    }else if(r<.5){
+      const sw=1+Math.floor(rand()*(1+diff*2));ground(x,x+len+sw);for(let c=0;c<sw;c++)map[GR-1][x+1+c]="^";
+      if(rand()<.5)stars.push([x+1,GR-4]);x+=len+sw;
+    }else if(r<.7){
+      ground(x,x+len+2);const h=1+Math.floor(rand()*2);for(let c=1;c<3;c++)for(let k=1;k<=h;k++)map[GR-k][x+c]="#";
+      if(rand()<.4)stars.push([x+2,GR-h-2]);x+=len+2;
+    }else if(r<.88){
+      const wl=len+3;ground(x,x+wl);enemies.push({x:(x+1)*T,y:(GR-1)*T+6,w:32,h:34,dir:1,x0:(x+1)*T,x1:(x+wl-1)*T-32,sq:0,fly:0,sp:55+diff*40});
+      x+=wl;
+    }else{
+      ground(x,x+len);for(let c=0;c<3;c++)map[GR-3][x+1+c]="#";stars.push([x+2,GR-5]);x+=len;
+    }
+    if(n>=3&&rand()<.15*diff+.06){const e=enemies[enemies.length-1];if(e)e.fly=1}
+  }
+  ground(x,cols);kid={x:(cols-3)*T,y:(GR-1)*T,w:30,h:36};
+  while(stars.length<3){const c=8+Math.floor(rand()*(cols-16));if(map[GR][c]==="#"&&map[GR-1][c]===" "&&map[GR-3][c]===" ")stars.push([c,GR-3])}
+  stars=stars.slice(0,3).map(s=>({x:s[0]*T+20,y:s[1]*T+20,got:false}));
+  cam=0;got=0;parts=[];
+}
+function solid(c,r){if(c<0||c>=cols)return true;if(r<0||r>=ROWS)return false;return map[r][c]==="#"}
+function hit(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y}
+function move(o,dx,dy){
+  o.x+=dx;let c0=Math.floor(o.x/T),c1=Math.floor((o.x+o.w-.01)/T),r0=Math.floor(o.y/T),r1=Math.floor((o.y+o.h-.01)/T);
+  for(let r=r0;r<=r1;r++)for(let c=c0;c<=c1;c++)if(solid(c,r)){if(dx>0)o.x=c*T-o.w;else if(dx<0)o.x=(c+1)*T;o.vx=0;c0=Math.floor(o.x/T);c1=Math.floor((o.x+o.w-.01)/T)}
+  o.y+=dy;o.on=false;c0=Math.floor(o.x/T);c1=Math.floor((o.x+o.w-.01)/T);r0=Math.floor(o.y/T);r1=Math.floor((o.y+o.h-.01)/T);
+  for(let r=r0;r<=r1;r++)for(let c=c0;c<=c1;c++)if(solid(c,r)){if(dy>0){o.y=r*T-o.h;o.on=true}else if(dy<0)o.y=(r+1)*T;o.vy=0;r0=Math.floor(o.y/T);r1=Math.floor((o.y+o.h-.01)/T)}
+}
+function die(){if(p.dead)return;p.dead=1;deaths++;for(let i=0;i<14;i++)parts.push({x:p.x+14,y:p.y+14,vx:(Math.random()-.5)*400,vy:-Math.random()*400,l:1,c:"#e53970"});$("msg").textContent="Ouch! Dad is fine, just embarrassed. Try again."}
+function update(dt){
+  if(state!=="play")return;timer+=dt;
+  parts.forEach(q=>{q.x+=q.vx*dt;q.y+=q.vy*dt;q.vy+=900*dt;q.l-=dt});parts=parts.filter(q=>q.l>0);
+  if(p.dead){p.dead+=dt;if(p.dead>1.8)gen(lv);return}
+  const dir=(keys.has("arrowright")||keys.has("d")?1:0)-(keys.has("arrowleft")||keys.has("a")?1:0);
+  p.vx+=((dir*230)-p.vx)*Math.min(1,dt*12);if(dir)p.face=dir;
+  jumpBuf=Math.max(0,jumpBuf-dt);
+  if(jumpBuf>0&&p.on){p.vy=-640;p.on=false;jumpBuf=0}
+  if(!jumpHeld&&p.vy<-200)p.vy=-200;
+  p.vy=Math.min(p.vy+1700*dt,900);
+  move(p,p.vx*dt,0);move(p,0,p.vy*dt);
+  p.x=Math.max(0,p.x);
+  const c0=Math.floor(p.x/T),c1=Math.floor((p.x+p.w)/T),r0=Math.floor(p.y/T),r1=Math.floor((p.y+p.h-1)/T);
+  for(let r=r0;r<=r1;r++)for(let c=c0;c<=c1;c++)if(map[r]&&map[r][c]==="^"){if(p.y+p.h>r*T+14)die()}
+  if(p.y>ROWS*T+60)die();
+  enemies.forEach(e=>{
+    if(e.sq){e.sq+=dt;return}
+    e.x+=e.dir*e.sp*dt;if(e.x<e.x0){e.x=e.x0;e.dir=1}if(e.x>e.x1){e.x=e.x1;e.dir=-1}
+    e.yy=e.fly?Math.sin(timer*3+e.x0)*18:0;
+    const eb={x:e.x,y:e.y+e.yy,w:e.w,h:e.h};
+    if(!p.dead&&hit(p,eb)){if(p.vy>50&&p.y+p.h<eb.y+eb.h*.6){e.sq=.001;p.vy=-480;for(let i=0;i<8;i++)parts.push({x:e.x+16,y:e.y+20,vx:(Math.random()-.5)*300,vy:-Math.random()*300,l:.6,c:"#d6892a"})}else die()}
+  });
+  stars.forEach(s=>{if(!s.got&&Math.hypot(p.x+p.w/2-s.x,p.y+p.h/2-s.y)<28){s.got=true;got++;for(let i=0;i<6;i++)parts.push({x:s.x,y:s.y,vx:(Math.random()-.5)*300,vy:-Math.random()*300,l:.6,c:"#ffe066"})}});
+  if(!p.dead&&hit(p,kid))winLevel();
+  cam=Math.max(0,Math.min(cols*T-W,p.x-W/2));
+  $("h1").textContent="Level "+(lv+1);$("h2").textContent="⭐ "+got+"/3";$("h3").textContent="Kids found "+kids;$("h4").textContent="Deaths "+deaths;
+}
+function winLevel(){
+  state="win";kids++;localStorage.setItem("radish-kids",kids);
+  $("msg").textContent=KIDS[lv%KIDS.length]+": \""+KQ[lv%KQ.length]+"\" "+(got===3?"All 3 stars! ":"Stars "+got+"/3. ")+"Press Space for the next level.";
+}
+function leaf(x,y,rot){g.save();g.translate(x,y);g.rotate(rot);g.fillStyle="#3aa84a";g.beginPath();g.ellipse(0,-8,5,10,0,0,7);g.fill();g.restore()}
+function radish(x,y,face,big,t){
+  const s=big?1:.8;g.save();g.translate(x,y);g.scale(s,s);
+  leaf(0,-12,-.5+Math.sin(t*6)*.05);leaf(0,-12,0);leaf(0,-12,.5-Math.sin(t*6)*.05);
+  g.fillStyle="#e53970";g.beginPath();g.moveTo(-18,-8);g.quadraticCurveTo(-18,18,0,28);g.quadraticCurveTo(18,18,18,-8);g.quadraticCurveTo(0,-20,-18,-8);g.fill();
+  g.fillStyle="#fff";[-7,7].forEach(ex=>{g.beginPath();g.arc(ex+face*2,0,5,0,7);g.fill()});g.fillStyle="#111";[-7,7].forEach(ex=>{g.beginPath();g.arc(ex+face*3.5,1,2.4,0,7);g.fill()});
+  g.strokeStyle="#111";g.lineWidth=2;g.beginPath();g.arc(face*2,9,5,.2,Math.PI-.2);g.stroke();
+  g.restore();
+}
+function burger(e,t){
+  const x=e.x,y=e.y+(e.yy||0),sq=e.sq?Math.max(0,1-e.sq*4):1;if(e.sq>.25)return;
+  g.save();g.translate(x,y+e.h*(1-sq));g.scale(1,sq);
+  g.fillStyle="#d6892a";g.beginPath();g.ellipse(16,10,16,10,0,Math.PI,0);g.fill();
+  g.fillStyle="#3b8f2a";g.fillRect(0,12,32,5);g.fillStyle="#6b3b1f";g.fillRect(1,17,30,8);g.fillStyle="#ffd34d";g.fillRect(2,25,28,3);g.fillStyle="#e0a050";g.fillRect(1,28,30,6);
+  g.fillStyle="#fff";g.beginPath();g.arc(10,12,4,0,7);g.arc(22,12,4,0,7);g.fill();g.fillStyle="#c00";g.beginPath();g.arc(10+e.dir*1.5,12,2,0,7);g.arc(22+e.dir*1.5,12,2,0,7);g.fill();
+  if(e.fly){g.fillStyle="rgba(255,255,255,.8)";g.beginPath();g.ellipse(-6,10+Math.sin(t*20)*3,8,4,0,0,7);g.ellipse(38,10+Math.sin(t*20)*3,8,4,0,0,7);g.fill()}
+  g.restore();
+}
+function draw(){
+  const t=timer;g.fillStyle="#8ad7ff";g.fillRect(0,0,W,H);
+  g.fillStyle="#fff";[[120,70],[420,50],[700,90]].forEach(([x,y])=>{const px=((x-cam*.2)%(W+200)+W+200)%(W+200)-100;g.beginPath();g.ellipse(px,y,50,20,0,0,7);g.ellipse(px+30,y-8,34,16,0,0,7);g.fill()});
+  if(!map)return;
+  g.save();g.translate(-Math.floor(cam),0);
+  for(let r=0;r<ROWS;r++)for(let c=Math.floor(cam/T);c<=Math.floor((cam+W)/T)&&c<cols;c++){
+    const ch=map[r][c];
+    if(ch==="#"){g.fillStyle="#8a5a2c";g.fillRect(c*T,r*T,T,T);if(!(r>0&&map[r-1][c]==="#")){g.fillStyle="#4cc04a";g.fillRect(c*T,r*T,T,9)}g.strokeStyle="rgba(0,0,0,.15)";g.strokeRect(c*T,r*T,T,T)}
+    else if(ch==="^"){g.fillStyle="#9aa3b2";for(let k=0;k<3;k++){g.beginPath();g.moveTo(c*T+k*13,(r+1)*T);g.lineTo(c*T+k*13+7,r*T+8);g.lineTo(c*T+k*13+14,(r+1)*T);g.fill()}}
+  }
+  stars.forEach(s=>{if(s.got)return;g.fillStyle="#ffd400";g.strokeStyle="#c79a00";g.lineWidth=2;g.beginPath();for(let i=0;i<10;i++){const a=i*Math.PI/5-Math.PI/2+t*2,rr=i%2?7:15;g.lineTo(s.x+Math.cos(a)*rr,s.y+Math.sin(a)*rr)}g.closePath();g.fill();g.stroke()});
+  enemies.forEach(e=>burger(e,t));
+  g.fillStyle="#fff";g.fillRect(kid.x+34,kid.y-20,3,56);g.fillStyle="#ff4d4d";g.fillRect(kid.x+37,kid.y-20,22,14);
+  radish(kid.x+15,kid.y+14,-1,false,t);
+  if(!p.dead)radish(p.x+14,p.y+14,p.face,true,t);
+  parts.forEach(q=>{g.globalAlpha=Math.max(0,q.l);g.fillStyle=q.c;g.fillRect(q.x,q.y,6,6);g.globalAlpha=1});
+  g.restore();
+  if(state==="title"||state==="end"){g.fillStyle="rgba(20,10,40,.7)";g.fillRect(0,0,W,H);g.fillStyle="#fff";g.textAlign="center";g.font="bold 40px system-ui";g.fillText("Radish Dad",W/2,180);g.font="20px system-ui";g.fillText(state==="end"?"You found all the kids! Press Space to play again.":"Find your lost kids. Press Space to start.",W/2,230);g.textAlign="start"}
+}
+function frame(tm){const dt=Math.min((tm-last)/1000,.04);last=tm;update(dt);draw();requestAnimationFrame(frame)}
+function startGame(){
+  if(state==="title"||state==="end"){if(state==="end")lv=0;state="play";gen(lv)}
+  else if(state==="win"){lv++;if(lv>=12){state="end";lv=0;gen(0);$("msg").textContent="You found all 12 kids! Dad of the year!";return}state="play";gen(lv)}
+  $("msg").textContent="Level "+(lv+1)+": find "+KIDS[lv%KIDS.length]+"!";
+}
+function pressJump(){if(state!=="play"){startGame();return}jumpHeld=true;jumpBuf=.12}
+addEventListener("keydown",e=>{const k=e.key.toLowerCase();if([" ","arrowup","arrowdown","arrowleft","arrowright"].includes(k))e.preventDefault();if(k===" "||k==="w"||k==="arrowup"){if(!keys.has(k))pressJump()}else if(state==="title")startGame();keys.add(k)});
+addEventListener("keyup",e=>{const k=e.key.toLowerCase();keys.delete(k);if(k===" "||k==="w"||k==="arrowup")jumpHeld=false});
+cv.addEventListener("pointerdown",()=>{if(state!=="play")startGame()});
+[["bl","arrowleft"],["br","arrowright"]].forEach(([id,k])=>{const b=$(id);b.addEventListener("pointerdown",e=>{e.preventDefault();keys.add(k)});["pointerup","pointerleave","pointercancel"].forEach(ev=>b.addEventListener(ev,()=>keys.delete(k)))});
+$("bj").addEventListener("pointerdown",e=>{e.preventDefault();pressJump()});$("bj").addEventListener("pointerup",()=>jumpHeld=false);
+gen(0);requestAnimationFrame(frame);
+</script>
+</body>
+</html>
