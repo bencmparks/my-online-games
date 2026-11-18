@@ -72,7 +72,7 @@ function kill(v,by){
   else if(by&&!by.bot){msg="Eliminated "+v.name+"!";msgT=1.5}
 }
 let lastPct=0;
-const WINPCT=50;
+const WINPCT=100;
 function win(){
   over=won=true;winT=0;msgT=0;
   if(lastPct>best){best=lastPct;localStorage.setItem(BK,best)}
@@ -192,7 +192,7 @@ function update(dt){
   if(cntT<=0){
     cntT=.4;cnt=ag.map(()=>0);
     for(let i=0;i<owner.length;i++)if(owner[i])cnt[owner[i]-1]++;
-    if(!over){lastPct=Math.round(100*cnt[0]/owner.length);if(lastPct>=WINPCT)win()}
+    if(!over){lastPct=Math.round(100*cnt[0]/owner.length);if(cnt[0]>=owner.length)win()}
   }
 }
 function draw(){
