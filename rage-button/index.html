@@ -187,19 +187,67 @@ T.push(
   const draw=()=>{g.innerHTML="";deck.forEach((q,i)=>{const b=document.createElement("button");b.textContent=q.done||open.includes(i)?q.e:"❓";b.onclick=()=>{if(lock||q.done||open.includes(i))return;open.push(i);draw();if(open.length===2){const[a,c]=open;if(deck[a].e===deck[c].e){deck[a].done=deck[c].done=1;open=[];if(deck.every(z=>z.done))return next();draw()}else{lock=true;miss++;timers.push(setTimeout(()=>{open=[];lock=false;if(miss%3===0){fail("Reshuffled!");deck.forEach(z=>z.done=0);deck.sort(()=>Math.random()-.5)}draw()},700))}}};g.append(b)})};draw()},
  d=>{const need=5+d*2;let n=0;say("Click "+need+" GREEN buttons. Colors keep changing!");const g=document.createElement("div");g.className="grid";g.style.gridTemplateColumns="repeat(4,4.2rem)";st.append(g);const bs=[];
   const paint=()=>bs.forEach(b=>{const gr=Math.random()<.35;b.dataset.c=gr?"g":"r";b.style.background=gr?"#16a34a":"#dc2626"});
-  for(let i=0;i<12;i++){const b=document.createElement("button");b.textContent="●";b.onclick=()=>{if(b.dataset.c==="g"){n++;say("Green "+n+"/"+need);if(n>=need)next();else paint()}else{n=0;fail("That was red! Back to 0.");paint()}};g.append(b);bs.push(b)}paint();every(paint,Math.max(700,1600-d*200))}
+  for(let i=0;i<12;i++){const b=document.createElement("button");b.textContent="●";b.onclick=()=>{if(b.dataset.c==="g"){n++;say("Green "+n+"/"+need);if(n>=need)next();else paint()}else{n=0;fail("That was red! Back to 0.");paint()}};g.append(b);bs.push(b)}paint();every(paint,Math.max(700,1600-d*200))},
+ d=>{const need=2+Math.ceil(d/2);let r=0,ready=false,pend=[];say("Wait for GREEN, then click. Too early and it restarts.");
+  const b=document.createElement("button");b.style.cssText="position:absolute;inset:0;border-radius:0;font-size:2rem;width:100%";st.append(b);
+  const arm=()=>{pend.forEach(clearTimeout);pend=[];ready=false;b.style.background="#dc2626";b.textContent="Wait...";
+   if(d>=2&&Math.random()<.6)pend.push(setTimeout(()=>{b.style.background="#eab308";b.textContent="Almost...";pend.push(setTimeout(()=>{b.style.background="#dc2626";b.textContent="Wait..."},450))},rnd(500,1100)));
+   pend.push(setTimeout(()=>{ready=true;b.style.background="#16a34a";b.textContent="CLICK!"},rnd(1800,4500)))};
+  b.onclick=()=>{if(!ready){r=0;fail("Too early! Back to 0.");arm();return}if(++r>=need)next();else{say("Good! "+r+"/"+need);arm()}};arm()},
+ d=>{const T0=5+d,R=Math.max(26,50-d*3);let t=0,mx=-999,my=-999,ph=rnd(0,6);say("Keep your cursor on the circle for "+T0+" seconds.");
+  const c=document.createElement("div");c.className="abs";c.style.cssText="width:"+R*2+"px;height:"+R*2+"px;border-radius:50%;background:#16a34a88;border:3px solid #22c55e;pointer-events:none";st.append(c);
+  on(st,"mousemove",e=>{const r=st.getBoundingClientRect();mx=e.clientX-r.left;my=e.clientY-r.top});
+  every(()=>{ph+=.016*(1+d*.15);const cx=st.clientWidth/2+Math.cos(ph*1.3)*(st.clientWidth/2-R-10),cy=st.clientHeight/2+Math.sin(ph*1.9+1)*(st.clientHeight/2-R-10);c.style.left=cx-R+"px";c.style.top=cy-R+"px";
+   if(Math.hypot(mx-cx,my-cy)<R){t+=.016;c.style.background="#16a34acc"}else{c.style.background="#dc262688";if(t>0){t=0;fail("You left the circle!")}}
+   if(t>=T0)next()},16)},
+ d=>{const rounds=1+Math.ceil(d/3);let r=0,ans=0;say("Count the apples 🍎. Memorize fast!");const c=document.createElement("div");c.className="center";st.append(c);
+  const round=()=>{c.innerHTML="";const field=document.createElement("div");field.style.cssText="position:relative;width:100%;height:100%";c.append(field);const n=Math.floor(rnd(4,8+d)),m=Math.floor(rnd(4,8+d));ans=n;
+   const E=[...Array(n).fill("🍎"),...Array(m).fill(["🍐","🍊","🍋"][Math.floor(rnd(0,3))])];E.forEach(e=>{const s=document.createElement("span");s.textContent=e;s.style.cssText="position:absolute;font-size:1.8rem;left:"+rnd(5,85)+"%;top:"+rnd(5,80)+"%";field.append(s)});
+   timers.push(setTimeout(()=>{c.innerHTML="<div style='font-size:1.3rem'>How many 🍎?</div>";const row=document.createElement("div");row.style.cssText="display:flex;gap:.4rem;flex-wrap:wrap;justify-content:center";c.append(row);const opts=new Set([ans]);while(opts.size<6)opts.add(Math.max(0,ans+Math.floor(rnd(-3,4))));
+    [...opts].sort(()=>Math.random()-.5).forEach(o=>{const b=document.createElement("button");b.textContent=o;b.onclick=()=>{if(o===ans){if(++r>=rounds)next();else{say("Correct! Next round.");round()}}else{r=0;fail("Wrong! Back to round 1.");round()}};row.append(b)})},Math.max(1500,3200-d*200)))};round()},
+ d=>{const need=2+Math.ceil(d/2);let px=2,py=2,gx=0,gy=0,score=0,moves=0,rot=0;say("Reach the star with the ARROW KEYS. The controls are reversed!");
+  const g=document.createElement("div");g.style.cssText="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:grid;grid-template-columns:repeat(5,3rem);gap:3px";st.append(g);
+  const goal=()=>{do{gx=Math.floor(rnd(0,5));gy=Math.floor(rnd(0,5))}while(Math.abs(gx-px)+Math.abs(gy-py)<3)};
+  const draw=()=>{g.innerHTML="";for(let y=0;y<5;y++)for(let x2=0;x2<5;x2++){const q=document.createElement("div");q.style.cssText="height:3rem;background:#334155;border-radius:.3rem;display:grid;place-items:center;font-size:1.6rem";q.textContent=x2===px&&y===py?"🧑":x2===gx&&y===gy?"⭐":"";g.append(q)}};
+  const V={ArrowUp:[0,1],ArrowDown:[0,-1],ArrowLeft:[1,0],ArrowRight:[-1,0]};goal();draw();
+  on(window,"keydown",e=>{const v=V[e.code];if(!v)return;e.preventDefault();let a=v[0],b=v[1];for(let i=0;i<rot;i++){const t=a;a=-b;b=t}px=Math.max(0,Math.min(4,px+a));py=Math.max(0,Math.min(4,py+b));moves++;
+   if(d>=2&&moves%6===0){rot=(rot+1)%4;say("The controls just shifted!")}
+   if(px===gx&&py===gy){if(++score>=need)return next();say("Star "+score+"/"+need);goal()}draw()})},
+ d=>{const N=Math.min(14,5+d*2);let nx=1;const bs=[];say("Click 1 to "+N+" in order. They keep moving!");
+  const scatter=()=>bs.forEach(o=>{o.style.left=rnd(10,st.clientWidth-60)+"px";o.style.top=rnd(10,st.clientHeight-50)+"px"});
+  for(let i=1;i<=N;i++){const b=btn(String(i),0,0);b.style.padding=".4rem .7rem";bs.push(b);b.onclick=()=>{if(i===nx){b.remove();nx++;if(nx>N)return next();if(d>=2)scatter()}else{nx=1;bs.forEach(o=>{if(!o.isConnected)st.append(o)});fail("Wrong number! Start over.");scatter()}}}scatter()},
+ d=>{const T0=4+d;let t=T0,live=false,tk=0;const msgs=["Good... keep waiting.","You're doing great.","Almost there!","Seriously, don't.","Wow, such patience."];say("Whatever you do, do not click the button!");
+  const b=btn("DON'T CLICK",st.clientWidth/2-70,st.clientHeight/2-25);
+  b.onclick=()=>{if(live)return next();t=T0;fail("You clicked! Start over.")};
+  every(()=>{if(live)return;t-=.1;tk++;if(t<=0){live=true;b.textContent="NOW CLICK!";b.style.background="#16a34a";say("NOW!");timers.push(setTimeout(()=>{live=false;t=T0;b.textContent="DON'T CLICK";b.style.background="#dc2626";fail("Too slow! Start over.")},Math.max(700,1500-d*100)))}else if(tk%10===0)say(msgs[Math.floor(rnd(0,msgs.length))])},100)},
+ d=>{const R=[["At least 8 characters",v=>v.length>=8],["Contains a number",v=>/\d/.test(v)],["Contains an UPPERCASE letter",v=>/[A-Z]/.test(v)],["Contains a symbol like !@#$%",v=>/[!@#$%^&*]/.test(v)],["Contains the word rage",v=>/rage/i.test(v)],["Digits add up to exactly 15",v=>(v.match(/\d/g)||[]).reduce((a,b)=>a+ +b,0)===15],["Ends with a question mark ?",v=>v.endsWith("?")],["No more than 16 characters",v=>v.length<=16]],n=Math.min(R.length,3+d);let shown=1;say("Create a password. The rules appear one at a time.");
+  const c=document.createElement("div");c.className="center";c.innerHTML="<input id=pw style='font-size:1.2rem;padding:.4rem;text-align:center;width:80%'><div id=rl style='font-size:.9rem;text-align:left'></div>";st.append(c);const pw=$("#pw");pw.focus();
+  const upd=()=>{const v=pw.value;let k=1;while(k<n&&R.slice(0,k).every(r=>r[1](v)))k++;shown=Math.max(shown,k);$("#rl").innerHTML=R.slice(0,shown).map(r=>(r[1](v)?"✅ ":"❌ ")+r[0]).join("<br>");if(shown===n&&R.slice(0,n).every(r=>r[1](v)))next()};pw.oninput=upd;upd()},
+ d=>{const rounds=3+d,N=Math.min(5,3+Math.floor(d/2));let r=0;say("Click the tile that is a slightly different color.");const c=document.createElement("div");c.className="grid";c.style.gridTemplateColumns="repeat("+N+",3.2rem)";st.append(c);
+  const draw=()=>{c.innerHTML="";const h=Math.floor(rnd(0,360)),delta=Math.max(4,16-d*2),odd=Math.floor(rnd(0,N*N));for(let i=0;i<N*N;i++){const b=document.createElement("button");b.style.cssText="height:3.2rem;padding:0;background:hsl("+h+",70%,"+(i===odd?50+delta:50)+"%)";b.onclick=()=>{if(i===odd){if(++r>=rounds)next();else{say("Round "+(r+1)+"/"+rounds);draw()}}else{r=0;fail("Wrong tile. Back to round 1.");draw()}};c.append(b)}};draw()},
+ d=>{const T0=6+d;let p=50,v=0,t=0;const keys={};say("Keep the marker in the green with the LEFT and RIGHT keys for "+T0+" seconds.");
+  const tr=document.createElement("div");tr.className="abs";tr.style.cssText="left:10%;width:80%;top:35%;height:2rem;background:#0f172a;border-radius:.4rem";const z=document.createElement("div"),m=document.createElement("div"),tx=document.createElement("div");
+  z.style.cssText="position:absolute;top:0;height:100%;left:35%;width:30%;background:#16a34a;border-radius:.3rem";m.style.cssText="position:absolute;top:-4px;width:8px;height:calc(100% + 8px);background:#fde047";tr.append(z,m);tx.className="abs";tx.style.cssText="left:0;right:0;top:55%;font-size:1.5rem";st.append(tr,tx);
+  on(window,"keydown",e=>{if(e.code==="ArrowLeft"||e.code==="ArrowRight"){e.preventDefault();keys[e.code]=1}});on(window,"keyup",e=>{delete keys[e.code]});
+  every(()=>{v+=rnd(-1,1)*(.5+d*.12)+(keys.ArrowRight?.4:0)-(keys.ArrowLeft?.4:0);v*=.96;p+=v;if(p<0||p>100){p=Math.max(0,Math.min(100,p));v=0}m.style.left=p+"%";
+   if(p>=35&&p<=65)t+=.03;else if(t>0){t=0;fail("You left the zone!")}tx.textContent=t.toFixed(1)+" / "+T0+"s";if(t>=T0)next()},30)},
+ d=>{const need=5+d*2,C=[["RED","#ef4444"],["BLUE","#3b82f6"],["GREEN","#22c55e"],["YELLOW","#eab308"]];let r=0;say("Simon says...");const c=document.createElement("div");c.className="center";st.append(c);
+  const draw=()=>{c.innerHTML="";const t=Math.floor(rnd(0,4)),simon=Math.random()<.6,p=document.createElement("div");p.style.cssText="font-size:1.8rem;font-weight:900";p.textContent=(simon?"Simon says ":"")+"click "+C[t][0];c.append(p);const row=document.createElement("div");row.style.cssText="display:flex;gap:.5rem;flex-wrap:wrap;justify-content:center";
+   const ans=ok=>{if(ok){if(++r>=need)next();else{say("Correct "+r+"/"+need);draw()}}else{r=0;fail("Wrong! Back to 0.");draw()}};
+   [0,1,2,3].sort(()=>Math.random()-.5).forEach(i=>{const b=document.createElement("button");b.style.cssText="background:"+C[i][1]+";width:4rem;height:3rem";b.onclick=()=>ans(simon&&i===t);row.append(b)});
+   const no=document.createElement("button");no.textContent="🙅 Not Simon";no.style.background="#475569";no.onclick=()=>ans(!simon);row.append(no);c.append(row)};draw()}
 );
 // Every generated level pairs one mechanic with one visual twist, and no mechanic+twist pair repeats
 const MODS=[{id:"none",n:"",apply(){}},{id:"blur",n:"Blurry",apply(){st.style.filter="blur(1.3px)"}},{id:"hue",n:"Inverted colors",apply(){st.style.filter="invert(1) hue-rotate(180deg)"}},{id:"dark",n:"Lights out",apply(){st.style.filter="brightness(.35)"}},
  {id:"fade",n:"Flickering",apply(){st.className="m-fade"}},{id:"hidecursor",n:"No cursor",apply(){st.className="m-hidecursor"}},{id:"shake",n:"Earthquake",apply(){st.className="m-shake"}},{id:"wobble",n:"Seasick",apply(){st.className="m-wobble"}},
  {id:"spotlight",n:"Spotlight",apply(){const f=e=>{const r=st.getBoundingClientRect();st.style.setProperty("--mx",e.clientX-r.left+"px");st.style.setProperty("--my",e.clientY-r.top+"px")};st.style.setProperty("--mx","50%");st.style.setProperty("--my","50%");st.style.maskImage=st.style.webkitMaskImage="radial-gradient(circle 80px at var(--mx) var(--my),#000 60%,rgba(0,0,0,.07) 100%)";on(st,"mousemove",f)}},
  {id:"gray",n:"Grayscale",apply(){st.style.filter="grayscale(1) contrast(.85)"}}];
-const BAN={10:["blur","dark"],16:["hue","gray","dark","blur"],18:["dark"]},used=new Set();
+const NB=T.length-10,BAN={10:["blur","dark"],16:["hue","gray","dark","blur"],18:["dark"],[NB+1]:["hidecursor"],[NB+7]:["dark","gray","hue","blur"],[NB+3]:["hidecursor"]},used=new Set();
 const shuf=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const SURP=[()=>{st.style.transform="rotate(180deg)"},()=>{st.style.filter=(st.style.filter||"")+" invert(1)"},()=>{st.style.filter=(st.style.filter||"")+" blur(2px)"},()=>{st.style.transform="scaleX(-1)"}];
 const surprise=()=>{timers.push(setTimeout(()=>{const f0=st.style.filter,t0=st.style.transform;shuf(SURP.slice())[0]();say($("#msg").textContent+" 😈");timers.push(setTimeout(()=>{st.style.filter=f0;st.style.transform=t0},2200))},rnd(2500,9000)))};
 const order=Array.from({length:Math.ceil(85/T.length)},()=>shuf(T.map((_,i)=>i)));
-for(let i=0;i<85;i++){const d=1+Math.floor(i/T.length),m=order[d-1][i%T.length],f=T[m];let k=Math.floor(Math.random()*MODS.length),tries=0;
+for(let i=0;i<85;i++){const d=1+Math.floor(i/20),m=order[Math.floor(i/T.length)][i%T.length],f=T[m];let k=Math.floor(Math.random()*MODS.length),tries=0;
  while((used.has(m+"|"+MODS[k].id)||(BAN[m]||[]).includes(MODS[k].id))&&tries++<MODS.length)k=(k+1)%MODS.length;used.add(m+"|"+MODS[k].id);LM[L.length]=MODS[k];L.push(()=>{f(d);if(i>=10&&Math.random()<.4)surprise()})}
 L.push(FIN);
 load();
