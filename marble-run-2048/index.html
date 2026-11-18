@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-<title>Cube 2048 IO | My Online Games</title>
+<title>2048 Marble Run | My Online Games</title>
 <style>
 :root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#f8fafc}
 *{box-sizing:border-box}
@@ -19,15 +19,15 @@ button{margin:.5rem .25rem 0;padding:.6rem 1.1rem;border:1px solid #f59e0b;borde
 <body>
 <main>
 <a href="../">← All games</a>
-<h1>🧊 Cube 2048 IO</h1>
-<p>You are a numbered cube. Steer with the mouse (or drag on a touch screen). Touch a cube with the same number to merge into a double, touch a smaller cube to eat it, and touch a bigger cube and you are crushed! Eat enough and you level up to the next number. Reach 2048 to win. Dash with Space, click or the button.</p>
+<h1>🔮 2048 Marble Run</h1>
+<p>You are a pile of marbles, and the number above it is your mass. Steer with the mouse (or drag on a touch screen). Touch a pile with the same number to merge into a double, touch a smaller pile to eat it, and touch a bigger pile and you are crushed! The marble color tells the size, and eating enough levels you up to the next number. Reach 2048 to win. Dash with Space, click or the button.</p>
 <canvas id="c" width="900" height="600"></canvas>
 <button id="dash">💨 Dash</button><button id="again">New game</button>
 </main>
 <script>
-const c=document.getElementById("c"),x=c.getContext("2d"),VW=900,VH=600,WS=4000,BK="cube-2048-best";
+const c=document.getElementById("c"),x=c.getContext("2d"),VW=900,VH=600,WS=4000,BK="marble-run-2048-best";
 const rnd=(a,b)=>a+Math.random()*(b-a),clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-const NAMES=["Boxy","Dice","Blok","Cubo","Quad","Tetra","Crate","Brick","Slab","Pixel","Cubix","Square","Block","Domino"];
+const NAMES=["Pebble","Orb","Bead","Globe","Glassy","Shooter","Aggie","Cat-eye","Bonker","Roller","Swirl","Pearl","Taw","Spinner"];
 const CC={2:"#f87171",4:"#fb923c",8:"#facc15",16:"#a3e635",32:"#4ade80",64:"#2dd4bf",128:"#38bdf8",256:"#60a5fa",512:"#a78bfa",1024:"#e879f9",2048:"#fde047"};
 const sz=v=>14+Math.log2(v)*3.6;
 let P,bots,food,best=+localStorage.getItem(BK)||0,over=false,won=false,zoom=1,cam={x:WS/2,y:WS/2},dashing=false,kills=0,msg="",msgT=0,time=0;
@@ -43,7 +43,7 @@ function gain(e,amt){
   if(e.v>=2048){e.pool=0}
 }
 function levelMsg(){
-  msg="You are now "+P.v+"!";msgT=1.5;
+  msg="Your pile is now "+P.v+"!";msgT=1.5;
   if(P.v>=2048&&!won){won=true;msg="2048! You win! Keep playing if you like.";msgT=6;if(P.v>best){best=P.v;localStorage.setItem(BK,best)}}
 }
 function newGame(){
@@ -51,7 +51,7 @@ function newGame(){
   const names=NAMES.slice().sort(()=>Math.random()-.5);
   bots=Array.from({length:14},(_,i)=>cube(names[i%names.length],Math.pow(2,1+(Math.random()*Math.random()*6|0)),true));
   food=Array.from({length:700},foodItem);
-  over=false;won=false;kills=0;msg="Eat small cubes, merge twins, flee big ones!";msgT=3;cam.x=P.x;cam.y=P.y;time=0;
+  over=false;won=false;kills=0;msg="Eat small piles, merge twins, flee big ones!";msgT=3;cam.x=P.x;cam.y=P.y;time=0;
 }
 const all=()=>[P,...bots].filter(e=>e.alive);
 function speedOf(e){return clamp((e.bot?260:300)*Math.pow(sz(e.v)/20,-.25),90,e.bot?230:290)}
@@ -98,14 +98,14 @@ function update(dt){
     const r=sz(e.v);
     for(let i=0;i<food.length;i++){
       const f=food[i];
-      if(f.v<=e.v&&Math.abs(f.x-e.x)<r+8&&Math.abs(f.y-e.y)<r+8){gain(e,f.v);food[i]=foodItem()}
+      if(f.v<=e.v&&Math.hypot(f.x-e.x,f.y-e.y)<r+8){gain(e,f.v);food[i]=foodItem()}
     }
   }
   for(let i=0;i<live.length;i++)for(let j=i+1;j<live.length;j++){
     const a=live[i],b=live[j];
     if(!a.alive||!b.alive)continue;
     const ra=sz(a.v),rb=sz(b.v);
-    if(Math.abs(a.x-b.x)>=ra+rb-4||Math.abs(a.y-b.y)>=ra+rb-4)continue;
+    if(Math.hypot(a.x-b.x,a.y-b.y)>=ra+rb-4)continue;
     if(a.v===b.v){
       const keep=a===P?a:b===P?b:a,gone=keep===a?b:a;
       keep.pool+=gone.pool;gone.alive=false;gone.respawn=3;
@@ -124,16 +124,18 @@ function update(dt){
   zoom+=(tz-zoom)*Math.min(1,dt*2);
 }
 
-function drawCube(cx,cy,v,s,name){
-  const col=CC[Math.min(v,2048)]||"#fde047",d=s*.28;
-  x.fillStyle="#0004";x.fillRect(cx-s+d,cy-s+d+s*.1,s*2,s*2);
-  x.fillStyle=shade(col,-.35);x.beginPath();x.moveTo(cx+s,cy-s);x.lineTo(cx+s+d,cy-s-d);x.lineTo(cx+s+d,cy+s-d);x.lineTo(cx+s,cy+s);x.closePath();x.fill();
-  x.fillStyle=shade(col,.25);x.beginPath();x.moveTo(cx-s,cy-s);x.lineTo(cx-s+d,cy-s-d);x.lineTo(cx+s+d,cy-s-d);x.lineTo(cx+s,cy-s);x.closePath();x.fill();
-  x.fillStyle=col;x.fillRect(cx-s,cy-s,s*2,s*2);
-  x.strokeStyle="#0006";x.lineWidth=Math.max(1,s*.05);x.strokeRect(cx-s,cy-s,s*2,s*2);
-  x.fillStyle="#1f2937";x.textAlign="center";x.textBaseline="middle";
-  const t=String(v);x.font="bold "+Math.floor(s*(t.length>3?.7:t.length>2?.85:1.1))+"px Arial";x.fillText(t,cx,cy+s*.04);
-  if(name){x.fillStyle="#fff";x.textBaseline="alphabetic";x.font="bold "+Math.max(12,s*.4)+"px Arial";x.fillText(name,cx,cy+s+Math.max(16,s*.5))}
+function drawCube(cx,cy,v,s,name,big){
+  const col=CC[Math.min(v,2048)]||"#fde047",n=Math.min(28,3+Math.round(Math.log2(v)*2.4)),mr=s*(n<8?.42:n<16?.34:.28);
+  x.fillStyle="#0005";x.beginPath();x.ellipse(cx+s*.1,cy+s*.2,s*1.05,s*.95,0,0,7);x.fill();
+  for(let k=n-1;k>=0;k--){
+    const a=k*2.4,d=Math.sqrt((k+.5)/n)*(s-mr),mx=cx+Math.cos(a)*d,my=cy+Math.sin(a)*d;
+    const g=x.createRadialGradient(mx-mr*.35,my-mr*.35,mr*.1,mx,my,mr);
+    g.addColorStop(0,"#fff");g.addColorStop(.3,col);g.addColorStop(1,shade(col,-.55));
+    x.fillStyle=g;x.beginPath();x.arc(mx,my,mr,0,7);x.fill();
+  }
+  const t=String(v);x.textAlign="center";x.textBaseline="alphabetic";
+  x.font="bold "+Math.max(12,Math.round(s*.6))+"px Arial";x.lineWidth=3;x.strokeStyle="#000c";x.strokeText(t,cx,cy-s-5);x.fillStyle="#fff";x.fillText(t,cx,cy-s-5);
+  if(name){x.fillStyle="#fff";x.font="bold "+Math.max(12,s*.4)+"px Arial";x.fillText(name,cx,cy+s+Math.max(16,s*.5))}
 }
 function shade(h,a){
   const n=parseInt(h.slice(1),16),f=v=>Math.round(clamp(a<0?v*(1+a):v+(255-v)*a,0,255));
@@ -156,16 +158,16 @@ function draw(){
   for(const e of live.slice().sort((a,b)=>a.v-b.v)){
     const r=sz(e.v);if(e.x+r*1.6<vx0||e.x-r*1.6>vx1||e.y+r*1.6<vy0||e.y-r*1.6>vy1)continue;
     drawCube(e.x,e.y,e.v,r,e.name);
-    if(e===P){x.strokeStyle="#fff";x.lineWidth=3/zoom;x.strokeRect(e.x-r-3,e.y-r-3,r*2+6,r*2+6)}
-    else{x.fillStyle=e.v>P.v?"#ef4444":e.v===P.v?"#facc15":"#4ade80";x.beginPath();x.arc(e.x,e.y-r-12,4,0,7);x.fill()}
+    if(e===P){x.strokeStyle="#fff";x.lineWidth=3/zoom;x.beginPath();x.arc(e.x,e.y,r+4,0,7);x.stroke()}
+    else{x.fillStyle=e.v>P.v?"#ef4444":e.v===P.v?"#facc15":"#4ade80";x.beginPath();x.arc(e.x,e.y-r-Math.max(12,r*.6)-14,4,0,7);x.fill()}
   }
   x.strokeStyle="#ef4444";x.lineWidth=6/zoom;x.strokeRect(0,0,WS,WS);
   x.restore();
   x.fillStyle="#000a";x.fillRect(0,0,230,76);
   x.textAlign="left";x.textBaseline="alphabetic";x.font="bold 18px Arial";x.fillStyle="#fff";
-  x.fillText("Cube "+(P.alive?P.v:0),10,24);
+  x.fillText("Mass "+(P.alive?P.v:0),10,24);
   x.font="13px Arial";x.fillStyle="#fde68a";x.fillText("Next level "+Math.round(P.pool/P.v*100)+"%   Crushed "+kills,10,46);
-  x.fillText("Best cube "+best+"   Dash "+(P.cd>0?P.cd.toFixed(1)+"s":"ready"),10,66);
+  x.fillText("Best mass "+best+"   Dash "+(P.cd>0?P.cd.toFixed(1)+"s":"ready"),10,66);
   const top=lb.slice(0,6);
   x.fillStyle="#000a";x.fillRect(VW-170,0,170,12+top.length*18);
   x.font="bold 13px Arial";
@@ -177,7 +179,7 @@ function draw(){
   if(over){
     x.fillStyle="#000b";x.fillRect(0,190,VW,200);x.fillStyle="#fca5a5";x.font="bold 44px Arial";
     x.fillText("You were crushed!",VW/2,255);x.fillStyle="#fff";x.font="20px Arial";
-    x.fillText("Crushed "+kills+" · Best cube "+best+" · Click or press Enter to play again",VW/2,300);
+    x.fillText("Crushed "+kills+" · Best mass "+best+" · Click or press Enter to play again",VW/2,300);
   }
 }
 function pos(e){const r=c.getBoundingClientRect();mouse.x=(e.clientX-r.left)/r.width*VW-VW/2;mouse.y=(e.clientY-r.top)/r.height*VH-VH/2}
