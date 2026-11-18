@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Army Commando | My Online Games</title>
+<style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#0f1a12;color:#f8fafc}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:grid;place-items:center;padding:1rem;background:linear-gradient(135deg,#0f1a12,#1f2f1d)}
+main{width:min(100%,56rem);text-align:center}
+a{color:#bbf7d0}
+h1{margin:.3rem 0;color:#86efac}
+p{margin:.35rem 0;color:#d1fae5}
+canvas{display:block;width:100%;height:auto;border:.3rem solid #3f5b3a;border-radius:.75rem;background:#0b130d;touch-action:none;cursor:crosshair}
+button{margin:.5rem .25rem 0;padding:.6rem 1.1rem;border:1px solid #4b7a4b;border-radius:.5rem;background:#86efac;color:#102019;font:inherit;font-weight:bold;cursor:pointer}
+</style>
+</head>
+<body>
+<main>
+<a href="../">← All games</a>
+<h1>🪖 Army Commando</h1>
+<p>Top-down commando missions. Sneak behind enemy lines, blow up every radio tower, then reach the green extraction zone. WASD to move, mouse to aim, click to shoot, R to reload, Space or G to throw a grenade. Enemies spot you in their view cone and hear gunfire, so use walls for cover!</p>
+<canvas id="c" width="800" height="560"></canvas>
+<button id="again">Restart mission</button>
+</main>
+<script>
+const c=document.getElementById("c"),x=c.getContext("2d"),VW=800,VH=560,WW=2400,WH=1800,BK="commando-best";
+const rnd=(a,b)=>a+Math.random()*(b-a),clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+let mission=1,best=+localStorage.getItem(BK)||0;
+let P,walls,en,towers,pick,bul,gren,fx,state,msg,msgT,cam={x:0,y:0},shake=0,kills=0,time=0;
+const keys=new Set(),mouse={x:400,y:280,down:false};
+const START={x:170,y:WH-170},EXIT={x:WW-190,y:190,r:80};
+
+function hitWall(px,py,r){
+  for(const w of walls){
+    const nx=clamp(px,w.x,w.x+w.w),ny=clamp(py,w.y,w.y+w.h);
+    if((px-nx)**2+(py-ny)**2<r*r)return true;
+  }
+  return false;
+}
+function freePos(minFromStart,margin=30){
+  for(let i=0;i<400;i++){
+    const px=rnd(120,WW-120),py=rnd(120,WH-120);
+    if(Math.hypot(px-START.x,py-START.y)<minFromStart)continue;
+    if(Math.hypot(px-EXIT.x,py-EXIT.y)<200)continue;
+    if(!hitWall(px,py,margin))return {x:px,y:py};
+  }
+  return {x:WW/2,y:WH/2};
+}
+function los(ax,ay,bx,by){
+  const d=Math.hypot(bx-ax,by-ay),n=Math.ceil(d/14);
+  for(let i=1;i<n;i++){const t=i/n;if(hitWall(ax+(bx-ax)*t,ay+(by-ay)*t,1))return false}
+  return true;
+}
+function newMission(){
+  walls=[{x:-50,y:-50,w:WW+100,h:50},{x:-50,y:WH,w:WW+100,h:50},{x:-50,y:0,w:50,h:WH},{x:WW,y:0,w:50,h:WH}];
+  for(let i=0;i<46;i++){
+    const horiz=Math.random()<.5,w=horiz?rnd(90,260):rnd(36,60),h=horiz?rnd(36,60):rnd(90,260),px=rnd(80,WW-300),py=rnd(80,WH-300);
+    if(px<START.x+300&&px+w>START.x-300&&py<START.y+300&&py+h>START.y-300)continue;
+    if(px<EXIT.x+160&&px+w>EXIT.x-160&&py<EXIT.y+160&&py+h>EXIT.y-160)continue;
+    walls.push({x:px,y:py,w,h});
+  }
+  P={x:START.x,y:START.y,hp:100,mag:30,res:120,reload:0,fire:0,gren:3,ang:0,hit:0};
+  const nT=Math.min(6,2+Math.floor(mission/2));
+  towers=Array.from({length:nT},()=>{const p=freePos(900,50);return {x:p.x,y:p.y,hp:10,dead:false}});
+  const nE=10+mission*4;
+  en=Array.from({length:nE},(_,i)=>{
+    const o=i%5===4,p=freePos(550);
+    return {x:p.x,y:p.y,hp:o?6:3,max:o?6:3,off:o,ang:rnd(0,6.28),alert:0,cd:rnd(0,1),pt:{x:p.x,y:p.y},ptT:0,look:0,flash:0};
+  });
+  pick=[];bul=[];gren=[];fx=[];kills=0;time=0;state="play";
+  msg="Mission "+mission+": destroy "+nT+" radio towers, then reach the extraction zone";msgT=4;
+  cam.x=P.x-VW/2;cam.y=P.y-VH/2;
+}
+function boom(px,py,rad){
+  shake=.4;
+  for(let i=0;i<30;i++){const a=rnd(0,6.28),s=rnd(40,260);fx.push({x:px,y:py,vx:Math.cos(a)*s,vy:Math.sin(a)*s,t:rnd(.3,.7),c:Math.random()<.5?"#fb923c":"#fde047",r:rnd(2,5)})}
+  for(const e of en)if(Math.hypot(e.x-px,e.y-py)<rad){e.hp-=6;e.flash=.15;e.alert=5}
+  for(const t of towers)if(!t.dead&&Math.hypot(t.x-px,t.y-py)<rad){t.hp-=6}
+  if(Math.hypot(P.x-px,P.y-py)<rad)hurt(30*(1-Math.hypot(P.x-px,P.y-py)/rad)+8);
+}
+function hurt(d){P.hp-=d;P.hit=.2;shake=Math.max(shake,.15);if(P.hp<=0&&state==="play"){P.hp=0;state="dead";msgT=0}}
+function shoot(){
+  if(P.reload>0||P.fire>0||state!=="play")return;
+  if(P.mag<=0){startReload();return}
+  P.mag--;P.fire=.11;
+  const a=P.ang+rnd(-.04,.04);
+  bul.push({x:P.x+Math.cos(P.ang)*22,y:P.y+Math.sin(P.ang)*22,vx:Math.cos(a)*850,vy:Math.sin(a)*850,t:.9,p:true,d:1});
+  for(const e of en)if(Math.hypot(e.x-P.x,e.y-P.y)<520)e.alert=Math.max(e.alert,4);
+  shake=Math.max(shake,.04);
+}
+function startReload(){if(P.reload>0||P.mag>=30||P.res<=0)return;P.reload=1.2}
+function throwGren(){
+  if(P.gren<=0||state!=="play")return;
+  P.gren--;
+  const wx=mouse.x+cam.x,wy=mouse.y+cam.y,d=Math.min(380,Math.hypot(wx-P.x,wy-P.y)),a=Math.atan2(wy-P.y,wx-P.x);
+  gren.push({x:P.x,y:P.y,vx:Math.cos(a)*d*1.6,vy:Math.sin(a)*d*1.6,t:1.2});
+}
+function moveC(e,dx,dy,r){
+  if(!hitWall(e.x+dx,e.y,r))e.x+=dx;
+  if(!hitWall(e.x,e.y+dy,r))e.y+=dy;
+}
+function update(dt){
+  time+=dt;msgT-=dt;shake=Math.max(0,shake-dt);
+  if(state==="dead")return;
+  if(state==="won")return;
+  P.fire-=dt;P.hit-=dt;
+  if(P.reload>0){P.reload-=dt;if(P.reload<=0){const n=Math.min(30-P.mag,P.res);P.mag+=n;P.res-=n}}
+  let mx=0,my=0;
+  if(keys.has("KeyW")||keys.has("ArrowUp"))my--;if(keys.has("KeyS")||keys.has("ArrowDown"))my++;
+  if(keys.has("KeyA")||keys.has("ArrowLeft"))mx--;if(keys.has("KeyD")||keys.has("ArrowRight"))mx++;
+  const md=Math.hypot(mx,my)||1,sp=keys.has("ShiftLeft")?240:175;
+  moveC(P,mx/md*sp*dt*(mx||my?1:0),my/md*sp*dt*(mx||my?1:0),12);
+  P.ang=Math.atan2(mouse.y+cam.y-P.y,mouse.x+cam.x-P.x);
+  if(mouse.down)shoot();
+  // enemies
+  for(const e of en){
+    e.flash-=dt;e.cd-=dt;e.alert-=dt;e.look-=dt;
+    const d=Math.hypot(P.x-e.x,P.y-e.y);
+    if(e.look<=0){
+      e.look=.2;
+      const diff=Math.abs(((Math.atan2(P.y-e.y,P.x-e.x)-e.ang+Math.PI*3)%(Math.PI*2))-Math.PI);
+      if(d<360&&(diff<.9||d<110)&&los(e.x,e.y,P.x,P.y))e.alert=4;
+      e.sees=d<460&&los(e.x,e.y,P.x,P.y);
+    }
+    if(e.alert>0){
+      const a=Math.atan2(P.y-e.y,P.x-e.x);
+      let da=a-e.ang;da=Math.atan2(Math.sin(da),Math.cos(da));e.ang+=clamp(da,-6*dt,6*dt);
+      const want=e.off?170:210;
+      if(d>want){moveC(e,Math.cos(a)*115*dt,Math.sin(a)*115*dt,12)}
+      else if(d<want-60)moveC(e,-Math.cos(a)*80*dt,-Math.sin(a)*80*dt,12);
+      if(e.sees&&e.cd<=0&&d<480){
+        e.cd=(e.off?.45:.9)+Math.random()*.4;
+        const sp=a+rnd(-.12,.12);
+        bul.push({x:e.x+Math.cos(a)*20,y:e.y+Math.sin(a)*20,vx:Math.cos(sp)*420,vy:Math.sin(sp)*420,t:1.3,p:false,d:7+mission});
+      }
+    }else{
+      e.ptT-=dt;
+      if(e.ptT<=0||Math.hypot(e.pt.x-e.x,e.pt.y-e.y)<20){e.ptT=rnd(2,5);e.pt={x:clamp(e.x+rnd(-260,260),80,WW-80),y:clamp(e.y+rnd(-260,260),80,WH-80)}}
+      const a=Math.atan2(e.pt.y-e.y,e.pt.x-e.x);
+      let da=a-e.ang;da=Math.atan2(Math.sin(da),Math.cos(da));e.ang+=clamp(da,-3*dt,3*dt);
+      const ox=e.x,oy=e.y;moveC(e,Math.cos(a)*55*dt,Math.sin(a)*55*dt,12);
+      if(Math.abs(e.x-ox)+Math.abs(e.y-oy)<.2)e.ptT=0;
+    }
+  }
+  // bullets
+  for(const b of bul){
+    b.x+=b.vx*dt;b.y+=b.vy*dt;b.t-=dt;
+    if(hitWall(b.x,b.y,2)){b.t=0;fx.push({x:b.x,y:b.y,vx:rnd(-30,30),vy:rnd(-30,30),t:.15,c:"#fde68a",r:2});continue}
+    if(b.p){
+      for(const e of en)if(e.hp>0&&Math.hypot(e.x-b.x,e.y-b.y)<14){e.hp-=b.d;e.flash=.1;e.alert=5;b.t=0;
+        for(let i=0;i<4;i++)fx.push({x:b.x,y:b.y,vx:rnd(-80,80),vy:rnd(-80,80),t:.3,c:"#b91c1c",r:2});break}
+      for(const t of towers)if(!t.dead&&Math.hypot(t.x-b.x,t.y-b.y)<24){t.hp-=b.d;b.t=0}
+    }else if(Math.hypot(P.x-b.x,P.y-b.y)<13){hurt(b.d);b.t=0}
+  }
+  bul=bul.filter(b=>b.t>0);
+  for(const g of gren){
+    g.t-=dt;g.vx*=1-2.2*dt;g.vy*=1-2.2*dt;
+    const nx=g.x+g.vx*dt,ny=g.y+g.vy*dt;
+    if(hitWall(nx,g.y,4))g.vx*=-.5;else g.x=nx;
+    if(hitWall(g.x,ny,4))g.vy*=-.5;else g.y=ny;
+    if(g.t<=0){boom(g.x,g.y,100);g.dead=true}
+  }
+  gren=gren.filter(g=>!g.dead);
+  // deaths
+  for(const e of en)if(e.hp<=0&&!e.gone){
+    e.gone=true;kills++;
+    const r=Math.random();
+    if(r<.35)pick.push({x:e.x,y:e.y,t:"ammo"});else if(r<.5)pick.push({x:e.x,y:e.y,t:"med"});else if(r<.58)pick.push({x:e.x,y:e.y,t:"gren"});
+    for(let i=0;i<8;i++)fx.push({x:e.x,y:e.y,vx:rnd(-120,120),vy:rnd(-120,120),t:.5,c:"#b91c1c",r:3});
+  }
+  en=en.filter(e=>!e.gone);
+  for(const t of towers)if(!t.dead&&t.hp<=0){t.dead=true;boom(t.x,t.y,60);const left=towers.filter(q=>!q.dead).length;msg=left?left+" tower"+(left>1?"s":"")+" left":"All towers down! Reach the extraction zone!";msgT=3}
+  for(const p of pick){
+    if(Math.hypot(P.x-p.x,P.y-p.y)<22){
+      if(p.t==="ammo")P.res+=30;else if(p.t==="med")P.hp=Math.min(100,P.hp+35);else P.gren=Math.min(6,P.gren+1);
+      p.got=true;
+    }
+  }
+  pick=pick.filter(p=>!p.got);
+  for(const f of fx){f.x+=f.vx*dt;f.y+=f.vy*dt;f.t-=dt}
+  fx=fx.filter(f=>f.t>0);
+  if(towers.every(t=>t.dead)&&Math.hypot(P.x-EXIT.x,P.y-EXIT.y)<EXIT.r){
+    state="won";if(mission>best){best=mission;localStorage.setItem(BK,best)}
+  }
+  cam.x+=(P.x-VW/2-cam.x)*Math.min(1,dt*8);cam.y+=(P.y-VH/2-cam.y)*Math.min(1,dt*8);
+  cam.x=clamp(cam.x,0,WW-VW);cam.y=clamp(cam.y,0,WH-VH);
+}
+function soldier(e,col,helm,isP){
+  x.save();x.translate(e.x,e.y);x.rotate(e.ang);
+  x.fillStyle="#0005";x.beginPath();x.arc(2,3,13,0,7);x.fill();
+  x.fillStyle="#222";x.fillRect(6,-3,22,6);
+  x.fillStyle=e.flash>0||(isP&&P.hit>0)?"#fff":col;x.beginPath();x.arc(0,0,13,0,7);x.fill();
+  x.fillStyle=helm;x.beginPath();x.arc(-1,0,9,0,7);x.fill();
+  x.strokeStyle="#000";x.lineWidth=1.5;x.beginPath();x.arc(0,0,13,0,7);x.stroke();
+  x.restore();
+}
+function draw(){
+  const sx=shake?rnd(-4,4)*shake*4:0,sy=shake?rnd(-4,4)*shake*4:0;
+  x.fillStyle="#26381f";x.fillRect(0,0,VW,VH);
+  x.save();x.translate(-Math.round(cam.x)+sx,-Math.round(cam.y)+sy);
+  x.fillStyle="#2c4224";
+  for(let gx=Math.floor(cam.x/80)*80;gx<cam.x+VW+80;gx+=80)for(let gy=Math.floor(cam.y/80)*80;gy<cam.y+VH+80;gy+=80)if(((gx+gy)/80)%2===0)x.fillRect(gx,gy,80,80);
+  // extraction zone
+  const open=towers.every(t=>t.dead);
+  x.fillStyle=open?"rgba(74,222,128,.35)":"rgba(100,116,139,.25)";x.beginPath();x.arc(EXIT.x,EXIT.y,EXIT.r,0,7);x.fill();
+  x.strokeStyle=open?"#4ade80":"#64748b";x.lineWidth=4;x.setLineDash([12,8]);x.stroke();x.setLineDash([]);
+  x.fillStyle=open?"#bbf7d0":"#94a3b8";x.font="bold 16px Arial";x.textAlign="center";x.fillText("EXTRACT",EXIT.x,EXIT.y+5);
+  for(const w of walls){x.fillStyle="#6b4f2a";x.fillRect(w.x,w.y,w.w,w.h);x.fillStyle="#8a6a3a";x.fillRect(w.x+3,w.y+3,w.w-6,w.h-6);x.strokeStyle="#4a3519";x.lineWidth=2;x.strokeRect(w.x,w.y,w.w,w.h)}
+  for(const t of towers){
+    if(t.dead){x.fillStyle="#1c1917";x.beginPath();x.arc(t.x,t.y,22,0,7);x.fill();continue}
+    x.fillStyle="#475569";x.beginPath();x.arc(t.x,t.y,22,0,7);x.fill();
+    x.strokeStyle="#cbd5e1";x.lineWidth=3;x.beginPath();x.moveTo(t.x-14,t.y+14);x.lineTo(t.x,t.y-18);x.lineTo(t.x+14,t.y+14);x.moveTo(t.x-8,t.y+2);x.lineTo(t.x+8,t.y+2);x.stroke();
+    x.fillStyle=Math.sin(time*6)>0?"#ef4444":"#7f1d1d";x.beginPath();x.arc(t.x,t.y-20,4,0,7);x.fill();
+    x.fillStyle="#0008";x.fillRect(t.x-20,t.y+27,40,5);x.fillStyle="#f87171";x.fillRect(t.x-20,t.y+27,40*t.hp/10,5);
+  }
+  for(const p of pick){
+    x.fillStyle=p.t==="med"?"#f8fafc":p.t==="ammo"?"#facc15":"#16a34a";x.fillRect(p.x-9,p.y-9,18,18);
+    x.fillStyle=p.t==="med"?"#dc2626":"#000";x.font="bold 13px Arial";x.fillText(p.t==="med"?"+":p.t==="ammo"?"A":"G",p.x,p.y+5);
+  }
+  for(const e of en){
+    if(e.alert<=0){x.fillStyle="rgba(250,204,21,.10)";x.beginPath();x.moveTo(e.x,e.y);x.arc(e.x,e.y,360,e.ang-.9,e.ang+.9);x.closePath();x.fill()}
+    soldier(e,e.off?"#7c2d12":"#7f1d1d",e.off?"#451a03":"#3f3f46");
+    x.fillStyle="#0008";x.fillRect(e.x-14,e.y-24,28,4);x.fillStyle="#f87171";x.fillRect(e.x-14,e.y-24,28*Math.max(0,e.hp)/e.max,4);
+    if(e.alert>0){x.fillStyle="#fde047";x.font="bold 18px Arial";x.fillText("!",e.x,e.y-28)}
+  }
+  if(state!=="dead")soldier({x:P.x,y:P.y,ang:P.ang,flash:0},"#22c55e","#166534",true);
+  for(const g of gren){x.fillStyle="#14532d";x.beginPath();x.arc(g.x,g.y,6,0,7);x.fill();x.strokeStyle="#fde047";x.lineWidth=2;x.stroke()}
+  for(const b of bul){x.strokeStyle=b.p?"#fde047":"#fb7185";x.lineWidth=3;x.beginPath();x.moveTo(b.x,b.y);x.lineTo(b.x-b.vx*.02,b.y-b.vy*.02);x.stroke()}
+  for(const f of fx){x.globalAlpha=Math.min(1,f.t*3);x.fillStyle=f.c;x.beginPath();x.arc(f.x,f.y,f.r,0,7);x.fill()}
+  x.globalAlpha=1;
+  if(open&&state==="play"){
+    const a=Math.atan2(EXIT.y-P.y,EXIT.x-P.x);x.fillStyle="#4ade80";x.save();x.translate(P.x+Math.cos(a)*50,P.y+Math.sin(a)*50);x.rotate(a);x.beginPath();x.moveTo(10,0);x.lineTo(-6,-7);x.lineTo(-6,7);x.fill();x.restore();
+  }
+  x.restore();
+  // HUD
+  x.fillStyle="#000a";x.fillRect(0,0,230,80);
+  x.textAlign="left";x.font="bold 14px Arial";x.fillStyle="#fff";x.fillText("Mission "+mission+"   Best "+best,10,20);
+  x.fillStyle="#7f1d1d";x.fillRect(10,28,140,12);x.fillStyle=P.hp>35?"#22c55e":"#ef4444";x.fillRect(10,28,140*P.hp/100,12);
+  x.fillStyle="#fff";x.font="12px Arial";x.fillText(Math.ceil(P.hp)+" HP",156,39);
+  x.fillText((P.reload>0?"Reloading… ":"Ammo "+P.mag+"/"+P.res)+"   💣 "+P.gren,10,58);
+  x.fillText("Towers "+towers.filter(t=>t.dead).length+"/"+towers.length+"   Kills "+kills,10,74);
+  const mw=120,mh=90,mx0=VW-mw-8,my0=8;
+  x.fillStyle="#000a";x.fillRect(mx0,my0,mw,mh);x.strokeStyle="#3f5b3a";x.strokeRect(mx0,my0,mw,mh);
+  const mp=(px,py)=>[mx0+px/WW*mw,my0+py/WH*mh];
+  x.fillStyle="#6b4f2a";for(const w of walls.slice(4)){const [a,b]=mp(w.x,w.y);x.fillRect(a,b,Math.max(1,w.w/WW*mw),Math.max(1,w.h/WH*mh))}
+  for(const t of towers)if(!t.dead){const [a,b]=mp(t.x,t.y);x.fillStyle="#ef4444";x.fillRect(a-2,b-2,4,4)}
+  {const [a,b]=mp(EXIT.x,EXIT.y);x.fillStyle=open?"#4ade80":"#64748b";x.fillRect(a-3,b-3,6,6)}
+  for(const e of en){if(e.alert>0){const [a,b]=mp(e.x,e.y);x.fillStyle="#fb923c";x.fillRect(a-1,b-1,2,2)}}
+  {const [a,b]=mp(P.x,P.y);x.fillStyle="#fff";x.fillRect(a-2,b-2,4,4)}
+  x.textAlign="center";
+  if(msgT>0&&state==="play"){x.font="bold 20px Arial";x.fillStyle="rgba(255,255,255,"+Math.min(1,msgT)+")";x.fillText(msg,VW/2,VH-30)}
+  if(state==="dead"){x.fillStyle="#000b";x.fillRect(0,200,VW,150);x.fillStyle="#fca5a5";x.font="bold 44px Arial";x.fillText("Commando down",VW/2,260);x.fillStyle="#fff";x.font="20px Arial";x.fillText("Click or press Enter to retry Mission "+mission,VW/2,300)}
+  if(state==="won"){x.fillStyle="#000b";x.fillRect(0,200,VW,150);x.fillStyle="#86efac";x.font="bold 44px Arial";x.fillText("Mission "+mission+" complete!",VW/2,260);x.fillStyle="#fff";x.font="20px Arial";x.fillText("Click or press Enter for Mission "+(mission+1),VW/2,300)}
+}
+function next(){if(state==="won")mission++;newMission()}
+function pos(e){const r=c.getBoundingClientRect();mouse.x=(e.clientX-r.left)/r.width*VW;mouse.y=(e.clientY-r.top)/r.height*VH}
+c.addEventListener("pointermove",pos);
+c.addEventListener("pointerdown",e=>{pos(e);if(state!=="play"){next();return}mouse.down=true;try{c.setPointerCapture(e.pointerId)}catch(_){}});
+addEventListener("pointerup",()=>{mouse.down=false});
+c.addEventListener("contextmenu",e=>e.preventDefault());
+addEventListener("keydown",e=>{
+  if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code))e.preventDefault();
+  keys.add(e.code);
+  if(e.code==="KeyR")startReload();
+  if(e.code==="Space"||e.code==="KeyG")throwGren();
+  if(e.code==="Enter"&&state!=="play")next();
+});
+addEventListener("keyup",e=>keys.delete(e.code));
+document.getElementById("again").onclick=newMission;
+let last=performance.now();
+function loop(t){const dt=Math.min(.05,(t-last)/1000);last=t;update(dt);draw();requestAnimationFrame(loop)}
+newMission();requestAnimationFrame(loop);
+</script>
+</body>
+</html>
