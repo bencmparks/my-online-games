@@ -20,7 +20,7 @@ button{margin:.5rem .25rem 0;padding:.6rem 1.1rem;border:1px solid #f59e0b;borde
 <main>
 <a href="../">← All games</a>
 <h1>🔥 2048 Elements</h1>
-<p>You are a pile of an element (dirt, rock, water, wind, fire, lava, ice, lightning, crystal, plasma, star), and the number above it is your mass. Steer with the mouse (or drag on a touch screen). Touch a pile with the same number to merge into a double, touch a smaller pile to eat it, and touch a bigger pile and you are crushed! The element tells the size, and eating enough levels you up to the next number. Reach 2048 to win, then keep growing: there are bigger piles past 2048 (galaxy, nebula, black hole). Dash with Space, click or the button.</p>
+<p>You are a pile of an element (dirt, rock, water, wind, fire, lava, ice, lightning, crystal, plasma, star), and the number above it is your mass. Steer with the mouse (or drag on a touch screen). Touch a pile with the same number to merge into a double, touch a smaller pile to eat it, and touch a bigger pile and you are crushed! The element tells the size, and eating enough levels you up to the next number. Reach 2048 to win, then keep growing: there are bigger piles past 2048 (galaxy, nebula, black hole). Anything you eat tags along behind you in a line, biggest first, touching you and each other. Dash with Space, click or the button.</p>
 <canvas id="c" width="900" height="600"></canvas>
 <button id="dash">💨 Dash</button><button id="again">New game</button>
 </main>
@@ -35,7 +35,7 @@ let P,bots,food,best=+localStorage.getItem(BK)||0,over=false,won=false,zoom=1,ca
 const mouse={x:0,y:0};
 
 function cube(name,v,bot){
-  return {x:rnd(300,WS-300),y:rnd(300,WS-300),vx:0,vy:0,v,pool:0,name,bot,alive:true,tx:0,ty:0,think:0,respawn:0,dash:0,cd:0,tr:[],tt:0};
+  return {x:rnd(300,WS-300),y:rnd(300,WS-300),vx:0,vy:0,v,pool:0,name,bot,alive:true,tx:0,ty:0,think:0,respawn:0,dash:0,cd:0,tr:[],tt:0,fol:[],path:[]};
 }
 function foodItem(){const r=Math.random();return {x:rnd(40,WS-40),y:rnd(40,WS-40),v:r<.6?2:r<.9?4:8}}
 function gain(e,amt){
@@ -82,12 +82,34 @@ function move(e,dx,dy,mag,dt){
   const r=sz(e.v);
   e.x=clamp(e.x+e.vx*dt,r,WS-r);e.y=clamp(e.y+e.vy*dt,r,WS-r);
 }
+function addFol(e,v){
+  e.fol.push({v,x:e.x,y:e.y});
+  e.fol.sort((a,b)=>b.v-a.v);
+  if(e.fol.length>24)e.fol.pop();
+}
+function placeFol(){
+  const pa=P.path;let ax=P.x,ay=P.y,acc=0,i=pa.length-1,tgt=sz(P.v),prev=null;
+  for(const f of P.fol){
+    tgt+=(prev?sz(prev.v):0)+sz(f.v);prev=f;
+    while(true){
+      if(i<0){f.x=ax;f.y=ay;break}
+      const q=pa[i],seg=Math.hypot(q.x-ax,q.y-ay);
+      if(acc+seg>=tgt){const t=seg?(tgt-acc)/seg:0;f.x=ax+(q.x-ax)*t;f.y=ay+(q.y-ay)*t;break}
+      acc+=seg;ax=q.x;ay=q.y;i--;
+    }
+  }
+}
 function doDash(){if(P.alive&&P.cd<=0&&!over){P.dash=.4;P.cd=3}}
 function update(dt){
   time+=dt;msgT-=dt;
   if(over)return;
   const md=Math.hypot(mouse.x,mouse.y);
-  if(P.alive)move(P,mouse.x,mouse.y,clamp(md/40,0,1),dt);
+  if(P.alive){
+    move(P,mouse.x,mouse.y,clamp(md/40,0,1),dt);
+    const lp=P.path[P.path.length-1];
+    if(!lp||Math.hypot(P.x-lp.x,P.y-lp.y)>3){P.path.push({x:P.x,y:P.y});if(P.path.length>3000)P.path.splice(0,500)}
+    placeFol();
+  }
   for(const b of bots){
     if(!b.alive){b.respawn-=dt;if(b.respawn<=0)Object.assign(b,cube(b.name,Math.pow(2,1+(Math.random()*3|0)),true));continue}
     b.think-=dt;if(b.think<=0)think(b);
@@ -104,7 +126,7 @@ function update(dt){
     const r=sz(e.v);
     for(let i=0;i<food.length;i++){
       const f=food[i];
-      if(f.v<=e.v&&Math.hypot(f.x-e.x,f.y-e.y)<r+8){gain(e,f.v);food[i]=foodItem()}
+      if(f.v<=e.v&&Math.hypot(f.x-e.x,f.y-e.y)<r+8){gain(e,f.v);if(e===P)addFol(P,f.v);food[i]=foodItem()}
     }
   }
   for(let i=0;i<live.length;i++)for(let j=i+1;j<live.length;j++){
@@ -121,7 +143,7 @@ function update(dt){
     }else{
       const big=a.v>b.v?a:b,small=big===a?b:a;
       gain(big,small.v);small.alive=false;small.respawn=3;
-      if(big===P){kills++;msg="Crushed "+small.name+"!";msgT=1.2}
+      if(big===P){addFol(P,small.v);kills++;msg="Crushed "+small.name+"!";msgT=1.2}
       if(small===P){over=true;if(P.v>best){best=P.v;localStorage.setItem(BK,best)}}
     }
   }
@@ -182,6 +204,7 @@ function draw(){
     x.globalAlpha=p.a*.45;x.fillStyle=TC[Math.min(11,Math.round(Math.log2(p.v)))]||"#fff";x.beginPath();x.arc(p.x,p.y,sz(p.v)*(.35+.65*p.a),0,7);x.fill();
   }
   x.globalAlpha=1;
+  if(P.alive)for(let k=P.fol.length-1;k>=0;k--){const f=P.fol[k];drawCube(f.x,f.y,f.v,sz(f.v),"")}
   const live=all(),lb=live.slice().sort((a,b)=>b.v-a.v||b.pool-a.pool);
   for(const e of live.slice().sort((a,b)=>a.v-b.v)){
     const r=sz(e.v);if(e.x+r*1.6<vx0||e.x-r*1.6>vx1||e.y+r*1.6<vy0||e.y-r*1.6>vy1)continue;
