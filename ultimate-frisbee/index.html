@@ -24,7 +24,7 @@
   <div id="hud"><span>You 0</span><span>First to 5</span><span>Robots 0</span></div>
   <canvas id="c" width="900" height="500"></canvas>
   <div id="msg">Click Start</div>
-  <p>Move with WASD / arrows. You can't run while holding the disc: click where you want to throw it (or press Space to throw at the nearest open teammate). Catch the disc in the right end zone to score. A dropped or intercepted disc is a turnover, and holding it longer than 8 seconds is a turnover too. On touch, drag to move and tap to throw.</p>
+  <p>Nobody guards the player holding the disc: robots mark the other receivers instead. Move with WASD / arrows. You can't run while holding the disc: click where you want to throw it (or press Space to throw at the nearest open teammate). Catch the disc in the right end zone to score. A dropped or intercepted disc is a turnover, and holding it longer than 8 seconds is a turnover too. On touch, drag to move and tap to throw.</p>
   <button id="go">Start</button>
 </main>
 <script>
@@ -62,8 +62,7 @@ function aiTeam(p,dt){
     tx=p.gx;ty=p.gy}
   else { // defend: mark the nearest attacker
     const foes=P.filter(q=>q.team!==p.team&&q!==holder);const idx=P.filter(q=>q.team===p.team).indexOf(p);const mark=foes[idx%foes.length];
-    if(mark){tx=mark.x-dir*(p.team===1?-1:1)*0+(p.team===1?24:-24);ty=mark.y}
-    if(holder&&Math.hypot(holder.x-p.x,holder.y-p.y)<260&&idx===0){tx=holder.x+(p.team===1?30:-30);ty=holder.y}}
+    if(mark){tx=mark.x-dir*(p.team===1?-1:1)*0+(p.team===1?24:-24);ty=mark.y}}
   const dx=tx-p.x,dy=ty-p.y,d=Math.hypot(dx,dy);if(d>4){p.x+=dx/d*p.sp*dt;p.y+=dy/d*p.sp*dt}
 }
 function aiThrow(){
