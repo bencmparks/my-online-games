@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-<title>2048 Marble Run | My Online Games</title>
+<title>2048 Elements | My Online Games</title>
 <style>
 :root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#f8fafc}
 *{box-sizing:border-box}
@@ -19,15 +19,15 @@ button{margin:.5rem .25rem 0;padding:.6rem 1.1rem;border:1px solid #f59e0b;borde
 <body>
 <main>
 <a href="../">← All games</a>
-<h1>🔮 2048 Marble Run</h1>
-<p>You are a pile of marbles, and the number above it is your mass. Steer with the mouse (or drag on a touch screen). Touch a pile with the same number to merge into a double, touch a smaller pile to eat it, and touch a bigger pile and you are crushed! The marble color tells the size, and eating enough levels you up to the next number. Reach 2048 to win. Dash with Space, click or the button.</p>
+<h1>🔥 2048 Elements</h1>
+<p>You are a pile of an element (dirt, rock, water, wind, fire, lava, ice, lightning, crystal, plasma, star), and the number above it is your mass. Steer with the mouse (or drag on a touch screen). Touch a pile with the same number to merge into a double, touch a smaller pile to eat it, and touch a bigger pile and you are crushed! The element tells the size, and eating enough levels you up to the next number. Reach 2048 to win. Dash with Space, click or the button.</p>
 <canvas id="c" width="900" height="600"></canvas>
 <button id="dash">💨 Dash</button><button id="again">New game</button>
 </main>
 <script>
-const c=document.getElementById("c"),x=c.getContext("2d"),VW=900,VH=600,WS=4000,BK="marble-run-2048-best";
+const c=document.getElementById("c"),x=c.getContext("2d"),VW=900,VH=600,WS=4000,BK="elements-2048-best";
 const rnd=(a,b)=>a+Math.random()*(b-a),clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-const NAMES=["Pebble","Orb","Bead","Globe","Glassy","Shooter","Aggie","Cat-eye","Bonker","Roller","Swirl","Pearl","Taw","Spinner"];
+const NAMES=["Ember","Gust","Ripple","Boulder","Magma","Frost","Spark","Dusty","Blaze","Gale","Tide","Cinder","Quake","Flint"];
 const CC={2:"#f87171",4:"#fb923c",8:"#facc15",16:"#a3e635",32:"#4ade80",64:"#2dd4bf",128:"#38bdf8",256:"#60a5fa",512:"#a78bfa",1024:"#e879f9",2048:"#fde047"};
 const sz=v=>14+Math.log2(v)*3.6;
 let P,bots,food,best=+localStorage.getItem(BK)||0,over=false,won=false,zoom=1,cam={x:WS/2,y:WS/2},dashing=false,kills=0,msg="",msgT=0,time=0;
@@ -124,17 +124,33 @@ function update(dt){
   zoom+=(tz-zoom)*Math.min(1,dt*2);
 }
 
+const ELS=["","Dirt","Rock","Water","Wind","Fire","Lava","Ice","Lightning","Crystal","Plasma","Star"];
+function poly(p){x.beginPath();p.forEach((q,i)=>i?x.lineTo(q[0],q[1]):x.moveTo(q[0],q[1]));x.closePath();x.fill();x.stroke()}
+function bit(t,mx,my,r,k){
+  x.save();x.translate(mx,my);x.lineWidth=Math.max(1,r*.12);
+  if(t!==4&&t!==5&&t!==3)x.rotate(k*1.3);
+  if(t===1){x.fillStyle="#8b5a2b";x.strokeStyle="#4a2e12";x.beginPath();x.ellipse(0,0,r,r*.8,0,0,7);x.fill();x.stroke();x.fillStyle="#5b3a1a";x.beginPath();x.arc(-r*.3,-r*.2,r*.22,0,7);x.arc(r*.3,r*.25,r*.18,0,7);x.fill()}
+  else if(t===2){x.fillStyle="#9ca3af";x.strokeStyle="#374151";poly([0,1,2,3,4,5].map(j=>{const a=j*1.047,q=r*(.82+.2*Math.sin(j*2.3+k));return[Math.cos(a)*q,Math.sin(a)*q]}));x.fillStyle="#d1d5db";poly([[-r*.5,-r*.2],[-r*.1,-r*.6],[r*.1,-r*.1]])}
+  else if(t===3){x.fillStyle="#38bdf8";x.strokeStyle="#0369a1";x.beginPath();x.moveTo(0,-r*1.15);x.quadraticCurveTo(r*1.1,r*.3,0,r);x.quadraticCurveTo(-r*1.1,r*.3,0,-r*1.15);x.fill();x.stroke();x.fillStyle="#fffa";x.beginPath();x.arc(-r*.3,r*.2,r*.2,0,7);x.fill()}
+  else if(t===4){x.fillStyle="#64748b55";x.beginPath();x.arc(0,0,r,0,7);x.fill();x.strokeStyle="#e0f2fe";x.lineCap="round";x.lineWidth=Math.max(1.5,r*.28);x.beginPath();x.arc(0,0,r*.65,.3+k,4.6+k);x.stroke();x.beginPath();x.arc(0,0,r*.28,k,3.6+k);x.stroke()}
+  else if(t===5){const fl=(c,s2,dy)=>{x.fillStyle=c;x.beginPath();x.moveTo(0,-r*1.2*s2+dy);x.quadraticCurveTo(r*1.1*s2,-r*.1*s2+dy,r*.6*s2,r*.6*s2+dy);x.quadraticCurveTo(0,r*1.25*s2+dy,-r*.6*s2,r*.6*s2+dy);x.quadraticCurveTo(-r*1.1*s2,-r*.1*s2+dy,0,-r*1.2*s2+dy);x.fill()};fl("#ef4444",1,0);fl("#fb923c",.72,r*.12);fl("#fde047",.4,r*.3)}
+  else if(t===6){x.fillStyle="#1c1917";x.strokeStyle="#f97316";x.beginPath();x.arc(0,0,r,0,7);x.fill();x.stroke();x.beginPath();x.moveTo(-r*.6,-r*.2);x.lineTo(-r*.1,r*.1);x.lineTo(r*.3,-r*.4);x.moveTo(-r*.1,r*.1);x.lineTo(r*.1,r*.7);x.moveTo(r*.3,-r*.4);x.lineTo(r*.7,-r*.1);x.stroke()}
+  else if(t===7){x.fillStyle="#bae6fd";x.strokeStyle="#0ea5e9";poly([[0,-r*1.1],[r*.8,0],[0,r*1.1],[-r*.8,0]]);x.strokeStyle="#fff";x.beginPath();x.moveTo(0,-r*1.1);x.lineTo(0,r*1.1);x.stroke()}
+  else if(t===8){x.fillStyle="#fde047";x.strokeStyle="#a16207";poly([[r*.3,-r*1.2],[-r*.7,r*.1],[-r*.05,r*.1],[-r*.3,r*1.2],[r*.7,-r*.15],[r*.05,-r*.15]])}
+  else if(t===9){x.fillStyle="#a78bfa";x.strokeStyle="#5b21b6";const h=[0,1,2,3,4,5].map(j=>[Math.cos(j*1.047)*r,Math.sin(j*1.047)*r]);poly(h);x.beginPath();h.forEach((q,j)=>{if(j%2===0){x.moveTo(0,0);x.lineTo(q[0],q[1])}});x.stroke()}
+  else if(t===10){const g=x.createRadialGradient(-r*.3,-r*.3,r*.1,0,0,r);g.addColorStop(0,"#fff");g.addColorStop(.4,"#f0abfc");g.addColorStop(1,"#a21caf");x.shadowColor="#e879f9";x.shadowBlur=r*.8;x.fillStyle=g;x.beginPath();x.arc(0,0,r,0,7);x.fill()}
+  else{x.fillStyle="#fde047";x.strokeStyle="#b45309";poly([0,1,2,3,4,5,6,7,8,9].map(j=>{const q=j%2?r*.5:r*1.15,a=j*.628-1.571;return[Math.cos(a)*q,Math.sin(a)*q]}))}
+  x.restore();
+}
 function drawCube(cx,cy,v,s,name,big){
   const col=CC[Math.min(v,2048)]||"#fde047",n=Math.min(28,3+Math.round(Math.log2(v)*2.4)),mr=s*(n<8?.42:n<16?.34:.28);
   x.fillStyle="#0005";x.beginPath();x.ellipse(cx+s*.1,cy+s*.2,s*1.05,s*.95,0,0,7);x.fill();
   for(let k=n-1;k>=0;k--){
     const a=k*2.4,d=Math.sqrt((k+.5)/n)*(s-mr),mx=cx+Math.cos(a)*d,my=cy+Math.sin(a)*d;
-    const g=x.createRadialGradient(mx-mr*.35,my-mr*.35,mr*.1,mx,my,mr);
-    g.addColorStop(0,"#fff");g.addColorStop(.3,col);g.addColorStop(1,shade(col,-.55));
-    x.fillStyle=g;x.beginPath();x.arc(mx,my,mr,0,7);x.fill();
+    bit(Math.round(Math.log2(v)),mx,my,mr*1.05,k);
   }
-  const t=String(v);x.textAlign="center";x.textBaseline="alphabetic";
-  x.font="bold "+Math.max(12,Math.round(s*.6))+"px Arial";x.lineWidth=3;x.strokeStyle="#000c";x.strokeText(t,cx,cy-s-5);x.fillStyle="#fff";x.fillText(t,cx,cy-s-5);
+  const t=v+" "+(ELS[Math.round(Math.log2(v))]||"Star");x.textAlign="center";x.textBaseline="alphabetic";
+  x.font="bold "+Math.max(12,Math.round(s*.45))+"px Arial";x.lineWidth=3;x.strokeStyle="#000c";x.strokeText(t,cx,cy-s-5);x.fillStyle="#fff";x.fillText(t,cx,cy-s-5);
   if(name){x.fillStyle="#fff";x.font="bold "+Math.max(12,s*.4)+"px Arial";x.fillText(name,cx,cy+s+Math.max(16,s*.5))}
 }
 function shade(h,a){
