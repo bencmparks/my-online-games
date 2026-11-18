@@ -10,118 +10,185 @@
   main{width:min(960px,96vw);text-align:center}
   h1{margin:.4rem 0}
   a{color:#9fe}
-  canvas{width:100%;border:4px solid #fff;border-radius:8px;touch-action:none;background:#87ceeb}
-  #hud{display:flex;justify-content:space-between;font-weight:700;margin:.3rem 0}
+  .wrap{position:relative}
+  canvas{width:100%;border:4px solid #fff;border-radius:8px;touch-action:none;background:#87ceeb;display:block}
+  #story{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:.8rem;padding:1.5rem 2.5rem;background:rgba(10,25,12,.9);border-radius:6px;text-align:center}
+  #story h2{margin:0;color:#ffe066}
+  #story p{max-width:42rem;font-size:1.05rem;line-height:1.5;margin:0}
+  #hud{display:flex;justify-content:space-between;font-weight:700;margin:.3rem 0;gap:.5rem;flex-wrap:wrap}
   #msg{min-height:1.5em;color:#ffe066;font-weight:700}
   button{font:inherit;font-weight:700;padding:.5rem 1.2rem;border-radius:8px;border:0;background:#ffe066;cursor:pointer}
-  p{margin:.4rem 0;opacity:.9}
+  p.help{margin:.4rem 0;opacity:.9}
 </style>
 </head>
 <body>
 <main>
   <a href="../">← Back to games</a>
-  <h1>🐴 Equestrian</h1>
-  <div id="hud"><span id="h1">Course 1</span><span id="h2">Fence 0/8</span><span id="h3">Faults 0</span><span id="h4">Time 0.0</span></div>
-  <canvas id="c" width="900" height="450"></canvas>
-  <div id="msg">Ride a show jumping course. Click Start.</div>
-  <p>Right/Left arrows (or D/A) to gallop faster or slower. Press Space or tap to jump; hold it for a higher jump. Clear every fence and water jump without knocking rails (+4 faults) or landing in the water (+4 faults). Finish with the fewest faults and the best time. Courses get harder. A refused fence is a fall: 3 falls and you are out!</p>
-  <button id="go">Start</button>
+  <h1>🐴 Equestrian: The Golden Horseshoe</h1>
+  <div id="hud"><span id="h1">Chapter 1</span><span id="h2">Fence 0/8</span><span id="h3">Faults 0</span><span id="h4">Time 0.0</span><span id="h5">Falls 0/3</span></div>
+  <div class="wrap">
+    <canvas id="c" width="900" height="450"></canvas>
+    <div id="story"><h2 id="sh"></h2><p id="st"></p><button id="go">Start</button></div>
+  </div>
+  <div id="msg"></div>
+  <p class="help">Right/Left arrows (or D/A) gallop faster or slower, but fast galloping drains stamina. Space or tap jumps (hold for higher). Grab carrots in the air to refill stamina. Clear fences, wide oxers, combinations and water jumps; each knocked rail or splash is +4 faults, and 16 faults is a fall. Three falls end the story. Later chapters add rivals, time limits, storms and darkness.</p>
 </main>
 <script>
 const cv=document.getElementById("c"),g=cv.getContext("2d"),W=900,H=450,GY=360,X0=200;
-const $=id=>document.getElementById(id),msg=$("msg"),goBtn=$("go");
-let course=1,fences,horse,cam,t0,faults,falls,run=false,over=false,best=+localStorage.getItem("equestrian-best")||0,last=0,hold=0,done=false,total=0,floaters=[],speedKey=0,ended=0,time=0,cleared=0;
+const $=id=>document.getElementById(id),msg=$("msg"),goBtn=$("go"),story=$("story");
+const CH=[
+ {n:"The Village Fair",sky:["#6ec6ff","#dff3ff"],fences:6,water:0,ox:0,combo:0,rival:0,limit:0,carrots:2,
+  intro:"You are Willow Hart, a stable girl at Maple Hollow, and your chestnut mare Comet is the fastest jumper in the valley. The bank wants to take the stables unless you can pay the debt. The Village Fair has a prize purse. Ride clean and bring home the first ribbon.",
+  win:"The crowd cheers! The purse covers the month's rent. But a stranger in a black coat watches from the fence: Victor Vane, the Golden Horseshoe champion, who has bought the debt."},
+ {n:"The Lost Foal",sky:["#9ad47b","#e6f7c8"],fences:8,water:1,ox:0,combo:0,rival:0,limit:0,carrots:3,
+  intro:"A foal has run off into Greenwood Forest! The farmer begs for help. Fallen logs and a swollen stream block the way. Jump the stream without a splash and bring the foal home.",
+  win:"You find the foal shivering beside the stream. The grateful farmer gives you an old invitation: the Golden Horseshoe Cup is open to anyone who can win three qualifiers."},
+ {n:"Qualifier: The Wide Oxers",sky:["#ffd89b","#fff1d6"],fences:8,water:1,ox:1,combo:0,rival:.95,limit:0,carrots:3,
+  intro:"The first qualifier. The wide oxers need a long, high leap, so build speed and hold the jump. A young rival, Rowan Pike, rides beside you. Finish ahead of him to qualify.",
+  win:"You and Rowan share a handshake. He warns you that Victor Vane has been tampering with the courses, cutting the rails and loosening the posts."},
+ {n:"Qualifier: Storm Ride",sky:["#6b7a8f","#aab6c4"],fences:9,water:1,ox:1,combo:1,rival:1,limit:95,carrots:4,storm:1,
+  intro:"Thunder rolls over the course. Rain makes the ground slippery and the officials set a time limit: finish in 95 seconds. Fence combinations come two at a time, so land, then jump again right away.",
+  win:"Soaked but smiling, you qualify for the Cup. Comet limps a little in the stable that night, and you find a bent horseshoe nail: sabotage."},
+ {n:"The Midnight Gallop",sky:["#1b2650","#3b4a82"],fences:9,water:1,ox:1,combo:1,rival:1.05,limit:100,carrots:5,dark:1,
+  intro:"Victor's men have locked the stable gate. To reach the Cup in time you must ride the old mountain trail at night, with only moonlight and a time limit of 100 seconds. Rowan joins you to prove Victor's trick.",
+  win:"You arrive at dawn. Rowan shows the officials the bent nail and loosened posts. Victor is warned, but he is still allowed to ride."},
+ {n:"The Golden Horseshoe Cup",sky:["#8fd3ff","#fff7d6"],fences:12,water:1,ox:1,combo:1,rival:1.1,limit:0,carrots:5,
+  intro:"The final. Victor Vane rides the finest horse in the country, and every fence is a trap for the tired. Pace yourself and beat him to the finish. The Hollow's future is yours to win.",
+  win:"Comet flies over the last water jump and crosses the line first! Victor tips his hat. The debt is paid, the stables are saved, and Willow Hart is the new champion of the Golden Horseshoe."}
+];
+let ci=0,fences,carrots,horse,rival,cam,faults,falls=0,run=false,time=0,cleared=0,floaters=[],last=0,total=0,rain=[];
+let best=+localStorage.getItem("equestrian-best")||0,saved=+localStorage.getItem("equestrian-chapter")||0,touchHold=false,after=null;
 const keys=new Set();
-function build(n){
-  const count=6+n*2,f=[];let x=700;
-  for(let i=0;i<count;i++){
-    const water=n>=2&&i%4===3,h=water?0:Math.min(110,38+Math.random()*(26+n*10));
-    f.push({x,h,water,w:water?150:12,down:false,done:false,fault:false});
-    x+=420+Math.random()*180+(water?60:0);
+function ch(){return CH[ci]}
+function build(c){
+  const f=[];let x=700;
+  for(let i=0;i<c.fences;i++){
+    const water=c.water&&i%4===3,oxer=!water&&c.ox&&i%3===2,combo=!water&&!oxer&&c.combo&&i%5===4;
+    const h=Math.min(110,38+Math.random()*(26+(ci+1)*8)),push=(o)=>f.push(Object.assign({x,h,water:false,w:12,down:false,done:false,fault:false},o));
+    if(water)push({h:0,water:true,w:150});else if(oxer)push({w:75,h:Math.min(h,92),ox:true});
+    else if(combo){push({});x+=230;push({h:Math.min(110,h+10),combo:true})}
+    else push({});
+    x+=430+Math.random()*180+(water?60:0)+(oxer?30:0);
   }
   f.finish=x+250;return f;
 }
-function start(c){
-  course=c;fences=build(c);horse={y:GY,vy:0,v:260,air:true,hold:0,jumping:false,stun:0,leg:0};cam=0;faults=0;time=0;cleared=0;
-  if(typeof falls==="undefined"||falls>=3){falls=0;total=0}
-  done=false;over=false;run=true;msg.textContent="Course "+c+": gallop and jump!";goBtn.style.display="none";
+function show(title,text,btn,fn){$("sh").textContent=title;$("st").textContent=text;goBtn.textContent=btn;after=fn;story.style.display="flex";run=false}
+function startRide(){
+  const c=ch();fences=build(c);carrots=[];
+  for(let i=0;i<c.carrots;i++){const a=fences[Math.min(fences.length-1,Math.floor((i+.5)*fences.length/c.carrots))];carrots.push({x:a.x-170-Math.random()*60,y:GY-90-Math.random()*50,got:false})}
+  horse={y:GY,vy:0,v:260,hold:0,jumping:false,stun:0,leg:0,st:100};
+  rival=c.rival?{x:X0,v:0,stun:0,leg:0,next:0,done:false}:null;
+  cam=0;faults=0;time=0;cleared=0;rain=[];story.style.display="none";run=true;msg.textContent="Chapter "+(ci+1)+": "+c.n;
+  hud();
 }
-function jump(){if(!run||horse.y<GY-1||horse.stun>0)return;horse.vy=-640;horse.jumping=true;horse.hold=0}
+function jump(){if(!run||horse.y<GY-1||horse.stun>0)return;horse.vy=-640;horse.jumping=true;horse.hold=0;horse.st=Math.max(0,horse.st-5)}
 function say(t,x,y,col){floaters.push({t,x,y,l:1.2,col})}
 function update(dt){
   if(!run)return;
-  time+=dt;
+  time+=dt;const c=ch();
   const want=((keys.has("arrowright")||keys.has("d"))?1:0)-((keys.has("arrowleft")||keys.has("a"))?1:0);
-  const base=240+course*8;
-  horse.v+=((base+want*110)-horse.v)*Math.min(1,dt*3);
+  const base=240+ci*10,tired=horse.st<=0,slip=c.storm?.92:1;
+  if(want>0&&!tired)horse.st=Math.max(0,horse.st-20*dt);else if(want<=0)horse.st=Math.min(100,horse.st+(want<0?22:11)*dt);
+  const target=(tired?base*.75:base+want*110)*slip;
+  horse.v+=(target-horse.v)*Math.min(1,dt*3);
   if(horse.stun>0){horse.stun-=dt;horse.v*=.97}
   horse.leg+=dt*horse.v/22;
-  if(horse.jumping&&(keys.has(" ")||touchHold)&&horse.hold<.2&&horse.vy<0){horse.hold+=dt;horse.vy-=2300*dt}
-  else horse.jumping=false;
+  if(horse.jumping&&(keys.has(" ")||touchHold)&&horse.hold<.2&&horse.vy<0){horse.hold+=dt;horse.vy-=2300*dt}else horse.jumping=false;
   horse.vy+=1800*dt;horse.y+=horse.vy*dt;if(horse.y>=GY){horse.y=GY;horse.vy=0;horse.jumping=false}
-  cam+=horse.v*dt;
-  const hx=cam+X0;
-  fences.forEach((f,i)=>{
-    const air=GY-horse.y;
+  cam+=horse.v*dt;const hx=cam+X0,air=GY-horse.y;
+  fences.forEach(f=>{
     if(f.water){
-      if(!f.done&&hx>f.x+f.w+20){f.done=true;cleared++;say("Splash-free!",X0,GY-120,"#fff")}
+      if(!f.done&&hx>f.x+f.w+20){f.done=true;if(!f.fault){cleared++;say("Over the water!",X0,GY-120,"#fff")}else cleared++}
       if(!f.fault&&hx>f.x+10&&hx<f.x+f.w-10&&air<8){f.fault=true;faults+=4;horse.v*=.5;horse.stun=.6;say("Splash! +4",X0,GY-100,"#ff8080")}
     }else{
       if(!f.down&&hx+14>f.x&&hx-14<f.x+f.w&&air<f.h-4){f.down=true;f.fault=true;faults+=4;horse.v*=.55;horse.stun=.6;say("Rail down! +4",X0,GY-100,"#ff8080")}
-      if(!f.done&&hx>f.x+f.w+20){f.done=true;if(!f.fault){cleared++;say("Clear!",X0,GY-130,"#fff")}}
+      if(!f.done&&hx>f.x+f.w+20){f.done=true;cleared++;if(!f.fault)say(f.ox?"Oxer cleared!":f.combo?"Combination!":"Clear!",X0,GY-130,"#fff")}
     }
   });
-  if(hx>fences.finish)finish();
+  carrots.forEach(k=>{if(!k.got&&Math.abs(hx-k.x)<30&&Math.abs(horse.y-65-k.y)<50){k.got=true;horse.st=Math.min(100,horse.st+40);say("Carrot! +stamina",X0,GY-170,"#ffb347")}});
+  if(rival&&!rival.done){
+    rival.next-=dt;if(rival.next<=0){rival.next=1.5+Math.random()*2;if(Math.random()<.35*c.rival-.1)rival.stun=.6}
+    if(rival.stun>0)rival.stun-=dt;
+    rival.v=(240+ci*10)*c.rival*(rival.stun>0?.5:1)*(1+Math.sin(time/2.5)*.06);
+    rival.x+=rival.v*dt;rival.leg+=dt*rival.v/22;
+    if(rival.x>fences.finish){rival.done=true;if(run)end(false,"Your rival crossed the line first!")}
+  }
+  if(c.limit&&time>c.limit){end(false,"Out of time!");return}
+  if(hx>fences.finish){end(faults<16,faults>=16?"Too many faults: that's a fall.":"")}
+  if(c.storm&&rain.length<120)for(let i=0;i<4;i++)rain.push({x:Math.random()*W,y:-10,v:500+Math.random()*200});
+  rain.forEach(r=>{r.y+=r.v*dt;r.x-=120*dt});rain=rain.filter(r=>r.y<H);
   hud();
 }
-function finish(){
-  run=false;const bonus=Math.max(0,Math.round(900-time*8));const pts=Math.max(0,Math.round(1000+bonus-faults*80));total+=pts;
-  if(total>best){best=total;localStorage.setItem("equestrian-best",best)}
-  msg.textContent="Course "+course+" done! Faults "+faults+", time "+time.toFixed(1)+"s, +"+pts+" points (total "+total+", best "+best+").";
-  goBtn.style.display="";goBtn.textContent="Next course";nextCourse=course+1;
-  if(faults>=16){falls++;msg.textContent+=" Too many faults: that's a fall ("+falls+"/3).";if(falls>=3){msg.textContent="Eliminated! Final score "+total+" (best "+best+").";goBtn.textContent="Play again";nextCourse=1}else nextCourse=course}
+function end(ok,why){
+  if(!run)return;run=false;const c=ch();
+  if(ok&&rival&&!rival.done||ok){
+    const pts=Math.max(0,Math.round(1000+Math.max(0,900-time*8)-faults*80));total+=pts;
+    if(total>best){best=total;localStorage.setItem("equestrian-best",best)}
+    const last=ci===CH.length-1;
+    if(!last){localStorage.setItem("equestrian-chapter",ci+1);saved=ci+1}
+    const info="Faults "+faults+", time "+time.toFixed(1)+"s, +"+pts+" points (total "+total+", best "+best+").";
+    show(last?"🏆 You are the champion!":"Chapter complete: "+c.n,c.win+"\n\n"+info,last?"Play again":"Next chapter",()=>{if(last){reset();ci=0;intro()}else{ci++;intro()}});
+    if(last){localStorage.setItem("equestrian-chapter",0);saved=0}
+  }else{
+    falls++;
+    if(falls>=3){show("The story ends here…","You fell once too often, and the bank takes the stables. "+why+" Final score "+total+" (best "+best+").","Try again",()=>{reset();ci=0;intro()})}
+    else show("A fall! ("+falls+"/3)",(why||"You didn't make it.")+" Dust yourself off and try the chapter again.","Retry",intro)
+  }
 }
-let nextCourse=1,touchHold=false;
-function hud(){$("h1").textContent="Course "+course;$("h2").textContent="Fence "+cleared+"/"+fences.length;$("h3").textContent="Faults "+faults+" | Falls "+falls;$("h4").textContent="Time "+time.toFixed(1)}
-function horseDraw(x,y,leg,air){
+function reset(){falls=0;total=0}
+function intro(){const c=ch();show("Chapter "+(ci+1)+": "+c.n,c.intro+(c.limit?"\n\nTime limit: "+c.limit+" seconds.":"")+(c.rival?"\nRival: finish ahead of them.":""),"Ride!",startRide);$("st").style.whiteSpace="pre-line"}
+function hud(){$("h1").textContent="Chapter "+(ci+1);$("h2").textContent="Fence "+cleared+"/"+(fences?fences.length:0);$("h3").textContent="Faults "+faults;$("h4").textContent="Time "+time.toFixed(1)+(ch().limit?" / "+ch().limit:"");$("h5").textContent="Falls "+falls+"/3"}
+function horseDraw(x,y,leg,air,cols){
   g.save();g.translate(x,y);
-  const tilt=air?Math.max(-.35,Math.min(.35,(horse.vy)/1800)):0;g.rotate(tilt);
+  const tilt=air?Math.max(-.35,Math.min(.35,(horse.vy)/1800)):0;g.rotate(cols.tilt?tilt:0);
   const L=[0,Math.PI,Math.PI/2,-Math.PI/2].map((o,i)=>air?(i<2?-.8:.8):Math.sin(leg+o)*.7);
-  g.strokeStyle="#4a2a12";g.lineWidth=7;g.lineCap="round";
+  g.strokeStyle=cols.leg;g.lineWidth=7;g.lineCap="round";
   [[-26,0],[-18,1],[24,2],[32,3]].forEach(([lx,i])=>{g.beginPath();g.moveTo(lx,-34);g.lineTo(lx+Math.sin(L[i])*20,-34+Math.cos(L[i])*34);g.stroke()});
-  g.fillStyle="#8b4a1f";g.beginPath();g.ellipse(2,-48,40,20,0,0,7);g.fill();
+  g.fillStyle=cols.body;g.beginPath();g.ellipse(2,-48,40,20,0,0,7);g.fill();
   g.beginPath();g.moveTo(30,-56);g.lineTo(52,-86);g.lineTo(70,-80);g.lineTo(62,-62);g.lineTo(40,-44);g.fill();
-  g.fillStyle="#3b1f0d";g.beginPath();g.moveTo(34,-60);g.lineTo(52,-88);g.lineTo(48,-60);g.fill();
+  g.fillStyle=cols.mane;g.beginPath();g.moveTo(34,-60);g.lineTo(52,-88);g.lineTo(48,-60);g.fill();
   g.beginPath();g.moveTo(-40,-52);g.quadraticCurveTo(-62,-40-Math.sin(leg)*6,-54,-20);g.lineTo(-38,-44);g.fill();
   g.fillStyle="#fff";g.beginPath();g.arc(60,-80,2.5,0,7);g.fill();
-  g.fillStyle="#222";g.fillRect(0,-70,28,5);
-  g.fillStyle="#c62828";g.fillRect(-12,-72,22,10);
-  g.fillStyle="#1e88e5";g.fillRect(-8,-98,14,28);g.fillStyle="#f5cba7";g.beginPath();g.arc(-1,-106,9,0,7);g.fill();g.fillStyle="#111";g.beginPath();g.arc(-1,-110,10,Math.PI,0);g.fill();
+  g.fillStyle="#222";g.fillRect(0,-70,28,5);g.fillStyle=cols.saddle;g.fillRect(-12,-72,22,10);
+  g.fillStyle=cols.rider;g.fillRect(-8,-98,14,28);g.fillStyle="#f5cba7";g.beginPath();g.arc(-1,-106,9,0,7);g.fill();g.fillStyle="#111";g.beginPath();g.arc(-1,-110,10,Math.PI,0);g.fill();
   g.restore();
 }
+const PLAYER={body:"#8b4a1f",leg:"#4a2a12",mane:"#3b1f0d",saddle:"#c62828",rider:"#1e88e5",tilt:1},RIVAL={body:"#222",leg:"#111",mane:"#000",saddle:"#fff",rider:"#6a1b9a",tilt:0};
 function draw(){
-  const sky=g.createLinearGradient(0,0,0,GY);sky.addColorStop(0,"#6ec6ff");sky.addColorStop(1,"#dff3ff");g.fillStyle=sky;g.fillRect(0,0,W,H);
-  g.fillStyle="#7bb872";for(let i=-1;i<6;i++){const x=i*260-((cam*.25)%260);g.beginPath();g.moveTo(x,GY);g.quadraticCurveTo(x+130,GY-110,x+260,GY);g.fill()}
-  g.fillStyle="#4c9a3b";g.fillRect(0,GY,W,H-GY);g.fillStyle="#3f8530";for(let i=0;i<20;i++){const x=i*60-(cam%60);g.fillRect(x,GY,30,H-GY)}
+  const c=fences?ch():CH[0],sky=g.createLinearGradient(0,0,0,GY);sky.addColorStop(0,c.sky[0]);sky.addColorStop(1,c.sky[1]);g.fillStyle=sky;g.fillRect(0,0,W,H);
+  g.fillStyle=c.dark?"#2d3d5a":c.storm?"#6f8a6a":"#7bb872";for(let i=-1;i<6;i++){const x=i*260-(((cam||0)*.25)%260);g.beginPath();g.moveTo(x,GY);g.quadraticCurveTo(x+130,GY-110,x+260,GY);g.fill()}
+  if(c.dark){g.fillStyle="#fffbe0";g.beginPath();g.arc(780,70,28,0,7);g.fill()}
+  g.fillStyle=c.dark?"#2c5530":"#4c9a3b";g.fillRect(0,GY,W,H-GY);g.fillStyle=c.dark?"#264d2a":"#3f8530";for(let i=0;i<20;i++){const x=i*60-((cam||0)%60);g.fillRect(x,GY,30,H-GY)}
   if(!fences)return;
   fences.forEach(f=>{
-    const sx=f.x-cam;if(sx>W+200||sx<-200)return;
+    const sx=f.x-cam;if(sx>W+200||sx<-250)return;
     if(f.water){g.fillStyle="#1e90ff";g.fillRect(sx,GY,f.w,H-GY);g.fillStyle="rgba(255,255,255,.5)";for(let i=0;i<5;i++)g.fillRect(sx+10+i*28+Math.sin(cam/20+i)*4,GY+10+i%2*14,14,3);g.fillStyle="#fff";g.fillRect(sx-4,GY-14,8,14);g.fillRect(sx+f.w-4,GY-14,8,14)}
     else{g.fillStyle="#fff";g.fillRect(sx-4,GY-f.h-12,8,f.h+12);g.fillRect(sx+f.w-4,GY-f.h-12,8,f.h+12);
       const bars=Math.max(1,Math.round(f.h/36));
-      for(let b=0;b<bars;b++){const ry=GY-f.h+(b*f.h)/bars;g.fillStyle=b%2?"#e53935":"#fff";if(f.down){g.save();g.translate(sx+f.w/2+20+b*8,GY-6);g.rotate(.15*(b+1));g.fillRect(-26,-3,52,6);g.restore()}else g.fillRect(sx-22,ry,56,6)}}
+      for(let b=0;b<bars;b++){const ry=GY-f.h+(b*f.h)/bars;g.fillStyle=b%2?"#e53935":"#fff";if(f.down){g.save();g.translate(sx+f.w/2+20+b*8,GY-6);g.rotate(.15*(b+1));g.fillRect(-26,-3,52,6);g.restore()}else g.fillRect(sx-8,ry,f.w+16,6)}}
   });
+  carrots.forEach(k=>{if(k.got)return;const sx=k.x-cam;if(sx<-30||sx>W+30)return;g.fillStyle="#ff9800";g.beginPath();g.moveTo(sx-6,k.y-12);g.lineTo(sx+6,k.y-12);g.lineTo(sx,k.y+14);g.fill();g.fillStyle="#3c9a3c";g.fillRect(sx-4,k.y-20,8,8)});
   const fx=fences.finish-cam;g.fillStyle="#ffe066";g.fillRect(fx,GY-120,8,120);g.fillStyle="#fff";g.fillRect(fx,GY-120,80,24);g.fillStyle="#000";g.font="bold 14px system-ui";g.fillText("FINISH",fx+10,GY-103);
-  if(horse)horseDraw(X0,horse.y,horse.leg,horse.y<GY-1);
+  if(rival){const rx=rival.x-cam;if(rx>-120&&rx<W+120)horseDraw(rx,GY,rival.leg,false,RIVAL)}
+  if(horse)horseDraw(X0,horse.y,horse.leg,horse.y<GY-1,PLAYER);
+  if(c.storm){g.strokeStyle="rgba(200,220,255,.7)";g.lineWidth=1.5;rain.forEach(r=>{g.beginPath();g.moveTo(r.x,r.y);g.lineTo(r.x+4,r.y-14);g.stroke()});if(Math.sin(time*1.7)>.985){g.fillStyle="rgba(255,255,255,.5)";g.fillRect(0,0,W,H)}}
+  if(c.dark){const gr=g.createRadialGradient(X0+60,GY-60,60,X0+60,GY-60,330);gr.addColorStop(0,"rgba(0,0,10,0)");gr.addColorStop(1,"rgba(0,0,15,.82)");g.fillStyle=gr;g.fillRect(0,0,W,H)}
   floaters=floaters.filter(f=>(f.l-=.016)>0);floaters.forEach(f=>{g.fillStyle=f.col;g.globalAlpha=Math.min(1,f.l);g.font="bold 20px system-ui";g.fillText(f.t,f.x-20,f.y-(1.2-f.l)*40);g.globalAlpha=1});
-  g.fillStyle="rgba(0,0,0,.4)";g.fillRect(10,10,150,14);g.fillStyle="#ffe066";g.fillRect(10,10,150*Math.min(1,(cam+X0)/(fences.finish||1)),14);
+  const prog=x=>Math.min(1,x/(fences.finish||1));
+  g.fillStyle="rgba(0,0,0,.45)";g.fillRect(10,10,160,12);g.fillStyle="#ffe066";g.fillRect(10,10,160*prog(cam+X0),12);
+  if(rival){g.fillStyle="rgba(0,0,0,.45)";g.fillRect(10,26,160,8);g.fillStyle="#b36cff";g.fillRect(10,26,160*prog(rival.x),8)}
+  g.fillStyle="rgba(0,0,0,.45)";g.fillRect(10,40,160,12);g.fillStyle=horse&&horse.st<=0?"#e53935":"#4caf50";g.fillRect(10,40,160*((horse?horse.st:100)/100),12);g.fillStyle="#fff";g.font="11px system-ui";g.fillText("Stamina",14,50);
 }
 function frame(t){const dt=Math.min((t-last)/1000,.04);last=t;update(dt);draw();requestAnimationFrame(frame)}
 addEventListener("keydown",e=>{const k=e.key.toLowerCase();if(k===" "||k.startsWith("arrow"))e.preventDefault();if(k===" "&&!keys.has(" "))jump();keys.add(k)});
 addEventListener("keyup",e=>keys.delete(e.key.toLowerCase()));
-cv.addEventListener("pointerdown",e=>{touchHold=true;jump()});addEventListener("pointerup",()=>touchHold=false);
-goBtn.onclick=()=>{start(nextCourse)};
-draw();requestAnimationFrame(frame);
+cv.addEventListener("pointerdown",()=>{touchHold=true;jump()});addEventListener("pointerup",()=>touchHold=false);
+goBtn.onclick=()=>{if(after)after()};
+function title(){
+  ci=Math.min(saved,CH.length-1);reset();
+  show("The Golden Horseshoe","Willow Hart and her mare Comet must win a string of contests to save Maple Hollow stables from a scheming champion. "+(saved?"You saved your progress at chapter "+(saved+1)+".":"Six chapters of jumps, rivals, storms and one midnight ride await."),saved?"Continue chapter "+(saved+1):"Begin the story",intro);
+}
+title();draw();requestAnimationFrame(frame);
 </script>
 </body>
 </html>
