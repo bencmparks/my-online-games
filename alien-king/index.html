@@ -20,7 +20,7 @@ button{margin:.5rem .25rem 0;padding:.6rem 1.1rem;border:1px solid #7c3aed;borde
 <main>
 <a href="../">← All games</a>
 <h1>👑 Alien King</h1>
-<p>You are the Alien King, ruler of a tiny planet. Steer with the mouse (or drag on a touch screen), gobble space dust and asteroids, and swallow smaller rival planets to grow. Bigger planets will swallow you! It is a gentle start: fewer rivals, and they are slower than you. Hold Space, click or press Boost to speed up (it costs a little mass).</p>
+<p>You are the Alien King, ruler of a tiny planet. Steer with the mouse (or drag on a touch screen), gobble space dust and asteroids, and swallow smaller rival planets to grow. Bigger planets will swallow you! It is a gentle start: fewer rivals, and they are slower than you. Yellow lightning bolts spread around the map give a free 6-second speed boost. Hold Space, click or press Boost to speed up (it costs a little mass).</p>
 <canvas id="c" width="900" height="600"></canvas>
 <button id="boost">🚀 Boost (hold)</button><button id="again">New game</button>
 </main>
@@ -35,14 +35,17 @@ const mouse={x:0,y:0};
 const stars=Array.from({length:500},()=>({x:rnd(0,WS),y:rnd(0,WS),s:rnd(.6,2.2)}));
 
 function planet(name,col,m,bot){
-  return {x:rnd(300,WS-300),y:rnd(300,WS-300),vx:0,vy:0,m,col,name,bot,alive:true,tx:0,ty:0,think:0,respawn:0,boost:false,
+  return {x:rnd(300,WS-300),y:rnd(300,WS-300),vx:0,vy:0,m,col,name,bot,alive:true,tx:0,ty:0,think:0,respawn:0,boost:false,pw:0,
     cr:[0,1,2].map(()=>({a:rnd(0,6.28),d:rnd(.2,.65),r:rnd(.08,.18)}))};
 }
 function foodItem(){
   const big=Math.random()<.08;
   return {x:rnd(40,WS-40),y:rnd(40,WS-40),m:big?rnd(3,6):rnd(.4,1),big,col:big?"#94a3b8":COLS[Math.random()*COLS.length|0]};
 }
+const PUC=7;let pups=[];
+function pupAt(i){const cs=(WS-400)/PUC;return {gi:i,x:200+(i%PUC+.15+Math.random()*.7)*cs,y:200+((i/PUC|0)+.15+Math.random()*.7)*cs}}
 function newGame(){
+  pups=Array.from({length:PUC*PUC},(_,i)=>pupAt(i));
   P=planet("You","#a3e635",16,false);P.x=WS/2+rnd(-400,400);P.y=WS/2+rnd(-400,400);
   const names=NAMES.slice().sort(()=>Math.random()-.5);
   bots=Array.from({length:12},(_,i)=>planet(names[i%names.length],COLS[i%COLS.length],Math.pow(Math.random(),2)*90+8,true));
@@ -73,7 +76,7 @@ function think(b){
 function move(e,dx,dy,mag,dt,boost){
   const d=Math.hypot(dx,dy)||1;
   let sp=speedOf(e)*mag;
-  if(boost&&e.m>12){sp*=1.8;e.m-=e.m*.045*dt}
+  if(e.pw>0){sp*=1.8;e.pw-=dt}else if(boost&&e.m>12){sp*=1.8;e.m-=e.m*.045*dt}
   e.vx+=(dx/d*sp-e.vx)*Math.min(1,dt*6);e.vy+=(dy/d*sp-e.vy)*Math.min(1,dt*6);
   const r=R(e);
   e.x=clamp(e.x+e.vx*dt,r,WS-r);e.y=clamp(e.y+e.vy*dt,r,WS-r);
@@ -95,6 +98,7 @@ function update(dt){
       const f=food[i];
       if(Math.abs(f.x-e.x)<r&&Math.abs(f.y-e.y)<r&&Math.hypot(f.x-e.x,f.y-e.y)<r){e.m+=f.m;food[i]=foodItem()}
     }
+    for(let i=0;i<pups.length;i++){const p=pups[i];if(Math.hypot(p.x-e.x,p.y-e.y)<r+16){e.pw=6;pups[i]=pupAt(p.gi);if(e===P){msg="Speed boost!";msgT=1.2}}}
     if(e.m>30)e.m-=e.m*(e===P?.0012:.003)*dt;
   }
   for(const a of live)for(const b of live){
@@ -149,6 +153,12 @@ function draw(){
     x.fillStyle=f.col;x.beginPath();x.arc(f.x,f.y,f.big?9:4.5,0,7);x.fill();
     if(f.big){x.fillStyle="#0004";x.beginPath();x.arc(f.x-2,f.y-2,3,0,7);x.fill()}
   }
+  for(const p of pups){
+    if(p.x<vx0||p.x>vx1||p.y<vy0||p.y>vy1)continue;
+    const pr=16+3*Math.sin(time*4+p.x);
+    x.fillStyle="#fde04766";x.beginPath();x.arc(p.x,p.y,pr*1.6,0,7);x.fill();
+    x.fillStyle="#facc15";x.beginPath();x.moveTo(p.x+pr,p.y);x.lineTo(p.x-pr*.4,p.y-pr*.8);x.lineTo(p.x-pr*.1,p.y);x.lineTo(p.x-pr*.4,p.y+pr*.8);x.closePath();x.fill();
+  }
   const live=all(),lb=live.slice().sort((a,b)=>b.m-a.m),lead=lb[0];
   for(const e of live.slice().sort((a,b)=>a.m-b.m)){
     const r=R(e);if(e.x+r*1.6<vx0||e.x-r*1.6>vx1||e.y+r*1.6<vy0||e.y-r*1.6>vy1)continue;
@@ -165,6 +175,7 @@ function draw(){
   x.font="bold 13px Arial";
   top.forEach((e,i)=>{x.fillStyle=e===P?"#a3e635":"#fff";x.fillText((i+1)+". "+e.name+" "+Math.round(e.m),VW-162,20+i*18)});
   const mw=110;x.fillStyle="#000a";x.fillRect(VW-mw-8,VH-mw-8,mw,mw);x.strokeStyle="#7c3aed";x.lineWidth=1;x.strokeRect(VW-mw-8,VH-mw-8,mw,mw);
+  x.fillStyle="#facc15";for(const p of pups)x.fillRect(VW-mw-8+p.x/WS*mw-1,VH-mw-8+p.y/WS*mw-1,2,2);
   for(const e of live){x.fillStyle=e===P?"#a3e635":e.m>P.m*1.12?"#f87171":"#94a3b8";const s=e===P?4:2.5;x.fillRect(VW-mw-8+e.x/WS*mw-s/2,VH-mw-8+e.y/WS*mw-s/2,s,s)}
   x.textAlign="center";
   if(msgT>0&&!over){x.font="bold 24px Arial";x.fillStyle="rgba(255,255,255,"+Math.min(1,msgT)+")";x.fillText(msg,VW/2,50)}
