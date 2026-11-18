@@ -21,7 +21,7 @@ button{margin:.5rem .25rem 0;padding:.6rem 1.1rem;border:1px solid #4b7a4b;borde
 <main>
 <a href="../">← All games</a>
 <h1>Tile IO</h1>
-<p>Lead your commando out of your camp, claim ground and march back to lock it in. Cut an enemy's trail to eliminate them, and don't let anyone cut yours. Move with WASD or arrows, or click or tap where you want to go. In Circle mode you are a round circle and steer in any direction, even diagonally, by moving the mouse.</p>
+<p>Lead your commando out of your camp, claim ground and march back to lock it in. Cut an enemy's trail to eliminate them, and don't let anyone cut yours. Move with WASD or arrows, or click or tap where you want to go. In Circle mode you are a round circle and steer in any direction, even diagonally, by moving the mouse. You only see a fifth of the board, with you in the middle.</p>
 <div><button id="mClassic" class="on">Classic</button><button id="mCircle">Circle mode</button></div>
 <canvas id="c" width="800" height="560"></canvas>
 <button id="again">New game</button>
@@ -39,6 +39,8 @@ const DIRS=[[1,0],[-1,0],[0,1],[0,-1]];
 let ag=[],over=false,won=false,winT=0,fall=[],best=+localStorage.getItem(BK)||0,cnt=[],cntT=0,flash=0,msg="",msgT=0;
 const mouse={x:-1,y:-1,use:false};
 let circle=false;
+// the view shows about a fifth of the board, centred on you
+const ZOOM=Math.sqrt(5);let camX=400,camY=280;
 
 function spawn(a){
   let found=false;
@@ -154,8 +156,8 @@ function botPick(a){
   return pick;
 }
 function pickPlayerDir(a){
-  if(mouse.use&&mouse.x>=0){
-    const dx=mouse.x-(a.cx+.5),dy=mouse.y-(a.cy+.5);
+  if(mouse.use){
+    const dx=mouse.x/(CS*ZOOM),dy=mouse.y/(CS*ZOOM);
     if(Math.abs(dx)>1||Math.abs(dy)>1){
       const ang=Math.atan2(dy,dx),q=Math.round(ang/(Math.PI/4)),d=circle?[Math.round(Math.cos(q*Math.PI/4)),Math.round(Math.sin(q*Math.PI/4))]:Math.abs(dx)>Math.abs(dy)?[Math.sign(dx),0]:[0,Math.sign(dy)];
       if(!(d[0]===-a.dx&&d[1]===-a.dy&&a.out))a.nd=d;
@@ -168,7 +170,7 @@ addEventListener("keydown",e=>{
   if(d){e.preventDefault();mouse.use=false;if(circle&&ag[0])ag[0].tang=Math.atan2(d[1],d[0]);const p=ag[0];if(p.alive&&!(d[0]===-p.dx&&d[1]===-p.dy&&p.out))p.nd=d}
   if(e.code==="Enter"&&over)newGame();
 });
-function pos(e){const r=c.getBoundingClientRect();mouse.x=(e.clientX-r.left)/r.width*CW;mouse.y=(e.clientY-r.top)/r.height*CH;mouse.use=true}
+function pos(e){const r=c.getBoundingClientRect();mouse.x=(e.clientX-r.left)/r.width*c.width-c.width/2;mouse.y=(e.clientY-r.top)/r.height*c.height-c.height/2;mouse.use=true}
 c.addEventListener("pointerdown",e=>{if(over){newGame();return}pos(e);try{c.setPointerCapture(e.pointerId)}catch(_){}});
 c.addEventListener("pointermove",e=>{if(e.pointerType!=="mouse"&&!(e.buttons&1))return;pos(e)});
 document.getElementById("again").onclick=newGame;
@@ -186,7 +188,7 @@ function step(a){
 }
 function stepFree(a){
   // circle mode: turn smoothly toward the mouse and glide at any angle
-  if(mouse.use&&mouse.x>=0){const dx=mouse.x-a.fx,dy=mouse.y-a.fy;if(Math.hypot(dx,dy)>1.5)a.tang=Math.atan2(dy,dx)}
+  if(mouse.use){const dx=mouse.x/(CS*ZOOM),dy=mouse.y/(CS*ZOOM);if(Math.hypot(dx,dy)>1.5)a.tang=Math.atan2(dy,dx)}
   let df=a.tang-a.ang;df=Math.atan2(Math.sin(df),Math.cos(df));a.ang+=Math.max(-.2,Math.min(.2,df));
   a.dx=Math.cos(a.ang);a.dy=Math.sin(a.ang);
   const ox=a.cx,oy=a.cy,fx=a.fx+a.dx,fy=a.fy+a.dy,nx=Math.floor(fx),ny=Math.floor(fy);
@@ -240,7 +242,11 @@ function drawSmooth(){
   }
 }
 function draw(){
-  x.fillStyle="#0b130d";x.fillRect(0,0,c.width,c.height);
+  x.fillStyle="#040704";x.fillRect(0,0,c.width,c.height);
+  const p0=ag[0],zm=won?1:ZOOM;
+  if(!won&&p0&&p0.alive){camX=(circle?p0.fx-p0.dx*(1-p0.prog):p0.cx+.5-p0.dx*(1-p0.prog))*CS;camY=(circle?p0.fy-p0.dy*(1-p0.prog):p0.cy+.5-p0.dy*(1-p0.prog))*CS}
+  x.save();x.translate(c.width/2,c.height/2);x.scale(zm,zm);if(won)x.translate(-c.width/2,-c.height/2);else x.translate(-camX,-camY);
+  x.fillStyle="#0b130d";x.fillRect(0,0,CW*CS,CH*CS);
   if(won){
     winT+=1/60;
     for(const f of fall){
@@ -271,6 +277,7 @@ function draw(){
     x.strokeStyle="#000";x.lineWidth=1.5;x.beginPath();x.arc(X,Y,8,0,7);x.stroke();
     if(a.id===1){x.fillStyle="#fff";x.font="bold 11px Arial";x.textAlign="center";x.fillText("YOU",X,Y-13)}
   }
+  x.restore();
   if(flash>0){x.fillStyle="rgba(255,255,255,"+flash*.5+")";x.fillRect(0,0,c.width,c.height)}
   const tot=owner.length,mine=cnt[0]||0;
   x.fillStyle="#000a";x.fillRect(0,0,250,56);
