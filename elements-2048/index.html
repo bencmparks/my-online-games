@@ -20,7 +20,7 @@ button{margin:.5rem .25rem 0;padding:.6rem 1.1rem;border:1px solid #f59e0b;borde
 <main>
 <a href="../">← All games</a>
 <h1>🔥 2048 Elements</h1>
-<p>You are a pile of an element (dirt, rock, water, wind, fire, lava, ice, lightning, crystal, plasma, star), and the number above it is your mass. Steer with the mouse (or drag on a touch screen). Touch a pile with the same number to merge into a double, touch a smaller pile to eat it, and touch a bigger pile and you are crushed! The element tells the size, and eating enough levels you up to the next number. Reach 2048 to win, then keep growing: there are bigger piles past 2048 (galaxy, nebula, black hole). Anything you eat tags along behind you in a line, biggest first, touching you and each other. Two of the same element in the line merge into the next one, and one that matches you merges into you. Dash with Space, click or the button.</p>
+<p>You are a pile of an element (dirt, rock, water, wind, fire, lava, ice, lightning, crystal, plasma, star), and the number above it is your mass. Steer with the mouse (or drag on a touch screen). Touch a pile with the same number to merge into a double, touch a smaller pile to eat it, and touch a bigger pile and you are crushed! The element tells the size, and eating enough levels you up to the next number. Reach 2048 to win, then keep growing: there are bigger piles past 2048 (galaxy, nebula, black hole). Anything you eat tags along behind you in a line, biggest first, touching you and each other. Two of the same element in the line merge into the next one, and one that matches you merges into you, with a pop and a flash. Rivals have tails too: if you are bigger than a pile in a rival's tail, touch it to steal it and every smaller pile behind it. Dash with Space, click or the button.</p>
 <canvas id="c" width="900" height="600"></canvas>
 <button id="dash">💨 Dash</button><button id="again">New game</button>
 </main>
@@ -82,24 +82,33 @@ function move(e,dx,dy,mag,dt){
   const r=sz(e.v);
   e.x=clamp(e.x+e.vx*dt,r,WS-r);e.y=clamp(e.y+e.vy*dt,r,WS-r);
 }
-function mergeFol(){
-  const fl=P.fol;let again=true;
+let fx=[];
+function ring(px,py,v){fx.push({k:"ring",x:px,y:py,r:sz(v),col:TC[Math.min(11,Math.round(Math.log2(v)))]||"#fff",t:0,dur:.5})}
+function fly(v,sx,sy,to){fx.push({k:"fly",v,sx,sy,to,t:0,dur:.28})}
+function mergeFol(e){
+  const fl=e.fol;let again=true;
   while(again){
     again=false;fl.sort((a,b)=>b.v-a.v);
     for(let i=0;i<fl.length;i++){
-      if(fl[i].v===P.v){fl.splice(i,1);gain(P,P.v);msg="Merged into you!";msgT=1;again=true;break}
-      if(i&&fl[i].v===fl[i-1].v){fl[i-1].v*=2;fl.splice(i,1);again=true;break}
+      if(fl[i].v===e.v){
+        fly(fl[i].v,fl[i].x,fl[i].y,e);fl.splice(i,1);gain(e,e.v);e.pop=1;ring(e.x,e.y,e.v);
+        if(e===P){msg="Merged into you!";msgT=1}
+        again=true;break;
+      }
+      if(i&&fl[i].v===fl[i-1].v){
+        const k=fl[i-1];fly(fl[i].v,fl[i].x,fl[i].y,k);k.v*=2;k.pop=1;ring(k.x,k.y,k.v);fl.splice(i,1);again=true;break;
+      }
     }
   }
 }
 function addFol(e,v){
-  e.fol.push({v,x:e.x,y:e.y});
-  mergeFol();
-  if(e.fol.length>24)e.fol.pop();
+  e.fol.push({v,x:e.x,y:e.y,pop:0});
+  mergeFol(e);
+  if(e.fol.length>(e===P?24:12))e.fol.pop();
 }
-function placeFol(){
-  const pa=P.path;let ax=P.x,ay=P.y,acc=0,i=pa.length-1,tgt=sz(P.v),prev=null;
-  for(const f of P.fol){
+function placeFol(e){
+  const pa=e.path;let ax=e.x,ay=e.y,acc=0,i=pa.length-1,tgt=sz(e.v),prev=null;
+  for(const f of e.fol){
     tgt+=(prev?sz(prev.v):0)+sz(f.v);prev=f;
     while(true){
       if(i<0){f.x=ax;f.y=ay;break}
@@ -109,6 +118,11 @@ function placeFol(){
     }
   }
 }
+function trailOf(e){
+  const lp=e.path[e.path.length-1];
+  if(!lp||Math.hypot(e.x-lp.x,e.y-lp.y)>3){e.path.push({x:e.x,y:e.y});if(e.path.length>3000)e.path.splice(0,500)}
+  mergeFol(e);placeFol(e);
+}
 function doDash(){if(P.alive&&P.cd<=0&&!over){P.dash=.4;P.cd=3}}
 function update(dt){
   time+=dt;msgT-=dt;
@@ -116,9 +130,6 @@ function update(dt){
   const md=Math.hypot(mouse.x,mouse.y);
   if(P.alive){
     move(P,mouse.x,mouse.y,clamp(md/40,0,1),dt);
-    const lp=P.path[P.path.length-1];
-    if(!lp||Math.hypot(P.x-lp.x,P.y-lp.y)>3){P.path.push({x:P.x,y:P.y});if(P.path.length>3000)P.path.splice(0,500)}
-    mergeFol();placeFol();
   }
   for(const b of bots){
     if(!b.alive){b.respawn-=dt;if(b.respawn<=0)Object.assign(b,cube(b.name,Math.pow(2,1+(Math.random()*3|0)),true));continue}
@@ -126,6 +137,13 @@ function update(dt){
     move(b,b.tx-b.x,b.ty-b.y,Math.hypot(b.tx-b.x,b.ty-b.y)>20?1:0,dt);
   }
   const live=all();
+  for(const e of live){
+    trailOf(e);
+    e.pop=Math.max(0,(e.pop||0)-dt*3);
+    for(const f of e.fol)f.pop=Math.max(0,(f.pop||0)-dt*3);
+  }
+  for(const q of fx)q.t+=dt;
+  fx=fx.filter(q=>q.t<q.dur);
   for(const e of bots.concat(P)){
     for(const p of e.tr)p.a-=dt*(e.dash>0?1.6:2.4);
     while(e.tr.length&&e.tr[0].a<=0)e.tr.shift();
@@ -136,7 +154,7 @@ function update(dt){
     const r=sz(e.v);
     for(let i=0;i<food.length;i++){
       const f=food[i];
-      if(f.v<=e.v&&Math.hypot(f.x-e.x,f.y-e.y)<r+8){gain(e,f.v);if(e===P)addFol(P,f.v);food[i]=foodItem()}
+      if(f.v<=e.v&&Math.hypot(f.x-e.x,f.y-e.y)<r+8){gain(e,f.v);addFol(e,f.v);food[i]=foodItem()}
     }
   }
   for(let i=0;i<live.length;i++)for(let j=i+1;j<live.length;j++){
@@ -153,8 +171,21 @@ function update(dt){
     }else{
       const big=a.v>b.v?a:b,small=big===a?b:a;
       gain(big,small.v);small.alive=false;small.respawn=3;
-      if(big===P){addFol(P,small.v);kills++;msg="Crushed "+small.name+"!";msgT=1.2}
+      addFol(big,small.v);
+      if(big===P){kills++;msg="Crushed "+small.name+"!";msgT=1.2}
       if(small===P){over=true;if(P.v>best){best=P.v;localStorage.setItem(BK,best)}}
+    }
+  }
+  if(P.alive)for(const b of bots){
+    if(!b.alive)continue;
+    for(let k=0;k<b.fol.length;k++){
+      const f=b.fol[k];
+      if(P.v>f.v&&Math.hypot(P.x-f.x,P.y-f.y)<sz(P.v)+sz(f.v)-4){
+        const got=b.fol.splice(k);
+        for(const g of got){fly(g.v,g.x,g.y,P);addFol(P,g.v)}
+        msg="Stole "+got.length+" from "+b.name+"'s tail!";msgT=1.5;
+        break;
+      }
     }
   }
   if(P.alive){cam.x+=(P.x-cam.x)*Math.min(1,dt*8);cam.y+=(P.y-cam.y)*Math.min(1,dt*8)}
@@ -214,13 +245,26 @@ function draw(){
     x.globalAlpha=p.a*.45;x.fillStyle=TC[Math.min(11,Math.round(Math.log2(p.v)))]||"#fff";x.beginPath();x.arc(p.x,p.y,sz(p.v)*(.35+.65*p.a),0,7);x.fill();
   }
   x.globalAlpha=1;
-  if(P.alive)for(let k=P.fol.length-1;k>=0;k--){const f=P.fol[k];drawCube(f.x,f.y,f.v,sz(f.v),"")}
+  for(const e of all())for(let k=e.fol.length-1;k>=0;k--){
+    const f=e.fol[k];if(f.x<vx0-80||f.x>vx1+80||f.y<vy0-80||f.y>vy1+80)continue;
+    drawCube(f.x,f.y,f.v,sz(f.v)*(1+f.pop*.4),"");
+  }
   const live=all(),lb=live.slice().sort((a,b)=>b.v-a.v||b.pool-a.pool);
   for(const e of live.slice().sort((a,b)=>a.v-b.v)){
-    const r=sz(e.v);if(e.x+r*1.6<vx0||e.x-r*1.6>vx1||e.y+r*1.6<vy0||e.y-r*1.6>vy1)continue;
+    const r=sz(e.v)*(1+(e.pop||0)*.3);if(e.x+r*1.6<vx0||e.x-r*1.6>vx1||e.y+r*1.6<vy0||e.y-r*1.6>vy1)continue;
     drawCube(e.x,e.y,e.v,r,e.name);
     if(e===P){x.strokeStyle="#fff";x.lineWidth=3/zoom;x.beginPath();x.arc(e.x,e.y,r+4,0,7);x.stroke()}
     else{x.fillStyle=e.v>P.v?"#ef4444":e.v===P.v?"#facc15":"#4ade80";x.beginPath();x.arc(e.x,e.y-r-Math.max(12,r*.6)-14,4,0,7);x.fill()}
+  }
+  for(const q of fx){
+    const u=q.t/q.dur;
+    if(q.k==="ring"){
+      x.globalAlpha=1-u;x.strokeStyle=q.col;x.lineWidth=5*(1-u)+1;x.beginPath();x.arc(q.x,q.y,q.r*(.8+u*1.8),0,7);x.stroke();
+      x.fillStyle=q.col;for(let a=0;a<8;a++){const an=a*.785+q.x,d=q.r*(.6+u*2.2);x.beginPath();x.arc(q.x+Math.cos(an)*d,q.y+Math.sin(an)*d,3*(1-u)+1,0,7);x.fill()}
+      x.globalAlpha=1;
+    }else{
+      const e2=u*u*(3-2*u);drawCube(q.sx+(q.to.x-q.sx)*e2,q.sy+(q.to.y-q.sy)*e2,q.v,sz(q.v)*(1-.5*u),"");
+    }
   }
   x.strokeStyle="#ef4444";x.lineWidth=6/zoom;x.strokeRect(0,0,WS,WS);
   x.restore();
