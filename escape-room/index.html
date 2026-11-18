@@ -23,7 +23,7 @@ button{font-family:inherit;cursor:pointer}
 #modal .box{background:#2a2112;border:3px solid #8a6d3b;padding:18px 22px;border-radius:6px;max-width:92vw}
 #modal input{font:inherit;font-size:28px;width:5.5em;text-align:center;letter-spacing:6px;background:#0d0a05;color:#ffe08a;border:2px solid #8a6d3b;padding:6px;text-transform:uppercase}
 </style></head><body>
-<div id="top"><a href="../">&larr; Games</a><span id="timer">0:00</span><span><button class="btn" id="hint">💡 Hint</button> <button class="btn" id="restart">↺</button></span></div>
+<div id="top"><a href="../">&larr; Games</a><span id="timer">0:00</span><span><button class="btn" id="hint">💡 Hint</button> <button class="btn" id="books">📚</button> <button class="btn" id="restart">↺</button></span></div>
 <div id="room"><div class="floor"></div><div id="roomname"></div></div>
 <div id="msg"></div>
 <div id="inv"></div>
@@ -44,7 +44,7 @@ const ITEMS={
  p3:{e:'📃',n:'Page 3',d:'A torn page: "_ _ O N"'},
  exit:{e:'🔓',n:'Exit key',d:'The way out!'},
 };
-function fresh(){return{room:0,f:{},inv:[],hints:0}}
+function fresh(){return{room:0,f:{},inv:[],hints:0,pen:0,book:0}}
 function say(t){$('msg').textContent=t}
 function has(i){return S.inv.includes(i)}
 function give(i){if(!has(i))S.inv.push(i);renderInv()}
@@ -59,7 +59,7 @@ function close(){$('modal').style.display='none'}
 function codeLock(title,len,answer,ok,hint){
   modal(`<h3 style="margin-top:0">${title}</h3><input id="ci" maxlength="${len}" autocomplete="off"><p style="font-size:13px;opacity:.7">${hint||''}</p><button class="btn" id="cok">Try</button> <button class="btn" id="cno">Close</button>`);
   const i=$('ci');i.focus();
-  const go=()=>{if(i.value.toUpperCase()===answer){close();ok()}else{i.value='';say('Wrong code. Nothing happens.');i.style.borderColor='#e33'}};
+  const go=()=>{if(i.value.toUpperCase()===answer){close();ok()}else{i.value='';S.pen+=20;say('Wrong code. Nothing happens. (+20s penalty)');i.style.borderColor='#e33'}};
   $('cok').onclick=go;$('cno').onclick=close;i.onkeydown=e=>{if(e.key=='Enter')go()}
 }
 const ROOMS=[
@@ -160,9 +160,10 @@ function pot(c){potSeq.push(c);const s=potSeq.join('');
   if(s==='bgr'){S.f.cab=1;give('fuse');say('The mixture glows. A hidden panel slides open: a fuse!');draw()}
   else say('The beaker fizzes and goes dark. Wrong order — it resets.');
   potSeq=[]}
-function go(r){S.room=r;potSeq=[];say('You enter: '+ROOMS[r].name);draw()}
+let CUR=ROOMS;
+function go(r){S.room=r;potSeq=[];say('You enter: '+CUR[r].name);draw()}
 function draw(){
-  const R=ROOMS[S.room],rm=$('room');
+  const R=CUR[S.room],rm=$('room');
   rm.querySelectorAll('.hs').forEach(n=>n.remove());
   rm.style.background=R.bg;rm.querySelector('.floor').style.background=R.floor;$('roomname').textContent=R.name;
   R.hs.forEach(h=>{if(h.v&&!h.v())return;const b=document.createElement('button');b.className='hs'+(h.big?' big':'');b.textContent=h.e;b.title=h.l;
@@ -171,6 +172,7 @@ function draw(){
 }
 function hintText(){
   const f=S.f;
+  if(S.book>0){const i=S.room;return f['u'+i]?'Select the key and use it on the door.':CUR[i].hint}
   if(S.room==0){
     if(!f.rug)return'Something is hiding under the rug.';
     if(!f.drawer)return'The brass key opens the desk. Select it, then click the desk.';
@@ -186,16 +188,102 @@ function hintText(){
   if(!f.p2||!f.p3||!f.p1)return'Three torn pages: microscope, lamp, vase.';
   if(!f.chest)return'Put the pages together: M _ _ _ / _ O _ _ / _ _ O N. The word is MOON.';
   return'Select the exit key and use it on the exit door.'}
-function win(){
-  clearInterval(timerT);const sec=Math.floor((Date.now()-t0)/1000);
-  const b=+(localStorage.getItem('escape-room-best')||1e9);if(sec<b)localStorage.setItem('escape-room-best',sec);
-  const best=Math.min(b,sec);
-  modal(`<h2 style="margin-top:0">🎉 You escaped!</h2><p>Time: ${fmt(sec)}<br>Hints used: ${S.hints}<br>Best time: ${fmt(best)}</p><button class="btn" id="again">Play again</button>`);
-  $('again').onclick=()=>{close();start()}}
+const BOOKS=[{name:"The Clockmaker's Mansion",e:'🕰️',rooms:ROOMS}];
+const THEMES=[
+ {n:'Pirate Ship',e:'🏴‍☠️',bg:['#14425c','#082030'],fl:'#6b4a2a',word:'SAIL',key:'Pirate key',o:[['⚓','Anchor'],['🦜','Parrot'],['🗺️','Map'],['🪙','Coin'],['🧭','Compass'],['🍾','Bottle'],['💣','Cannonball'],['🦀','Crab']]},
+ {n:'Haunted Manor',e:'👻',bg:['#2b1f3a','#0e0a14'],fl:'#3a2a30',word:'GHOST',key:'Spooky key',o:[['👻','Ghost'],['🕯️','Candle'],['🦇','Bat'],['🕸️','Web'],['⚰️','Coffin'],['🎃','Pumpkin'],['🔔','Bell'],['🪦','Gravestone']]},
+ {n:'Space Station',e:'🚀',bg:['#0b1030','#02030a'],fl:'#2c3550',word:'MARS',key:'Airlock key',o:[['🚀','Rocket'],['🛰️','Satellite'],['👽','Alien'],['🪐','Planet'],['🔭','Telescope'],['☄️','Comet'],['🧑‍🚀','Astronaut'],['🔋','Battery']]},
+ {n:'Pharaoh\'s Tomb',e:'🔺',bg:['#8a6a2a','#3a2a0e'],fl:'#a98a4a',word:'NILE',key:'Scarab key',o:[['🏺','Urn'],['🐍','Snake'],['🐫','Camel'],['👁️','Eye'],['🔺','Pyramid'],['⚱️','Jar'],['🪲','Scarab'],['📿','Amulet']]},
+ {n:'Wizard Tower',e:'🧙',bg:['#2d1b5a','#0f0826'],fl:'#3a2a66',word:'WAND',key:'Arcane key',o:[['🔮','Orb'],['🧙','Wizard'],['📖','Spellbook'],['🧪','Potion'],['🦉','Owl'],['🪄','Wand'],['🕯️','Candle'],['⭐','Star']]},
+ {n:'Wild West Town',e:'🤠',bg:['#c98a4a','#6a3f1a'],fl:'#9a6a35',word:'GOLD',key:'Sheriff key',o:[['🤠','Cowboy'],['🐴','Horse'],['🌵','Cactus'],['🔫','Revolver'],['🪙','Coin'],['🥾','Boot'],['🎸','Guitar'],['🐂','Bull']]},
+ {n:'Arctic Base',e:'🐧',bg:['#9ad0e8','#3c6c88'],fl:'#d8eef8',word:'SNOW',key:'Frozen key',o:[['🐧','Penguin'],['❄️','Snowflake'],['🧊','Ice'],['🐻‍❄️','Polar bear'],['🎿','Ski'],['🧤','Glove'],['🔦','Torch'],['⛺','Tent']]},
+ {n:'Robot Factory',e:'🤖',bg:['#445566','#1a232c'],fl:'#2a343d',word:'GEAR',key:'Steel key',o:[['🤖','Robot'],['⚙️','Gear'],['🔩','Bolt'],['🔌','Plug'],['💾','Disk'],['🔋','Battery'],['📟','Pager'],['🖲️','Switch']]},
+ {n:'Deep Sea Lab',e:'🦈',bg:['#06304a','#020f1a'],fl:'#1a3a4a',word:'REEF',key:'Coral key',o:[['🐙','Octopus'],['🦈','Shark'],['🐚','Shell'],['⚓','Anchor'],['🐡','Pufferfish'],['🦑','Squid'],['🪸','Coral'],['🐠','Fish']]},
+ {n:'Dragon Castle',e:'🐉',bg:['#5a1a1a','#1c0707'],fl:'#4a3028',word:'FIRE',key:'Dragon key',o:[['🐉','Dragon'],['🏰','Tower'],['🛡️','Shield'],['⚔️','Sword'],['👑','Crown'],['🔥','Flame'],['🪙','Gold'],['📜','Scroll']]},
+];
+function mkrng(s){return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296}}
+const SLOTS=[[20,30],[42,24],[60,30],[22,68],[42,72],[58,66]];
+const HINTS={sum:'Count three objects, then follow the faded note. Ignore the crossed-out number.',order:'Combine the three "must come before" clues into one order, then press the items in that order.',lights:'Open the light panel. A press flips that light and its 4 neighbours. Work from the top row down.',cipher:'Shift every letter of the scrap BACK by the number in the note.',lens:'One object hides a magnifier. Select it, then use it on the object with tiny writing.'};
+THEMES.forEach((T,bi)=>{
+  const B=bi+1,rnd=mkrng(B*977+5),list=[],types=['sum','order','lights','cipher','lens','sum'];
+  types.forEach((ty,ri)=>{
+    const id='k'+B+'_'+ri,last=ri===types.length-1,u='u'+ri;
+    ITEMS[id]={e:'🔑',n:T.key+' '+(ri+1),d:'A key. It should open the door in this room.'};
+    const O=T.o.map((_,k)=>T.o[(k+ri*2)%T.o.length]);
+    const hs=[{x:6,y:58,e:'⬅️',l:'Back',c(){ri===0?say('The way back is sealed.'):go(ri-1)}}];
+    const obj=(k,fn)=>{const [e,l]=O[k];hs.push({x:SLOTS[k%6][0],y:SLOTS[k%6][1],e,l,c(){fn(l)}})};
+    const main=(e,l,c)=>hs.push({x:74,y:50,e,l,big:1,v:()=>!S.f[u],c});
+    const solve=m=>{S.f[u]=1;give(id);say(m);draw()};
+    const pick=n=>2+Math.floor(rnd()*n);
+    if(ty==='sum'){
+      let a,b;do{a=pick(8);b=pick(8)}while(a*b<10);const c=pick(8),d=pick(8),ans=String(a*b)+c,n=O.map(x=>x[1]);
+      obj(0,l=>say(`Counting every ${l} you can find: ${a}.`));
+      obj(1,l=>say(`Counting every ${l} you can find: ${b}.`));
+      obj(2,l=>say(`Counting every ${l} you can find: ${c}.`));
+      obj(3,()=>say(`A faded note: "Multiply the ${n[0]} count by the ${n[1]} count, then write the ${n[2]} count after it."`));
+      obj(4,()=>say(`A crossed-out scribble: "${d}${a}". Probably an old, wrong number.`));
+      obj(5,l=>say(`Just a ${l}. Nothing useful.`));
+      main('🔢','Number lock',()=>codeLock('Number lock',ans.length,ans,()=>solve('Click! A key drops out.'),'Follow the faded note.'));
+    }else if(ty==='order'){
+      const perm=[0,1,2,3].sort(()=>rnd()-.5),ids='abcd',order=perm.map(k=>ids[k]).join('');
+      for(let j=0;j<3;j++)obj(4+j,()=>say(`A scrawled message: "The ${O[perm[j]][1]} must come before the ${O[perm[j+1]][1]}."`));
+      obj(7,()=>say('A note: "Press them from first to last."'));
+      [0,1,2,3].sort(()=>rnd()-.5).forEach((k,pos)=>hs.push({x:36+pos*12,y:48,e:O[k][0],l:O[k][1],v:()=>!S.f[u],c(){
+        potSeq.push(ids[k]);if(potSeq.length<4)return say('You press the '+O[k][1]+'…');
+        const ok=potSeq.join('')===order;potSeq=[];
+        if(ok)solve('Everything clicks into place. A key appears!');else{S.pen+=15;say('Nothing happens. Wrong order. (+15s)')}}}));
+    }else if(ty==='lights'){
+      const key='g'+ri;
+      const start=()=>{const g=Array(9).fill(0);let n=0;while(n<5||g.every(x=>!x)){const k=Math.floor(rnd()*9);flip(g,k);n++}return g};
+      const flip=(g,k)=>{const r=Math.floor(k/3),c=k%3;[[0,0],[1,0],[-1,0],[0,1],[0,-1]].forEach(([dr,dc])=>{const rr=r+dr,cc=c+dc;if(rr>=0&&rr<3&&cc>=0&&cc<3)g[rr*3+cc]^=1})};
+      obj(0,()=>say('A note: "Pressing a light flips it and the lights next to it (up, down, left, right). Turn them all off."'));
+      obj(1,l=>say(`Just a ${l}.`));obj(2,l=>say(`Nothing here but a ${l}.`));
+      main('💡','Light panel',()=>{
+        if(!S.f[key])S.f[key]=start();const g=S.f[key];
+        const show=()=>{modal('<div id="lg" style="display:grid;grid-template-columns:repeat(3,64px);gap:6px;justify-content:center"></div><p style="font-size:13px">Turn every light OFF.</p><button class="btn" id="cl">Close</button>');
+          g.forEach((v,k)=>{const b=document.createElement('button');b.style.cssText='height:64px;font-size:28px;border:2px solid #8a6d3b;border-radius:4px;background:'+(v?'#ffe08a':'#1a1408');b.textContent=v?'💡':'';b.onclick=()=>{flip(g,k);if(g.every(x=>!x)){close();solve('All the lights go dark. A hidden compartment opens: a key!')}else show()};$('lg').appendChild(b)});
+          $('cl').onclick=close};show()});
+    }else if(ty==='cipher'){
+      const s=1+Math.floor(rnd()*4),sh=w=>[...w].map(ch=>String.fromCharCode((ch.charCodeAt(0)-65+s)%26+65)).join('');
+      obj(0,()=>say(`A scrap of paper reads: "${sh(T.word)}"`));
+      obj(1,()=>say(`A note: "Every letter was moved ${s} place${s>1?'s':''} forward in the alphabet."`));
+      obj(2,()=>say(`An old crossed-out scrap: "${sh('ABCD').slice(0,3)}${sh('Z')}". Nonsense.`));
+      obj(3,l=>say(`Just a ${l}.`));
+      main('🔤','Word lock',()=>codeLock('Word lock',T.word.length,T.word,()=>solve('The lock opens. A key!'),`A ${T.word.length}-letter word.`));
+    }else{
+      const code=String(1000+Math.floor(rnd()*9000)),fake=String(1000+Math.floor(rnd()*9000)),lens='lens'+B;
+      ITEMS[lens]={e:'🔍',n:'Magnifier',d:'A magnifying glass. Handy for tiny writing.'};
+      obj(0,l=>{if(S.f['t'+ri])return say(`Nothing else behind the ${l}.`);S.f['t'+ri]=1;give(lens);say(`Behind the ${l} you find a magnifying glass!`)});
+      obj(1,l=>{if(sel===lens)say(`Through the lens, tiny writing on the ${l}: "The code is ${code}."`);else say(`There is writing on the ${l}, far too tiny to read.`)});
+      obj(2,()=>say(`Scratched in a hurry: "${fake}". It looks fake.`));
+      obj(3,l=>say(`Just a ${l}.`));
+      main('🔢','Number lock',()=>codeLock('Number lock',4,code,()=>solve('Click! A key drops out.'),'4 digits'));
+    }
+    hs.push({x:92,y:58,e:'🚪',l:'Door',c(){const nx=()=>last?win():go(ri+1);if(S.f['d'+ri])return nx();if(sel===id){S.f['d'+ri]=1;take(id);say('The key turns!');nx()}else say('The door is locked.')}});
+    list.push({name:`${T.n} ${ri+1}/6`,bg:`linear-gradient(${T.bg[0]},${T.bg[1]})`,floor:T.fl,hs,hint:HINTS[ty]});
+  });
+  BOOKS.push({name:T.n,e:T.e,rooms:list});
+});
+function elapsed(){return Math.floor((Date.now()-t0)/1000)+S.pen}
 function fmt(s){return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
-function start(){S=fresh();sel=null;potSeq=[];t0=Date.now();clearInterval(timerT);timerT=setInterval(()=>{$('timer').textContent=fmt(Math.floor((Date.now()-t0)/1000))},500);
-  say('You wake up locked in an old clockmaker\'s study. Find a way out!');draw()}
-$('hint').onclick=()=>{S.hints++;say('💡 '+hintText())};
-$('restart').onclick=()=>{if(confirm('Restart the escape room?'))start()};
-start();
-</script></body></html>
+function win(){
+  clearInterval(timerT);const sec=elapsed(),b=S.book,key='escape-room-bt'+b,old=+(localStorage.getItem(key)||1e9);
+  if(sec<old)localStorage.setItem(key,sec);
+  if(b+1>+(localStorage.getItem('escape-room-books')||0))localStorage.setItem('escape-room-books',b+1);
+  const nxt=b+1<BOOKS.length;
+  modal(`<h2 style="margin-top:0">📖 ${BOOKS[b].name} complete!</h2><p>Time: ${fmt(sec)} (with penalties)<br>Hints used: ${S.hints}<br>Best: ${fmt(Math.min(old,sec))}</p>${nxt?'<button class="btn" id="nb">Next book ▶</button> ':''}<button class="btn" id="bl2">Book list</button>`);
+  if(nxt)$('nb').onclick=()=>{close();startBook(b+1)};
+  $('bl2').onclick=()=>{close();menu()}}
+function menu(){
+  clearInterval(timerT);const done=+(localStorage.getItem('escape-room-books')||0);
+  modal('<h2 style="margin-top:0">📚 Choose a book</h2><div id="bk" style="display:grid;gap:6px;max-height:60vh;overflow:auto"></div>');
+  BOOKS.forEach((B,i)=>{const b=document.createElement('button'),open=i<=done,bt=+(localStorage.getItem('escape-room-bt'+i)||0);b.className='btn';
+    b.textContent=(open?B.e+' ':'🔒 ')+'Book '+(i+1)+': '+B.name+' ('+B.rooms.length+' rooms)'+(bt?' ✔ '+fmt(bt):'');
+    b.disabled=!open;b.style.opacity=open?1:.5;b.onclick=()=>{close();startBook(i)};$('bk').appendChild(b)})}
+function startBook(b){S=fresh();S.book=b;CUR=BOOKS[b].rooms;sel=null;potSeq=[];t0=Date.now();clearInterval(timerT);
+  timerT=setInterval(()=>{$('timer').textContent=fmt(elapsed())},500);
+  say(b==0?"You wake up locked in an old clockmaker's study. Find a way out!":'Book '+(b+1)+': '+BOOKS[b].name+'. Wrong codes and hints cost time. Good luck!');draw()}
+$('hint').onclick=()=>{S.hints++;S.pen+=60;say('💡 '+hintText()+'  (+60s)')};
+$('books').onclick=()=>{if(confirm('Leave this book and pick another?'))menu()};
+$('restart').onclick=()=>{if(confirm('Restart this book?'))startBook(S.book)};
+S=fresh();draw();menu();</script></body></html>
