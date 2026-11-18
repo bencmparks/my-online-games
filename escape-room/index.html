@@ -94,9 +94,67 @@ const ROOMS=[
   {x:60,y:32,e:'🏺',l:'Vase',c(){if(S.f.p3)return say('An empty vase.');S.f.p3=1;give('p3');say('Inside the vase: a torn page!')}},
   {x:40,y:25,e:'🪞',l:'Mirror',c(){say('You see your tired face. Scratched in the frame: "Three pages. Four letters. Something bright in the night."')}},
   {x:75,y:62,e:'📦',l:'Chest',big:1,v:()=>!S.f.chest,c(){codeLock('Word chest',4,'MOON',()=>{S.f.chest=1;give('exit');say('The chest opens: the exit key!');draw()},'A 4-letter word. Combine your torn pages.')}},
-  {x:92,y:58,e:'🚪',l:'Exit',c(){if(sel==='exit')win();else say('The exit! It needs a key.')}},
+  {x:92,y:58,e:'🚪',l:'Exit',c(){if(S.f.door3)return go(3);if(sel==='exit'){S.f.door3=1;take('exit');say('The exit key turns! But this is not the way out yet… the door leads deeper.');go(3)}else say('A door onward. It needs a key.')}},
  ]},
 ];
+const SPECS=[
+ {name:'The Kitchen',bg:'linear-gradient(#6d5a3a,#3b2c18)',floor:'#7a5a33',type:'code',answer:'2748',
+  clues:[{x:25,y:35,e:'🥧',l:'Pie',t:'A recipe card: "Bake for 27 minutes."'},{x:45,y:70,e:'🍽️',l:'Plates',t:'Scratched under a plate: "…then chill for 48 minutes."'}],
+  lock:{x:70,y:55,e:'🧊',l:'Freezer',title:'Freezer lock',win:'The freezer pops open. A frosty key sits inside!'},hintL:'4 digits',key:'Frosty key',hint:'Look at the pie and the plates. Combine 27 and 48.'},
+ {name:'The Greenhouse',bg:'linear-gradient(#2e6b3a,#173a1f)',floor:'#4b3a22',type:'seq',order:'rtdo',
+  clues:[{x:20,y:30,e:'🪧',l:'Sign',t:'A sign: "Water the Rose, then the Tulip, then the Daisy, then the Orchid."'}],
+  btns:[{x:38,y:60,e:'🌷',id:'t',l:'Tulip'},{x:50,y:60,e:'🪻',id:'o',l:'Orchid'},{x:62,y:60,e:'🌹',id:'r',l:'Rose'},{x:74,y:60,e:'🌼',id:'d',l:'Daisy'}],
+  win:'The plants bloom and a key unfolds from a flower!',fail:'The plants wilt. Wrong order — try again.',key:'Garden key',hint:'Read the sign for the watering order.'},
+ {name:'The Attic',bg:'linear-gradient(#5a4a3a,#2c2118)',floor:'#4a3922',type:'tool',tool:{e:'🪛',n:'Crowbar',d:'A sturdy crowbar. Good for prying things open.'},
+  from:{x:25,y:55,e:'🧰',l:'Trunk',t:'In the old trunk you find a crowbar!'},
+  target:{x:70,y:50,e:'📦',l:'Nailed crate',need:'A crate nailed shut. You need something to pry it open.',win:'CRACK! The lid pops off. A key is inside!'},
+  clues:[{x:50,y:30,e:'🧸',l:'Teddy',t:'A dusty teddy bear. It has no secrets.'}],key:'Attic key',hint:'Open the trunk, then use what you find on the crate.'},
+ {name:'The Observatory',bg:'linear-gradient(#10163a,#070a1c)',floor:'#22264a',type:'code',answer:'STAR',
+  clues:[{x:25,y:30,e:'🔭',l:'Telescope',t:'Engraved on the telescope: "S _ A _"'},{x:50,y:20,e:'🌙',l:'Moon chart',t:'A star chart note: "_ T _ R"'}],
+  lock:{x:70,y:58,e:'🌌',l:'Star dial',title:'Star dial',win:'The dial clicks and a key drops from the ceiling!'},hintL:'A 4-letter word',key:'Star key',hint:'Combine S _ A _ and _ T _ R into one word.'},
+ {name:'The Dungeon',bg:'linear-gradient(#2b2b2b,#101010)',floor:'#3a3a3a',type:'code',answer:'632',
+  clues:[{x:20,y:35,e:'🔥',l:'Torches',t:'The wall has 6 torches.'},{x:40,y:35,e:'💀',l:'Skulls',t:'There are 3 skulls on the shelf.'},{x:30,y:72,e:'⛓️',l:'Chains',t:'Only 2 chains still hang from the ceiling.'}],
+  lock:{x:70,y:52,e:'🔒',l:'Cell lock',title:'Cell lock',win:'The cell lock opens. A key was hanging inside!'},hintL:'3 digits: torches, skulls, chains',key:'Cell key',hint:'Torches, then skulls, then chains: 3 digits.'},
+ {name:'The Aquarium',bg:'linear-gradient(#0f5c8a,#08304a)',floor:'#c9b27c',type:'seq',order:'cfto',
+  clues:[{x:20,y:28,e:'📝',l:'Feeding chart',t:'A feeding chart: "Feed the Crab, the Fish, the Turtle, then the Octopus."'}],
+  btns:[{x:38,y:50,e:'🐟',id:'f',l:'Fish'},{x:50,y:60,e:'🦀',id:'c',l:'Crab'},{x:62,y:50,e:'🐙',id:'o',l:'Octopus'},{x:74,y:60,e:'🐢',id:'t',l:'Turtle'}],
+  win:'The fish swim happily and a key floats up from the sand!',fail:'The animals ignore the food. Wrong order — try again.',key:'Pearl key',hint:'Follow the feeding chart order.'},
+ {name:'The Clock Tower',bg:'linear-gradient(#6b6b78,#2c2c36)',floor:'#4a4a55',type:'tool',tool:{e:'🔧',n:'Wrench',d:'A big wrench. It could loosen a rusty bolt.'},
+  from:{x:22,y:58,e:'🪣',l:'Bucket',t:'Under some rags in the bucket: a wrench!'},
+  target:{x:68,y:42,e:'⚙️',l:'Rusty gears',need:'The gears are jammed by a rusty bolt. You need a tool.',win:'You loosen the bolt. The gears turn and drop a key!'},
+  clues:[{x:45,y:25,e:'🕰️',l:'Clock face',t:'The giant clock is stuck at 12.'}],key:'Tower key',hint:'Search the bucket, then use the wrench on the gears.'},
+ {name:'The Music Hall',bg:'linear-gradient(#5a1e2e,#2a0d16)',floor:'#7a5a33',type:'seq',order:'vtdb',
+  clues:[{x:20,y:28,e:'🎼',l:'Sheet music',t:'Sheet music: "Violin, then Trumpet, then Drum, then Bell."'}],
+  btns:[{x:38,y:58,e:'🎻',id:'v',l:'Violin'},{x:50,y:58,e:'🎺',id:'t',l:'Trumpet'},{x:62,y:58,e:'🥁',id:'d',l:'Drum'},{x:74,y:58,e:'🔔',id:'b',l:'Bell'}],
+  win:'A grand chord rings out and a key drops from the organ!',fail:'A sour note. Wrong order — try again.',key:'Brass key',hint:'Play the instruments in the sheet music order.'},
+ {name:'The Wine Cellar',bg:'linear-gradient(#3a2418,#150c07)',floor:'#2e2018',type:'code',answer:'WINE',
+  clues:[{x:22,y:40,e:'🍷',l:'Glass',t:'Etched on the glass: "W _ N _"'},{x:48,y:60,e:'🛢️',l:'Barrel',t:'Carved in the barrel: "_ I _ E"'}],
+  lock:{x:72,y:50,e:'🗝️',l:'Cellar lock',title:'Cellar lock',win:'The cellar lock opens. A key waits inside!'},hintL:'A 4-letter word',key:'Cellar key',hint:'Combine W _ N _ and _ I _ E.'},
+ {name:'The Rooftop',bg:'linear-gradient(#1b2a5c,#0b1230)',floor:'#444',type:'code',answer:'1969',
+  clues:[{x:20,y:30,e:'🌕',l:'Plaque',t:'A plaque: "First footsteps on the Moon — the year 19…"'},{x:45,y:55,e:'🧑‍🚀',l:'Statue',t:'The statue\'s base reads: "…69."'}],
+  lock:{x:70,y:55,e:'🛸',l:'Hatch panel',title:'Hatch panel',win:'The panel opens. The final key!'},hintL:'A year: 4 digits',key:'Final key',hint:'The plaque starts the year, the statue ends it.'},
+];
+SPECS.forEach((s,k)=>{
+  const i=3+k,last=i===3+SPECS.length-1,key='key'+i;
+  ITEMS[key]={e:'🔑',n:s.key,d:'A key. It must open the door in this room.'};
+  if(s.tool)ITEMS['tool'+i]={e:s.tool.e,n:s.tool.n,d:s.tool.d};
+  const hs=[{x:6,y:58,e:'⬅️',l:'Back',c(){go(i-1)}}];
+  s.clues.forEach(c=>hs.push({x:c.x,y:c.y,e:c.e,l:c.l,c(){say(c.t)}}));
+  if(s.type==='code')hs.push({x:s.lock.x,y:s.lock.y,e:s.lock.e,l:s.lock.l,big:1,v:()=>!S.f['u'+i],c(){codeLock(s.lock.title,s.answer.length,s.answer,()=>{S.f['u'+i]=1;give(key);say(s.lock.win);draw()},s.hintL)}});
+  if(s.type==='seq')s.btns.forEach(b=>hs.push({x:b.x,y:b.y,e:b.e,l:b.l,v:()=>!S.f['u'+i],c(){
+    potSeq.push(b.id);if(potSeq.length<s.order.length)return say('You choose the '+b.l+'…');
+    const ok=potSeq.join('')===s.order;potSeq=[];
+    if(ok){S.f['u'+i]=1;give(key);say(s.win);draw()}else say(s.fail)}}));
+  if(s.type==='tool'){
+    hs.push({x:s.from.x,y:s.from.y,e:s.from.e,l:s.from.l,c(){if(S.f['t'+i])return say('Nothing else here.');S.f['t'+i]=1;give('tool'+i);say(s.from.t)}});
+    hs.push({x:s.target.x,y:s.target.y,e:s.target.e,l:s.target.l,big:1,v:()=>!S.f['u'+i],c(){if(sel==='tool'+i){take('tool'+i);S.f['u'+i]=1;give(key);say(s.target.win);draw()}else say(s.target.need)}});
+  }
+  hs.push({x:92,y:58,e:'🚪',l:'Door',c(){
+    const nx=()=>last?win():go(i+1);
+    if(S.f['d'+i])return nx();
+    if(sel===key){S.f['d'+i]=1;take(key);say('The key turns!');nx()}else say('The door is locked. Find the key.')}});
+  ROOMS.push({name:s.name,bg:s.bg,floor:s.floor,hs,hint:s.hint});
+});
 function pot(c){potSeq.push(c);const s=potSeq.join('');
   if(s.length<3)return say('You pour the '+{b:'blue',g:'green',r:'red'}[c]+' potion into the beaker…');
   if(s==='bgr'){S.f.cab=1;give('fuse');say('The mixture glows. A hidden panel slides open: a fuse!');draw()}
@@ -124,6 +182,7 @@ function hintText(){
     if(!f.p1)return'Check the microscope.';
     if(!f.mach)return'The machine needs the cog and the fuse. Select each, then click the machine.';
     return'Use the gold key on the door.'}
+  if(S.room>2){const R=ROOMS[S.room],i=S.room;return f['u'+i]?'Select the key and use it on the door.':R.hint}
   if(!f.p2||!f.p3||!f.p1)return'Three torn pages: microscope, lamp, vase.';
   if(!f.chest)return'Put the pages together: M _ _ _ / _ O _ _ / _ _ O N. The word is MOON.';
   return'Select the exit key and use it on the exit door.'}
