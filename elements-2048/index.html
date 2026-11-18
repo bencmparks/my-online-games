@@ -29,12 +29,13 @@ const c=document.getElementById("c"),x=c.getContext("2d"),VW=900,VH=600,WS=4000,
 const rnd=(a,b)=>a+Math.random()*(b-a),clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const NAMES=["Ember","Gust","Ripple","Boulder","Magma","Frost","Spark","Dusty","Blaze","Gale","Tide","Cinder","Quake","Flint"];
 const CC={2:"#f87171",4:"#fb923c",8:"#facc15",16:"#a3e635",32:"#4ade80",64:"#2dd4bf",128:"#38bdf8",256:"#60a5fa",512:"#a78bfa",1024:"#e879f9",2048:"#fde047"};
+const TC=["","#8b5a2b","#9ca3af","#38bdf8","#e0f2fe","#f97316","#ea580c","#bae6fd","#fde047","#a78bfa","#e879f9","#fde047"];
 const sz=v=>14+Math.log2(v)*3.6;
 let P,bots,food,best=+localStorage.getItem(BK)||0,over=false,won=false,zoom=1,cam={x:WS/2,y:WS/2},dashing=false,kills=0,msg="",msgT=0,time=0;
 const mouse={x:0,y:0};
 
 function cube(name,v,bot){
-  return {x:rnd(300,WS-300),y:rnd(300,WS-300),vx:0,vy:0,v,pool:0,name,bot,alive:true,tx:0,ty:0,think:0,respawn:0,dash:0,cd:0};
+  return {x:rnd(300,WS-300),y:rnd(300,WS-300),vx:0,vy:0,v,pool:0,name,bot,alive:true,tx:0,ty:0,think:0,respawn:0,dash:0,cd:0,tr:[],tt:0};
 }
 function foodItem(){const r=Math.random();return {x:rnd(40,WS-40),y:rnd(40,WS-40),v:r<.6?2:r<.9?4:8}}
 function gain(e,amt){
@@ -93,6 +94,12 @@ function update(dt){
     move(b,b.tx-b.x,b.ty-b.y,Math.hypot(b.tx-b.x,b.ty-b.y)>20?1:0,dt);
   }
   const live=all();
+  for(const e of bots.concat(P)){
+    for(const p of e.tr)p.a-=dt*(e.dash>0?1.6:2.4);
+    while(e.tr.length&&e.tr[0].a<=0)e.tr.shift();
+    e.tt-=dt;
+    if(e.alive&&e.tt<=0&&Math.hypot(e.vx,e.vy)>40){e.tt=.035;e.tr.push({x:e.x,y:e.y,a:1,v:e.v})}
+  }
   for(const e of live){
     const r=sz(e.v);
     for(let i=0;i<food.length;i++){
@@ -170,6 +177,11 @@ function draw(){
     if(f.x<vx0||f.x>vx1||f.y<vy0||f.y>vy1)continue;
     drawCube(f.x,f.y,f.v,8+Math.log2(f.v)*1.5,"");
   }
+  for(const e of bots.concat(P))for(const p of e.tr){
+    if(p.x<vx0-80||p.x>vx1+80||p.y<vy0-80||p.y>vy1+80)continue;
+    x.globalAlpha=p.a*.45;x.fillStyle=TC[Math.min(11,Math.round(Math.log2(p.v)))]||"#fff";x.beginPath();x.arc(p.x,p.y,sz(p.v)*(.35+.65*p.a),0,7);x.fill();
+  }
+  x.globalAlpha=1;
   const live=all(),lb=live.slice().sort((a,b)=>b.v-a.v||b.pool-a.pool);
   for(const e of live.slice().sort((a,b)=>a.v-b.v)){
     const r=sz(e.v);if(e.x+r*1.6<vx0||e.x-r*1.6>vx1||e.y+r*1.6<vy0||e.y-r*1.6>vy1)continue;
