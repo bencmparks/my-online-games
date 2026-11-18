@@ -804,6 +804,21 @@
       infected: { body: [90, 110, 70], head: [140, 170, 110], scale: 1.1, ears: .05, scp: true, hostile: true, bot: true, speed: 2.8 },
       giant: { body: [40, 90, 40], head: [90, 140, 70], scale: 3.2, ears: .05, tail: [30, 70, 30], scp: true, hostile: true, bot: true, big: true, hp: 200, speed: 2.4 }
     };
+    Object.assign(animalKinds.sheep, { wool: true, hoof: true, snout: [70, 70, 70], snoutW: .16, snoutL: .1 });
+    Object.assign(animalKinds.cow, { snout: [240, 190, 190], snoutW: .26, snoutL: .16, horns: [235, 225, 195], spots: [30, 25, 25], hoof: true });
+    Object.assign(animalKinds.pig, { snout: [250, 130, 150], snoutW: .2, snoutL: .12, nostrils: true, hoof: true });
+    Object.assign(animalKinds.chicken, { beak: [250, 170, 30], comb: [220, 30, 30] });
+    Object.assign(animalKinds.horse, { snout: [85, 52, 30], snoutW: .2, snoutL: .3, mane: [35, 22, 14], hoof: true });
+    Object.assign(animalKinds.rabbit, { snout: [255, 170, 180], snoutW: .1, snoutL: .06 });
+    Object.assign(animalKinds.goat, { snout: [120, 110, 95], snoutW: .14, snoutL: .16, horns: [90, 80, 65], hoof: true });
+    Object.assign(animalKinds.duck, { beak: [250, 170, 30] });
+    Object.assign(animalKinds.parrot, { beak: [250, 220, 80] });
+    Object.assign(animalKinds.bluebird, { beak: [250, 190, 60] });
+    Object.assign(animalKinds.owl, { beak: [240, 200, 60] });
+    Object.assign(animalKinds.eagle, { beak: [250, 190, 40] });
+    Object.assign(animalKinds.wolf, { snout: [60, 60, 68], snoutW: .16, snoutL: .24, fangs: true });
+    Object.assign(animalKinds.bear, { snout: [140, 100, 70], snoutW: .22, snoutL: .18 });
+    Object.assign(animalKinds.boar, { snout: [50, 35, 30], snoutW: .2, snoutL: .14, tusks: true, nostrils: true, hoof: true });
     let lives = 5, portalGoing = false, maxLives = 5, hitCooldown = 0, petMeshTimer = 0, hostileMeshTimer = 0, hostileSpawnTimer = 0;
     const livesElement = document.querySelector("#lives"), survivalElement = { get checked() { return !!saved.survival; }, set checked(v) { saved.survival = !!v; }, addEventListener() {} };
     const hostileKinds = () => Object.keys(animalKinds).filter((kind) => animalKinds[kind].hostile && !animalKinds[kind].bot), underwaterElement = document.querySelector("#underwater"), heliCockpitElement = document.querySelector("#heliCockpit"), buffElement = document.querySelector("#buff");
@@ -837,16 +852,16 @@
       if (!saved.survival) return;
       hitCooldown = Math.max(0, hitCooldown - delta); hostileMeshTimer += delta; let moved = false;
       animals.forEach((animal) => {
-        const kind = animalKinds[animal.kind]; if (!kind || !kind.hostile || kind.scp || animal.pet) return;
+        const kind = animalKinds[animal.kind]; if (!kind || !(kind.hostile || animal.angry) || kind.scp || animal.pet) return;
         const dx = player.x - animal.x, dz = player.z - animal.z, distance = Math.hypot(dx, dz);
-        if (distance < 12 && distance > .1) { const step = Math.min(kind.speed * delta, distance), nx = animal.x + dx / distance * step, nz = animal.z + dz / distance * step, ground = surfaceAt(nx, nz); if (!gameType || (ground > 1 && Math.abs(ground - animal.y) <= 2)) { animal.x = nx; animal.z = nz; animal.y = ground; moved = true; } }
+        if (distance < 12 && distance > .1) { const step = Math.min((kind.speed || 2.6) * delta, distance), nx = animal.x + dx / distance * step, nz = animal.z + dz / distance * step, ground = surfaceAt(nx, nz); if (!gameType || (ground > 1 && Math.abs(ground - animal.y) <= 2)) { animal.x = nx; animal.z = nz; animal.y = ground; moved = true; } }
         if (distance < 1.1 && Math.abs(player.y - animal.y) < 1.5 && hitCooldown === 0) hurt(animal.kind);
       });
       if (moved && hostileMeshTimer > .15) { hostileMeshTimer = 0; rebuildMesh(); }
       hostileSpawnTimer += delta; if (gameType !== "bedwars" && gameType !== "containment" && hostileSpawnTimer > 25) { hostileSpawnTimer = 0; if (animals.filter((animal) => animalKinds[animal.kind]?.hostile && !animal.pet).length < 4) { addHostile(); rebuildMesh(); } }
     }
     function spawnAnimals() { while (animals.length < 8) { const x = Math.max(2, Math.min(mapWidth - 3, player.x + (Math.random() * 24 - 12))), z = Math.max(2, Math.min(mapDepth - 3, player.z + (Math.random() * 24 - 12))); const kinds = Object.keys(animalKinds).filter((name) => !animalKinds[name].hostile), kind = kinds[Math.floor(Math.random() * kinds.length)]; if (blockAt(Math.floor(x), 4 + deep, Math.floor(z)) === "water") continue; animals.push({ x, y: surfaceAt(x, z) + (animalKinds[kind].fly || 0), z, kind, direction: Math.random() * Math.PI * 2 }); } }
-    function updateAnimals(delta) { animalTimer += delta; if (animalTimer < 1.2) return; animalTimer = 0; animals.forEach((animal) => { if (animal.pet || animalKinds[animal.kind]?.scp) return; animal.direction += Math.random() - .5; const nx = Math.max(1, Math.min(mapWidth - 2, animal.x + Math.sin(animal.direction) * .45)), nz = Math.max(1, Math.min(mapDepth - 2, animal.z + Math.cos(animal.direction) * .45)); if (gameType) { const ground = surfaceAt(nx, nz); if (ground <= 1 || Math.abs(ground - surfaceAt(animal.x, animal.z)) > 2) { animal.direction += Math.PI; return; } } animal.x = nx; animal.z = nz; animal.y = surfaceAt(animal.x, animal.z) + (animalKinds[animal.kind]?.fly || 0); }); rebuildMesh(); }
+    function updateAnimals(delta) { animalTimer += delta; if (animalTimer < 1.2) return; animalTimer = 0; animals.forEach((animal) => { if (animal.pet || animal.angry || animalKinds[animal.kind]?.scp) return; animal.direction += Math.random() - .5; const nx = Math.max(1, Math.min(mapWidth - 2, animal.x + Math.sin(animal.direction) * .45)), nz = Math.max(1, Math.min(mapDepth - 2, animal.z + Math.cos(animal.direction) * .45)); if (gameType) { const ground = surfaceAt(nx, nz); if (ground <= 1 || Math.abs(ground - surfaceAt(animal.x, animal.z)) > 2) { animal.direction += Math.PI; return; } } animal.x = nx; animal.z = nz; animal.y = surfaceAt(animal.x, animal.z) + (animalKinds[animal.kind]?.fly || 0); }); rebuildMesh(); }
 
     function rebuildMesh() {
       const data = [], faces = [[[1,0,0],[1,0,0]], [[-1,0,0],[-1,0,0]], [[0,1,0],[0,1,0]], [[0,-1,0],[0,-1,0]], [[0,0,1],[0,0,1]], [[0,0,-1],[0,0,-1]]];
@@ -896,8 +911,20 @@
         const kind = animalKinds[animal.kind] || animalKinds.sheep, s = kind.scale, body = kind.body.map((value) => value / 255), head = kind.head.map((value) => value / 255), leg = body.map((value) => value * .55);
         addAnimalCube(animal.x - .38 * s, animal.y + .35 * s, animal.z - .25 * s, .76 * s, .42 * s, .5 * s, body);
         addAnimalCube(animal.x - .2 * s, animal.y + .62 * s, animal.z + .22 * s, .4 * s, .35 * s, .3 * s, head);
-        [[-.3,-.18],[.2,-.18],[-.3,.18],[.2,.18]].forEach(([x,z]) => addAnimalCube(animal.x + x * s, animal.y, animal.z + z * s, .12 * s, .38 * s, .12 * s, leg));
-        [-.1, .04].forEach((x) => addAnimalCube(animal.x + x * s, animal.y + .8 * s, animal.z + .51 * s, .07 * s, .07 * s, .04 * s, [.05, .05, .05]));
+        const rgb = (c) => c.map((value) => value / 255), bird = !!kind.beak, legW = bird ? .06 : .12, legCol = bird ? rgb([240, 150, 30]) : leg;
+        [[-.3,-.18],[.2,-.18],[-.3,.18],[.2,.18]].forEach(([x,z]) => { if (bird && x === -.3) return; addAnimalCube(animal.x + (bird ? x + .06 : x) * s, animal.y, animal.z + (bird ? 0 : z) * s, legW * s, .38 * s, legW * s, legCol); if (kind.hoof) addAnimalCube(animal.x + x * s - .01 * s, animal.y, animal.z + z * s - .01 * s, .14 * s, .07 * s, .14 * s, [.14, .11, .09]); });
+        if (kind.wool) { addAnimalCube(animal.x - .45 * s, animal.y + .3 * s, animal.z - .33 * s, .9 * s, .55 * s, .66 * s, body); addAnimalCube(animal.x - .28 * s, animal.y + .84 * s, animal.z - .22 * s, .56 * s, .1 * s, .44 * s, body); addAnimalCube(animal.x - .22 * s, animal.y + .95 * s, animal.z + .2 * s, .44 * s, .1 * s, .3 * s, body); }
+        const eye = animal.angry ? [.9, .05, .05] : [.05, .05, .05];
+        [-.12, .06].forEach((x) => { addAnimalCube(animal.x + x * s, animal.y + .8 * s, animal.z + .51 * s, .08 * s, .08 * s, .04 * s, [.95, .95, .95]); addAnimalCube(animal.x + (x + .02) * s, animal.y + .81 * s, animal.z + .52 * s, .04 * s, .05 * s, .04 * s, eye); });
+        if (kind.snout) { const sw = kind.snoutW || .18, sl = kind.snoutL || .14, sc = rgb(kind.snout); addAnimalCube(animal.x - sw / 2 * s, animal.y + .64 * s, animal.z + .52 * s, sw * s, .15 * s, sl * s, sc); if (kind.nostrils) [-.05, .02].forEach((x) => addAnimalCube(animal.x + x * s, animal.y + .7 * s, animal.z + (.52 + sl) * s, .03 * s, .04 * s, .02 * s, [.2, .08, .1])); }
+        if (kind.beak) { addAnimalCube(animal.x - .07 * s, animal.y + .7 * s, animal.z + .52 * s, .14 * s, .09 * s, .16 * s, rgb(kind.beak)); if (kind.comb) { addAnimalCube(animal.x - .04 * s, animal.y + .97 * s, animal.z + .3 * s, .08 * s, .12 * s, .2 * s, rgb(kind.comb)); addAnimalCube(animal.x - .03 * s, animal.y + .6 * s, animal.z + .54 * s, .06 * s, .1 * s, .05 * s, rgb(kind.comb)); } }
+        if (kind.horns) [-.22, .16].forEach((x) => addAnimalCube(animal.x + x * s, animal.y + .97 * s, animal.z + .3 * s, .06 * s, .16 * s, .06 * s, rgb(kind.horns)));
+        if (kind.tusks) [-.12, .08].forEach((x) => addAnimalCube(animal.x + x * s, animal.y + .62 * s, animal.z + .6 * s, .04 * s, .08 * s, .1 * s, [.95, .93, .8]));
+        if (kind.fangs) [-.06, .03].forEach((x) => addAnimalCube(animal.x + x * s, animal.y + .6 * s, animal.z + .72 * s, .03 * s, .06 * s, .03 * s, [1, 1, 1]));
+        if (kind.mane) addAnimalCube(animal.x - .05 * s, animal.y + .75 * s, animal.z + .13 * s, .1 * s, (kind.neck + .25) * s, .08 * s, rgb(kind.mane));
+        if (kind.spots) { const sp = rgb(kind.spots); [[-.25, .77, -.18, .22, .02, .2], [.05, .77, -.05, .2, .02, .2], [.38, .45, -.12, .02, .18, .2], [-.4, .5, .02, .02, .2, .18]].forEach(([x, y, z, w, h, d]) => addAnimalCube(animal.x + x * s, animal.y + y * s, animal.z + z * s, w * s, h * s, d * s, sp)); }
+        const maxHp = kind.hp || animalHealth, wound = animal.hp === undefined ? 0 : Math.max(0, 1 - animal.hp / maxHp);
+        if (wound > 0) { const patches = [[-.2, .77, -.1, .2, .03, .16], [.34, .5, .05, .05, .16, .16], [-.12, .94, .3, .16, .03, .12], [-.43, .45, -.12, .05, .14, .14], [.05, .77, .08, .14, .03, .14], [-.1, .36, .25, .2, .12, .03]], n = Math.min(patches.length, 1 + Math.floor(wound * 6)); for (let i = 0; i < n; i += 1) { const [x, y, z, w, h, d] = patches[i]; addAnimalCube(animal.x + x * s, animal.y + y * s, animal.z + z * s, w * s, h * s, d * s, i % 2 ? [.45, .02, .03] : [.72, .05, .06]); } }
         if (kind.ears) [-.2, .12].forEach((x) => addAnimalCube(animal.x + x * s, animal.y + .97 * s, animal.z + .3 * s, .08 * s, kind.ears * s, .08 * s, head));
         if (kind.neck) addAnimalCube(animal.x - .1 * s, animal.y + .75 * s, animal.z + .2 * s, .2 * s, kind.neck * s, .2 * s, head);
         if (kind.wings) { const wing = kind.wings.map((value) => value / 255); [-.38 - .4, .38].forEach((x) => addAnimalCube(animal.x + x * s, animal.y + .65 * s, animal.z - .15 * s, .4 * s, .06 * s, .3 * s, wing)); }
@@ -1063,7 +1090,12 @@
     function hitAnimal(animal, dmg) {
       if (animal.kind === "scp173") { statusElement.textContent = "SCP-173 can't be hurt. Never look away from it!"; return false; }
       const maxHp = animalKinds[animal.kind]?.hp || animalHealth; animal.hp = (animal.hp === undefined ? maxHp : animal.hp) - dmg; if (animal.kind === "giant") cbHud();
-      if (animal.hp > .001) { statusElement.textContent = `Hit! ${animal.kind === "robot" ? "Robot" : "Animal"} health: ${Math.ceil(animal.hp)}/${maxHp}`; persist(); return false; }
+      if (animal.hp > .001) {
+        const ak = animalKinds[animal.kind] || {}; if (!ak.hostile && !ak.scp && !animal.pet) animal.angry = true;
+        const kx = animal.x - player.x, kz = animal.z - player.z, kd = Math.hypot(kx, kz) || 1, nx = Math.max(1, Math.min(mapWidth - 2, animal.x + kx / kd * .5)), nz = Math.max(1, Math.min(mapDepth - 2, animal.z + kz / kd * .5));
+        if (!ak.scp && (!gameType || Math.abs(surfaceAt(nx, nz) - animal.y) <= 1)) { animal.x = nx; animal.z = nz; animal.y = surfaceAt(nx, nz) + (animal.angry ? 0 : ak.fly || 0); }
+        statusElement.textContent = `${animal.angry ? "Ouch! It is fighting back! " : "Hit! "}${animal.kind === "robot" ? "Robot" : "Animal"} health: ${Math.ceil(animal.hp)}/${maxHp}`; rebuildMesh(); persist(); return false;
+      }
       if (animal.kind === "giant") { animals.splice(animals.indexOf(animal), 1); cbState.boss = true; cbHud(); statusElement.textContent = "The giant zombie is dead! Take your keycards to the exit door."; rebuildMesh(); persistAndRender(); return true; }
       if (animal.kind === "infected") { animals.splice(animals.indexOf(animal), 1); statusElement.textContent = "You put down an infected zombie."; rebuildMesh(); persistAndRender(); return true; }
       if (animal.kind === "robot") { animals.splice(animals.indexOf(animal), 1); bwRobotTimer[animal.team] = performance.now() + 15000; dropItem("ironIngot", animal.x, animal.y + .5, animal.z); dropItem("ironIngot", animal.x, animal.y + .5, animal.z); dropItem("goldIngot", animal.x, animal.y + .5, animal.z); statusElement.textContent = "You destroyed a robot! It dropped iron and gold."; rebuildMesh(); persistAndRender(); return true; }
