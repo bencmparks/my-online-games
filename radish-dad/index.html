@@ -28,7 +28,7 @@
   <canvas id="c" width="900" height="480"></canvas>
   <div id="touch"><button id="bl">◀</button><button id="br">▶</button><button id="bj">⤒ Jump</button></div>
   <div id="msg">Click the game or press Space to start.</div>
-  <p>Radish Dad lost his kids in the big, scary world! Arrow keys or A/D to move, Space, W or Up to jump (hold for a higher jump). Jump on burgers to squash them, but touching them from the side, spikes and pits mean you start over. Collect the 3 stars and find the lost kid at the end of each level.</p>
+  <p>Radish Dad lost his kids in the big, scary world! Arrow keys or A/D to move, Space, W or Up to jump (hold for a higher jump). Press jump again in mid-air to double jump, and jump off a wall you are sliding down to wall jump (push toward the wall to slide). Jump on burgers to squash them, but touching them from the side, spikes and pits mean you start over. Collect the 3 stars and find the lost kid at the end of each level.</p>
 </main>
 <script>
 const cv=document.getElementById("c"),g=cv.getContext("2d"),W=900,H=480,T=40,ROWS=12,$=id=>document.getElementById(id);
@@ -76,15 +76,25 @@ function move(o,dx,dy){
   o.y+=dy;o.on=false;c0=Math.floor(o.x/T);c1=Math.floor((o.x+o.w-.01)/T);r0=Math.floor(o.y/T);r1=Math.floor((o.y+o.h-.01)/T);
   for(let r=r0;r<=r1;r++)for(let c=c0;c<=c1;c++)if(solid(c,r)){if(dy>0){o.y=r*T-o.h;o.on=true}else if(dy<0)o.y=(r+1)*T;o.vy=0;r0=Math.floor(o.y/T);r1=Math.floor((o.y+o.h-.01)/T)}
 }
+function puff(x,y,c){for(let i=0;i<6;i++)parts.push({x,y,vx:(Math.random()-.5)*160,vy:Math.random()*60,l:.35,c})}
 function die(){if(p.dead)return;p.dead=1;deaths++;for(let i=0;i<14;i++)parts.push({x:p.x+14,y:p.y+14,vx:(Math.random()-.5)*400,vy:-Math.random()*400,l:1,c:"#e53970"});$("msg").textContent="Ouch! Dad is fine, just embarrassed. Try again."}
 function update(dt){
   if(state!=="play")return;timer+=dt;
   parts.forEach(q=>{q.x+=q.vx*dt;q.y+=q.vy*dt;q.vy+=900*dt;q.l-=dt});parts=parts.filter(q=>q.l>0);
   if(p.dead){p.dead+=dt;if(p.dead>1.8)gen(lv);return}
   const dir=(keys.has("arrowright")||keys.has("d")?1:0)-(keys.has("arrowleft")||keys.has("a")?1:0);
-  p.vx+=((dir*230)-p.vx)*Math.min(1,dt*12);if(dir)p.face=dir;
+  if(p.wj>0)p.wj-=dt;else p.vx+=((dir*230)-p.vx)*Math.min(1,dt*12);
+  if(dir&&!(p.wj>0))p.face=dir;
   jumpBuf=Math.max(0,jumpBuf-dt);
-  if(jumpBuf>0&&p.on){p.vy=-640;p.on=false;jumpBuf=0}
+  const my=Math.floor((p.y+p.h/2)/T),wall=solid(Math.floor((p.x-3)/T),my)?-1:solid(Math.floor((p.x+p.w+3)/T),my)?1:0;
+  if(p.on)p.jumps=0;
+  p.wall=!p.on&&wall&&p.vy>0&&(dir===wall||p.wall)?wall:0;
+  if(p.wall)p.vy=Math.min(p.vy,110);
+  if(jumpBuf>0){
+    if(p.on){p.vy=-640;p.on=false;p.jumps=1;jumpBuf=0}
+    else if(wall&&!p.on){p.vy=-600;p.vx=-wall*280;p.wj=.22;p.face=-wall;p.jumps=1;jumpBuf=0;puff(p.x+(wall>0?p.w:0),p.y+p.h-6,"#fff")}
+    else if((p.jumps||0)<2){p.vy=-580;p.jumps=2;jumpBuf=0;puff(p.x+14,p.y+p.h,"#fff")}
+  }
   if(!jumpHeld&&p.vy<-200)p.vy=-200;
   p.vy=Math.min(p.vy+1700*dt,900);
   move(p,p.vx*dt,0);move(p,0,p.vy*dt);
