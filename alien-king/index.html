@@ -20,7 +20,7 @@ button{margin:.5rem .25rem 0;padding:.6rem 1.1rem;border:1px solid #7c3aed;borde
 <main>
 <a href="../">← All games</a>
 <h1>👑 Alien King</h1>
-<p>You are the Alien King, ruler of a tiny planet. Steer with the mouse (or drag on a touch screen), gobble space dust and asteroids, and swallow smaller rival planets to grow. Bigger planets will swallow you! Hold Space, click or press Boost to speed up (it costs a little mass).</p>
+<p>You are the Alien King, ruler of a tiny planet. Steer with the mouse (or drag on a touch screen), gobble space dust and asteroids, and swallow smaller rival planets to grow. Bigger planets will swallow you! It is a gentle start: fewer rivals, and they are slower than you. Hold Space, click or press Boost to speed up (it costs a little mass).</p>
 <canvas id="c" width="900" height="600"></canvas>
 <button id="boost">🚀 Boost (hold)</button><button id="again">New game</button>
 </main>
@@ -43,14 +43,14 @@ function foodItem(){
   return {x:rnd(40,WS-40),y:rnd(40,WS-40),m:big?rnd(3,6):rnd(.4,1),big,col:big?"#94a3b8":COLS[Math.random()*COLS.length|0]};
 }
 function newGame(){
-  P=planet("You","#a3e635",10,false);P.x=WS/2+rnd(-400,400);P.y=WS/2+rnd(-400,400);
+  P=planet("You","#a3e635",16,false);P.x=WS/2+rnd(-400,400);P.y=WS/2+rnd(-400,400);
   const names=NAMES.slice().sort(()=>Math.random()-.5);
-  bots=Array.from({length:20},(_,i)=>planet(names[i%names.length],COLS[i%COLS.length],Math.pow(Math.random(),2)*220+8,true));
-  food=Array.from({length:800},foodItem);
+  bots=Array.from({length:12},(_,i)=>planet(names[i%names.length],COLS[i%COLS.length],Math.pow(Math.random(),2)*90+8,true));
+  food=Array.from({length:1100},foodItem);
   over=false;kills=0;msg="Eat smaller planets. Avoid bigger ones!";msgT=3;cam.x=P.x;cam.y=P.y;time=0;
 }
 const all=()=>[P,...bots].filter(e=>e.alive);
-function speedOf(e){return clamp(330*Math.pow(R(e)/12.6,-.3),70,300)}
+function speedOf(e){return clamp((e.bot?280:360)*Math.pow(R(e)/12.6,-.3),70,e.bot?250:320)}
 
 function think(b){
   b.think=.25+Math.random()*.25;
@@ -84,7 +84,7 @@ function update(dt){
   const mx=mouse.x,my=mouse.y,md=Math.hypot(mx,my);
   if(P.alive)move(P,mx,my,clamp(md/40,0,1),dt,boosting);
   for(const b of bots){
-    if(!b.alive){b.respawn-=dt;if(b.respawn<=0)Object.assign(b,planet(b.name,b.col,rnd(8,40),true));continue}
+    if(!b.alive){b.respawn-=dt;if(b.respawn<=0)Object.assign(b,planet(b.name,b.col,rnd(8,25),true));continue}
     b.think-=dt;if(b.think<=0)think(b);
     move(b,b.tx-b.x,b.ty-b.y,Math.hypot(b.tx-b.x,b.ty-b.y)>20?1:0,dt,b.boost);
   }
@@ -95,12 +95,12 @@ function update(dt){
       const f=food[i];
       if(Math.abs(f.x-e.x)<r&&Math.abs(f.y-e.y)<r&&Math.hypot(f.x-e.x,f.y-e.y)<r){e.m+=f.m;food[i]=foodItem()}
     }
-    if(e.m>30)e.m-=e.m*.0025*dt;
+    if(e.m>30)e.m-=e.m*(e===P?.0012:.003)*dt;
   }
   for(const a of live)for(const b of live){
     if(a===b||!a.alive||!b.alive)continue;
     const ra=R(a),rb=R(b);
-    if(ra>rb*1.12&&Math.hypot(a.x-b.x,a.y-b.y)<ra-rb*.3){
+    if(ra>rb*(b===P?1.2:1.06)&&Math.hypot(a.x-b.x,a.y-b.y)<ra-rb*.3){
       a.m+=b.m*.8;b.alive=false;b.respawn=3;
       if(a===P){kills++;msg="You swallowed "+b.name+"!";msgT=1.5}
       if(b===P){over=true;if(P.m>best){best=Math.round(P.m);localStorage.setItem(BK,best)}}
