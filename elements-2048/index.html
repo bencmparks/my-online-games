@@ -20,7 +20,7 @@ button{margin:.5rem .25rem 0;padding:.6rem 1.1rem;border:1px solid #f59e0b;borde
 <main>
 <a href="../">← All games</a>
 <h1>🔥 2048 Elements</h1>
-<p>You are a pile of an element (dirt, rock, water, wind, fire, lava, ice, lightning, crystal, plasma, star), and the number above it is your mass. Steer with the mouse (or drag on a touch screen). Touch a pile with the same number to merge into a double, touch a smaller pile to eat it, and touch a bigger pile and you are crushed! The element tells the size, and eating enough levels you up to the next number. Reach 2048 to win, then keep growing: there are bigger piles past 2048 (galaxy, nebula, black hole). Anything you eat tags along behind you in a line, biggest first, touching you and each other. Dash with Space, click or the button.</p>
+<p>You are a pile of an element (dirt, rock, water, wind, fire, lava, ice, lightning, crystal, plasma, star), and the number above it is your mass. Steer with the mouse (or drag on a touch screen). Touch a pile with the same number to merge into a double, touch a smaller pile to eat it, and touch a bigger pile and you are crushed! The element tells the size, and eating enough levels you up to the next number. Reach 2048 to win, then keep growing: there are bigger piles past 2048 (galaxy, nebula, black hole). Anything you eat tags along behind you in a line, biggest first, touching you and each other. Two of the same element in the line merge into the next one, and one that matches you merges into you. Dash with Space, click or the button.</p>
 <canvas id="c" width="900" height="600"></canvas>
 <button id="dash">💨 Dash</button><button id="again">New game</button>
 </main>
@@ -82,9 +82,19 @@ function move(e,dx,dy,mag,dt){
   const r=sz(e.v);
   e.x=clamp(e.x+e.vx*dt,r,WS-r);e.y=clamp(e.y+e.vy*dt,r,WS-r);
 }
+function mergeFol(){
+  const fl=P.fol;let again=true;
+  while(again){
+    again=false;fl.sort((a,b)=>b.v-a.v);
+    for(let i=0;i<fl.length;i++){
+      if(fl[i].v===P.v){fl.splice(i,1);gain(P,P.v);msg="Merged into you!";msgT=1;again=true;break}
+      if(i&&fl[i].v===fl[i-1].v){fl[i-1].v*=2;fl.splice(i,1);again=true;break}
+    }
+  }
+}
 function addFol(e,v){
   e.fol.push({v,x:e.x,y:e.y});
-  e.fol.sort((a,b)=>b.v-a.v);
+  mergeFol();
   if(e.fol.length>24)e.fol.pop();
 }
 function placeFol(){
@@ -108,7 +118,7 @@ function update(dt){
     move(P,mouse.x,mouse.y,clamp(md/40,0,1),dt);
     const lp=P.path[P.path.length-1];
     if(!lp||Math.hypot(P.x-lp.x,P.y-lp.y)>3){P.path.push({x:P.x,y:P.y});if(P.path.length>3000)P.path.splice(0,500)}
-    placeFol();
+    mergeFol();placeFol();
   }
   for(const b of bots){
     if(!b.alive){b.respawn-=dt;if(b.respawn<=0)Object.assign(b,cube(b.name,Math.pow(2,1+(Math.random()*3|0)),true));continue}
