@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-<title>Army Commando | My Online Games</title>
+<title>Tile IO | My Online Games</title>
 <style>
 :root{color-scheme:dark;font-family:Arial,sans-serif;background:#0f1a12;color:#f8fafc}
 *{box-sizing:border-box}
@@ -13,14 +13,16 @@ a{color:#bbf7d0}
 h1{margin:.3rem 0;color:#86efac}
 p{margin:.35rem 0;color:#d1fae5}
 canvas{display:block;width:100%;height:auto;border:.3rem solid #3f5b3a;border-radius:.75rem;background:#0b130d;touch-action:none;cursor:crosshair}
+button.on{outline:3px solid #fde047}
 button{margin:.5rem .25rem 0;padding:.6rem 1.1rem;border:1px solid #4b7a4b;border-radius:.5rem;background:#86efac;color:#102019;font:inherit;font-weight:bold;cursor:pointer}
 </style>
 </head>
 <body>
 <main>
 <a href="../">← All games</a>
-<h1>Army Commando</h1>
-<p>Lead your commando out of your camp, claim ground and march back to lock it in. Cut an enemy's trail to eliminate them, and don't let anyone cut yours. Move with WASD or arrows, or click or tap where you want to go.</p>
+<h1>Tile IO</h1>
+<p>Lead your commando out of your camp, claim ground and march back to lock it in. Cut an enemy's trail to eliminate them, and don't let anyone cut yours. Move with WASD or arrows, or click or tap where you want to go. In Circle mode you are a round circle and steer in any direction, even diagonally, by moving the mouse.</p>
+<div><button id="mClassic" class="on">Classic</button><button id="mCircle">Circle mode</button></div>
 <canvas id="c" width="800" height="560"></canvas>
 <button id="again">New game</button>
 </main>
@@ -35,6 +37,7 @@ const rnd=(a,b)=>a+Math.random()*(b-a);
 const DIRS=[[1,0],[-1,0],[0,1],[0,-1]];
 let ag=[],over=false,won=false,winT=0,fall=[],best=+localStorage.getItem(BK)||0,cnt=[],cntT=0,flash=0,msg="",msgT=0;
 const mouse={x:-1,y:-1,use:false};
+let circle=false;
 
 function spawn(a){
   let found=false;
@@ -153,7 +156,7 @@ function pickPlayerDir(a){
   if(mouse.use&&mouse.x>=0){
     const dx=mouse.x-(a.cx+.5),dy=mouse.y-(a.cy+.5);
     if(Math.abs(dx)>1||Math.abs(dy)>1){
-      const d=Math.abs(dx)>Math.abs(dy)?[Math.sign(dx),0]:[0,Math.sign(dy)];
+      const ang=Math.atan2(dy,dx),q=Math.round(ang/(Math.PI/4)),d=circle?[Math.round(Math.cos(q*Math.PI/4)),Math.round(Math.sin(q*Math.PI/4))]:Math.abs(dx)>Math.abs(dy)?[Math.sign(dx),0]:[0,Math.sign(dy)];
       if(!(d[0]===-a.dx&&d[1]===-a.dy&&a.out))a.nd=d;
     }
   }
@@ -168,12 +171,23 @@ function pos(e){const r=c.getBoundingClientRect();mouse.x=(e.clientX-r.left)/r.w
 c.addEventListener("pointerdown",e=>{if(over){newGame();return}pos(e);try{c.setPointerCapture(e.pointerId)}catch(_){}});
 c.addEventListener("pointermove",e=>{if(e.pointerType!=="mouse"&&!(e.buttons&1))return;pos(e)});
 document.getElementById("again").onclick=newGame;
+function setMode(v){circle=v;document.getElementById("mClassic").classList.toggle("on",!v);document.getElementById("mCircle").classList.toggle("on",v);newGame()}
+document.getElementById("mClassic").onclick=()=>setMode(false);
+document.getElementById("mCircle").onclick=()=>setMode(true);
 
 function step(a){
   if(a.bot)a.nd=botPick(a);
   else pickPlayerDir(a);
-  const d=a.nd,nx=a.cx+d[0],ny=a.cy+d[1];
+  const d=a.nd;
   a.dx=d[0];a.dy=d[1];
+  if(d[0]&&d[1]){
+    // a diagonal move is two linked steps so the trail has no gaps
+    if(!moveTo(a,a.cx+d[0],a.cy))return false;
+    return !a.alive||moveTo(a,a.cx,a.cy+d[1]);
+  }
+  return moveTo(a,a.cx+d[0],a.cy+d[1]);
+}
+function moveTo(a,nx,ny){
   if(nx<0||ny<0||nx>=CW||ny>=CH)return false;
   const w=ag.find(o=>o!==a&&o.alive&&o.cx===nx&&o.cy===ny);
   if(w){
@@ -227,8 +241,8 @@ function draw(){
     const X=(a.cx+.5-a.dx*(1-a.prog))*CS,Y=(a.cy+.5-a.dy*(1-a.prog))*CS;
     x.fillStyle="#0006";x.beginPath();x.arc(X,Y+3,8,0,7);x.fill();
     x.fillStyle=a.col;x.beginPath();x.arc(X,Y,8,0,7);x.fill();
-    x.fillStyle="#2f4f2f";x.beginPath();x.arc(X,Y-1,8,Math.PI,0);x.fill();
-    x.fillStyle="#fff";x.fillRect(X-4,Y,8,2);
+    if(!circle){x.fillStyle="#2f4f2f";x.beginPath();x.arc(X,Y-1,8,Math.PI,0);x.fill();
+    x.fillStyle="#fff";x.fillRect(X-4,Y,8,2)}else{x.fillStyle="#fff6";x.beginPath();x.arc(X-2.5,Y-2.5,3,0,7);x.fill()}
     x.strokeStyle="#000";x.lineWidth=1.5;x.beginPath();x.arc(X,Y,8,0,7);x.stroke();
     if(a.id===1){x.fillStyle="#fff";x.font="bold 11px Arial";x.textAlign="center";x.fillText("YOU",X,Y-13)}
   }
