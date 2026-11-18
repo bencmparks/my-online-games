@@ -32,7 +32,7 @@ const keys=new Set(),mouse={x:400,y:150,down:false};
 let G,best=+localStorage.getItem(BK)||0;
 const SK="army-commando-save";
 let sv={bank:0,up:{}};try{sv=Object.assign(sv,JSON.parse(localStorage.getItem(SK)||"{}"))}catch(e){}
-const lv=k=>sv.up[k]||0,ucost=k=>lv(k)>=8?10:100*(lv(k)+1),saveS=()=>{try{localStorage.setItem(SK,JSON.stringify(sv))}catch(e){}};
+const MAXL=18,lv=k=>Math.min(MAXL,sv.up[k]||0),ucost=k=>lv(k)>=8?10:100*(lv(k)+1),saveS=()=>{try{localStorage.setItem(SK,JSON.stringify(sv))}catch(e){}};
 const UPS=[
   ["dmg","🔫 Gun Damage","+20% bullet damage"],["rate","⚡ Fire Rate","+6% faster shooting"],["hp","❤️ Max Health","+1 heart"],
   ["spd","👟 Speed","+5% run speed"],["gren","💣 Grenade Stock","+1 grenade each mission"],["gdmg","💥 Grenade Damage","+20% grenade damage"],
@@ -44,10 +44,10 @@ function shop(){
   shopEl.innerHTML="<p>🏦 Coins: <b>"+Math.floor(sv.bank)+"</b> — earn coins by smashing robots. Upgrades apply right away.</p>";
   const t=document.createElement("button");t.textContent="🛒 Buy All: "+(buyAll?"ON":"OFF");t.onclick=()=>{buyAll=!buyAll;shop()};shopEl.append(t);
   for(const [k,n,d] of UPS){
-    const b=document.createElement("button");b.disabled=sv.bank<ucost(k);
-    b.textContent=n+" Lv "+lv(k)+" – "+d+" · 🪙"+ucost(k);
+    const b=document.createElement("button");const mx=lv(k)>=MAXL;b.disabled=mx||sv.bank<ucost(k);
+    b.textContent=n+" Lv "+lv(k)+"/"+MAXL+" – "+d+(mx?" · MAX":" · 🪙"+ucost(k));
     b.onclick=()=>{
-      while(sv.bank>=ucost(k)){sv.bank-=ucost(k);sv.up[k]=lv(k)+1;if(k==="hp"){G.P.max++;G.P.hp++}if(!buyAll)break}
+      while(lv(k)<MAXL&&sv.bank>=ucost(k)){sv.bank-=ucost(k);sv.up[k]=lv(k)+1;if(k==="hp"){G.P.max++;G.P.hp++}if(!buyAll)break}
       saveS();syncHelpers();shop();
     };
     shopEl.append(b);
