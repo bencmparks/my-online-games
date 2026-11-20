@@ -6,7 +6,7 @@ canvas{display:block;width:100%;height:auto;margin:.8rem auto;border:.2rem solid
 .row{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap}.row button{padding:.6rem .9rem;border:0;border-radius:.6rem;background:#2563eb;color:#fff;font-weight:700;font-size:1rem;cursor:pointer;user-select:none}.row button:disabled{opacity:.4;cursor:not-allowed}.row button.s{background:#7c3aed}
 </style></head>
 <body><main><a href="../">← All games</a><h1>⚔️ Stick Legion</h1>
-<p>A birds-eye battle: the whole field is on screen and your army stands in organised ranks (tough fighters in front, archers and witches behind, necromancers at the back). Miners dig gold automatically. Buy units with the buttons or keys <strong>1-9</strong>. <strong>Q</strong> switches your army between <em>Attack</em> (they march in formation) and <em>Defend</em>. <strong>R</strong> calls Arrow Rain on the enemy front. 40 levels! New units unlock as you go: Witch (level 4), Berserker (7), Ice Berserker (11) and Necromancer (15), who turns fallen bodies into zombies, and Creepy Necromancer (19), who turns them into exploding creepers instead. Only your surviving miners join you in the next level. Earn 🪙 coins from kills and wins, then buy permanent upgrades below the canvas.</p>
+<p>A birds-eye battle: the whole field is on screen and your army stands in organised ranks (tough fighters in front, archers and witches behind, necromancers at the back). Miners dig gold automatically. Buy units with the buttons or keys <strong>1-9</strong>. <strong>Q</strong> switches your army between <em>Attack</em> (they march in formation) and <em>Defend</em>. <strong>R</strong> calls Arrow Rain on the enemy front. 100 levels in 10 story chapters! You are the Blue Brigade, rebelling against the cruel White Warriors. New units unlock as you go: Witch (level 4), Berserker (7), Ice Berserker (11) and Necromancer (15), who turns fallen bodies into zombies, and Creepy Necromancer (19), who turns them into exploding creepers instead. Only your surviving miners join you in the next level. Earn 🪙 coins from kills and wins, then buy permanent upgrades below the canvas.</p>
 <canvas id="c" width="900" height="420" aria-label="Stick Legion game"></canvas>
 <div class="row" id="btns"></div>
 </main>
@@ -16,15 +16,27 @@ const BX=[110,WW-110],MX=[380,WW-380],MY=[CY-250,CY+250],RALLY=[560,WW-560];
 const T={miner:{n:"Miner",c:50,hp:40,sp:80,dmg:0,r:0,cd:0,k:"1"},sword:{n:"Swordwrath",c:125,hp:100,sp:78,dmg:14,r:26,cd:.6,k:"2"},archer:{n:"Archidon",c:150,hp:60,sp:62,dmg:9,r:240,cd:1.2,k:"3"},giant:{n:"Giant",c:500,hp:650,sp:42,dmg:42,r:48,cd:1.4,k:"4"},
  witch:{n:"Witch",c:300,hp:70,sp:58,dmg:24,r:260,cd:1.6,k:"5",ul:3},berserker:{n:"Berserker",c:350,hp:320,sp:72,dmg:55,r:36,cd:1.1,k:"6",ul:6},iceb:{n:"Ice Berserker",c:450,hp:300,sp:66,dmg:32,r:36,cd:1.2,k:"7",ul:10,fz:1.8},necro:{n:"Necromancer",c:400,hp:90,sp:50,dmg:0,r:0,cd:0,k:"8",ul:14,nec:"zombie"},cnecro:{n:"Creepy Necromancer",c:450,hp:90,sp:50,dmg:0,r:0,cd:0,k:"9",ul:18,nec:"creeper"},zombie:{n:"Zombie",c:0,hp:70,sp:60,dmg:12,r:26,cd:.7,nb:1},creeper:{n:"Creeper",c:0,hp:45,sp:95,dmg:110,r:30,cd:0,nb:1}};
 const RK={sword:0,berserker:0,iceb:0,giant:0,zombie:0,creeper:0,archer:1,witch:1,necro:2,cnecro:2},TO=["giant","berserker","iceb","sword","zombie","creeper","archer","witch","necro","cnecro"];
-let level=0,carry=["miner","miner"];try{level=Math.min(39,+localStorage.getItem(KEY)||0);const c=JSON.parse(localStorage.getItem("stickLegionArmy"));if(Array.isArray(c)&&c.length)carry=c.filter(k=>T[k])}catch(e){}
+let level=0,carry=["miner","miner"];try{level=Math.min(99,+localStorage.getItem(KEY)||0);const c=JSON.parse(localStorage.getItem("stickLegionArmy"));if(Array.isArray(c)&&c.length)carry=c.filter(k=>T[k])}catch(e){}
 let coins=+localStorage.getItem("stickLegionCoins")||0,up={d:0,h:0,m:0,s:0,g:0};try{Object.assign(up,JSON.parse(localStorage.getItem("stickLegionUp")))}catch(e){}
 const UPS={d:{n:"⚔️ Damage",b:40,i:"+12% damage"},h:{n:"❤️ Health",b:40,i:"+12% health"},m:{n:"⛏️ Mining",b:50,i:"+15% gold per trip"},s:{n:"🗿 Statue",b:60,i:"+20% statue health"},g:{n:"💰 Start gold",b:30,i:"+100 starting gold"}};
 const ucost=k=>Math.round(UPS[k].b*Math.pow(1.6,up[k])),dmul=u=>u.tm?1:1+up.d*.12;
 function saveC(){try{localStorage.setItem("stickLegionCoins",coins);localStorage.setItem("stickLegionUp",JSON.stringify(up))}catch(e){}}
-let B=[],U,A,gold,statue,smax,stance,state,t,aiT,spawnCd,rain,rainFx,puffs,shake;
-function newGame(){U=[];A=[];B=[];gold=[300+up.g*100,200+level*60];smax=[1500*(1+up.s*.2),1200+level*350];statue=smax.slice();stance=0;state="play";t=0;aiT=2;spawnCd=0;rain=0;rainFx=[];puffs=[];shake=0;
+const STORY=[
+{t:"Chapter 1: The First Banner",s:"For a hundred years the cruel White Warriors have ruled these lands, taxing every mine and burning every village that dared to complain. You are the commander of the Blue Brigade, a handful of miners with pickaxes and a dream. Tonight you raise the first blue banner. Destroy the white statues, one outpost at a time, and let the whole land see: the rebellion has begun."},
+{t:"Chapter 2: Frost on the Border",s:"News of your victories spreads. Villages hide blue ribbons in their windows, and brave fighters walk through the snow to join you. The White Warriors answer by sending their frozen northern guard. Hold the border and the Blue Brigade will grow."},
+{t:"Chapter 3: Whispers of the Dead",s:"The war leaves the fields full of fallen soldiers. A hooded stranger offers to raise them again: the necromancers. Dark magic is a terrible price, but the White Warriors have no mercy, and neither can you."},
+{t:"Chapter 4: The Creeping Dark",s:"Deep in the tunnels the Brigade finds a strange new weapon: living green bombs that hiss and burst. The Creepy Necromancers can raise them. The White Warriors fear the sound of that hiss."},
+{t:"Chapter 5: Siege of the White Cities",s:"Your army marches on the great white cities. Their walls are tall and their generals are proud, but every statue that falls makes the people cheer louder. Hold your ranks, Commander."},
+{t:"Chapter 6: The Betrayal",s:"A traitor in your camp sold your plans to the White Warriors. Their armies swarm out of nowhere. Many Blues fall, but the rebellion cannot be stopped by one coward. Regroup and strike back harder."},
+{t:"Chapter 7: Winter of Ashes",s:"The White Warriors burn their own fields to starve the rebels. Winter bites. The Brigade shares every scrap of gold and keeps marching. Freedom is worth more than comfort."},
+{t:"Chapter 8: The Iron Marshal",s:"The Empress sends her best: the Iron Marshal and his endless legions. They are stronger, more numerous and merciless. Stand firm, Commander. Every victory now is a legend."},
+{t:"Chapter 9: The Last Mountain",s:"Only the Last Mountain stands between the Blue Brigade and the capital. The White Warriors throw everything they have onto its slopes. Climb, fight, and do not look back."},
+{t:"Chapter 10: The White Throne",s:"The capital gleams white against the sky. Behind its gates sits the Empress on her white throne. This is it: the final ten battles. Win them and the Blue Brigade will finally be free."}];
+const ENDING="The last white statue falls. The Empress's throne is empty, the white banners come down, and blue flags fly over every mine and village. The rebellion is won, Commander. The Blue Brigade is free!";
+let shown=-1,B=[],U,A,gold,statue,smax,stance,state,t,aiT,spawnCd,rain,rainFx,puffs,shake;
+function newGame(){U=[];A=[];B=[];gold=[300+up.g*100,200+Math.min(level,60)*60];smax=[1500*(1+up.s*.2),1200+Math.min(level,39)*350+Math.max(0,level-39)*150];statue=smax.slice();stance=0;state=level%10===0&&shown!==level?(shown=level,"story"):"play";t=0;aiT=2;spawnCd=0;rain=0;rainFx=[];puffs=[];shake=0;
  for(const k of carry)spawn(0,k);spawn(1,"miner");spawn(1,"miner");for(let i=0;i<Math.min(level,30);i++)spawn(1,i%3===2?"archer":"sword");formation()}
-function spawn(tm,ty,px,py){const d=T[ty],hm=tm?1:1+up.h*.12;U.push({t:ty,tm,x:px!=null?px:BX[tm]+(tm?-60:60)+Math.random()*20,y:py!=null?py:CY+(Math.random()-.5)*240,hp:d.hp*hm,max:d.hp*hm,cd:0,sw:0,st:0,tmr:0,fa:tm?Math.PI:0,fx:0,fy:CY})}
+function spawn(tm,ty,px,py){const d=T[ty],hm=tm?1+Math.max(0,level-30)*.015:1+up.h*.12;U.push({t:ty,tm,x:px!=null?px:BX[tm]+(tm?-60:60)+Math.random()*20,y:py!=null?py:CY+(Math.random()-.5)*240,hp:d.hp*hm,max:d.hp*hm,cd:0,sw:0,st:0,tmr:0,fa:tm?Math.PI:0,fx:0,fy:CY})}
 function pop(tm){return U.filter(u=>u.tm===tm).length}
 function buy(ty,tm=0){const d=T[ty];if(state!=="play"||d.nb||level<(d.ul||0)||gold[tm]<d.c||(tm===0&&spawnCd>0))return false;gold[tm]-=d.c;spawn(tm,ty);if(tm===0)spawnCd=.45;return true}
 function nearest(u){let b=null,bd=1e9;for(const o of U)if(o.tm!==u.tm){const dd=Math.hypot(o.x-u.x,o.y-u.y);if(dd<bd){bd=dd;b=o}}return b?{o:b,d:bd}:null}
@@ -50,7 +62,7 @@ function update(dt){
   if(u.t==="miner"){
    if(u.st===0){if(go(MX[u.tm],MY[u.tm],10)<=10){u.st=1;u.tmr=1.6}}
    else if(u.st===1){u.tmr-=dt;u.sw=.2;if(u.tmr<=0)u.st=2}
-   else{if(go(BX[u.tm]+dir*60,CY,10)<=10){gold[u.tm]+=u.tm?20*(1+level*.08):20*(1+up.m*.15);u.st=0}}
+   else{if(go(BX[u.tm]+dir*60,CY,10)<=10){gold[u.tm]+=u.tm?20*(1+Math.min(level,40)*.08):20*(1+up.m*.15);u.st=0}}
   }else if(d.nec){
    let bb=null,bd=1e9;for(const b of B){const dd=Math.hypot(b.x-u.x,b.y-u.y);if(dd<bd){bd=dd;bb=b}}
    if(bb&&bd<400){if(bd>40)go(bb.x,bb.y,0);else{u.fa=Math.atan2(bb.y-u.y,bb.x-u.x);if(u.cd<=0){u.cd=2.2;u.sw=.5;spawn(u.tm,d.nec,bb.x,bb.y);B.splice(B.indexOf(bb),1)}}}
@@ -79,16 +91,17 @@ function update(dt){
  {const dead=U.filter(u=>u.hp<=0);for(const u of dead)if(u.t!=="miner"&&u.t!=="creeper")B.push({x:u.x,y:u.y,tm:u.tm,t:25});if(B.length>40)B.splice(0,B.length-40);const k=dead.filter(u=>u.tm===1).length;if(k){coins+=k*2;saveC()}}
  for(const b of B)b.t-=dt;B=B.filter(b=>b.t>0);
  U=U.filter(u=>u.hp>0);
- aiT-=dt;if(aiT<=0){aiT=1.1;const m=U.filter(u=>u.tm===1&&u.t==="miner").length;
-  if(m<3+Math.floor(level/3))buy("miner",1);
+ aiT-=dt;if(aiT<=0){aiT=Math.max(.5,1.1-level*.006);const m=U.filter(u=>u.tm===1&&u.t==="miner").length;
+  if(m<Math.min(12,3+Math.floor(level/3)))buy("miner",1);
   else{const pool=["sword","sword","archer"];if(level>=2)pool.push("giant");for(const k of ["witch","berserker","iceb","necro","cnecro"])if(level>=T[k].ul)pool.push(k,k);const pick=pool[Math.floor(Math.random()*pool.length)];if(!T[pick].nec||U.filter(u=>u.tm===1&&u.t===pick).length<2)buy(pick,1)}}
- if(statue[1]<=0){state="win";coins+=40+level*10;saveC();shake=.6;carry=U.filter(u=>u.tm===0&&u.t==="miner").map(u=>u.t);while(carry.filter(k=>k==="miner").length<2)carry.push("miner");try{if(level<39)localStorage.setItem(KEY,level+1);localStorage.setItem("stickLegionArmy",JSON.stringify(carry))}catch(e){}}
+ if(statue[1]<=0){state="win";coins+=40+level*10;saveC();shake=.6;carry=U.filter(u=>u.tm===0&&u.t==="miner").map(u=>u.t);while(carry.filter(k=>k==="miner").length<2)carry.push("miner");try{if(level<99)localStorage.setItem(KEY,level+1);localStorage.setItem("stickLegionArmy",JSON.stringify(carry))}catch(e){}}
  else if(statue[0]<=0){state="lose";coins+=10;saveC();shake=.6}
 }
 function text(s,a,b,size,col,al="center"){x.font=`bold ${size}px Arial`;x.textAlign=al;x.fillStyle=col;x.lineWidth=4;x.strokeStyle="#0f172a";x.lineJoin="round";x.strokeText(s,a,b);x.fillText(s,a,b)}
 function line(a,b,c,d){x.beginPath();x.moveTo(a,b);x.lineTo(c,d);x.stroke()}
+function para(s,cx,y,mw,lh,size,col){x.font=`bold ${size}px Arial`;const w=s.split(" ");let ln="",yy=y;for(const a of w){const tt=ln?ln+" "+a:a;if(x.measureText(tt).width>mw&&ln){text(ln,cx,yy,size,col);yy+=lh;ln=a}else ln=tt}text(ln,cx,yy,size,col);return yy}
 function figure(u){
- const gi=u.t==="giant",r=gi?28:17,tcol=u.tm?"#ef4444":"#3b82f6",col=u.t==="creeper"?"#4ade80":u.t==="zombie"?"#84cc16":u.t==="iceb"?"#67e8f9":u.t==="necro"?"#334155":u.t==="cnecro"?"#14532d":u.t==="witch"?"#7c3aed":u.t==="miner"?"#ca8a04":tcol;
+ const gi=u.t==="giant",r=gi?28:17,tcol=u.tm?"#f8fafc":"#2563eb",col=u.t==="creeper"?"#4ade80":u.t==="zombie"?"#84cc16":u.t==="iceb"?"#67e8f9":u.t==="necro"?"#334155":u.t==="cnecro"?"#14532d":u.t==="witch"?"#7c3aed":u.t==="miner"?"#ca8a04":tcol;
  x.save();x.translate(u.x,u.y);x.rotate(u.fa||0);x.lineCap="round";
  x.fillStyle="rgba(0,0,0,.28)";x.beginPath();x.ellipse(4,5,r,r*.85,0,0,6.3);x.fill();
  x.save();
@@ -111,8 +124,8 @@ function figure(u){
  if(u.fz>0){x.strokeStyle="rgba(186,230,253,.9)";x.lineWidth=4;x.beginPath();x.arc(u.x,u.y,r+5,0,6.3);x.stroke()}
  if(u.hp<u.max){x.fillStyle="#7f1d1d";x.fillRect(u.x-15,u.y-r-10,30,5);x.fillStyle="#22c55e";x.fillRect(u.x-15,u.y-r-10,30*Math.max(0,u.hp/u.max),5)}
 }
-function statueDraw(tm){const sx=BX[tm],col=tm?"#ef4444":"#3b82f6";
- x.fillStyle=tm?"rgba(239,68,68,.12)":"rgba(59,130,246,.12)";x.beginPath();x.arc(sx,CY,150,0,6.3);x.fill();
+function statueDraw(tm){const sx=BX[tm],col=tm?"#f8fafc":"#2563eb";
+ x.fillStyle=tm?"rgba(248,250,252,.14)":"rgba(37,99,235,.14)";x.beginPath();x.arc(sx,CY,150,0,6.3);x.fill();
  x.fillStyle="rgba(0,0,0,.3)";x.beginPath();x.arc(sx+5,CY+6,38,0,6.3);x.fill();
  x.fillStyle="#94a3b8";x.beginPath();x.arc(sx,CY,36,0,6.3);x.fill();x.strokeStyle=col;x.lineWidth=8;x.stroke();
  x.fillStyle="#e2e8f0";x.beginPath();x.arc(sx,CY,14,0,6.3);x.fill();x.strokeStyle=col;x.lineWidth=6;line(sx-24,CY,sx+24,CY);line(sx,CY-24,sx,CY+24);
@@ -124,21 +137,22 @@ function draw(){
  x.strokeStyle="rgba(255,255,255,.18)";x.lineWidth=6;x.setLineDash([30,24]);line(WW/2,0,WW/2,WH);x.setLineDash([]);
  for(let tm=0;tm<2;tm++){const mx=MX[tm],my=MY[tm];x.fillStyle="#57534e";x.beginPath();x.arc(mx,my,44,0,6.3);x.fill();x.fillStyle="#fbbf24";for(let k=0;k<6;k++){x.beginPath();x.arc(mx-22+k*9,my-8+(k%2)*14,6,0,6.3);x.fill()}}
  statueDraw(0);statueDraw(1);
- for(const b of B){x.strokeStyle=b.tm?"#7f1d1d":"#1e3a8a";x.lineWidth=5;line(b.x-9,b.y-9,b.x+9,b.y+9);line(b.x+9,b.y-9,b.x-9,b.y+9)}
+ for(const b of B){x.strokeStyle=b.tm?"#e2e8f0":"#1e3a8a";x.lineWidth=5;line(b.x-9,b.y-9,b.x+9,b.y+9);line(b.x+9,b.y-9,b.x-9,b.y+9)}
  for(const f of rainFx){x.strokeStyle="rgba(251,191,36,.45)";x.lineWidth=4;x.beginPath();x.arc(f.x,f.y,45,0,6.3);x.stroke()}
  for(const p of puffs){x.fillStyle=`rgba(${p.c||"251,191,36"},${p.t*2})`;x.beginPath();x.arc(p.x,p.y,p.r||45,0,6.3);x.fill()}
  for(const u of U)figure(u);
  for(const a of A){if(a.orb){x.fillStyle="#c084fc";x.beginPath();x.arc(a.x,a.y,10,0,6.3);x.fill()}else{x.strokeStyle="#f1f5f9";x.lineWidth=4;const l=Math.hypot(a.vx,a.vy);line(a.x,a.y,a.x-a.vx/l*22,a.y-a.vy/l*22)}}
  x.restore();
- text(`💰 ${Math.floor(gold[0])}`,12,28,24,"#fde047","left");text(`Army ${pop(0)}`,12,54,16,"#bae6fd","left");text(`🪙 ${coins}`,12,76,16,"#fde68a","left");
- text(`Level ${level+1}/40`,W/2,28,22,"#fff");text(stance?"⚔️ ATTACK":"🛡️ DEFEND",W/2,52,18,stance?"#fca5a5":"#86efac");
- text(rain>0?`Arrow Rain ${Math.ceil(rain)}s`:"Arrow Rain ready (R)",W-12,28,16,rain>0?"#94a3b8":"#fbbf24","right");text(`Enemy ${pop(1)}`,W-12,50,16,"#fca5a5","right");
+ text(`💰 ${Math.floor(gold[0])}`,12,28,24,"#fde047","left");text(`Blue Brigade ${pop(0)}`,12,54,16,"#93c5fd","left");text(`🪙 ${coins}`,12,76,16,"#fde68a","left");
+ text(`Level ${level+1}/100`,W/2,28,22,"#fff");text(STORY[Math.floor(level/10)].t.replace(/^Chapter \d+: /,""),W/2,72,14,"#cbd5e1");text(stance?"⚔️ ATTACK":"🛡️ DEFEND",W/2,52,18,stance?"#fca5a5":"#86efac");
+ text(rain>0?`Arrow Rain ${Math.ceil(rain)}s`:"Arrow Rain ready (R)",W-12,28,16,rain>0?"#94a3b8":"#fbbf24","right");text(`White Warriors ${pop(1)}`,W-12,50,16,"#f1f5f9","right");
  if(state!=="play"){x.fillStyle="rgba(0,0,0,.6)";x.fillRect(0,0,W,H);
-  if(state==="win"){text("VICTORY! 🎉",W/2,170,56,"#fde047");text(`${carry.length} miners join the next battle`,W/2,200,18,"#bae6fd");text(level>=39?"You conquered every enemy statue!":"Click or press Space for the next level",W/2,230,22,"#fff")}
+  if(state==="win"){text("VICTORY! 🎉",W/2,170,56,"#fde047");text(`${carry.length} miners join the next battle`,W/2,200,18,"#bae6fd");if(level>=99){para(ENDING,W/2,236,760,24,18,"#fff");text("The Blue Brigade is free! 🎉",W/2,320,24,"#93c5fd")}else text("Click or press Space for the next level",W/2,230,22,"#fff")}
+  else if(state==="story"){const c=STORY[Math.floor(level/10)];text(c.t,W/2,90,30,"#fde047");para(c.s,W/2,140,780,26,18,"#fff");text("Click or press Space to begin",W/2,H-40,18,"#93c5fd")}
   else{text("DEFEAT 💀",W/2,170,56,"#fca5a5");text("Click or press Space to try again",W/2,230,22,"#fff")}}
 }
 const keys={};
-function act(){if(state==="win"){if(level<39)level++;newGame()}else if(state==="lose")newGame()}
+function act(){if(state==="story"){state="play";return}if(state==="win"){if(level<99)level++;newGame()}else if(state==="lose")newGame()}
 function doRain(){if(state!=="play"||rain>0)return;rain=30;const en=U.filter(u=>u.tm===1&&u.t!=="miner"),front=en.length?Math.min(...en.map(u=>u.x)):BX[1]-500,cx=Math.max(200,Math.min(WW-200,front));for(let k=0;k<28;k++)rainFx.push({x:cx-120+Math.random()*240,y:CY-210+Math.random()*420,t:k*.04})}
 addEventListener("keydown",e=>{if(e.code==="Space")e.preventDefault();keys[e.code]=true;
  if(state!=="play"){if(e.code==="Space"||e.code==="Enter")act();return}
