@@ -1,70 +1,82 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cliff Tumble | My Online Games</title><style>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ledge Throw | My Online Games</title><style>
 :root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:#0b1020}
-main{width:min(100%,46rem);padding:1rem;border:.2rem solid #f472b6;border-radius:1.25rem;background:rgb(8 12 30 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.4rem 0;color:#f9a8d4;font-size:1.6rem}
-canvas{display:block;width:100%;height:auto;margin:.6rem auto;border:.2rem solid #475569;border-radius:.4rem;touch-action:none;background:#0ea5e9}
-.row{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap;margin:.4rem 0}.row button{padding:.6rem .9rem;border:0;border-radius:.6rem;background:#be185d;color:#fff;font-weight:700;font-size:1rem;cursor:pointer;user-select:none}.row button:disabled{opacity:.45;cursor:default}
+main{width:min(100%,60rem);padding:1rem;border:.2rem solid #f59e0b;border-radius:1.25rem;background:rgb(8 12 30 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.4rem 0;color:#fcd34d;font-size:1.6rem}
+canvas{display:block;width:100%;height:auto;margin:.6rem auto;border:.2rem solid #475569;border-radius:.4rem;touch-action:none;cursor:crosshair}
+.row{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap;margin:.4rem 0}.row button{padding:.6rem .9rem;border:0;border-radius:.6rem;background:#b45309;color:#fff;font-weight:700;font-size:1rem;cursor:pointer;user-select:none}.row button:disabled{opacity:.45;cursor:default}
 </style></head>
-<body><main><a href="../">← All games</a><h1>🧗 Cliff Tumble</h1>
-<p>Toss Bob down a giant cliff of ledges! <strong>◀ ▶ / A D</strong> aims the throw, <strong>hold Space</strong> (or the button) to charge, release to throw. In the air, steer with <strong>◀ ▶</strong>. Icy blue ledges slope away from the wall and drop you down; grassy ledges stop you. Bounce off ledges, grab coins, hit orange bounce pads, and tumble as deep as you can. Spend coins on upgrades.</p>
-<canvas id="c" width="720" height="760" aria-label="Cliff Tumble game"></canvas>
-<div class="row"><button id="l">◀</button><button id="th">🚀 Hold to throw</button><button id="r">▶</button></div>
+<body><main><a href="../">← All games</a><h1>🪓 Ledge Throw</h1>
+<p><strong>Click or tap</strong> to throw a ledge at the wall – it sticks where it hits. Climb your ledges to the 🚪 exit at the TOP! Move with <strong>A/D</strong> or <strong>◀ ▶</strong>, jump with <strong>W / Space</strong>. You only get a few ledges per level, so place them well. <strong>R</strong> restarts the level.</p>
+<canvas id="c" width="900" height="640" aria-label="Ledge Throw game"></canvas>
+<div class="row"><button id="l">◀</button><button id="j">⤒ Jump</button><button id="r">▶</button><button id="rs">↺ Restart</button></div>
 <div class="row" id="shop"></div>
 </main>
 <script>
-const C=document.querySelector("#c"),x=C.getContext("2d"),W=720,H=760,G=1000,R=13,KEY="cliffTumbleSave";
-let save={coins:0,best:0,up:{pow:0,bounce:0,steer:0,coin:0}};try{const s=JSON.parse(localStorage.getItem(KEY));if(s)save=Object.assign(save,s)}catch(e){}
-const UP={pow:{n:"Power",d:l=>`Throw ${500+l*60}`},bounce:{n:"Bounce",d:l=>`${Math.round(40+l*5)}%`},steer:{n:"Steer",d:l=>`${600+l*120}`},coin:{n:"Coin value",d:l=>`x${(1+l*.25).toFixed(2)}`}};
-const cost=l=>Math.round(120*Math.pow(l+1,1.7));
+const C=document.querySelector("#c"),x=C.getContext("2d"),W=900,H=640,WALLX=560,GY=0,KEY="ledgeThrowClimbSave",PW=18,PH=34;
+let save={coins:0,level:1,up:{count:0,jump:0,len:0}};try{const s=JSON.parse(localStorage.getItem(KEY));if(s)save=Object.assign(save,s)}catch(e){}
+const UP={count:{n:"Ledges",d:l=>`+${l} per level`},jump:{n:"Jump",d:l=>`${Math.round(620+l*35)}`},len:{n:"Ledge size",d:l=>`${90+l*12}px`}};
+const cost=l=>Math.round(60*Math.pow(l+1,1.6));
 const persist=()=>{try{localStorage.setItem(KEY,JSON.stringify(save))}catch(e){}};
-let seed=7;const rnd=()=>(seed=(seed*1664525+1013904223)>>>0)/4294967296;
-let ledges,coins,b,state,ang,charge,chDir,charging,cy,depth,still,got,res,frames=0,genY,keys={},fx,shake,hits;
-function gen(to){while(genY<to){genY+=120+rnd()*70;const w=150+rnd()*170,left=(ledges.length%2===0),x0=left?14:W-14-w,pad=rnd()<.12,ice=!pad&&rnd()<.55;ledges.push({x0,x1:x0+w,y:genY,pad,ice,dir:left?1:-1});if(rnd()<.6)coins.push({x:x0+w*rnd(),y:genY-50-rnd()*50,t:0});if(rnd()<.35)coins.push({x:rnd()*W,y:genY-30-rnd()*70,t:0})}}
-function init(){seed=Math.floor(Math.random()*1e9);ledges=[{x0:W/2-110,x1:W/2+110,y:220,pad:false}];fx=[];shake=0;hits=0;coins=[];genY=220;gen(2400);state="aim";ang=0;charge=0;chDir=1;charging=false;b={x:W/2,y:220-R,vx:0,vy:0,r:0,g:true};depth=0;still=0;got=0;res=null;cy=0;shopUI()}
-function throwIt(){const v=(500+save.up.pow*60)*(.3+.7*charge);b.vx=Math.sin(ang)*v;b.vy=-Math.cos(ang)*v*.6-120;state="fly";b.g=false;shopUI()}
-function finish(){state="done";const earn=Math.round(depth*.6*(1+save.up.coin*.25))+got;save.coins+=earn;const nb=depth>save.best;if(nb)save.best=depth;persist();res={d:depth,earn,nb,hits};shopUI()}
+let level,TOP,left,ledges,fly,p,state,cy,keys={},mouse={x:300,y:300},fx,frames=0,msg="";
+const ledgeLen=()=>90+save.up.len*12;
+function init(lv){level=lv===undefined?save.level:lv;TOP=-(420+level*60);left=Math.ceil(-TOP/115)+3+save.up.count;ledges=[];fly=[];fx=[];p={x:120,y:GY,vx:0,vy:0,g:true,f:1};state="play";cy=-540;msg="";shopUI()}
+function throwAt(mx,my){if(state!=="play"||left<=0)return;const dx=mx-p.x,dy=my-(p.y-PH/2),d=Math.hypot(dx,dy)||1,v=Math.min(1100,d*2.6+250);fly.push({x:p.x,y:p.y-PH/2,vx:dx/d*v,vy:dy/d*v,r:0});left--}
+function path(mx,my){const dx=mx-p.x,dy=my-(p.y-PH/2),d=Math.hypot(dx,dy)||1,v=Math.min(1100,d*2.6+250);let a=p.x,b=p.y-PH/2,vx=dx/d*v,vy=dy/d*v;const pts=[];for(let i=0;i<60;i++){vy+=900*.03;a+=vx*.03;b+=vy*.03;if(a>=WALLX||b>=GY)break;pts.push([a,b])}return pts}
+function win(){state="won";const earn=20+level*6;save.coins+=earn;save.level=level+1;persist();msg=`+${earn} coins`;shopUI()}
 function update(dt){
- if(state==="aim"){if(keys.ArrowLeft||keys.KeyA)ang=Math.max(-1.3,ang-1.6*dt);if(keys.ArrowRight||keys.KeyD)ang=Math.min(1.3,ang+1.6*dt);if(charging){charge+=chDir*1.6*dt;if(charge>=1){charge=1;chDir=-1}if(charge<=0){charge=0;chDir=1}}}
- if(state==="fly"){
-  gen(b.y+1600);const st=keys.ArrowLeft||keys.KeyA?-1:keys.ArrowRight||keys.KeyD?1:0;b.vx+=st*(600+save.up.steer*120)*dt;
-  const sub=3,h=dt/sub;
-  for(let s=0;s<sub;s++){b.vy+=G*h;const py=b.y;b.x+=b.vx*h;b.y+=b.vy*h;b.g=false;
-   if(b.x<R){b.x=R;b.vx=Math.abs(b.vx)*.5}if(b.x>W-R){b.x=W-R;b.vx=-Math.abs(b.vx)*.5}
-   for(const l of ledges){if(l.y<b.y-60||l.y>b.y+60)continue;
-    if(b.x+R*.6>l.x0&&b.x-R*.6<l.x1&&b.vy>=0&&py+R<=l.y+4&&b.y+R>=l.y){b.y=l.y-R;
-     if(b.vy>220){const pts=Math.round(b.vy/25);got+=pts;hits++;shake=Math.min(12,b.vy/60);fx.push({x:b.x,y:b.y-20,t:1,s:"OUCH +"+pts})}
-     if(l.pad){b.vy=-Math.max(760,b.vy*1.1);b.vx*=1.1}else if(b.vy>140)b.vy=-b.vy*Math.min(.9,.4+save.up.bounce*.05);else b.vy=0;
-     if(b.vy===0){b.g=true;if(l.ice)b.vx+=l.dir*700*h;b.vx*=Math.pow(l.ice?.7:.2,h)}}}}
-  b.r+=(b.vx*dt/R)+(b.g?0:Math.sign(b.vx||1)*3*dt);
-  for(const c of coins)if(!c.t&&Math.hypot(c.x-b.x,c.y-b.y)<R+12){c.t=1;got+=Math.round(5*(1+save.up.coin*.25))}
-  depth=Math.max(depth,Math.floor((b.y-220)/10));
-  if(b.g&&Math.abs(b.vx)<18&&Math.abs(b.vy)<30)still+=dt;else still=0;if(still>.8)finish();
+ for(const f of fx){f.t-=dt;f.y-=30*dt}fx=fx.filter(f=>f.t>0);
+ for(const t of fly){t.vy+=900*dt;t.x+=t.vx*dt;t.y+=t.vy*dt;t.r+=dt*12;
+  if(t.x>=WALLX){t.dead=1;if(t.y<GY-6&&t.y>TOP+4)ledges.push({y:t.y,x0:WALLX-ledgeLen()});else fx.push({x:WALLX-40,y:t.y,t:1,s:"missed"})}
+  else if(t.y>=GY||t.x<-50){t.dead=1;fx.push({x:t.x,y:GY-20,t:1,s:"missed"})}}
+ fly=fly.filter(t=>!t.dead);
+ if(state==="play"){
+  const mv=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0);if(mv)p.f=mv;
+  p.vx+=(mv*230-p.vx)*Math.min(1,dt*12);
+  if((keys.KeyW||keys.ArrowUp||keys.Space)&&p.g){p.vy=-(620+save.up.jump*35);p.g=false}
+  const py=p.y;p.vy+=1500*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.g=false;
+  if(p.x<PW/2)p.x=PW/2;
+  if(p.y>-top-0&&false){}
+  if(p.y>TOP+6&&p.x>WALLX-PW/2)p.x=WALLX-PW/2;
+  if(p.x>WALLX+190)p.x=WALLX+190;
+  if(p.y>=GY){p.y=GY;p.vy=0;p.g=true}
+  if(p.vy>=0){
+   for(const l of ledges)if(p.x+PW/2>l.x0&&p.x-PW/2<WALLX&&py<=l.y+2&&p.y>=l.y){p.y=l.y;p.vy=0;p.g=true}
+   if(p.x+PW/2>WALLX&&py<=TOP+2&&p.y>=TOP){p.y=TOP;p.vy=0;p.g=true}}
+  if(p.y<=TOP&&p.x>WALLX+60&&p.x<WALLX+150&&p.g)win();
  }
- for(const f of fx){f.t-=dt;f.y-=40*dt}fx=fx.filter(f=>f.t>0);shake=Math.max(0,shake-30*dt);const ty=b.y-H*.4;cy+=(Math.max(0,ty)-cy)*Math.min(1,dt*5);
+ const ty=p.y-380;cy+=(Math.max(top-300,Math.min(-540,ty))-cy)*Math.min(1,dt*5);
 }
-function text(s,a,b2,size,col,al="center"){x.font=`bold ${size}px Arial`;x.textAlign=al;x.fillStyle=col;x.lineWidth=4;x.strokeStyle="#0f172a";x.lineJoin="round";x.strokeText(s,a,b2);x.fillText(s,a,b2)}
-function bob(px,py,rot){x.save();x.translate(px,py);x.rotate(rot);x.scale(1.8,1.8);x.strokeStyle="#fde047";x.fillStyle="#fde047";x.lineWidth=3;x.lineCap="round";x.beginPath();const fl=state==="fly"&&!b.g?Math.sin(frames/2.5)*5:0;x.moveTo(0,-4);x.lineTo(0,6);x.moveTo(0,0);x.lineTo(-7-fl,-5+fl);x.moveTo(0,0);x.lineTo(7+fl,-5-fl);x.moveTo(0,6);x.lineTo(-5+fl,12);x.moveTo(0,6);x.lineTo(5-fl,12);x.stroke();x.beginPath();x.arc(0,-9,5,0,6.3);x.fill();x.restore()}
+function text(s,a,b,size,col,al="center"){x.font=`bold ${size}px Arial`;x.textAlign=al;x.fillStyle=col;x.lineWidth=4;x.strokeStyle="#0f172a";x.lineJoin="round";x.strokeText(s,a,b);x.fillText(s,a,b)}
+function plank(x0,y,len){x.fillStyle="#92400e";x.fillRect(x0,y,len,10);x.fillStyle="#d97706";x.fillRect(x0,y,len,4);x.fillStyle="#451a03";for(let k=x0+14;k<x0+len-6;k+=22)x.fillRect(k,y+5,3,3)}
+function man(px,py,f){x.save();x.translate(px,py);x.scale(f,1);x.strokeStyle="#fde047";x.fillStyle="#fde047";x.lineWidth=3;x.lineCap="round";const w=p.g&&Math.abs(p.vx)>20?Math.sin(frames/3)*5:0;x.beginPath();x.moveTo(0,-14);x.lineTo(0,-34+22);x.moveTo(0,-12);x.lineTo(7,-8+(p.g?0:-6));x.moveTo(0,-12);x.lineTo(-6,-7);x.moveTo(0,-14+0);x.lineTo(0,-12);x.moveTo(0,-14);x.lineTo(-5+w,0);x.moveTo(0,-14);x.lineTo(5-w,0);x.stroke();x.beginPath();x.arc(0,-29,6,0,6.3);x.fill();x.restore()}
 function draw(){
- const g=x.createLinearGradient(0,0,0,H);const k=Math.min(1,cy/9000);g.addColorStop(0,`rgb(${14-10*k|0},${165-120*k|0},${233-150*k|0})`);g.addColorStop(1,`rgb(${186-150*k|0},${230-190*k|0},${253-170*k|0})`);x.fillStyle=g;x.fillRect(0,0,W,H);
- x.fillStyle="#44403c";x.fillRect(0,0,14,H);x.fillRect(W-14,0,14,H);x.fillStyle="#57534e44";for(let k=0;k<14;k++){const yy=((k*130-cy*.9)%1820+1820)%1820-40;x.fillRect(0,yy,14,50);x.fillRect(W-14,yy+30,14,50)}
- x.save();x.translate((Math.random()-.5)*shake,-cy+(Math.random()-.5)*shake);
- for(const l of ledges){if(l.y<cy-30||l.y>cy+H+30)continue;x.fillStyle=l.pad?"#f97316":"#78716c";x.fillRect(l.x0,l.y,l.x1-l.x0,16);if(!l.pad){x.fillStyle="#57534e";x.fillRect(l.x0,l.y+16,l.x1-l.x0,40)}x.fillStyle=l.pad?"#fde047":l.ice?"#bae6fd":"#65a30d";x.fillRect(l.x0,l.y,l.x1-l.x0,6);}
- for(const c of coins){if(c.t||c.y<cy-20||c.y>cy+H+20)continue;x.fillStyle="#facc15";x.beginPath();x.arc(c.x,c.y,9+Math.sin(frames/8)*1.5,0,6.3);x.fill();x.strokeStyle="#a16207";x.lineWidth=2;x.stroke()}
- if(state==="aim"){x.strokeStyle="#f97316";x.lineWidth=4;x.setLineDash([10,8]);x.beginPath();x.moveTo(b.x,b.y);x.lineTo(b.x+Math.sin(ang)*(50+charge*110),b.y-Math.cos(ang)*(50+charge*110));x.stroke();x.setLineDash([])}
- bob(b.x,b.y-2,state==="aim"?0:b.r);for(const f of fx){x.globalAlpha=Math.min(1,f.t*2);text(f.s,f.x,f.y,22,"#f87171");x.globalAlpha=1}
+ const g=x.createLinearGradient(0,0,0,H);g.addColorStop(0,"#1e3a8a");g.addColorStop(1,"#7dd3fc");x.fillStyle=g;x.fillRect(0,0,W,H);
+ x.save();x.translate(0,-cy);
+ const vt=cy,vb=cy+H;
+ x.fillStyle="#57534e";x.fillRect(WALLX,Math.max(TOP,vt-10),W-WALLX,Math.min(GY,vb+10)-Math.max(TOP,vt-10));
+ x.fillStyle="#44403c";for(let k=Math.floor(vt/70)-1;k<vb/70+1;k++){const yy=k*70;if(yy<TOP||yy>GY)continue;x.fillRect(WALLX+((k*37)%5)*40,yy,60,8);x.fillRect(WALLX+((k*53)%4)*50+20,yy+30,40,8)}
+ x.fillStyle="#a8a29e";x.fillRect(WALLX-6,Math.max(TOP,vt-10),6,Math.min(GY,vb+10)-Math.max(TOP,vt-10));
+ x.fillStyle="#57534e";x.fillRect(WALLX,TOP,200,14);x.fillStyle="#65a30d";x.fillRect(WALLX,TOP,200,5);
+ x.fillStyle="#365314";x.fillRect(0,GY,W,2000);x.fillStyle="#65a30d";x.fillRect(0,GY,W,10);
+ x.fillStyle="#78350f";x.fillRect(WALLX+70,top-46,46,46);x.fillStyle="#fbbf24";x.fillRect(WALLX+75,top-41,36,41);text("EXIT",WALLX+93,top-54,16,"#fff");
+ for(const l of ledges)plank(l.x0,l.y,ledgeLen());
+ for(const t of fly){x.save();x.translate(t.x,t.y);x.rotate(t.r);x.fillStyle="#d97706";x.fillRect(-ledgeLen()/2,-4,ledgeLen(),8);x.restore()}
+ if(state==="play"&&left>0&&!fly.length){x.strokeStyle="#fff9";x.lineWidth=3;x.setLineDash([6,8]);x.beginPath();let first=true;x.moveTo(p.x,p.y-PH/2);for(const q of path(mouse.x,mouse.y))x.lineTo(q[0],q[1]);x.stroke();x.setLineDash([])}
+ man(p.x,p.y,p.f);
+ for(const f of fx){x.globalAlpha=Math.min(1,f.t*2);text(f.s,f.x,f.y,18,"#fca5a5");x.globalAlpha=1}
  x.restore();
- text(`Depth ${depth}m`,12,34,26,"#fff","left");text(`Best ${Math.floor(save.best)}m`,12,62,18,"#fde68a","left");text(`🪙 ${save.coins}`,W-24,34,24,"#fde047","right");
- if(state==="aim"){x.fillStyle="#0008";x.fillRect(W/2-120,H-50,240,16);x.fillStyle="#f472b6";x.fillRect(W/2-120,H-50,240*charge,16);text("Hold Space to charge, release to throw",W/2,H-62,18,"#fff")}
- if(state==="done"){x.fillStyle="#000a";x.fillRect(0,0,W,H);text(res.nb?"New record!":"Landed!",W/2,H/2-60,44,"#f9a8d4");text(`Depth ${res.d}m`,W/2,H/2-8,34,"#fff");text(`${res.hits} ledge hits`,W/2,H/2+4+0,18,"#fca5a5");text(`+${res.earn} coins`,W/2,H/2+34,26,"#fde047");text("Press Space or click to go again",W/2,H/2+84,20,"#cbd5e1")}
+ text(`Level ${level}`,14,32,26,"#fff","left");text(`Ledges: ${left}`,14,62,22,left?"#fcd34d":"#f87171","left");text(`🪙 ${save.coins}`,W-14,32,24,"#fde047","right");text(`Height ${Math.max(0,Math.round(-p.y/10))}/${Math.round(-TOP/10)}m`,W-14,60,18,"#bae6fd","right");
+ if(state==="play"&&left===0&&!fly.length&&!ledges.some(l=>l.y<p.y-1)){text("Out of ledges! Press R to retry",W/2,100,26,"#f87171")}
+ if(state==="won"){x.fillStyle="#000a";x.fillRect(0,0,W,H);text("Level complete!",W/2,H/2-50,46,"#fcd34d");text(msg,W/2,H/2,28,"#fde047");text("Press Space or click for the next level",W/2,H/2+50,20,"#cbd5e1")}
 }
-function shopUI(){const s=document.querySelector("#shop");s.innerHTML="";for(const k in UP){const l=save.up[k],c=cost(l),bt=document.createElement("button");bt.textContent=`${UP[k].n} Lv${l} (${UP[k].d(l)}) – 🪙${c}`;bt.disabled=save.coins<c||state==="fly";bt.onclick=()=>{if(save.coins>=c){save.coins-=c;save.up[k]++;persist();shopUI()}};s.appendChild(bt)}}
-function down(){if(state==="aim")charging=true;else if(state==="done")init()}
-function up(){if(state==="aim"&&charging){charging=false;if(charge>.05)throwIt();else charge=0}}
-addEventListener("keydown",e=>{keys[e.code]=1;if(e.code==="Space"){e.preventDefault();if(!e.repeat)down()}if(e.code.startsWith("Arrow"))e.preventDefault()});
-addEventListener("keyup",e=>{keys[e.code]=0;if(e.code==="Space")up()});
-C.addEventListener("pointerdown",down);addEventListener("pointerup",up);
-const th=document.querySelector("#th");th.addEventListener("pointerdown",e=>{e.stopPropagation();down()});
-for(const[id,c]of[["l","ArrowLeft"],["r","ArrowRight"]]){const e=document.querySelector("#"+id);e.addEventListener("pointerdown",()=>keys[c]=1);e.addEventListener("pointerup",()=>keys[c]=0);e.addEventListener("pointerleave",()=>keys[c]=0)}
+function shopUI(){const s=document.querySelector("#shop");s.innerHTML="";for(const k in UP){const l=save.up[k],c=cost(l),bt=document.createElement("button");bt.textContent=`${UP[k].n} Lv${l} (${UP[k].d(l)}) – 🪙${c}`;bt.disabled=save.coins<c;bt.onclick=()=>{if(save.coins>=c){save.coins-=c;save.up[k]++;persist();const lv=level;init(lv)}};s.appendChild(bt)}}
+function pos(e){const r=C.getBoundingClientRect();return{x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.TOP)*H/r.height+cy}}
+C.addEventListener("pointermove",e=>{mouse=pos(e)});
+C.addEventListener("pointerdown",e=>{mouse=pos(e);if(state==="won")init(save.level);else throwAt(mouse.x,mouse.y)});
+addEventListener("keydown",e=>{keys[e.code]=1;if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code))e.preventDefault();if(e.code==="KeyR")init(level);if(e.code==="Space"&&state==="won")init(save.level)});
+addEventListener("keyup",e=>keys[e.code]=0);
+for(const[id,c]of[["l","ArrowLeft"],["r","ArrowRight"],["j","Space"]]){const e=document.querySelector("#"+id);e.addEventListener("pointerdown",()=>keys[c]=1);e.addEventListener("pointerup",()=>keys[c]=0);e.addEventListener("pointerleave",()=>keys[c]=0)}
+document.querySelector("#rs").onclick=()=>init(level);
 let last=performance.now();function loop(t){const dt=Math.min(.033,(t-last)/1000);last=t;frames++;update(dt);draw();requestAnimationFrame(loop)}
 init();requestAnimationFrame(loop);
 </script></body></html>
