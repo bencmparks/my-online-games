@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cliff Chucker | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#0e7490,#0b1020 70%)}
+main{width:min(100%,84rem);padding:1.25rem;border:.2rem solid #67e8f9;border-radius:1.25rem;background:rgb(8 12 30 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.5rem 0;color:#a5f3fc;font-size:1.6rem}
+canvas{display:block;width:100%;height:auto;margin:.8rem auto;border:.2rem solid #475569;border-radius:.4rem;touch-action:none}
+.row{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap;margin:.4rem 0}.row button{padding:.6rem .9rem;border:0;border-radius:.6rem;background:#0891b2;color:#fff;font-weight:700;font-size:1rem;cursor:pointer;user-select:none}.row button:disabled{opacity:.4;cursor:not-allowed}.row button.t{background:#f97316}
+</style></head>
+<body><main><a href="../">← All games</a><h1>🪂 Cliff Chucker</h1>
+<p>Fling poor Bob off the cliff and watch him tumble down the ledges! Set the angle with <strong>W/S</strong> (or ▲▼), <strong>hold Space or the mouse</strong> to charge the power, release to throw. In the air, <strong>tap Space or click</strong> to use a rocket boost. There is no distance limit: the farther he goes, the more coins you earn to upgrade (upgrades never max out).</p>
+<canvas id="c" width="1280" height="680" aria-label="Cliff Chucker game"></canvas>
+<div class="row"><button id="au">▲ Angle</button><button id="ad">▼ Angle</button><button id="th" class="t">🚀 Hold to throw</button><button id="sp">Speed: 1x</button></div>
+<div class="row" id="shop"></div>
+</main>
+<script>
+const C=document.querySelector("#c"),x=C.getContext("2d"),W=1280,H=680,G=900,R=12,KEY="ledgeThrowSave",Z=.32;
+let save={coins:0,best:0,up:{pow:0,bounce:0,slide:0,boost:0,coin:0}};try{const s=JSON.parse(localStorage.getItem(KEY));if(s)save=Object.assign(save,s)}catch(e){}
+const UP={pow:{n:"Power",d:l=>`Speed ${600+l*70}`},bounce:{n:"Bounce",d:l=>`Bounce ${Math.round(35+l*4)}%`},slide:{n:"Slide",d:l=>`Slide ${l}`},boost:{n:"Rockets",d:l=>`${1+l} boosts`},coin:{n:"Coins",d:l=>`x${(1+l*.2).toFixed(1)}`}};
+const cost=l=>Math.round(150*Math.pow(l+1,1.8));
+function persist(){try{localStorage.setItem(KEY,JSON.stringify(save))}catch(e){}}
+let seed=1;function rnd(){seed=(seed*1664525+1013904223)>>>0;return seed/4294967296}
+let segs,b,state,ang,charge,chDir,charging,cx,cy,dist,still,boosts,flameT,trail,res,rockFx;
+function genTerrain(){seed=12345;segs=[{x0:-400,x1:160,y:200}];ensure(3000)}
+function ensure(xm){let l=segs[segs.length-1];while(l.x1<xm){const w=90+rnd()*220,drop=segs.length>4&&rnd()<.12?-12-rnd()*16:20+rnd()*(60+Math.min(80,l.x1/500));segs.push({x0:l.x1,x1:l.x1+w,y:l.y+drop});l=segs[segs.length-1]}}
+function init(){state="aim";ang=.7;charge=0;chDir=1;charging=false;b={x:100,y:200-R,vx:0,vy:0,r:0,g:false};dist=0;still=0;boosts=1+save.up.boost;trail=[];rockFx=[];res=null;cx=0;cy=0;shopUI()}
+function throwIt(){const v=(600+save.up.pow*70)*(.25+.75*charge);b.vx=Math.cos(ang)*v;b.vy=-Math.sin(ang)*v;state="fly";b.g=false;shopUI()}
+function boost(){if(state!=="fly"||boosts<=0)return;boosts--;b.vx+=320;b.vy=Math.min(b.vy,0)-260;for(let k=0;k<14;k++)rockFx.push({x:b.x,y:b.y,vx:-120-Math.random()*160,vy:(Math.random()-.5)*180,t:.5})}
+function finish(){state="done";dist=Math.max(0,(b.x-100)/10);const earn=Math.round(dist*(1+save.up.coin*.2));save.coins+=earn;const nb=dist>save.best;if(nb)save.best=dist;persist();res={dist,earn,nb};shopUI()}
+function update(dt){
+ for(const f of rockFx){f.t-=dt;f.x+=f.vx*dt;f.y+=f.vy*dt}rockFx=rockFx.filter(f=>f.t>0);
+ if(state==="aim"){if(keys.KeyW||keys.ArrowUp)ang=Math.min(1.35,ang+1.2*dt);if(keys.KeyS||keys.ArrowDown)ang=Math.max(.1,ang-1.2*dt);if(charging){charge+=chDir*1.5*dt;if(charge>=1){charge=1;chDir=-1}if(charge<=0){charge=0;chDir=1}}}
+ if(state==="fly"){
+  ensure(b.x+6000);
+  const sub=3,h=dt/sub;
+  for(let s=0;s<sub;s++){b.vy+=G*h;const py=b.y;b.x+=b.vx*h;b.y+=b.vy*h;b.g=false;
+   for(const sg of segs){if(sg.x1<b.x-R-5||sg.x0>b.x+R+5)continue;
+    if(b.x+R>sg.x0&&b.x-R<sg.x1&&b.y+R>sg.y){
+     if(py+R<=sg.y+6||b.y-R<sg.y-0&&b.vy>0&&py+R<=sg.y+10){b.y=sg.y-R;const e=Math.min(.92,.35+save.up.bounce*.04);if(b.vy>90)b.vy=-b.vy*e;else b.vy=0;b.g=true;b.vx*=Math.pow(Math.min(.97,.25+save.up.slide*.06),h*(Math.abs(b.vy)>1?.5:2.2))}
+     else if(b.x<(sg.x0+sg.x1)/2){b.x=sg.x0-R;if(b.vx>0)b.vx*=-.35}else{b.x=sg.x1+R;if(b.vx<0)b.vx*=-.35}}}}
+  b.r+=b.vx*dt/R;
+  if(b.g&&Math.abs(b.vx)<14&&Math.abs(b.vy)<30)still+=dt;else still=0;if(still>.8)finish();
+  if(b.x<0&&b.vx<0)b.vx=0;
+  if(frames%3==0)trail.push([b.x,b.y]);if(trail.length>40)trail.shift();
+ }
+ const tx=Math.max(0,b.x-300/Z),ty=b.y-H/Z*.55;cx+=(tx-cx)*Math.min(1,dt*6);cy+=(ty-cy)*Math.min(1,dt*4);
+}
+let frames=0;
+function text(s,a,b2,size,col,al="center"){x.font=`bold ${size}px Arial`;x.textAlign=al;x.fillStyle=col;x.lineWidth=4;x.strokeStyle="#0f172a";x.lineJoin="round";x.strokeText(s,a,b2);x.fillText(s,a,b2)}
+function bob(px,py,rot){x.save();x.translate(px,py);x.rotate(rot);x.strokeStyle="#fde047";x.fillStyle="#fde047";x.lineWidth=4;x.lineCap="round";x.beginPath();x.moveTo(0,-4);x.lineTo(0,10);x.moveTo(0,0);x.lineTo(-10,-6);x.moveTo(0,0);x.lineTo(10,-6);x.moveTo(0,10);x.lineTo(-7,20);x.moveTo(0,10);x.lineTo(7,20);x.stroke();x.beginPath();x.arc(0,-10,7,0,6.3);x.fill();x.fillStyle="#111";x.fillRect(-3,-12,2,2);x.fillRect(2,-12,2,2);x.restore()}
+function draw(){
+ const g=x.createLinearGradient(0,0,0,H);g.addColorStop(0,"#0ea5e9");g.addColorStop(1,"#bae6fd");x.fillStyle=g;x.fillRect(0,0,W,H);
+ x.fillStyle="#7dd3fc";for(let k=0;k<6;k++){const px=((k*260-cx*.2)%1560+1560)%1560-200;x.beginPath();x.arc(px,70+(k%3)*40,28,0,6.3);x.arc(px+30,76+(k%3)*40,22,0,6.3);x.fill()}
+ x.fillStyle="#475569";for(let k=0;k<7;k++){const px=((k*300-cx*.35)%2100+2100)%2100-250;x.beginPath();x.moveTo(px,H);x.lineTo(px+150,H-170-(k%3)*50);x.lineTo(px+330,H);x.fill()}
+ x.save();x.scale(Z,Z);x.translate(-cx,-cy);
+ for(const sg of segs){if(sg.x1<cx-20||sg.x0>cx+W/Z+20)continue;x.fillStyle="#78716c";x.fillRect(sg.x0,sg.y,sg.x1-sg.x0,9000);x.fillStyle="#65a30d";x.fillRect(sg.x0,sg.y,sg.x1-sg.x0,8);x.strokeStyle="rgba(0,0,0,.25)";x.lineWidth=2;for(let yy=sg.y+30;yy<sg.y+600;yy+=30){x.beginPath();x.moveTo(sg.x0,yy);x.lineTo(sg.x1,yy);x.stroke()}}
+ for(let m=0;m<=Math.ceil((cx+W/Z)/1000);m++){const mxp=100+m*1000;if(mxp<cx-50)continue;const sg=segs.find(s=>mxp>=s.x0&&mxp<s.x1);if(sg){x.fillStyle="#fff";x.fillRect(mxp-2,sg.y-60,4,60);text(m*100+"m",mxp,sg.y-66,40,"#fff")}}
+ x.strokeStyle="rgba(255,255,255,.5)";x.lineWidth=3;x.beginPath();trail.forEach((p,i)=>i?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1]));x.stroke();
+ for(const f of rockFx){x.globalAlpha=f.t*2;x.fillStyle="#fb923c";x.fillRect(f.x-3,f.y-3,6,6)}x.globalAlpha=1;
+ x.fillStyle="#7c2d12";x.fillRect(70,200-4,60,4);
+ x.save();x.translate(b.x,b.y);x.scale(2.2,2.2);x.translate(-b.x,-b.y);bob(b.x,b.y-2,state==="aim"?0:b.r);x.restore();
+ if(state==="aim"){x.strokeStyle="#f97316";x.lineWidth=4;x.setLineDash([10,8]);x.beginPath();x.moveTo(b.x,b.y);x.lineTo(b.x+Math.cos(ang)*(60+charge*110),b.y-Math.sin(ang)*(60+charge*110));x.stroke();x.setLineDash([])}
+ x.restore();
+ text(`${Math.max(0,Math.floor((b.x-100)/10))} m`,W/2,40,34,"#fff");text(`🪙 ${save.coins}`,12,30,22,"#fde047","left");text(`Best ${Math.floor(save.best)} m`,W-12,30,18,"#fff","right");
+ if(state==="aim"){x.fillStyle="rgba(15,23,42,.7)";x.fillRect(W/2-100,H-40,200,18);x.fillStyle=charge>.85?"#ef4444":"#22c55e";x.fillRect(W/2-100,H-40,200*charge,18);text("Hold to charge, release to throw",W/2,H-50,16,"#fff")}
+ if(state==="fly")text(`🚀 Boosts: ${boosts} (tap Space / click)`,W/2,H-16,16,"#fff");
+ if(state==="done"&&res){x.fillStyle="rgba(0,0,0,.55)";x.fillRect(0,0,W,H);text(`${res.dist.toFixed(0)} m`,W/2,170,64,"#fde047");text(`+${res.earn} coins${res.nb?"  🏆 New best!":""}`,W/2,220,28,"#fff");text("Upgrade below, then press Space or Throw again",W/2,270,20,"#cbd5e1")}
+}
+const keys={};
+function pressStart(){if(state==="aim"){charging=true}else if(state==="fly")boost();else if(state==="done")init()}
+function pressEnd(){if(state==="aim"&&charging){charging=false;if(charge>0.02)throwIt();else charge=0}}
+addEventListener("keydown",e=>{if(["ArrowUp","ArrowDown","Space"].includes(e.code))e.preventDefault();if(e.repeat)return;keys[e.code]=true;if(e.code==="Space")pressStart()});
+addEventListener("keyup",e=>{keys[e.code]=false;if(e.code==="Space")pressEnd()});
+C.addEventListener("pointerdown",pressStart);addEventListener("pointerup",pressEnd);
+const th=document.querySelector("#th");th.addEventListener("pointerdown",e=>{e.preventDefault();pressStart()});th.addEventListener("pointerleave",pressEnd);
+for(const[id,code]of[["#au","KeyW"],["#ad","KeyS"]]){const bt=document.querySelector(id);bt.addEventListener("pointerdown",e=>{e.preventDefault();keys[code]=true});for(const ev of["pointerup","pointerleave"])bt.addEventListener(ev,()=>keys[code]=false)}
+const shop=document.querySelector("#shop");
+function shopUI(){shop.innerHTML="";for(const k in UP){const l=save.up[k],max=false,bt=document.createElement("button");bt.textContent=max?`${UP[k].n}: MAX`:`${UP[k].n} Lv${l} → 🪙${cost(l)}`;bt.title=UP[k].d(l);bt.disabled=save.coins<cost(l)||state==="fly";bt.onclick=()=>{if(save.coins>=cost(l)&&state!=="fly"){save.coins-=cost(l);save.up[k]++;persist();if(state==="aim")boosts=1+save.up.boost;shopUI()}};shop.append(bt)}}
+genTerrain();init();
+let last=performance.now();
+function loop(ts){const dt=Math.min(.033,(ts-last)/1000);last=ts;frames++;for(let k=0;k<spd;k++)update(dt);draw();let spd=1;const spB=document.querySelector("#sp"),setSpd=()=>{spd=spd%3+1;spB.textContent="Speed: "+spd+"x"};spB.onclick=e=>{setSpd();spB.blur()};addEventListener("keydown",e=>{if(e.code==="KeyF"&&!e.repeat)setSpd()});
+requestAnimationFrame(loop)}
+let spd=1;const spB=document.querySelector("#sp"),setSpd=()=>{spd=spd%3+1;spB.textContent="Speed: "+spd+"x"};spB.onclick=e=>{setSpd();spB.blur()};addEventListener("keydown",e=>{if(e.code==="KeyF"&&!e.repeat)setSpd()});
+requestAnimationFrame(loop);
+</script></body></html>

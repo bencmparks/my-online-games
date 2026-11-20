@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Stick Legion | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#334155,#0b1020 70%)}
+main{width:min(100%,58rem);padding:1.25rem;border:.2rem solid #94a3b8;border-radius:1.25rem;background:rgb(8 12 30 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.5rem 0;color:#e2e8f0;font-size:1.6rem}
+canvas{display:block;width:100%;height:auto;margin:.8rem auto;border:.2rem solid #475569;border-radius:.4rem;touch-action:none}
+.row{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap}.row button{padding:.6rem .9rem;border:0;border-radius:.6rem;background:#2563eb;color:#fff;font-weight:700;font-size:1rem;cursor:pointer;user-select:none}.row button:disabled{opacity:.4;cursor:not-allowed}.row button.s{background:#7c3aed}
+</style></head>
+<body><main><a href="../">← All games</a><h1>⚔️ Stick Legion</h1>
+<p>Build an army of stick figures and destroy the enemy statue! Miners dig gold automatically. Buy units with the buttons or keys <strong>1-4</strong>. <strong>Q</strong> switches your army between <em>Attack</em> and <em>Defend</em>. Scroll with <strong>A/D</strong>, arrows or by dragging. <strong>R</strong> calls Arrow Rain in front of your army. 20 levels! Your surviving warriors join you in the next level.</p>
+<canvas id="c" width="900" height="420" aria-label="Stick Legion game"></canvas>
+<div class="row" id="btns"></div>
+</main>
+<script>
+const C=document.querySelector("#c"),x=C.getContext("2d"),W=900,H=420,GY=340,WW=2200,KEY="stickWarLevel";
+const BX=[110,WW-110],MX=[380,WW-380],RALLY=[560,WW-560];
+const T={miner:{n:"Miner",c:50,hp:40,sp:80,dmg:0,r:0,cd:0,k:"1"},sword:{n:"Swordwrath",c:125,hp:100,sp:78,dmg:14,r:26,cd:.6,k:"2"},archer:{n:"Archidon",c:150,hp:60,sp:62,dmg:9,r:240,cd:1.2,k:"3"},giant:{n:"Giant",c:500,hp:650,sp:42,dmg:42,r:48,cd:1.4,k:"4"}};
+let level=0,carry=["miner","miner"];try{level=Math.min(19,+localStorage.getItem(KEY)||0);const c=JSON.parse(localStorage.getItem("stickLegionArmy"));if(Array.isArray(c)&&c.length)carry=c.filter(k=>T[k]).slice(0,45)}catch(e){}
+let U,A,gold,statue,smax,stance,cam,state,t,aiT,spawnCd,rain,rainFx,shake;
+function newGame(){U=[];A=[];gold=[300,200+level*60];smax=[1500,1200+level*350];statue=smax.slice();stance=0;cam=0;state="play";t=0;aiT=2;spawnCd=0;rain=0;rainFx=[];shake=0;
+ for(const k of carry)spawn(0,k);spawn(1,"miner");spawn(1,"miner");for(let i=0;i<level;i++)spawn(1,i%3===2?"archer":"sword")}
+function spawn(tm,ty){const d=T[ty];U.push({t:ty,tm,x:BX[tm]+(tm?-40:40)+Math.random()*20,hp:d.hp,max:d.hp,cd:0,an:Math.random()*6,sw:0,st:0,tmr:0,ar:tm?-1:1})}
+function pop(tm){return U.filter(u=>u.tm===tm).length}
+function buy(ty,tm=0){const d=T[ty];if(state!=="play"||gold[tm]<d.c||pop(tm)>=45||(tm===0&&spawnCd>0))return false;gold[tm]-=d.c;spawn(tm,ty);if(tm===0)spawnCd=.45;return true}
+function nearest(u){let b=null,bd=1e9;for(const o of U)if(o.tm!==u.tm){const dd=Math.abs(o.x-u.x);if(dd<bd){bd=dd;b=o}}return b?{o:b,d:bd}:null}
+function hurt(o,dm){o.hp-=dm;o.hit=.12}
+function update(dt){
+ t+=dt;if(spawnCd>0)spawnCd-=dt;if(shake>0)shake-=dt;
+ if(keys.ArrowLeft||keys.KeyA)cam-=500*dt;if(keys.ArrowRight||keys.KeyD)cam+=500*dt;cam=Math.max(0,Math.min(WW-W,cam));
+ if(state!=="play")return;
+ if(rain>0)rain-=dt;
+ for(const f of rainFx){f.t-=dt;if(f.t<=0&&!f.done){f.done=true;A.push({x:f.x,y:-20,vx:0,vy:260,tm:0,dm:18})}}rainFx=rainFx.filter(f=>!f.done);
+ const army1=U.filter(u=>u.tm===1&&u.t!=="miner").length;
+ for(const u of U){
+  const d=T[u.t],dir=u.tm?-1:1;if(u.sw>0)u.sw-=dt;if(u.hit>0)u.hit-=dt;if(u.cd>0)u.cd-=dt;let moving=false;
+  if(u.t==="miner"){
+   if(u.st===0){if(Math.abs(u.x-MX[u.tm])>8){u.x+=Math.sign(MX[u.tm]-u.x)*d.sp*dt;u.ar=Math.sign(MX[u.tm]-u.x)||1;moving=true}else{u.st=1;u.tmr=1.6}}
+   else if(u.st===1){u.tmr-=dt;u.sw=.2;if(u.tmr<=0)u.st=2}
+   else{const tx=BX[u.tm]+dir*50;if(Math.abs(u.x-tx)>8){u.x+=Math.sign(tx-u.x)*d.sp*dt;u.ar=Math.sign(tx-u.x)||1;moving=true}else{gold[u.tm]+=u.tm?20*(1+level*.08):20;u.st=0}}
+  }else{
+   const n=nearest(u),sd=u.t==="archer"?d.r:190,sx=BX[1-u.tm],sdist=Math.abs(u.x-sx)-34;let tgt=null,dist=1e9;
+   if(n&&n.d<=sd){tgt=n.o;dist=n.d}else if(sdist<=Math.max(d.r,60)){tgt="s";dist=sdist}
+   if(tgt){
+    const tx=tgt==="s"?sx:tgt.x;u.ar=Math.sign(tx-u.x)||dir;
+    if(dist<=d.r+(tgt==="s"?0:6)){if(u.cd<=0){u.cd=d.cd;u.sw=.25;
+      if(u.t==="archer"){const ds=Math.abs(tx-u.x),tt=Math.max(.25,ds/380);A.push({x:u.x,y:GY-30,vx:u.ar*ds/tt,vy:-200*tt,tm:u.tm,dm:d.dmg})}
+      else if(tgt==="s"){statue[1-u.tm]-=d.dmg;shake=.1}else hurt(tgt,d.dmg)}}
+    else{u.x+=u.ar*d.sp*dt;moving=true}
+   }else{
+    const atk=u.tm?(army1>=4+level*1.5):stance===1,tx=atk?sx:RALLY[u.tm]+(u.an%1)*60-30;
+    if(Math.abs(u.x-tx)>10){u.ar=Math.sign(tx-u.x);u.x+=u.ar*d.sp*dt;moving=true}
+   }
+  }
+  if(moving)u.an+=dt*d.sp*.12;u.x=Math.max(20,Math.min(WW-20,u.x));
+ }
+ for(const a of A){a.vy+=400*dt;a.x+=a.vx*dt;a.y+=a.vy*dt;
+  if(a.y>=GY-4){a.dead=1;continue}
+  for(const o of U)if(o.tm!==a.tm&&Math.abs(o.x-a.x)<10&&a.y>GY-(o.t==="giant"?75:45)){hurt(o,a.dm);a.dead=1;break}
+  const sx=BX[1-a.tm];if(!a.dead&&a.y>GY-90&&Math.abs(a.x-sx)<30){statue[1-a.tm]-=a.dm;a.dead=1}}
+ A=A.filter(a=>!a.dead&&a.x>0&&a.x<WW);
+ U=U.filter(u=>u.hp>0);
+ aiT-=dt;if(aiT<=0){aiT=1.1;const m=U.filter(u=>u.tm===1&&u.t==="miner").length;
+  if(m<3+Math.floor(level/3))buy("miner",1);
+  else{const r=Math.random(),g=gold[1];if(level>=2&&g>=500&&r<.25)buy("giant",1);else if(r<.5)buy("archer",1);else buy("sword",1)}}
+ if(statue[1]<=0){state="win";shake=.6;carry=U.filter(u=>u.tm===0).map(u=>u.t);while(carry.filter(k=>k==="miner").length<2)carry.push("miner");try{if(level<19)localStorage.setItem(KEY,level+1);localStorage.setItem("stickLegionArmy",JSON.stringify(carry))}catch(e){}}
+ else if(statue[0]<=0){state="lose";shake=.6}
+}
+function text(s,a,b,size,col,al="center"){x.font=`bold ${size}px Arial`;x.textAlign=al;x.fillStyle=col;x.lineWidth=4;x.strokeStyle="#0f172a";x.lineJoin="round";x.strokeText(s,a,b);x.fillText(s,a,b)}
+function line(a,b,c,d){x.beginPath();x.moveTo(a,b);x.lineTo(c,d);x.stroke()}
+function figure(u){
+ const sx=u.x-cam;if(sx<-60||sx>W+60)return;const s=u.t==="giant"?1.8:1,f=u.ar||1,col=u.tm?"#f87171":"#38bdf8";
+ x.save();x.translate(sx,GY);x.scale(f,1);x.strokeStyle=u.hit>0?"#fff":col;x.fillStyle=x.strokeStyle;x.lineWidth=3*Math.sqrt(s);x.lineCap="round";
+ const sw=Math.sin(u.an)*9*s;
+ line(0,-16*s,sw,0);line(0,-16*s,-sw,0);line(0,-16*s,0,-32*s);
+ x.beginPath();x.arc(0,-36*s,6*s,0,6.3);x.fill();
+ const ang=u.sw>0?-1.4+(.25-u.sw)*9:-.3;
+ x.save();x.translate(2,-28*s);
+ if(u.t==="sword"){x.rotate(ang);x.strokeStyle="#e2e8f0";line(0,0,22,0);x.strokeStyle=col;line(0,0,6,0)}
+ else if(u.t==="giant"){x.rotate(ang);x.strokeStyle="#a16207";x.lineWidth=7;line(0,0,34,0);x.lineWidth=11;line(30,0,40,0)}
+ else if(u.t==="archer"){x.strokeStyle="#fbbf24";x.lineWidth=2;x.beginPath();x.arc(10,0,13,-1.2,1.2);x.stroke();line(10+13*Math.cos(1.2),13*Math.sin(1.2),10+13*Math.cos(1.2),-13*Math.sin(1.2))}
+ else{x.rotate(u.sw>0?-.5+Math.sin(t*20)*.9:.6);x.strokeStyle="#94a3b8";line(0,0,16,0);line(14,-6,16,0)}
+ x.restore();
+ if(u.t==="miner"&&u.st===2){x.fillStyle="#fbbf24";x.beginPath();x.arc(-6,-18,5,0,6.3);x.fill()}
+ x.restore();
+ if(u.hp<u.max){x.fillStyle="#7f1d1d";x.fillRect(sx-14,GY-52*s,28,4);x.fillStyle="#22c55e";x.fillRect(sx-14,GY-52*s,28*Math.max(0,u.hp/u.max),4)}
+}
+function statueDraw(tm){const sx=BX[tm]-cam;if(sx<-80||sx>W+80)return;const col=tm?"#f87171":"#38bdf8",d=tm?-1:1;
+ x.fillStyle="#64748b";x.fillRect(sx-34,GY-26,68,26);x.fillStyle="#94a3b8";x.fillRect(sx-26,GY-40,52,14);
+ x.strokeStyle=col;x.fillStyle=col;x.lineWidth=7;x.lineCap="round";line(sx,GY-110,sx,GY-50);line(sx,GY-50,sx-14,GY-40);line(sx,GY-50,sx+14,GY-40);
+ x.beginPath();x.arc(sx,GY-122,14,0,6.3);x.fill();line(sx,GY-95,sx+d*30,GY-130);x.strokeStyle="#e2e8f0";x.lineWidth=5;line(sx+d*30,GY-130,sx+d*34,GY-165);
+ x.fillStyle="#7f1d1d";x.fillRect(sx-40,GY-185,80,8);x.fillStyle="#22c55e";x.fillRect(sx-40,GY-185,80*Math.max(0,statue[tm]/smax[tm]),8)}
+function draw(){
+ const g=x.createLinearGradient(0,0,0,GY);g.addColorStop(0,"#1e3a8a");g.addColorStop(1,"#f59e0b");x.fillStyle=g;x.fillRect(0,0,W,H);
+ x.fillStyle="#334155";for(let k=0;k<9;k++){const bx=k*330-(cam*.25)%330;x.beginPath();x.moveTo(bx,GY);x.lineTo(bx+130,GY-110-(k%3)*30);x.lineTo(bx+270,GY);x.fill()}
+ x.save();if(shake>0)x.translate((Math.random()-.5)*8,(Math.random()-.5)*8);
+ x.fillStyle="#3f6212";x.fillRect(0,GY,W,H-GY);x.fillStyle="#65a30d";x.fillRect(0,GY,W,6);
+ for(const m of MX){const sx=m-cam;x.fillStyle="#57534e";x.beginPath();x.moveTo(sx-34,GY);x.lineTo(sx-14,GY-34);x.lineTo(sx+10,GY-44);x.lineTo(sx+36,GY);x.fill();x.fillStyle="#fbbf24";for(let k=0;k<5;k++){x.beginPath();x.arc(sx-14+k*9,GY-10-(k%2)*8,5,0,6.3);x.fill()}}
+ statueDraw(0);statueDraw(1);
+ for(const u of U)figure(u);
+ x.strokeStyle="#f1f5f9";x.lineWidth=2;for(const a of A){const sx=a.x-cam,ang=Math.atan2(a.vy,a.vx);line(sx,a.y,sx-Math.cos(ang)*14,a.y-Math.sin(ang)*14)}
+ for(const f of rainFx){x.fillStyle="rgba(251,191,36,.3)";x.fillRect(f.x-cam-4,0,8,GY)}
+ x.restore();
+ text(`💰 ${Math.floor(gold[0])}`,12,28,24,"#fde047","left");text(`Army ${pop(0)}/45`,12,54,16,"#bae6fd","left");
+ text(`Level ${level+1}/20`,W/2,28,22,"#fff");text(stance?"⚔️ ATTACK":"🛡️ DEFEND",W/2,52,18,stance?"#fca5a5":"#86efac");
+ text(rain>0?`Arrow Rain ${Math.ceil(rain)}s`:"Arrow Rain ready (R)",W-12,28,16,rain>0?"#94a3b8":"#fbbf24","right");
+ const mw=140,mx=W-mw-12,my=44;x.fillStyle="rgba(15,23,42,.7)";x.fillRect(mx,my,mw,12);
+ for(const u of U){x.fillStyle=u.tm?"#f87171":"#38bdf8";x.fillRect(mx+u.x/WW*mw-1,my+2,3,8)}x.strokeStyle="#fff";x.lineWidth=1;x.strokeRect(mx+cam/WW*mw,my,W/WW*mw,12);
+ if(state!=="play"){x.fillStyle="rgba(0,0,0,.6)";x.fillRect(0,0,W,H);
+  if(state==="win"){text("VICTORY! 🎉",W/2,170,56,"#fde047");text(`${carry.length} warriors join the next battle`,W/2,200,18,"#bae6fd");text(level>=19?"You conquered every enemy statue!":"Click or press Space for the next level",W/2,230,22,"#fff")}
+  else{text("DEFEAT 💀",W/2,170,56,"#fca5a5");text("Click or press Space to try again",W/2,230,22,"#fff")}}
+}
+const keys={};
+function act(){if(state==="win"){if(level<19)level++;newGame()}else if(state==="lose")newGame()}
+function doRain(){if(state!=="play"||rain>0)return;rain=30;const fr=U.filter(u=>u.tm===0&&u.t!=="miner"),front=fr.length?Math.max(...fr.map(u=>u.x)):BX[0]+500,cx=Math.min(WW-200,front+250);for(let k=0;k<28;k++)rainFx.push({x:cx-170+k*12+Math.random()*8,t:k*.04})}
+addEventListener("keydown",e=>{if(["ArrowLeft","ArrowRight","Space"].includes(e.code))e.preventDefault();keys[e.code]=true;
+ if(state!=="play"){if(e.code==="Space"||e.code==="Enter")act();return}
+ if(e.code==="KeyQ")stance^=1;if(e.code==="KeyR")doRain();for(const k in T)if(e.key===T[k].k)buy(k)});
+addEventListener("keyup",e=>{keys[e.code]=false});
+let drag=null;
+C.addEventListener("pointerdown",e=>{if(state!=="play"){act();return}drag={x:e.clientX,c:cam}});
+addEventListener("pointermove",e=>{if(drag)cam=Math.max(0,Math.min(WW-W,drag.c-(e.clientX-drag.x)*W/C.getBoundingClientRect().width))});
+addEventListener("pointerup",()=>drag=null);
+const bt=document.querySelector("#btns"),bs={};
+for(const k in T){const b=document.createElement("button");b.textContent=`${T[k].n} (${T[k].k}) 💰${T[k].c}`;b.onclick=()=>buy(k);bt.append(b);bs[k]=b}
+const sb=document.createElement("button");sb.className="s";sb.onclick=()=>{if(state==="play")stance^=1};bt.append(sb);
+const rb=document.createElement("button");rb.className="s";rb.textContent="🏹 Arrow Rain (R)";rb.onclick=doRain;bt.append(rb);
+function ui(){for(const k in T)bs[k].disabled=gold[0]<T[k].c||state!=="play";sb.textContent=stance?"⚔️ Attacking (Q)":"🛡️ Defending (Q)"}
+newGame();
+let last=performance.now();
+function loop(ts){const dt=Math.min(.033,(ts-last)/1000);last=ts;update(dt);draw();ui();requestAnimationFrame(loop)}
+requestAnimationFrame(loop);
+</script></body></html>
