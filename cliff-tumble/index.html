@@ -2,98 +2,99 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ledge Throw | My Online Games</title><style>
 :root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:#0b1020}
 main{width:min(100%,60rem);padding:1rem;border:.2rem solid #f59e0b;border-radius:1.25rem;background:rgb(8 12 30 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.4rem 0;color:#fcd34d;font-size:1.6rem}
-canvas{display:block;width:100%;height:auto;margin:.6rem auto;border:.2rem solid #475569;border-radius:.4rem;touch-action:none;cursor:crosshair}
+canvas{display:block;width:100%;height:auto;margin:.6rem auto;border:.2rem solid #475569;border-radius:.4rem;touch-action:none}
 main:fullscreen{width:100vw;max-width:none;height:100vh;display:flex;flex-direction:column;justify-content:center;border-radius:0;overflow:auto}main:fullscreen canvas{width:auto;max-width:100%;max-height:calc(100vh - 11rem);margin:.4rem auto}main:fullscreen p{display:none}
-.row{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap;margin:.4rem 0}.row button{padding:.6rem .9rem;border:0;border-radius:.6rem;background:#b45309;color:#fff;font-weight:700;font-size:1rem;cursor:pointer;user-select:none}.row button:disabled{opacity:.45;cursor:default}
+.row{display:flex;gap:.4rem;justify-content:center;flex-wrap:wrap;margin:.4rem 0}.row button{padding:.55rem .8rem;border:0;border-radius:.6rem;background:#b45309;color:#fff;font-weight:700;font-size:.95rem;cursor:pointer;user-select:none}.row button:disabled{opacity:.45;cursor:default}
 </style></head>
 <body><main><a href="../">← All games</a><h1>🪓 Ledge Throw</h1>
-<p>Reach the 🌀 portal at the end of the course! Cross <strong>pits</strong>, jump <strong>spikes</strong>, bounce on <strong>springs</strong> and climb <strong>walls</strong>. <strong>Click, tap or press E</strong> to shoot a ledge straight ahead <strong>right below your feet</strong> (also works in mid-air!) – it sticks to a wall. You can only have <strong>one ledge at a time</strong>: a new shot removes the old one, even the one you stand on. Shoot at the top of a jump and you land on the new ledge. Move with <strong>A/D</strong> or <strong>◀ ▶</strong>, jump with <strong>W / Space</strong>, <strong>R</strong> restarts, <strong>F</strong> fullscreen.</p>
-<canvas id="c" width="900" height="640" aria-label="Ledge Throw game"></canvas>
-<div class="row"><button id="l">◀</button><button id="j">⤒ Jump</button><button id="r">▶</button><button id="sh">🎯 Shoot</button><button id="rs">↺ Restart</button><button id="fs">⛶ Fullscreen</button></div>
-<div class="row" id="shop"></div>
+<p>A turn-based puzzle: the whole map is on screen, so plan your route to the 🌀 portal. Every move is one turn. <strong>Shoot</strong> fires a ledge sideways along the row <strong>right below your feet</strong>; it sticks to the first wall it hits (shown as a ghost before you shoot). You can only have <strong>one ledge at a time</strong>. <strong>Jump</strong> lifts you 2 tiles and holds you in the air for one free action – shoot then, and you land on the new ledge. Avoid pits and spikes; springs launch you up. Aim for par!</p>
+<canvas id="c" width="900" height="540" aria-label="Ledge Throw puzzle"></canvas>
+<div class="row" id="b1"></div><div class="row" id="b2"></div>
+<p style="font-size:.85rem;opacity:.8">Keys: ◀ ▶ / A D move (steps up 1-tile ledges), Shift+◀ ▶ leap 2, W / ↑ / Space jump, S / ↓ wait, Q shoot left, E shoot right, Z undo, R restart, H hint, F fullscreen.</p>
 </main>
 <script>
-const C=document.querySelector("#c"),x=C.getContext("2d"),W=900,H=640,KEY="ledgeThrowCourseSave",PW=18,PH=34;
-let save={coins:0,level:1,up:{jump:0,len:0,speed:0}};try{const s=JSON.parse(localStorage.getItem(KEY));if(s)save=Object.assign(save,s)}catch(e){}
-const UP={jump:{n:"Jump",d:l=>`${Math.round(620+l*35)}`},len:{n:"Ledge size",d:l=>`${90+l*12}px`},speed:{n:"Speed",d:l=>`${230+l*15}`}};
-const cost=l=>Math.round(60*Math.pow(l+1,1.6));
+const C=document.querySelector("#c"),x=C.getContext("2d"),W=28,H=14,T=32,OX=2,OY=64,CW=900,CH=540,KEY="ledgeThrowPuzzleSave";
+let save={level:1};try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.level)save=s}catch(e){}
 const persist=()=>{try{localStorage.setItem(KEY,JSON.stringify(save))}catch(e){}};
-let level,runs,walls,spikes,springs,portal,ledges,p,state,cx,cy,keys={},fx,frames=0,msg="",safe,seed=1;
-const rnd=()=>(seed=(seed*1664525+1013904223)>>>0)/4294967296;
-const ledgeLen=()=>90+save.up.len*12;
-function gen(lv){seed=lv*977+13;runs=[];walls=[];spikes=[];springs=[];let rs=-300,c=450;const n=8+Math.min(lv*2,22);
- const wall=()=>{const w=110+rnd()*80,h=Math.min(560,130+rnd()*(90+lv*30));walls.push({x0:c,x1:c+w,top:-h});c+=w};
- for(let i=0;i<n;i++){const t=rnd();
-  if(t<.25){c+=110;if(rnd()<.5){springs.push({x:c,w:36,t:0});c+=36+110}wall();c+=110}
-  else if(t<.45){c+=110;wall();c+=100;wall();c+=110}
-  else if(t<.65){runs.push([rs,c]);c+=70+rnd()*40+Math.min(lv*2,16);rs=c}
-  else if(t<.75){c+=60;springs.push({x:c,w:36,t:0});c+=96;runs.push([rs,c]);c+=200;rs=c}
-  else if(t<.9){c+=70;const w=40+rnd()*30+Math.min(lv,10);spikes.push({x0:c,x1:c+w});c+=w+70}
-  else{c+=90;const w=30+rnd()*20;spikes.push({x0:c,x1:c+w});c+=w+240;runs.push([rs,c]);c+=70+rnd()*30;rs=c}
-  c+=170+rnd()*70}
- portal={x:c+120};runs.push([rs,c+420])}
-function init(lv){level=lv===undefined?save.level:lv;gen(level);ledges=[];fx=[];p={x:120,y:0,vx:0,vy:0,g:true,f:1};safe={x:120,y:0};state="play";cx=0;cy=-540;msg="";shopUI()}
-function respawn(){p.x=safe.x;p.y=safe.y;p.vx=0;p.vy=0;p.g=true;fx.push({x:p.x,y:p.y-50,t:1,s:"oops!"})}
-function shoot(dir){if(state!=="play")return;if(dir)p.f=dir;const d=p.f,ey=p.y;let best=null;
- for(const w of walls){if(ey<=w.top||ey>=0)continue;const dist=d>0?w.x0-p.x:p.x-w.x1;if(dist<PW/2-2||dist>900)continue;if(!best||dist<best.dist)best={w,dist}}
- ledges=[];
- if(best){const w=best.w,len=ledgeLen();ledges.push({y:ey,x0:d>0?w.x0-len:w.x1,len});fx.push({line:1,x:p.x,x2:d>0?w.x0:w.x1,y:ey,t:.25})}
- else fx.push({x:p.x+d*60,y:ey-30,t:1,s:"no wall"})}
-function win(){state="won";const earn=20+level*6;save.coins+=earn;save.level=level+1;persist();msg=`+${earn} coins`;shopUI()}
-function onGround(x0){for(const r of runs)if(x0>=r[0]&&x0<=r[1])return true;return false}
-function update(dt){
- for(const f of fx){f.t-=dt;if(f.s)f.y-=30*dt}fx=fx.filter(f=>f.t>0);for(const s of springs)s.t=Math.max(0,s.t-dt);
- if(state==="play"){
-  const mv=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0);if(mv)p.f=mv;
-  p.vx+=(mv*(230+save.up.speed*15)-p.vx)*Math.min(1,dt*12);
-  if((keys.KeyW||keys.ArrowUp||keys.Space)&&p.g){p.vy=-(620+save.up.jump*35);p.g=false}
-  const py=p.y;p.vy+=1500*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.g=false;
-  for(const w of walls)if(p.x+PW/2>w.x0&&p.x-PW/2<w.x1&&p.y>w.top+4){if(p.x<(w.x0+w.x1)/2)p.x=w.x0-PW/2;else p.x=w.x1+PW/2;p.vx=0}
-  if(p.x<-280)p.x=-280;
-  let land=null;
-  if(p.vy>=0){
-   if(py<=2&&p.y>=0&&onGround(p.x))land=0;
-   for(const w of walls)if(p.x+PW/2>w.x0&&p.x-PW/2<w.x1&&py<=w.top+2&&p.y>=w.top)land=w.top;
-   for(const l of ledges)if(p.x+PW/2>l.x0&&p.x-PW/2<l.x0+l.len&&py<=l.y+2&&p.y>=l.y)land=l.y;
-   if(land!==null){p.y=land;p.vy=0;p.g=true;if(!ledges.some(l=>l.y===land))safe={x:p.x,y:land}}}
-  for(const s of springs)if(p.g&&p.y===0&&p.x>s.x&&p.x<s.x+s.w){p.vy=-1050;p.g=false;s.t=.3}
-  for(const s of spikes)if(p.y>-14&&p.x+PW/2>s.x0&&p.x-PW/2<s.x1)respawn();
-  if(p.y>500)respawn();
-  if(Math.abs(p.x-portal.x)<30&&p.y>-60&&p.y<=0)win();
- }
- const ty=Math.min(-540,p.y-300);cy+=(ty-cy)*Math.min(1,dt*5);cx+=(Math.max(-300,p.x-330)-cx)*Math.min(1,dt*6);
-}
+let seed=1;const rnd=()=>(seed=(seed*1664525+1013904223)>>>0)/4294967296;
+let solid0,spikes,springs,portal,start,level,par,cur,hist,moves,state,msg,msgT=0,dx=0,dy=0,frames=0,hintA=-1;
+const NAMES=["Move left","Move right","Leap left","Leap right","Jump","Wait (fall)","Shoot left","Shoot right"];
+function isSolid(px,py,l){if(px<0||px>=W||py<0)return true;if(py>=H)return false;return solid0[py*W+px]===1||l===py*W+px}
+let rx,ry,ra,rl;
+function settle(px,py,l){ra=0;for(;;){if(spikes[py*W+px])return false;if(px===portal.x&&py===portal.y){rx=px;ry=py;return true}if(isSolid(px,py+1,l))break;py++;if(py>=H)return false}
+ if(springs[py*W+px]){let k=0;while(k<4&&!isSolid(px,py-k-1,l))k++;if(k>0){py-=k;ra=1}}rx=px;ry=py;return true}
+function rayLedge(px,py,d){if(py+1>=H)return -1;for(let i=1;;i++){const cx=px+d*i;if(cx<0||cx>=W)return -1;if(solid0[(py+1)*W+cx]){if(i===1)return -1;const tx=cx-d,idx=(py+1)*W+tx;if(spikes[idx]||springs[idx]||(portal.x===tx&&portal.y===py+1))return -1;return idx}}}
+function apply(px,py,air,l,a){rl=l;
+ if(a<=1){const d=a?1:-1,tx=px+d;if(tx<0||tx>=W)return false;if(!isSolid(tx,py,l))return settle(tx,py,l);if(!isSolid(px,py-1,l)&&!isSolid(tx,py-1,l))return settle(tx,py-1,l);return false}
+ if(a<=3){if(air)return false;const d=a===3?1:-1,t2=px+2*d;if(t2<0||t2>=W||isSolid(px+d,py,l)||isSolid(t2,py,l))return false;return settle(t2,py,l)}
+ if(a===4){if(air||isSolid(px,py-1,l)||isSolid(px,py-2,l))return false;rx=px;ry=py-2;ra=1;return true}
+ if(a===5){if(!air)return false;return settle(px,py,l)}
+ const nl=rayLedge(px,py,a===6?-1:1);rl=nl;return settle(px,py,nl)}
+const NS=(W*H+1)*W*H*2,parA=new Int32Array(NS),actA=new Int8Array(NS),Q=new Int32Array(NS);
+const enc=(px,py,air,l)=>((l+1)*W*H+py*W+px)*2+air;
+function solve(sx,sy,sair,sl,allowShoot){parA.fill(-1);let qh=0,qt=0;const s0=enc(sx,sy,sair,sl);parA[s0]=s0;Q[qt++]=s0;const na=allowShoot?8:6;
+ while(qh<qt){const c=Q[qh++],air=c&1,r=c>>1,pos=r%(W*H),l=((r/(W*H))|0)-1,px=pos%W,py=(pos/W)|0;
+  for(let a=0;a<na;a++){if(!apply(px,py,air,l,a))continue;const n=enc(rx,ry,ra,rl);if(parA[n]!==-1)continue;parA[n]=c;actA[n]=a;
+   if(rx===portal.x&&ry===portal.y){const path=[];let k=n;while(k!==s0){path.push(actA[k]);k=parA[k]}return path.reverse()}Q[qt++]=n}}
+ return null}
+function build(lv,t){seed=(lv*7919+t*104729+1)>>>0;const h=new Array(W).fill(0);let px=0,c=3;const spk=[],spr=[];for(;px<3;px++)h[px]=c;
+ while(px<W-5){const r=rnd();
+  if(r<.38){const up=Math.min(8,2+Math.floor(rnd()*(2+lv*.35)));let nc=c+up;if(nc>10)nc=Math.max(2,c-up);h[px++]=nc;const pl=Math.floor(rnd()*3);for(let k=0;k<pl&&px<W-5;k++)h[px++]=nc;c=Math.max(2,nc-(1+Math.floor(rnd()*up)))}
+  else if(r<.58){const w=1+Math.floor(rnd()*(1+Math.min(2,lv*.12)));for(let k=0;k<w&&px<W-5;k++)h[px++]=0;c=Math.max(2,Math.min(10,c+Math.floor(rnd()*3)-1))}
+  else if(r<.72){for(let k=0;k<3;k++)h[px+k]=c;spk.push(px+1);px+=3}
+  else if(r<.84){for(let k=0;k<3;k++)h[px+k]=c;spr.push(px+1);px+=3}
+  else{const len=1+Math.floor(rnd()*3);for(let k=0;k<len&&px<W-5;k++)h[px++]=c}}
+ for(;px<W;px++)h[px]=Math.max(2,c);
+ solid0=new Uint8Array(W*H);spikes=new Uint8Array(W*H);springs=new Uint8Array(W*H);
+ for(let cx=0;cx<W;cx++)for(let y=H-h[cx];y<H;y++)solid0[y*W+cx]=1;
+ for(const s of spk)if(s<W-2&&s>2)spikes[(H-h[s]-1)*W+s]=1;for(const s of spr)if(s<W-2&&s>2&&!spikes[(H-h[s]-1)*W+s])springs[(H-h[s]-1)*W+s]=1;
+ portal={x:W-2,y:H-h[W-2]-1};start={x:1,y:H-h[1]-1}}
+function genLevel(lv){let best=null;const minL=8+Math.min(lv,14);
+ for(let t=0;t<40;t++){build(lv,t);const sol=solve(start.x,start.y,0,-1,true);if(!sol)continue;
+  if(sol.length>=minL&&!solve(start.x,start.y,0,-1,false))return sol.length;if(!best||sol.length>best.len)best={t,len:sol.length}}
+ if(best){build(lv,best.t);return best.len}
+ solid0=new Uint8Array(W*H);spikes=new Uint8Array(W*H);springs=new Uint8Array(W*H);for(let cx=0;cx<W;cx++)for(let y=H-3;y<H;y++)solid0[y*W+cx]=1;portal={x:W-2,y:H-4};start={x:1,y:H-4};return W-3}
+function init(lv){level=lv;par=genLevel(lv);cur={x:start.x,y:start.y,air:0,l:-1};hist=[];moves=0;state="play";msg="";hintA=-1;dx=cur.x;dy=cur.y;shopUI()}
+function say(s){msg=s;msgT=2.5}
+function act(a){if(state!=="play")return;hintA=-1;
+ if(!apply(cur.x,cur.y,cur.air,cur.l,a)){say(a>=6?"Nothing to stick to":"Can't do that (blocked or deadly)");return}
+ if(a>=6&&rx===cur.x&&ry===cur.y&&rl===cur.l&&ra===cur.air){say("Nothing to stick to");return}
+ hist.push({...cur});cur={x:rx,y:ry,air:ra,l:rl};moves++;
+ if(cur.x===portal.x&&cur.y===portal.y){state="won";if(level>=save.level){save.level=level+1;persist()}shopUI()}}
+function undo(){if(state!=="play"||!hist.length)return;cur=hist.pop();moves--;hintA=-1}
+function hint(){if(state!=="play")return;const s=solve(cur.x,cur.y,cur.air,cur.l,true);if(s&&s.length){hintA=s[0];say("Hint: "+NAMES[s[0]]+" ("+s.length+" moves left)")}else say("Stuck! Undo or restart.")}
 function text(s,a,b,size,col,al="center"){x.font=`bold ${size}px Arial`;x.textAlign=al;x.fillStyle=col;x.lineWidth=4;x.strokeStyle="#0f172a";x.lineJoin="round";x.strokeText(s,a,b);x.fillText(s,a,b)}
-function plank(x0,y,len){x.fillStyle="#92400e";x.fillRect(x0,y,len,10);x.fillStyle="#d97706";x.fillRect(x0,y,len,4);x.fillStyle="#451a03";for(let k=x0+14;k<x0+len-6;k+=22)x.fillRect(k,y+5,3,3)}
-function man(px,py,f){x.save();x.translate(px,py);x.scale(f,1);x.strokeStyle="#fde047";x.fillStyle="#fde047";x.lineWidth=3;x.lineCap="round";const w=p.g&&Math.abs(p.vx)>20?Math.sin(frames/3)*5:0;x.beginPath();x.moveTo(0,-14);x.lineTo(0,-12);x.moveTo(0,-26);x.lineTo(0,-12);x.moveTo(0,-22);x.lineTo(8,-22);x.moveTo(0,-22);x.lineTo(-6,-16);x.moveTo(0,-12);x.lineTo(-5+w,0);x.moveTo(0,-12);x.lineTo(5-w,0);x.stroke();x.beginPath();x.arc(0,-30,5,0,6.3);x.fill();x.restore()}
+function tile(cx,cy,col,top){x.fillStyle=col;x.fillRect(OX+cx*T,OY+cy*T,T,T);if(top){x.fillStyle="#65a30d";x.fillRect(OX+cx*T,OY+cy*T,T,6)}}
+function plank(cx,cy,al){x.globalAlpha=al;x.fillStyle="#92400e";x.fillRect(OX+cx*T,OY+cy*T,T,T);x.fillStyle="#d97706";x.fillRect(OX+cx*T,OY+cy*T,T,8);x.fillStyle="#451a03";x.fillRect(OX+cx*T+6,OY+cy*T+16,T-12,3);x.globalAlpha=1}
 function draw(){
- const g=x.createLinearGradient(0,0,0,H);g.addColorStop(0,"#1e3a8a");g.addColorStop(1,"#7dd3fc");x.fillStyle=g;x.fillRect(0,0,W,H);
- x.fillStyle="#475569";for(let k=0;k<8;k++){const px=((k*260-cx*.3)%2080+2080)%2080-200;x.beginPath();x.moveTo(px,H-100-cy*.1);x.lineTo(px+130,H-300-(k%3)*60-cy*.1);x.lineTo(px+290,H-100-cy*.1);x.fill()}
- x.save();x.translate(-cx,-cy);
- const vl=cx-40,vr=cx+W+40;
- x.fillStyle="#1e293b";x.fillRect(vl,60,W+80,3000);
- for(const r of runs){if(r[1]<vl||r[0]>vr)continue;x.fillStyle="#365314";x.fillRect(r[0],0,r[1]-r[0],3000);x.fillStyle="#65a30d";x.fillRect(r[0],0,r[1]-r[0],10)}
- for(const w of walls){if(w.x1<vl||w.x0>vr)continue;x.fillStyle="#57534e";x.fillRect(w.x0,w.top,w.x1-w.x0,-w.top);x.fillStyle="#65a30d";x.fillRect(w.x0,w.top,w.x1-w.x0,6);x.fillStyle="#4f4b47";for(let yy=w.top+30;yy<0;yy+=44)x.fillRect(w.x0+12+((yy*7)%40|0),yy,20,4)}
- for(const s of springs){if(s.x<vl||s.x>vr)continue;const h=s.t>0?6:16;x.fillStyle="#dc2626";x.fillRect(s.x,-h,s.w,h);x.fillStyle="#fde047";x.fillRect(s.x-3,-h-4,s.w+6,5)}
- for(const s of spikes){if(s.x1<vl||s.x0>vr)continue;x.fillStyle="#cbd5e1";for(let k=s.x0;k<s.x1;k+=14){x.beginPath();x.moveTo(k,0);x.lineTo(k+7,-18);x.lineTo(k+14,0);x.fill()}}
- for(let k=0;k<4;k++){x.strokeStyle=["#a78bfa","#22d3ee","#e879f9","#fff"][k];x.lineWidth=3;x.beginPath();x.ellipse(portal.x,-32,16-k*3+Math.sin(frames/6+k)*2,30-k*5,0,0,6.3);x.stroke()}text("PORTAL",portal.x,-76,16,"#fff");
- for(const l of ledges)plank(l.x0,l.y,l.len);
- for(const f of fx){if(f.line){x.strokeStyle="#fbbf24";x.globalAlpha=f.t*4;x.lineWidth=4;x.beginPath();x.moveTo(f.x,f.y);x.lineTo(f.x2,f.y);x.stroke();x.globalAlpha=1}else{x.globalAlpha=Math.min(1,f.t*2);text(f.s,f.x,f.y,18,"#fca5a5");x.globalAlpha=1}}
- if(state==="play"){x.strokeStyle="#fff6";x.lineWidth=2;x.setLineDash([6,8]);x.beginPath();x.moveTo(p.x+p.f*8,p.y);x.lineTo(p.x+p.f*500,p.y);x.stroke();x.setLineDash([])}
- man(p.x,p.y,p.f);
- x.restore();
- text(`Level ${level}`,14,32,26,"#fff","left");text("Shoot: click / E (works in the air)",14,60,18,"#fcd34d","left");text(`🪙 ${save.coins}`,W-14,32,24,"#fde047","right");text(`${Math.max(0,Math.round(p.x/10))}/${Math.round(portal.x/10)}m`,W-14,60,18,"#bae6fd","right");
- if(state==="won"){x.fillStyle="#000a";x.fillRect(0,0,W,H);text("Portal reached!",W/2,H/2-50,46,"#fcd34d");text(msg,W/2,H/2,28,"#fde047");text("Press Space or click for the next level",W/2,H/2+50,20,"#cbd5e1")}
+ const g=x.createLinearGradient(0,0,0,CH);g.addColorStop(0,"#1e3a8a");g.addColorStop(1,"#7dd3fc");x.fillStyle=g;x.fillRect(0,0,CW,CH);
+ x.fillStyle="#0f172a55";x.fillRect(OX,OY,W*T,H*T);
+ for(let cy=0;cy<H;cy++)for(let cx=0;cx<W;cx++)if(solid0[cy*W+cx])tile(cx,cy,(cx*7+cy*3)%5===0?"#57534e":"#6b6560",cy===0||!solid0[(cy-1)*W+cx]);
+ for(let cy=0;cy<H;cy++)for(let cx=0;cx<W;cx++){const i=cy*W+cx;
+  if(spikes[i]){x.fillStyle="#cbd5e1";for(let k=0;k<3;k++){x.beginPath();x.moveTo(OX+cx*T+k*11,OY+(cy+1)*T);x.lineTo(OX+cx*T+k*11+5.5,OY+cy*T+6);x.lineTo(OX+cx*T+k*11+11,OY+(cy+1)*T);x.fill()}}
+  if(springs[i]){x.fillStyle="#dc2626";x.fillRect(OX+cx*T+3,OY+cy*T+18,T-6,T-18);x.fillStyle="#fde047";x.fillRect(OX+cx*T,OY+cy*T+14,T,5)}}
+ for(let k=0;k<4;k++){x.strokeStyle=["#a78bfa","#22d3ee","#e879f9","#fff"][k];x.lineWidth=2.5;x.beginPath();x.ellipse(OX+portal.x*T+T/2,OY+portal.y*T+T/2,12-k*2.5+Math.sin(frames/6+k)*1.5,15-k*3,0,0,6.3);x.stroke()}
+ if(cur.l>=0)plank(cur.l%W,(cur.l/W)|0,1);
+ if(state==="play"){for(const d of[-1,1]){const i=rayLedge(cur.x,cur.y,d);const row=cur.y+1;if(row<H){x.strokeStyle="#fff5";x.lineWidth=1.5;x.setLineDash([4,6]);x.beginPath();x.moveTo(OX+(cur.x+.5+d*.5)*T,OY+(row+.5)*T);let ex=cur.x+d;while(ex>=0&&ex<W&&!solid0[row*W+ex])ex+=d;x.lineTo(OX+(ex+.5-d*.5)*T,OY+(row+.5)*T);x.stroke();x.setLineDash([])}if(i>=0)plank(i%W,(i/W)|0,.35)}}
+ const px=OX+dx*T,py=OY+dy*T;x.save();x.translate(px+T/2,py+T);x.strokeStyle="#fde047";x.fillStyle="#fde047";x.lineWidth=3;x.lineCap="round";x.beginPath();x.moveTo(0,-20);x.lineTo(0,-10);x.moveTo(-8,-18);x.lineTo(8,-18);x.moveTo(0,-10);x.lineTo(-6,0);x.moveTo(0,-10);x.lineTo(6,0);x.stroke();x.beginPath();x.arc(0,-25,6,0,6.3);x.fill();if(cur.air){x.fillStyle="#fff";x.font="bold 12px Arial";x.textAlign="center";x.fillText("AIR",0,-38)}x.restore();
+ text(`Level ${level}`,14,30,24,"#fff","left");text(`Moves ${moves}  •  Par ${par}`,CW-14,30,20,moves<=par?"#86efac":"#fcd34d","right");
+ text(cur.l>=0?"Ledge placed (shooting again removes it)":"No ledge placed",14,52,15,"#fde68a","left");
+ if(msgT>0)text(msg,CW/2,CH-10,18,"#fca5a5");
+ if(hintA>=0){x.fillStyle="#fde04766";x.fillRect(0,0,0,0)}
+ if(state==="won"){x.fillStyle="#000b";x.fillRect(0,0,CW,CH);text("Portal reached!",CW/2,CH/2-50,46,"#fcd34d");text(`${moves} moves (par ${par})${moves<=par?" ★ perfect!":""}`,CW/2,CH/2,28,"#fde047");text("Press Space / Enter or click for the next level",CW/2,CH/2+50,20,"#cbd5e1")}
 }
-function shopUI(){const s=document.querySelector("#shop");s.innerHTML="";for(const k in UP){const l=save.up[k],c=cost(l),bt=document.createElement("button");bt.textContent=`${UP[k].n} Lv${l} (${UP[k].d(l)}) – 🪙${c}`;bt.disabled=save.coins<c;bt.onclick=()=>{if(save.coins>=c){save.coins-=c;save.up[k]++;persist();init(level)}};s.appendChild(bt)}}
-C.addEventListener("pointerdown",e=>{const r=C.getBoundingClientRect(),mx=(e.clientX-r.left)*W/r.width+cx;if(state==="won")init(save.level);else shoot(mx<p.x?-1:1)});
-addEventListener("keydown",e=>{keys[e.code]=1;if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code))e.preventDefault();if(e.code==="KeyR")init(level);if((e.code==="KeyE"||e.code==="Enter")&&!e.repeat)shoot();if(e.code==="KeyF")fsToggle();if(e.code==="Space"&&state==="won")init(save.level)});
-addEventListener("keyup",e=>keys[e.code]=0);
-for(const[id,c]of[["l","ArrowLeft"],["r","ArrowRight"],["j","Space"]]){const e=document.querySelector("#"+id);e.addEventListener("pointerdown",()=>keys[c]=1);e.addEventListener("pointerup",()=>keys[c]=0);e.addEventListener("pointerleave",()=>keys[c]=0)}
-document.querySelector("#sh").addEventListener("pointerdown",e=>{e.stopPropagation();shoot()});
-document.querySelector("#rs").onclick=()=>init(level);
+function shopUI(){const b1=document.querySelector("#b1"),b2=document.querySelector("#b2");b1.innerHTML="";b2.innerHTML="";
+ const mk=(box,t,f,dis)=>{const b=document.createElement("button");b.textContent=t;b.disabled=!!dis;b.onclick=f;box.appendChild(b)};
+ mk(b1,"◀ Move",()=>act(0));mk(b1,"Move ▶",()=>act(1));mk(b1,"⇤ Leap",()=>act(2));mk(b1,"Leap ⇥",()=>act(3));mk(b1,"⤒ Jump",()=>act(4));mk(b1,"⏬ Wait",()=>act(5));mk(b1,"🎯 Shoot ◀",()=>act(6));mk(b1,"Shoot ▶ 🎯",()=>act(7));
+ mk(b2,"↶ Undo",undo);mk(b2,"↺ Restart",()=>init(level));mk(b2,"💡 Hint",hint);mk(b2,"◀ Level",()=>{if(level>1)init(level-1)},level<=1);mk(b2,"Level ▶",()=>{if(level<save.level)init(level+1)},level>=save.level);mk(b2,"⛶ Fullscreen",fsToggle)}
 const fsToggle=()=>{const m=document.querySelector("main");if(document.fullscreenElement)document.exitFullscreen();else if(m.requestFullscreen)m.requestFullscreen().catch(()=>{})};
-document.querySelector("#fs").onclick=fsToggle;
-let last=performance.now();function loop(t){const dt=Math.min(.033,(t-last)/1000);last=t;frames++;update(dt);draw();requestAnimationFrame(loop)}
-init();requestAnimationFrame(loop);
+addEventListener("keydown",e=>{if(e.ctrlKey||e.metaKey||e.altKey)return;const k=e.code;
+ if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(k))e.preventDefault();
+ if(state==="won"){if(k==="Space"||k==="Enter")init(save.level>level?level+1:save.level);return}
+ if(k==="ArrowLeft"||k==="KeyA")act(e.shiftKey?2:0);else if(k==="ArrowRight"||k==="KeyD")act(e.shiftKey?3:1);
+ else if(k==="ArrowUp"||k==="KeyW"||k==="Space")act(4);else if(k==="ArrowDown"||k==="KeyS")act(5);
+ else if(k==="KeyQ")act(6);else if(k==="KeyE")act(7);else if(k==="KeyZ"||k==="Backspace")undo();else if(k==="KeyR")init(level);else if(k==="KeyH")hint();else if(k==="KeyF")fsToggle()});
+C.addEventListener("pointerdown",()=>{if(state==="won")init(save.level>level?level+1:save.level)});
+let last=performance.now();function loop(t){const dt=Math.min(.05,(t-last)/1000);last=t;frames++;msgT=Math.max(0,msgT-dt);dx+=(cur.x-dx)*Math.min(1,dt*18);dy+=(cur.y-dy)*Math.min(1,dt*18);draw();requestAnimationFrame(loop)}
+init(Math.min(save.level,99));requestAnimationFrame(loop);
 </script></body></html>
