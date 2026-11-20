@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pipe Panic | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:#0b1020}
+main{width:min(100%,38rem);padding:1rem;border:.2rem solid #38bdf8;border-radius:1.25rem;background:rgb(8 12 30 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.4rem 0;color:#7dd3fc;font-size:1.6rem}
+canvas{display:block;width:100%;max-width:30rem;height:auto;margin:.6rem auto;border:.2rem solid #475569;border-radius:.4rem;touch-action:manipulation;cursor:pointer}
+button{margin:.2rem;padding:.5rem .9rem;border:0;border-radius:.6rem;background:#0369a1;color:#fff;font-weight:bold;cursor:pointer;font-size:1rem}button.sel{background:#f59e0b;color:#111}#msg{min-height:1.6rem;font-weight:bold;color:#fde047}
+</style></head><body><main>
+<a href="../">← All games</a>
+<h1>🚰 Pipe Panic</h1>
+<p>Click a tile to rotate it. Connect the water source (💧) to every tile so the whole network lights up. Fewer moves is better!</p>
+<div><button data-n="4" class="sel">4×4</button><button data-n="6">6×6</button><button data-n="8">8×8</button><button id="new">New puzzle</button></div>
+<canvas id="c" width="600" height="600"></canvas><div id="msg"></div>
+</main><script>
+const C=document.querySelector("#c"),x=C.getContext("2d"),msg=document.querySelector("#msg");
+let N=4,g,lit,moves,over;
+const DX=[0,1,0,-1],DY=[-1,0,1,0],rot=m=>((m<<1)|(m>>3))&15;
+function newGame(){over=false;moves=0;const m=Array.from({length:N},()=>Array(N).fill(0)),seen=Array.from({length:N},()=>Array(N).fill(false));
+ const st=[[0,0]];seen[0][0]=true;
+ while(st.length){const[cx,cy]=st[st.length-1],opts=[];for(let d=0;d<4;d++){const nx=cx+DX[d],ny=cy+DY[d];if(nx>=0&&ny>=0&&nx<N&&ny<N&&!seen[ny][nx])opts.push(d)}
+  if(!opts.length){st.pop();continue}const d=opts[Math.random()*opts.length|0],nx=cx+DX[d],ny=cy+DY[d];seen[ny][nx]=true;m[cy][cx]|=1<<d;m[ny][nx]|=1<<((d+2)%4);st.push([nx,ny])}
+ for(let y=0;y<N;y++)for(let X=0;X<N;X++){let k=Math.random()*4|0;while(k--)m[y][X]=rot(m[y][X])}
+ g=m;if(solved())return newGame();update();draw()}
+function flood(){const l=Array.from({length:N},()=>Array(N).fill(false)),q=[[0,0]];l[0][0]=true;
+ while(q.length){const[cx,cy]=q.pop();for(let d=0;d<4;d++){if(!(g[cy][cx]&(1<<d)))continue;const nx=cx+DX[d],ny=cy+DY[d];if(nx<0||ny<0||nx>=N||ny>=N||l[ny][nx])continue;if(g[ny][nx]&(1<<((d+2)%4))){l[ny][nx]=true;q.push([nx,ny])}}}return l}
+function solved(){return flood().every(r=>r.every(Boolean))}
+function update(){lit=flood();if(!over&&lit.every(r=>r.every(Boolean))){over=true;msg.textContent=`🎉 All connected in ${moves} moves!`}}
+function draw(){const s=C.width/N;x.fillStyle="#0f172a";x.fillRect(0,0,C.width,C.height);
+ for(let y=0;y<N;y++)for(let X=0;X<N;X++){const px=X*s,py=y*s,cx=px+s/2,cy=py+s/2;x.strokeStyle="#1e293b";x.lineWidth=2;x.strokeRect(px+1,py+1,s-2,s-2);
+  x.strokeStyle=lit[y][X]?"#38bdf8":"#64748b";x.lineWidth=s*.22;x.lineCap="round";
+  for(let d=0;d<4;d++)if(g[y][X]&(1<<d)){x.beginPath();x.moveTo(cx,cy);x.lineTo(cx+DX[d]*s*.5,cy+DY[d]*s*.5);x.stroke()}
+  x.fillStyle=lit[y][X]?"#38bdf8":"#64748b";x.beginPath();x.arc(cx,cy,s*.16,0,7);x.fill()}
+ x.font=`${s*.45}px Arial`;x.textAlign="center";x.textBaseline="middle";x.fillText("💧",s/2,s/2);
+ x.font="bold 20px Arial";x.fillStyle="#fde047";x.textAlign="right";x.textBaseline="top";x.fillText("Moves "+moves,C.width-8,6)}
+C.addEventListener("pointerdown",e=>{if(over)return;const r=C.getBoundingClientRect(),X=Math.floor((e.clientX-r.left)/r.width*N),y=Math.floor((e.clientY-r.top)/r.height*N);if(X<0||y<0||X>=N||y>=N)return;g[y][X]=rot(g[y][X]);moves++;update();draw()});
+document.querySelectorAll("[data-n]").forEach(b=>b.onclick=()=>{N=+b.dataset.n;document.querySelectorAll("[data-n]").forEach(z=>z.classList.toggle("sel",z===b));msg.textContent="";newGame()});
+document.querySelector("#new").onclick=()=>{msg.textContent="";newGame()};
+newGame();
+</script></body></html>

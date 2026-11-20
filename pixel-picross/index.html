@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pixel Picross | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:#0b1020}
+main{width:min(100%,38rem);padding:1rem;border:.2rem solid #22d3ee;border-radius:1.25rem;background:rgb(8 12 30 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.4rem 0;color:#67e8f9;font-size:1.6rem}
+table{border-collapse:collapse;margin:.8rem auto;user-select:none;touch-action:manipulation}td{width:2.2rem;height:2.2rem;text-align:center;padding:0}
+td.clue{font-size:.8rem;line-height:1;color:#a5f3fc;font-weight:bold;vertical-align:bottom;white-space:pre}td.rc{text-align:right;padding-right:.4rem;vertical-align:middle;white-space:nowrap}
+td.cell{border:1px solid #334155;background:#111a33;cursor:pointer;font-size:1.1rem;color:#94a3b8}td.cell.on{background:#22d3ee}td.cell.g{border-right:2px solid #64748b}td.cell.h{border-bottom:2px solid #64748b}
+td.done{color:#475569}button{margin:.2rem;padding:.5rem .9rem;border:0;border-radius:.6rem;background:#0e7490;color:#fff;font-weight:bold;cursor:pointer;font-size:1rem}button.sel{background:#f59e0b;color:#111}
+#msg{min-height:1.6rem;font-weight:bold;color:#fde047}
+</style></head><body><main>
+<a href="../">← All games</a>
+<h1>🧩 Pixel Picross</h1>
+<p>Numbers show the lengths of the filled runs in each row and column. Use logic to find which squares are filled and reveal the picture. Click to fill, right-click (or ✖ mode) to mark empty squares.</p>
+<div><button data-n="5" class="sel">5×5</button><button data-n="8">8×8</button><button data-n="10">10×10</button><button id="mode">Mode: ■ Fill</button><button id="new">New puzzle</button></div>
+<table id="t"></table><div id="msg"></div>
+</main><script>
+const t=document.querySelector("#t"),msg=document.querySelector("#msg");
+let N=5,sol,st,rowC,colC,over=false,mark=false;
+const runs=a=>{const r=[];let c=0;for(const v of a){if(v)c++;else if(c){r.push(c);c=0}}if(c)r.push(c);return r.length?r:[0]};
+const same=(a,b)=>a.length===b.length&&a.every((v,i)=>v===b[i]);
+function newGame(){over=false;msg.textContent="";
+ do{sol=Array.from({length:N},()=>Array.from({length:N},()=>Math.random()<.58?1:0))}while(sol.some(r=>!r.includes(1))||sol[0].map((_,c)=>sol.map(r=>r[c])).some(col=>!col.includes(1)));
+ st=Array.from({length:N},()=>Array(N).fill(0));
+ rowC=sol.map(runs);colC=sol[0].map((_,c)=>runs(sol.map(r=>r[c])));build()}
+function build(){t.innerHTML="";
+ const hr=t.insertRow();hr.insertCell();
+ for(let c=0;c<N;c++){const d=hr.insertCell();d.className="clue";d.id="c"+c;d.textContent=colC[c].join("\n")}
+ for(let r=0;r<N;r++){const row=t.insertRow(),h=row.insertCell();h.className="clue rc";h.id="r"+r;h.textContent=rowC[r].join(" ");
+  for(let c=0;c<N;c++){const d=row.insertCell();d.className="cell"+((c+1)%5===0&&c<N-1?" g":"")+((r+1)%5===0&&r<N-1?" h":"");d.id=`x${r}_${c}`;
+   d.addEventListener("click",()=>press(r,c,mark));d.addEventListener("contextmenu",e=>{e.preventDefault();press(r,c,!mark)})}}
+ refresh()}
+function press(r,c,m){if(over)return;const v=st[r][c];st[r][c]=m?(v===2?0:2):(v===1?0:1);refresh();check()}
+function refresh(){for(let r=0;r<N;r++)for(let c=0;c<N;c++){const d=document.getElementById(`x${r}_${c}`);d.classList.toggle("on",st[r][c]===1);d.textContent=st[r][c]===2?"✖":""}
+ for(let r=0;r<N;r++)document.getElementById("r"+r).classList.toggle("done",same(runs(st[r].map(v=>v===1?1:0)),rowC[r]));
+ for(let c=0;c<N;c++)document.getElementById("c"+c).classList.toggle("done",same(runs(st.map(r=>r[c]===1?1:0)),colC[c]))}
+function check(){const ok=st.every((row,r)=>same(runs(row.map(v=>v===1?1:0)),rowC[r]))&&colC.every((cc,c)=>same(runs(st.map(r=>r[c]===1?1:0)),cc));if(ok){over=true;msg.textContent="🎉 Solved! Great logic!"}}
+document.querySelectorAll("[data-n]").forEach(b=>b.onclick=()=>{N=+b.dataset.n;document.querySelectorAll("[data-n]").forEach(x=>x.classList.toggle("sel",x===b));newGame()});
+document.querySelector("#new").onclick=newGame;
+document.querySelector("#mode").onclick=e=>{mark=!mark;e.target.textContent=mark?"Mode: ✖ Mark":"Mode: ■ Fill"};
+newGame();
+</script></body></html>
