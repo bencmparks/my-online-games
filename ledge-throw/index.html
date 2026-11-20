@@ -76,7 +76,7 @@ const shop=document.querySelector("#shop");
 function shopUI(){shop.innerHTML="";for(const k in UP){const l=save.up[k],max=false,bt=document.createElement("button");bt.textContent=max?`${UP[k].n}: MAX`:`${UP[k].n} Lv${l} → 🪙${cost(l)}`;bt.title=UP[k].d(l);bt.disabled=save.coins<cost(l)||state==="fly";bt.onclick=()=>{if(save.coins>=cost(l)&&state!=="fly"){save.coins-=cost(l);save.up[k]++;persist();if(state==="aim")boosts=1+save.up.boost;shopUI()}};shop.append(bt)}}
 genTerrain();init();
 let last=performance.now();
-function loop(ts){const dt=Math.min(.033,(ts-last)/1000);last=ts;frames++;for(let k=0;k<spd;k++)update(dt);draw();let spd=1;const spB=document.querySelector("#sp"),setSpd=()=>{spd=spd%3+1;spB.textContent="Speed: "+spd+"x"};spB.onclick=e=>{setSpd();spB.blur()};addEventListener("keydown",e=>{if(e.code==="KeyF"&&!e.repeat)setSpd()});
+function loop(ts){const dt=Math.min(.033,(ts-last)/1000);last=ts;frames++;for(let k=0;k<spd;k++)update(dt);draw();
 requestAnimationFrame(loop)}
 let spd=1;const spB=document.querySelector("#sp"),setSpd=()=>{spd=spd%3+1;spB.textContent="Speed: "+spd+"x"};spB.onclick=e=>{setSpd();spB.blur()};addEventListener("keydown",e=>{if(e.code==="KeyF"&&!e.repeat)setSpd()});
 requestAnimationFrame(loop);
