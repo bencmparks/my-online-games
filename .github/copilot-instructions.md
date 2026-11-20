@@ -62,6 +62,7 @@ Keep a list of my games here.
 - Maze Runner (`maze-runner/`)
 - Baseball (`baseball/`)
 - Plinko (`plinko/`)
+- Plonk Escape (`plonk-escape/`, Poki Plonky-style trap platformer: 100 unique levels (14 handmade plus 86 generated), checkpoints, saws, spikes, swinging and climbable ropes, TNT, crushers, buttons and gates, pushable boxes, skins (Classic, Funcraft, Freeze Tag, Frozen, Zombie, Ninja, Robot; press C))
 - Horse Derby (`horse-derby/`)
 - Horse Lasso (`horse-lasso/`)
 - Higher or Lower (`higher-lower/`)
