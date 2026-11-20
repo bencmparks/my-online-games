@@ -7,7 +7,7 @@ main:fullscreen{width:100vw;max-width:none;height:100vh;display:flex;flex-direct
 .row{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap;margin:.4rem 0}.row button{padding:.6rem .9rem;border:0;border-radius:.6rem;background:#b45309;color:#fff;font-weight:700;font-size:1rem;cursor:pointer;user-select:none}.row button:disabled{opacity:.45;cursor:default}
 </style></head>
 <body><main><a href="../">← All games</a><h1>🪓 Ledge Throw</h1>
-<p>Reach the 🌀 portal at the end of the course! Cross <strong>pits</strong>, jump <strong>spikes</strong>, bounce on <strong>springs</strong> and climb <strong>walls</strong>. <strong>Click, tap or press E</strong> to shoot a ledge straight ahead <strong>right below your feet</strong> (also works in mid-air!) – it sticks to a wall. You can only have <strong>one ledge at a time</strong>: a new shot removes the old one, even the one you stand on. Shoot at the top of a jump and you land on the new ledge. Move with <strong>A/D</strong> or <strong>◀ ▶</strong>, jump with <strong>W / Space</strong>, <strong>R</strong> restarts, <strong>F</strong> fullscreen.</p>
+<p>Collect every 💎 power crystal on top of the tall walls to unlock the 🌀 portal, then reach it – but make no mistakes: any fall or spike sends you back to the start! Cross <strong>pits</strong>, jump <strong>spikes</strong>, bounce on <strong>springs</strong> and climb <strong>walls</strong>. <strong>Click, tap or press E</strong> to shoot a ledge straight ahead <strong>right below your feet</strong> (also works in mid-air!) – it sticks to a wall. You can only have <strong>one ledge at a time</strong>: a new shot removes the old one, even the one you stand on. Shoot at the top of a jump and you land on the new ledge. Move with <strong>A/D</strong> or <strong>◀ ▶</strong>, jump with <strong>W / Space</strong>, <strong>R</strong> restarts, <strong>F</strong> fullscreen.</p>
 <canvas id="c" width="1100" height="600" aria-label="Ledge Throw game"></canvas>
 <div class="row"><button id="l">◀</button><button id="j">⤒ Jump</button><button id="r">▶</button><button id="sh">🎯 Shoot</button><button id="rs">↺ Restart</button><button id="fs">⛶ Fullscreen</button></div>
 <div class="row" id="shop"></div>
@@ -18,7 +18,7 @@ let save={coins:0,level:1,up:{jump:0,len:0,speed:0}};try{const s=JSON.parse(loca
 const UP={jump:{n:"Jump",d:l=>`${Math.round(620+l*35)}`},len:{n:"Ledge size",d:l=>`${90+l*12}px`},speed:{n:"Speed",d:l=>`${230+l*15}`}};
 const cost=l=>Math.round(60*Math.pow(l+1,1.6));
 const persist=()=>{try{localStorage.setItem(KEY,JSON.stringify(save))}catch(e){}};
-let level,runs,walls,spikes,springs,portal,ledges,p,state,cx,cy,keys={},fx,frames=0,msg="",safe,seed=1,Z=1;
+let level,runs,walls,spikes,springs,portal,ledges,p,state,cx,cy,keys={},fx,frames=0,msg="",safe,seed=1,Z=1,orbs=[];
 const rnd=()=>(seed=(seed*1664525+1013904223)>>>0)/4294967296;
 const ledgeLen=()=>90+save.up.len*12;
 function gen(lv){seed=lv*977+13;runs=[];walls=[];spikes=[];springs=[];let rs=-300,c=300;const n=4+Math.min(lv>>1,4);
@@ -33,9 +33,9 @@ function gen(lv){seed=lv*977+13;runs=[];walls=[];spikes=[];springs=[];let rs=-30
   else if(t<.97){c+=100;const h=Math.min(900,200+lv*35);for(let k=0;k<3;k++){const w=100;walls.push({x0:c,x1:c+w,top:-Math.min(900,h*(k+1)/2+40)});c+=w}c+=100}
   else{c+=110;wall();c+=70;const w=40+rnd()*30;spikes.push({x0:c,x1:c+w});c+=w+70;wall();c+=110}
   c+=90+rnd()*40}
- portal={x:c+80};runs.push([rs,c+260])}
+ portal={x:c+80};runs.push([rs,c+260]);orbs=[...walls].sort((a,b)=>a.top-b.top).slice(0,Math.min(3,1+(lv>>2))).map(w=>({x:(w.x0+w.x1)/2,y:w.top-24,got:false})).sort((a,b)=>a.x-b.x)}
 function init(lv){level=lv===undefined?save.level:lv;gen(level);Z=Math.min(1,W/(portal.x+130));ledges=[];fx=[];p={x:120,y:0,vx:0,vy:0,g:true,f:1};safe={x:120,y:0};state="play";cx=0;cy=-540;msg="";shopUI()}
-function respawn(){p.x=safe.x;p.y=safe.y;p.vx=0;p.vy=0;p.g=true;fx.push({x:p.x,y:p.y-50,t:1,s:"oops!"})}
+function respawn(){init(level);fx.push({x:p.x,y:-60,t:1.5,s:"Mistake! Back to the start"})}
 function shoot(dir){if(state!=="play")return;if(dir)p.f=dir;const d=p.f,ey=p.y;let best=null;
  for(const w of walls){if(ey<=w.top||ey>=0)continue;const dist=d>0?w.x0-p.x:p.x-w.x1;if(dist<PW/2-2||dist>900)continue;if(!best||dist<best.dist)best={w,dist}}
  ledges=[];
@@ -61,7 +61,8 @@ function update(dt){
   for(const s of springs)if(p.g&&p.y===0&&p.x>s.x&&p.x<s.x+s.w){p.vy=-1050;p.g=false;s.t=.3}
   for(const s of spikes)if(p.y>-14&&p.x+PW/2>s.x0&&p.x-PW/2<s.x1)respawn();
   if(p.y>500)respawn();
-  if(Math.abs(p.x-portal.x)<30&&p.y>-60&&p.y<=0)win();
+  for(const o of orbs)if(!o.got&&Math.abs(p.x-o.x)<28&&Math.abs(p.y-17-o.y)<40){o.got=true;fx.push({x:o.x,y:o.y-30,t:1,s:"Power crystal!"})}
+  if(Math.abs(p.x-portal.x)<30&&p.y>-60&&p.y<=0){if(orbs.every(o=>o.got))win();else if(!fx.some(f=>f.s==="Need all crystals!"))fx.push({x:portal.x-60,y:-90,t:1,s:"Need all crystals!"})}
  }
  cx=-30;cy=-(H-130)/Z;
 }
@@ -78,13 +79,15 @@ function draw(){
  for(const w of walls){if(w.x1<vl||w.x0>vr)continue;x.fillStyle="#57534e";x.fillRect(w.x0,w.top,w.x1-w.x0,-w.top);x.fillStyle="#65a30d";x.fillRect(w.x0,w.top,w.x1-w.x0,6);x.fillStyle="#4f4b47";for(let yy=w.top+30;yy<0;yy+=44)x.fillRect(w.x0+12+((yy*7)%40|0),yy,20,4)}
  for(const s of springs){if(s.x<vl||s.x>vr)continue;const h=s.t>0?6:16;x.fillStyle="#dc2626";x.fillRect(s.x,-h*K,s.w,h*K);x.fillStyle="#fde047";x.fillRect(s.x-3,-h*K-4*K,s.w+6,5*K)}
  for(const s of spikes){if(s.x1<vl||s.x0>vr)continue;x.fillStyle="#cbd5e1";for(let k=s.x0;k<s.x1;k+=14){x.beginPath();x.moveTo(k,0);x.lineTo(k+7,-18*K);x.lineTo(k+14,0);x.fill()}}
- for(let k=0;k<4;k++){x.strokeStyle=["#a78bfa","#22d3ee","#e879f9","#fff"][k];x.lineWidth=3;x.beginPath();x.ellipse(portal.x,-32*K,(16-k*3+Math.sin(frames/6+k)*2)*K,(30-k*5)*K,0,0,6.3);x.stroke()}text("PORTAL",portal.x,-76*K,16*K,"#fff");
+ const open=orbs.every(o=>o.got);x.globalAlpha=open?1:.35;for(let k=0;k<4;k++){x.strokeStyle=["#a78bfa","#22d3ee","#e879f9","#fff"][k];x.lineWidth=3;x.beginPath();x.ellipse(portal.x,-32*K,(16-k*3+Math.sin(frames/6+k)*2)*K,(30-k*5)*K,0,0,6.3);x.stroke()}x.globalAlpha=1;text(open?"PORTAL":"LOCKED",portal.x,-76*K,16*K,"#fff");
+ for(const o of orbs){if(o.got)continue;const bob=Math.sin(frames/8)*3*K;x.fillStyle="#22d3ee";x.strokeStyle="#fff";x.lineWidth=2;x.beginPath();x.moveTo(o.x,o.y-12*K+bob);x.lineTo(o.x+9*K,o.y+bob);x.lineTo(o.x,o.y+12*K+bob);x.lineTo(o.x-9*K,o.y+bob);x.closePath();x.fill();x.stroke()}
+
  for(const l of ledges){plank(l.x0,l.y,l.len);if(K>1){x.fillStyle="#d97706";x.fillRect(l.x0,l.y,l.len,4*K)}}
  for(const f of fx){if(f.line){x.strokeStyle="#fbbf24";x.globalAlpha=f.t*4;x.lineWidth=4;x.beginPath();x.moveTo(f.x,f.y);x.lineTo(f.x2,f.y);x.stroke();x.globalAlpha=1}else{x.globalAlpha=Math.min(1,f.t*2);text(f.s,f.x,f.y,18,"#fca5a5");x.globalAlpha=1}}
  if(state==="play"){x.strokeStyle="#fff6";x.lineWidth=2;x.setLineDash([6,8]);x.beginPath();x.moveTo(p.x+p.f*8,p.y);x.lineTo(p.x+p.f*500,p.y);x.stroke();x.setLineDash([])}
  {const k=Math.min(4,Math.max(1,.9/Z));x.save();x.translate(p.x,p.y);x.scale(k,k);x.translate(-p.x,-p.y);man(p.x,p.y,p.f);x.restore()}
  x.restore();
- text(`Level ${level}`,14,32,26,"#fff","left");text("Shoot: click / E (works in the air)",14,60,18,"#fcd34d","left");text(`🪙 ${save.coins}`,W-14,32,24,"#fde047","right");text(`${Math.max(0,Math.round(p.x/10))}/${Math.round(portal.x/10)}m`,W-14,60,18,"#bae6fd","right");
+ text(`Level ${level}`,14,32,26,"#fff","left");text("Shoot: click / E (works in the air)",14,60,18,"#fcd34d","left");text(`🪙 ${save.coins}`,W-14,32,24,"#fde047","right");text(`💎 ${orbs.filter(o=>o.got).length}/${orbs.length}`,W/2,32,24,"#67e8f9");text(`${Math.max(0,Math.round(p.x/10))}/${Math.round(portal.x/10)}m`,W-14,60,18,"#bae6fd","right");
  if(state==="won"){x.fillStyle="#000a";x.fillRect(0,0,W,H);text("Portal reached!",W/2,H/2-50,46,"#fcd34d");text(msg,W/2,H/2,28,"#fde047");text("Press Space or click for the next level",W/2,H/2+50,20,"#cbd5e1")}
 }
 function shopUI(){const s=document.querySelector("#shop");s.innerHTML="";for(const k in UP){const l=save.up[k],c=cost(l),bt=document.createElement("button");bt.textContent=`${UP[k].n} Lv${l} (${UP[k].d(l)}) – 🪙${c}`;bt.disabled=save.coins<c;bt.onclick=()=>{if(save.coins>=c){save.coins-=c;save.up[k]++;persist();init(level)}};s.appendChild(bt)}}
