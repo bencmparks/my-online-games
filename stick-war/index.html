@@ -14,7 +14,7 @@ canvas{display:block;width:100%;height:auto;margin:.8rem auto;border:.2rem solid
 const C=document.querySelector("#c"),x=C.getContext("2d"),W=900,H=420,GY=340,WW=2200,KEY="stickWarLevel";
 const BX=[110,WW-110],MX=[380,WW-380],RALLY=[560,WW-560];
 const T={miner:{n:"Miner",c:50,hp:40,sp:80,dmg:0,r:0,cd:0,k:"1"},sword:{n:"Swordwrath",c:125,hp:100,sp:78,dmg:14,r:26,cd:.6,k:"2"},archer:{n:"Archidon",c:150,hp:60,sp:62,dmg:9,r:240,cd:1.2,k:"3"},giant:{n:"Giant",c:500,hp:650,sp:42,dmg:42,r:48,cd:1.4,k:"4"}};
-let level=0,carry=["miner","miner"];try{level=Math.min(19,+localStorage.getItem(KEY)||0);const c=JSON.parse(localStorage.getItem("stickLegionArmy"));if(Array.isArray(c)&&c.length)carry=c.filter(k=>T[k]).slice(0,45)}catch(e){}
+let level=0,carry=["miner","miner"];try{level=Math.min(19,+localStorage.getItem(KEY)||0);const c=JSON.parse(localStorage.getItem("stickLegionArmy"));if(Array.isArray(c)&&c.length)carry=c.filter(k=>T[k])}catch(e){}
 let U,A,gold,statue,smax,stance,cam,state,t,aiT,spawnCd,rain,rainFx,shake;
 function newGame(){U=[];A=[];gold=[300,200+level*60];smax=[1500,1200+level*350];statue=smax.slice();stance=0;cam=0;state="play";t=0;aiT=2;spawnCd=0;rain=0;rainFx=[];shake=0;
  for(const k of carry)spawn(0,k);spawn(1,"miner");spawn(1,"miner");for(let i=0;i<level;i++)spawn(1,i%3===2?"archer":"sword")}
