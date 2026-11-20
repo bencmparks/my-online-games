@@ -122,4 +122,4 @@ Keep a list of my games here.
 - Bomb Mergers (`merge-blast/`, formerly Merge Blast; Poki-style: buy bombs, drag to merge or Merge all, launch at enemy castles, idle income, upgrades)
 - Turbo Goal Derby 3D (`rocket-soccer/`, formerly Rocket Soccer Derby; 3D chase-cam 2v2 rocket-car soccer vs AI, B ball cam, boost pads, demolitions, Easy/Normal/Hard)
 - Cliff Chucker (`ledge-throw/`, formerly Ledge Throw; bigger screen, no max distance, uncapped coin upgrades)
-- Cliff Tumble (`cliff-tumble/`, vertical Ledge Throw-style: charge a throw down an endless cliff of ledges, steer in the air, bounce pads, coins, upgrades)
+- Cliff Tumble (`cliff-tumble/`, vertical Ledge Throw-style: charge a throw and tumble a flailing ragdoll down a cliff of wall ledges (icy ledges slide you off, grassy ones stop you), OUCH impact bonuses, bounce pads, coins, upgrades)
