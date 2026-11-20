@@ -119,6 +119,6 @@ Keep a list of my games here.
 - Capture the Flag (`capture-the-flag/`, 3 vs 3 vs robots; grab the flag, tag in your own half, dash, first to 3; keyboard or touch)
 - Trench Wars (`trench-wars/`, top-down army shooter: commander plus squads, 3 maps, mouse aim, grenades, dash, pickups (medkit, rapid fire, shotgun, shield), sound effects, match stats, ticket drain or Capture the Commander mode (a fallen commander is captured; carry him to your base to score, rescue your own, first to 3); 2 players or vs robot commander with Easy/Normal/Hard)
 - Stick Legion (`stick-war/`, formerly Stick War; mine gold, buy miners/swordwrath/archidon/giants, Arrow Rain, 20 levels vs AI statue; surviving warriors carry into the next level)
-- Bomb Mergers (`merge-blast/`, formerly Merge Blast; Poki-style: buy bombs, drag to merge, launch at enemy castles, idle income, upgrades)
+- Bomb Mergers (`merge-blast/`, formerly Merge Blast; Poki-style: buy bombs, drag to merge or Merge all, launch at enemy castles, idle income, upgrades)
 - Turbo Goal Derby 3D (`rocket-soccer/`, formerly Rocket Soccer Derby; 3D chase-cam 2v2 rocket-car soccer vs AI, B ball cam, boost pads, demolitions, Easy/Normal/Hard)
 - Cliff Chucker (`ledge-throw/`, formerly Ledge Throw; bigger screen, no max distance, uncapped coin upgrades)

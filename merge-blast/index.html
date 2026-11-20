@@ -8,7 +8,7 @@ canvas{display:block;width:100%;height:auto;margin:.8rem auto;border:.2rem solid
 <body><main><a href="../">← All games</a><h1>💣 Bomb Mergers</h1>
 <p>Buy bombs, <strong>drag matching bombs together</strong> to merge them into bigger blasts, then <strong>drag a bomb onto the castle</strong> to launch it! Bombs earn coins even while you're away. Wreck castle after castle and keep climbing. <strong>Space</strong> buys a bomb.</p>
 <canvas id="c" width="900" height="520" aria-label="Bomb Mergers game"></canvas>
-<div class="row"><button id="bb">💣 Buy bomb</button><button id="bp" class="u">⚡ Power</button><button id="bf" class="u">🏭 Factory</button></div>
+<div class="row"><button id="bb">💣 Buy bomb</button><button id="bm">🔀 Merge all</button><button id="bp" class="u">⚡ Power</button><button id="bf" class="u">🏭 Factory</button></div>
 </main>
 <script>
 const C=document.querySelector("#c"),x=C.getContext("2d"),W=900,H=520,N=5,CS=84,BXo=30,BYo=90,KEY="bombMergersSave";
@@ -23,6 +23,7 @@ function say(s,t=2.2){toast=s;toastT=t}
 function save(){S.time=Date.now();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 function freeCell(){const f=[];S.grid.forEach((v,i)=>{if(!v)f.push(i)});return f.length?f[Math.floor(Math.random()*f.length)]:-1}
 function buy(){const c=freeCell();if(c<0){say("Board full! Merge some bombs.");return}if(S.coins<cost())return;S.coins-=cost();S.bought++;S.grid[c]=1;flash.push({i:c,t:.3});save()}
+function mergeAll(){let n=0,again=true;while(again){again=false;const by={};S.grid.forEach((l,i)=>{if(l)(by[l]=by[l]||[]).push(i)});for(const l in by){const a=by[l];if(a.length>=2){const i=a[0],j=a[1];S.grid[i]=0;S.grid[j]=+l+1;S.best=Math.max(S.best,+l+1);flash.push({i:j,t:.35});burst(BXo+(j%N)*CS+CS/2,BYo+Math.floor(j/N)*CS+CS/2,COLS[l%COLS.length],12);n++;again=true;break}}}say(n?`Merged ${n} pair${n>1?"s":""}!`:"No matching bombs to merge.");if(n)save()}
 function cellAt(px,py){const c=Math.floor((px-BXo)/CS),r=Math.floor((py-BYo)/CS);return c>=0&&c<N&&r>=0&&r<N?r*N+c:-1}
 function pos(e){const r=C.getBoundingClientRect();return[(e.clientX-r.left)/r.width*W,(e.clientY-r.top)/r.height*H]}
 const CX=690,CY=330;
@@ -72,7 +73,7 @@ function draw(){
  if(toastT>0)text(toast,W/2,H/2-30,26,"#fde047");
 }
 const bb=document.querySelector("#bb"),bp=document.querySelector("#bp"),bf=document.querySelector("#bf");
-bb.onclick=buy;bp.onclick=()=>{if(S.coins>=pcost()){S.coins-=pcost();S.power++;save()}};bf.onclick=()=>{if(S.coins>=fcost()){S.coins-=fcost();S.factory++;save()}};
+bb.onclick=buy;document.querySelector("#bm").onclick=mergeAll;bp.onclick=()=>{if(S.coins>=pcost()){S.coins-=pcost();S.power++;save()}};bf.onclick=()=>{if(S.coins>=fcost()){S.coins-=fcost();S.factory++;save()}};
 addEventListener("keydown",e=>{if(e.code==="Space"){e.preventDefault();buy()}});
 addEventListener("beforeunload",save);
 let last=performance.now();
