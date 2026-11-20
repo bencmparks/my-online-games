@@ -6,7 +6,7 @@ canvas{display:block;width:100%;height:auto;margin:.8rem auto;border:.2rem solid
 .row{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap}.row button{padding:.6rem .9rem;border:0;border-radius:.6rem;background:#2563eb;color:#fff;font-weight:700;font-size:1rem;cursor:pointer;user-select:none}.row button:disabled{opacity:.4;cursor:not-allowed}.row button.s{background:#7c3aed}
 </style></head>
 <body><main><a href="../">← All games</a><h1>⚔️ Stick Legion</h1>
-<p>A birds-eye battle: the whole field is on screen and your army stands in organised ranks (tough fighters in front, archers and witches behind, necromancers at the back). Miners dig gold automatically. Buy units with the buttons or keys <strong>1-8</strong>. <strong>Q</strong> switches your army between <em>Attack</em> (they march in formation) and <em>Defend</em>. <strong>R</strong> calls Arrow Rain on the enemy front. 40 levels! New units unlock as you go: Witch (level 4), Berserker (7), Ice Berserker (11) and Necromancer (15), who turns fallen bodies into zombies. Only your surviving miners join you in the next level. Earn 🪙 coins from kills and wins, then buy permanent upgrades below the canvas.</p>
+<p>A birds-eye battle: the whole field is on screen and your army stands in organised ranks (tough fighters in front, archers and witches behind, necromancers at the back). Miners dig gold automatically. Buy units with the buttons or keys <strong>1-8</strong>. <strong>Q</strong> switches your army between <em>Attack</em> (they march in formation) and <em>Defend</em>. <strong>R</strong> calls Arrow Rain on the enemy front. 40 levels! New units unlock as you go: Witch (level 4), Berserker (7), Ice Berserker (11) and Necromancer (15), who turns fallen bodies into zombies and exploding creepers. Only your surviving miners join you in the next level. Earn 🪙 coins from kills and wins, then buy permanent upgrades below the canvas.</p>
 <canvas id="c" width="900" height="420" aria-label="Stick Legion game"></canvas>
 <div class="row" id="btns"></div>
 </main>
@@ -14,8 +14,8 @@ canvas{display:block;width:100%;height:auto;margin:.8rem auto;border:.2rem solid
 const C=document.querySelector("#c"),x=C.getContext("2d"),W=900,H=420,WW=2200,K=W/WW,WH=H/K,CY=WH/2,KEY="stickWarLevel";
 const BX=[110,WW-110],MX=[380,WW-380],MY=[CY-250,CY+250],RALLY=[560,WW-560];
 const T={miner:{n:"Miner",c:50,hp:40,sp:80,dmg:0,r:0,cd:0,k:"1"},sword:{n:"Swordwrath",c:125,hp:100,sp:78,dmg:14,r:26,cd:.6,k:"2"},archer:{n:"Archidon",c:150,hp:60,sp:62,dmg:9,r:240,cd:1.2,k:"3"},giant:{n:"Giant",c:500,hp:650,sp:42,dmg:42,r:48,cd:1.4,k:"4"},
- witch:{n:"Witch",c:300,hp:70,sp:58,dmg:24,r:260,cd:1.6,k:"5",ul:3},berserker:{n:"Berserker",c:350,hp:320,sp:72,dmg:55,r:36,cd:1.1,k:"6",ul:6},iceb:{n:"Ice Berserker",c:450,hp:300,sp:66,dmg:32,r:36,cd:1.2,k:"7",ul:10,fz:1.8},necro:{n:"Necromancer",c:400,hp:90,sp:50,dmg:0,r:0,cd:0,k:"8",ul:14},zombie:{n:"Zombie",c:0,hp:70,sp:60,dmg:12,r:26,cd:.7,nb:1}};
-const RK={sword:0,berserker:0,iceb:0,giant:0,zombie:0,archer:1,witch:1,necro:2},TO=["giant","berserker","iceb","sword","zombie","archer","witch","necro"];
+ witch:{n:"Witch",c:300,hp:70,sp:58,dmg:24,r:260,cd:1.6,k:"5",ul:3},berserker:{n:"Berserker",c:350,hp:320,sp:72,dmg:55,r:36,cd:1.1,k:"6",ul:6},iceb:{n:"Ice Berserker",c:450,hp:300,sp:66,dmg:32,r:36,cd:1.2,k:"7",ul:10,fz:1.8},necro:{n:"Necromancer",c:400,hp:90,sp:50,dmg:0,r:0,cd:0,k:"8",ul:14},zombie:{n:"Zombie",c:0,hp:70,sp:60,dmg:12,r:26,cd:.7,nb:1},creeper:{n:"Creeper",c:0,hp:45,sp:95,dmg:110,r:30,cd:0,nb:1}};
+const RK={sword:0,berserker:0,iceb:0,giant:0,zombie:0,creeper:0,archer:1,witch:1,necro:2},TO=["giant","berserker","iceb","sword","zombie","creeper","archer","witch","necro"];
 let level=0,carry=["miner","miner"];try{level=Math.min(39,+localStorage.getItem(KEY)||0);const c=JSON.parse(localStorage.getItem("stickLegionArmy"));if(Array.isArray(c)&&c.length)carry=c.filter(k=>T[k])}catch(e){}
 let coins=+localStorage.getItem("stickLegionCoins")||0,up={d:0,h:0,m:0,s:0,g:0};try{Object.assign(up,JSON.parse(localStorage.getItem("stickLegionUp")))}catch(e){}
 const UPS={d:{n:"⚔️ Damage",b:40,i:"+12% damage"},h:{n:"❤️ Health",b:40,i:"+12% health"},m:{n:"⛏️ Mining",b:50,i:"+15% gold per trip"},s:{n:"🗿 Statue",b:60,i:"+20% statue health"},g:{n:"💰 Start gold",b:30,i:"+100 starting gold"}};
@@ -35,6 +35,7 @@ function formation(){
   for(const u of U)if(u.tm===tm&&u.t!=="miner")rows[RK[u.t]].push(u);
   rows.forEach((g,ri)=>{g.sort((a,b)=>TO.indexOf(a.t)-TO.indexOf(b.t));const R=10,bx=RALLY[tm]-dir*ri*110;
    g.forEach((u,i)=>{const col=Math.floor(i/R),row=i%R,n=Math.min(R,g.length-col*R);u.fx=Math.max(40,Math.min(WW-40,bx-dir*col*40));u.fy=CY+(row-(n-1)/2)*46})})}}
+function boom(u){u.hp=0;const R=110,dm=T.creeper.dmg*dmul(u);for(const o of U)if(o.tm!==u.tm){const dd=Math.hypot(o.x-u.x,o.y-u.y);if(dd<R)hurt(o,dm*(dd<R/2?1:.5))}if(Math.hypot(u.x-BX[1-u.tm],u.y-CY)<R+34)statue[1-u.tm]-=dm*2;puffs.push({x:u.x,y:u.y,t:.4,r:R,c:"74,222,128"});shake=.2}
 function update(dt){
  t+=dt;if(spawnCd>0)spawnCd-=dt;if(shake>0)shake-=dt;
  for(const p of puffs)p.t-=dt;puffs=puffs.filter(p=>p.t>0);
@@ -44,7 +45,7 @@ function update(dt){
  formation();
  const army1=U.filter(u=>u.tm===1&&u.t!=="miner").length,thr=Math.min(4+level*1.5,30);
  for(const u of U){
-  const d=T[u.t],dir=u.tm?-1:1;if(u.sw>0)u.sw-=dt;if(u.hit>0)u.hit-=dt;if(u.cd>0)u.cd-=dt;let moving=false;if(u.fz>0){u.fz-=dt;continue}
+  const d=T[u.t],dir=u.tm?-1:1;if(u.sw>0)u.sw-=dt;if(u.hit>0)u.hit-=dt;if(u.cd>0)u.cd-=dt;let moving=false;if(u.fz>0){u.fz-=dt;continue}if(u.fuse!=null){u.fuse-=dt;if(u.fuse<=0)boom(u);continue}
   const go=(tx,ty,stop)=>{const dx=tx-u.x,dy=ty-u.y,dd=Math.hypot(dx,dy);if(dd>stop){u.x+=dx/dd*d.sp*dt;u.y+=dy/dd*d.sp*dt;u.fa=Math.atan2(dy,dx);moving=true}return dd};
   if(u.t==="miner"){
    if(u.st===0){if(go(MX[u.tm],MY[u.tm],10)<=10){u.st=1;u.tmr=1.6}}
@@ -52,7 +53,7 @@ function update(dt){
    else{if(go(BX[u.tm]+dir*60,CY,10)<=10){gold[u.tm]+=u.tm?20*(1+level*.08):20*(1+up.m*.15);u.st=0}}
   }else if(u.t==="necro"){
    let bb=null,bd=1e9;for(const b of B){const dd=Math.hypot(b.x-u.x,b.y-u.y);if(dd<bd){bd=dd;bb=b}}
-   if(bb&&bd<400){if(bd>40)go(bb.x,bb.y,0);else{u.fa=Math.atan2(bb.y-u.y,bb.x-u.x);if(u.cd<=0){u.cd=2.2;u.sw=.5;spawn(u.tm,"zombie",bb.x,bb.y);B.splice(B.indexOf(bb),1)}}}
+   if(bb&&bd<400){if(bd>40)go(bb.x,bb.y,0);else{u.fa=Math.atan2(bb.y-u.y,bb.x-u.x);if(u.cd<=0){u.cd=2.2;u.sw=.5;spawn(u.tm,Math.random()<.4?"creeper":"zombie",bb.x,bb.y);B.splice(B.indexOf(bb),1)}}}
    else go(u.fx,u.fy,6);
   }else{
    const n=nearest(u),sd=Math.max(d.r,190),sx=BX[1-u.tm],sdist=Math.hypot(u.x-sx,u.y-CY)-34;let tgt=null,dist=1e9;
@@ -60,7 +61,7 @@ function update(dt){
    if(tgt){
     const tx=tgt==="s"?sx:tgt.x,ty=tgt==="s"?CY:tgt.y;u.fa=Math.atan2(ty-u.y,tx-u.x);
     if(dist<=d.r+(tgt==="s"?0:6)){if(u.cd<=0){u.cd=d.cd;u.sw=.25;
-      if(u.t==="witch")shoot(u,tx,ty,1);else if(u.t==="archer")shoot(u,tx,ty,0);
+      if(u.t==="creeper")u.fuse=.6;else if(u.t==="witch")shoot(u,tx,ty,1);else if(u.t==="archer")shoot(u,tx,ty,0);
       else if(tgt==="s"){statue[1-u.tm]-=d.dmg*dmul(u);shake=.1}else{hurt(tgt,d.dmg*dmul(u));if(d.fz)tgt.fz=d.fz}}}
     else go(tx,ty,0);
    }else{
@@ -75,7 +76,7 @@ function update(dt){
   for(const o of U)if(o.tm!==a.tm&&Math.hypot(o.x-a.x,o.y-a.y)<(o.t==="giant"?26:16)){hurt(o,a.dm);a.dead=1;break}
   const sx=BX[1-a.tm];if(!a.dead&&Math.hypot(a.x-sx,a.y-CY)<34){statue[1-a.tm]-=a.dm;a.dead=1}}
  A=A.filter(a=>!a.dead);
- {const dead=U.filter(u=>u.hp<=0);for(const u of dead)if(u.t!=="miner")B.push({x:u.x,y:u.y,tm:u.tm,t:25});if(B.length>40)B.splice(0,B.length-40);const k=dead.filter(u=>u.tm===1).length;if(k){coins+=k*2;saveC()}}
+ {const dead=U.filter(u=>u.hp<=0);for(const u of dead)if(u.t!=="miner"&&u.t!=="creeper")B.push({x:u.x,y:u.y,tm:u.tm,t:25});if(B.length>40)B.splice(0,B.length-40);const k=dead.filter(u=>u.tm===1).length;if(k){coins+=k*2;saveC()}}
  for(const b of B)b.t-=dt;B=B.filter(b=>b.t>0);
  U=U.filter(u=>u.hp>0);
  aiT-=dt;if(aiT<=0){aiT=1.1;const m=U.filter(u=>u.tm===1&&u.t==="miner").length;
@@ -87,7 +88,7 @@ function update(dt){
 function text(s,a,b,size,col,al="center"){x.font=`bold ${size}px Arial`;x.textAlign=al;x.fillStyle=col;x.lineWidth=4;x.strokeStyle="#0f172a";x.lineJoin="round";x.strokeText(s,a,b);x.fillText(s,a,b)}
 function line(a,b,c,d){x.beginPath();x.moveTo(a,b);x.lineTo(c,d);x.stroke()}
 function figure(u){
- const gi=u.t==="giant",r=gi?28:17,tcol=u.tm?"#ef4444":"#3b82f6",col=u.t==="zombie"?"#84cc16":u.t==="iceb"?"#67e8f9":u.t==="necro"?"#334155":u.t==="witch"?"#7c3aed":u.t==="miner"?"#ca8a04":tcol;
+ const gi=u.t==="giant",r=gi?28:17,tcol=u.tm?"#ef4444":"#3b82f6",col=u.t==="creeper"?"#4ade80":u.t==="zombie"?"#84cc16":u.t==="iceb"?"#67e8f9":u.t==="necro"?"#334155":u.t==="witch"?"#7c3aed":u.t==="miner"?"#ca8a04":tcol;
  x.save();x.translate(u.x,u.y);x.rotate(u.fa||0);x.lineCap="round";
  x.fillStyle="rgba(0,0,0,.28)";x.beginPath();x.ellipse(4,5,r,r*.85,0,0,6.3);x.fill();
  x.save();
@@ -100,9 +101,10 @@ function figure(u){
  x.restore();
  if(u.t==="archer"){x.strokeStyle="#fbbf24";x.lineWidth=3;x.beginPath();x.arc(r-6,0,15,-1.2,1.2);x.stroke()}
  if(u.t==="witch"||u.t==="necro"){x.strokeStyle="#92400e";x.lineWidth=3;line(r-6,8,r+18,-2);x.fillStyle=u.t==="witch"?"#e9d5ff":"#86efac";x.beginPath();x.arc(r+19,-3,u.sw>0?8:5,0,6.3);x.fill()}
- x.fillStyle=u.hit>0?"#fff":u.fz>0?"#bae6fd":col;x.beginPath();x.arc(0,0,r,0,6.3);x.fill();
+ x.fillStyle=u.hit>0||u.fuse!=null&&Math.floor(u.fuse*14)%2?"#fff":u.fz>0?"#bae6fd":col;x.beginPath();x.arc(0,0,r,0,6.3);x.fill();
  x.strokeStyle=tcol;x.lineWidth=4;x.stroke();
  x.fillStyle="rgba(0,0,0,.3)";x.beginPath();x.arc(0,0,r*.5,0,6.3);x.fill();
+ if(u.t==="creeper"){x.fillStyle="#052e16";x.fillRect(4,-9,5,6);x.fillRect(4,3,5,6);x.fillRect(-6,-4,8,8)}
  if(u.t==="witch"){x.fillStyle="#4c1d95";x.beginPath();x.arc(0,0,r*.7,0,6.3);x.fill()}
  if(u.t==="miner"&&u.st===2){x.fillStyle="#fbbf24";x.beginPath();x.arc(-3,0,6,0,6.3);x.fill()}
  x.restore();
@@ -124,7 +126,7 @@ function draw(){
  statueDraw(0);statueDraw(1);
  for(const b of B){x.strokeStyle=b.tm?"#7f1d1d":"#1e3a8a";x.lineWidth=5;line(b.x-9,b.y-9,b.x+9,b.y+9);line(b.x+9,b.y-9,b.x-9,b.y+9)}
  for(const f of rainFx){x.strokeStyle="rgba(251,191,36,.45)";x.lineWidth=4;x.beginPath();x.arc(f.x,f.y,45,0,6.3);x.stroke()}
- for(const p of puffs){x.fillStyle=`rgba(251,191,36,${p.t*2})`;x.beginPath();x.arc(p.x,p.y,45,0,6.3);x.fill()}
+ for(const p of puffs){x.fillStyle=`rgba(${p.c||"251,191,36"},${p.t*2})`;x.beginPath();x.arc(p.x,p.y,p.r||45,0,6.3);x.fill()}
  for(const u of U)figure(u);
  for(const a of A){if(a.orb){x.fillStyle="#c084fc";x.beginPath();x.arc(a.x,a.y,10,0,6.3);x.fill()}else{x.strokeStyle="#f1f5f9";x.lineWidth=4;const l=Math.hypot(a.vx,a.vy);line(a.x,a.y,a.x-a.vx/l*22,a.y-a.vy/l*22)}}
  x.restore();
