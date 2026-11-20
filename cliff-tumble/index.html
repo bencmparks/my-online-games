@@ -72,14 +72,14 @@ function draw(){
  const g=x.createLinearGradient(0,0,0,H);g.addColorStop(0,"#1e3a8a");g.addColorStop(1,"#7dd3fc");x.fillStyle=g;x.fillRect(0,0,W,H);
  x.fillStyle="#475569";for(let k=0;k<8;k++){const px=((k*260-cx*.3)%2080+2080)%2080-200;x.beginPath();x.moveTo(px,H-100-cy*.1);x.lineTo(px+130,H-300-(k%3)*60-cy*.1);x.lineTo(px+290,H-100-cy*.1);x.fill()}
  x.save();x.scale(Z,Z);x.translate(-cx,-cy);
- const vl=cx-40,vr=cx+W/Z+40;
+ const K=Math.min(3,Math.max(1,.8/Z)),vl=cx-40,vr=cx+W/Z+40;
  x.fillStyle="#1e293b";x.fillRect(vl,60,W/Z+80,3000);
  for(const r of runs){if(r[1]<vl||r[0]>vr)continue;x.fillStyle="#365314";x.fillRect(r[0],0,r[1]-r[0],3000);x.fillStyle="#65a30d";x.fillRect(r[0],0,r[1]-r[0],10)}
  for(const w of walls){if(w.x1<vl||w.x0>vr)continue;x.fillStyle="#57534e";x.fillRect(w.x0,w.top,w.x1-w.x0,-w.top);x.fillStyle="#65a30d";x.fillRect(w.x0,w.top,w.x1-w.x0,6);x.fillStyle="#4f4b47";for(let yy=w.top+30;yy<0;yy+=44)x.fillRect(w.x0+12+((yy*7)%40|0),yy,20,4)}
- for(const s of springs){if(s.x<vl||s.x>vr)continue;const h=s.t>0?6:16;x.fillStyle="#dc2626";x.fillRect(s.x,-h,s.w,h);x.fillStyle="#fde047";x.fillRect(s.x-3,-h-4,s.w+6,5)}
- for(const s of spikes){if(s.x1<vl||s.x0>vr)continue;x.fillStyle="#cbd5e1";for(let k=s.x0;k<s.x1;k+=14){x.beginPath();x.moveTo(k,0);x.lineTo(k+7,-18);x.lineTo(k+14,0);x.fill()}}
- for(let k=0;k<4;k++){x.strokeStyle=["#a78bfa","#22d3ee","#e879f9","#fff"][k];x.lineWidth=3;x.beginPath();x.ellipse(portal.x,-32,16-k*3+Math.sin(frames/6+k)*2,30-k*5,0,0,6.3);x.stroke()}text("PORTAL",portal.x,-76,16,"#fff");
- for(const l of ledges)plank(l.x0,l.y,l.len);
+ for(const s of springs){if(s.x<vl||s.x>vr)continue;const h=s.t>0?6:16;x.fillStyle="#dc2626";x.fillRect(s.x,-h*K,s.w,h*K);x.fillStyle="#fde047";x.fillRect(s.x-3,-h*K-4*K,s.w+6,5*K)}
+ for(const s of spikes){if(s.x1<vl||s.x0>vr)continue;x.fillStyle="#cbd5e1";for(let k=s.x0;k<s.x1;k+=14){x.beginPath();x.moveTo(k,0);x.lineTo(k+7,-18*K);x.lineTo(k+14,0);x.fill()}}
+ for(let k=0;k<4;k++){x.strokeStyle=["#a78bfa","#22d3ee","#e879f9","#fff"][k];x.lineWidth=3;x.beginPath();x.ellipse(portal.x,-32*K,(16-k*3+Math.sin(frames/6+k)*2)*K,(30-k*5)*K,0,0,6.3);x.stroke()}text("PORTAL",portal.x,-76*K,16*K,"#fff");
+ for(const l of ledges){plank(l.x0,l.y,l.len);if(K>1){x.fillStyle="#d97706";x.fillRect(l.x0,l.y,l.len,4*K)}}
  for(const f of fx){if(f.line){x.strokeStyle="#fbbf24";x.globalAlpha=f.t*4;x.lineWidth=4;x.beginPath();x.moveTo(f.x,f.y);x.lineTo(f.x2,f.y);x.stroke();x.globalAlpha=1}else{x.globalAlpha=Math.min(1,f.t*2);text(f.s,f.x,f.y,18,"#fca5a5");x.globalAlpha=1}}
  if(state==="play"){x.strokeStyle="#fff6";x.lineWidth=2;x.setLineDash([6,8]);x.beginPath();x.moveTo(p.x+p.f*8,p.y);x.lineTo(p.x+p.f*500,p.y);x.stroke();x.setLineDash([])}
  {const k=Math.min(4,Math.max(1,.9/Z));x.save();x.translate(p.x,p.y);x.scale(k,k);x.translate(-p.x,-p.y);man(p.x,p.y,p.f);x.restore()}
