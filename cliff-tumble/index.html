@@ -21,8 +21,8 @@ const persist=()=>{try{localStorage.setItem(KEY,JSON.stringify(save))}catch(e){}
 let level,runs,walls,spikes,springs,portal,ledges,p,state,cx,cy,keys={},fx,frames=0,msg="",safe,seed=1,Z=1;
 const rnd=()=>(seed=(seed*1664525+1013904223)>>>0)/4294967296;
 const ledgeLen=()=>90+save.up.len*12;
-function gen(lv){seed=lv*977+13;runs=[];walls=[];spikes=[];springs=[];let rs=-300,c=450;const n=5+Math.min(lv,6);
- const wall=()=>{const w=110+rnd()*80,h=Math.min(560,130+rnd()*(90+lv*30));walls.push({x0:c,x1:c+w,top:-h});c+=w};
+function gen(lv){seed=lv*977+13;runs=[];walls=[];spikes=[];springs=[];let rs=-300,c=300;const n=4+Math.min(lv>>1,4);
+ const wall=()=>{const w=110+rnd()*80,h=Math.min(900,130+rnd()*(120+lv*50));walls.push({x0:c,x1:c+w,top:-h});c+=w};
  for(let i=0;i<n;i++){const t=rnd();
   if(t<.25){c+=110;if(rnd()<.5){springs.push({x:c,w:36,t:0});c+=36+110}wall();c+=110}
   else if(t<.45){c+=110;wall();c+=100;wall();c+=110}
@@ -30,11 +30,11 @@ function gen(lv){seed=lv*977+13;runs=[];walls=[];spikes=[];springs=[];let rs=-30
   else if(t<.75){c+=60;springs.push({x:c,w:36,t:0});c+=96;runs.push([rs,c]);c+=200;rs=c}
   else if(t<.9){c+=70;const w=40+rnd()*30+Math.min(lv,10);spikes.push({x0:c,x1:c+w});c+=w+70}
   else if(t<.93){c+=90;const w=30+rnd()*20;spikes.push({x0:c,x1:c+w});c+=w+240;runs.push([rs,c]);c+=70+rnd()*30;rs=c}
-  else if(t<.97){c+=100;const h=Math.min(560,150+lv*20);for(let k=0;k<3;k++){const w=100;walls.push({x0:c,x1:c+w,top:-Math.min(560,h*(k+1)/2+40)});c+=w}c+=100}
+  else if(t<.97){c+=100;const h=Math.min(900,200+lv*35);for(let k=0;k<3;k++){const w=100;walls.push({x0:c,x1:c+w,top:-Math.min(900,h*(k+1)/2+40)});c+=w}c+=100}
   else{c+=110;wall();c+=70;const w=40+rnd()*30;spikes.push({x0:c,x1:c+w});c+=w+70;wall();c+=110}
   c+=90+rnd()*40}
- portal={x:c+120};runs.push([rs,c+420])}
-function init(lv){level=lv===undefined?save.level:lv;gen(level);Z=Math.min(1,W/(portal.x+260));ledges=[];fx=[];p={x:120,y:0,vx:0,vy:0,g:true,f:1};safe={x:120,y:0};state="play";cx=0;cy=-540;msg="";shopUI()}
+ portal={x:c+80};runs.push([rs,c+260])}
+function init(lv){level=lv===undefined?save.level:lv;gen(level);Z=Math.min(1,W/(portal.x+130));ledges=[];fx=[];p={x:120,y:0,vx:0,vy:0,g:true,f:1};safe={x:120,y:0};state="play";cx=0;cy=-540;msg="";shopUI()}
 function respawn(){p.x=safe.x;p.y=safe.y;p.vx=0;p.vy=0;p.g=true;fx.push({x:p.x,y:p.y-50,t:1,s:"oops!"})}
 function shoot(dir){if(state!=="play")return;if(dir)p.f=dir;const d=p.f,ey=p.y;let best=null;
  for(const w of walls){if(ey<=w.top||ey>=0)continue;const dist=d>0?w.x0-p.x:p.x-w.x1;if(dist<PW/2-2||dist>900)continue;if(!best||dist<best.dist)best={w,dist}}
@@ -63,7 +63,7 @@ function update(dt){
   if(p.y>500)respawn();
   if(Math.abs(p.x-portal.x)<30&&p.y>-60&&p.y<=0)win();
  }
- cx=-100;cy=-(H-130)/Z;
+ cx=-30;cy=-(H-130)/Z;
 }
 function text(s,a,b,size,col,al="center"){x.font=`bold ${size}px Arial`;x.textAlign=al;x.fillStyle=col;x.lineWidth=4;x.strokeStyle="#0f172a";x.lineJoin="round";x.strokeText(s,a,b);x.fillText(s,a,b)}
 function plank(x0,y,len){x.fillStyle="#92400e";x.fillRect(x0,y,len,10);x.fillStyle="#d97706";x.fillRect(x0,y,len,4);x.fillStyle="#451a03";for(let k=x0+14;k<x0+len-6;k+=22)x.fillRect(k,y+5,3,3)}
