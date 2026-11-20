@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cliff Tumble | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:#0b1020}
+main{width:min(100%,46rem);padding:1rem;border:.2rem solid #f472b6;border-radius:1.25rem;background:rgb(8 12 30 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.4rem 0;color:#f9a8d4;font-size:1.6rem}
+canvas{display:block;width:100%;height:auto;margin:.6rem auto;border:.2rem solid #475569;border-radius:.4rem;touch-action:none;background:#0ea5e9}
+.row{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap;margin:.4rem 0}.row button{padding:.6rem .9rem;border:0;border-radius:.6rem;background:#be185d;color:#fff;font-weight:700;font-size:1rem;cursor:pointer;user-select:none}.row button:disabled{opacity:.45;cursor:default}
+</style></head>
+<body><main><a href="../">← All games</a><h1>🧗 Cliff Tumble</h1>
+<p>Toss Bob down a giant cliff of ledges! <strong>◀ ▶ / A D</strong> aims the throw, <strong>hold Space</strong> (or the button) to charge, release to throw. In the air, steer with <strong>◀ ▶</strong>. Bounce off ledges, grab coins, hit orange bounce pads, and tumble as deep as you can. Spend coins on upgrades.</p>
+<canvas id="c" width="720" height="760" aria-label="Cliff Tumble game"></canvas>
+<div class="row"><button id="l">◀</button><button id="th">🚀 Hold to throw</button><button id="r">▶</button></div>
+<div class="row" id="shop"></div>
+</main>
+<script>
+const C=document.querySelector("#c"),x=C.getContext("2d"),W=720,H=760,G=1000,R=13,KEY="cliffTumbleSave";
+let save={coins:0,best:0,up:{pow:0,bounce:0,steer:0,coin:0}};try{const s=JSON.parse(localStorage.getItem(KEY));if(s)save=Object.assign(save,s)}catch(e){}
+const UP={pow:{n:"Power",d:l=>`Throw ${500+l*60}`},bounce:{n:"Bounce",d:l=>`${Math.round(40+l*5)}%`},steer:{n:"Steer",d:l=>`${600+l*120}`},coin:{n:"Coin value",d:l=>`x${(1+l*.25).toFixed(2)}`}};
+const cost=l=>Math.round(120*Math.pow(l+1,1.7));
+const persist=()=>{try{localStorage.setItem(KEY,JSON.stringify(save))}catch(e){}};
+let seed=7;const rnd=()=>(seed=(seed*1664525+1013904223)>>>0)/4294967296;
+let ledges,coins,b,state,ang,charge,chDir,charging,cy,depth,still,got,res,frames=0,genY,keys={};
+function gen(to){while(genY<to){genY+=95+rnd()*70;const w=130+rnd()*190,x0=rnd()*(W-w),pad=rnd()<.16;ledges.push({x0,x1:x0+w,y:genY,pad});if(rnd()<.6)coins.push({x:x0+w*rnd(),y:genY-50-rnd()*50,t:0});if(rnd()<.35)coins.push({x:rnd()*W,y:genY-30-rnd()*70,t:0})}}
+function init(){seed=Math.floor(Math.random()*1e9);ledges=[{x0:W/2-110,x1:W/2+110,y:220,pad:false}];coins=[];genY=220;gen(2400);state="aim";ang=0;charge=0;chDir=1;charging=false;b={x:W/2,y:220-R,vx:0,vy:0,r:0,g:true};depth=0;still=0;got=0;res=null;cy=0;shopUI()}
+function throwIt(){const v=(500+save.up.pow*60)*(.3+.7*charge);b.vx=Math.sin(ang)*v;b.vy=-Math.cos(ang)*v*.6-120;state="fly";b.g=false;shopUI()}
+function finish(){state="done";const earn=Math.round(depth*.6*(1+save.up.coin*.25))+got;save.coins+=earn;const nb=depth>save.best;if(nb)save.best=depth;persist();res={d:depth,earn,nb};shopUI()}
+function update(dt){
+ if(state==="aim"){if(keys.ArrowLeft||keys.KeyA)ang=Math.max(-1.3,ang-1.6*dt);if(keys.ArrowRight||keys.KeyD)ang=Math.min(1.3,ang+1.6*dt);if(charging){charge+=chDir*1.6*dt;if(charge>=1){charge=1;chDir=-1}if(charge<=0){charge=0;chDir=1}}}
+ if(state==="fly"){
+  gen(b.y+1600);const st=keys.ArrowLeft||keys.KeyA?-1:keys.ArrowRight||keys.KeyD?1:0;b.vx+=st*(600+save.up.steer*120)*dt;
+  const sub=3,h=dt/sub;
+  for(let s=0;s<sub;s++){b.vy+=G*h;const py=b.y;b.x+=b.vx*h;b.y+=b.vy*h;b.g=false;
+   if(b.x<R){b.x=R;b.vx=Math.abs(b.vx)*.5}if(b.x>W-R){b.x=W-R;b.vx=-Math.abs(b.vx)*.5}
+   for(const l of ledges){if(l.y<b.y-60||l.y>b.y+60)continue;
+    if(b.x+R*.6>l.x0&&b.x-R*.6<l.x1&&b.vy>=0&&py+R<=l.y+4&&b.y+R>=l.y){b.y=l.y-R;
+     if(l.pad){b.vy=-Math.max(760,b.vy*1.1);b.vx*=1.1}else if(b.vy>140)b.vy=-b.vy*Math.min(.9,.4+save.up.bounce*.05);else b.vy=0;
+     if(b.vy===0){b.g=true;b.vx*=Math.pow(.2,h)}}}}
+  b.r+=b.vx*dt/R;
+  for(const c of coins)if(!c.t&&Math.hypot(c.x-b.x,c.y-b.y)<R+12){c.t=1;got+=Math.round(5*(1+save.up.coin*.25))}
+  depth=Math.max(depth,Math.floor((b.y-220)/10));
+  if(b.g&&Math.abs(b.vx)<18&&Math.abs(b.vy)<30)still+=dt;else still=0;if(still>.8)finish();
+ }
+ const ty=b.y-H*.4;cy+=(Math.max(0,ty)-cy)*Math.min(1,dt*5);
+}
+function text(s,a,b2,size,col,al="center"){x.font=`bold ${size}px Arial`;x.textAlign=al;x.fillStyle=col;x.lineWidth=4;x.strokeStyle="#0f172a";x.lineJoin="round";x.strokeText(s,a,b2);x.fillText(s,a,b2)}
+function bob(px,py,rot){x.save();x.translate(px,py);x.rotate(rot);x.scale(1.8,1.8);x.strokeStyle="#fde047";x.fillStyle="#fde047";x.lineWidth=3;x.lineCap="round";x.beginPath();x.moveTo(0,-4);x.lineTo(0,6);x.moveTo(0,0);x.lineTo(-7,-5);x.moveTo(0,0);x.lineTo(7,-5);x.moveTo(0,6);x.lineTo(-5,12);x.moveTo(0,6);x.lineTo(5,12);x.stroke();x.beginPath();x.arc(0,-9,5,0,6.3);x.fill();x.restore()}
+function draw(){
+ const g=x.createLinearGradient(0,0,0,H);const k=Math.min(1,cy/9000);g.addColorStop(0,`rgb(${14-10*k|0},${165-120*k|0},${233-150*k|0})`);g.addColorStop(1,`rgb(${186-150*k|0},${230-190*k|0},${253-170*k|0})`);x.fillStyle=g;x.fillRect(0,0,W,H);
+ x.fillStyle="#57534e";x.fillRect(0,0,14,H);x.fillRect(W-14,0,14,H);
+ x.save();x.translate(0,-cy);
+ for(const l of ledges){if(l.y<cy-30||l.y>cy+H+30)continue;x.fillStyle=l.pad?"#f97316":"#78716c";x.fillRect(l.x0,l.y,l.x1-l.x0,16);x.fillStyle=l.pad?"#fde047":"#65a30d";x.fillRect(l.x0,l.y,l.x1-l.x0,6);}
+ for(const c of coins){if(c.t||c.y<cy-20||c.y>cy+H+20)continue;x.fillStyle="#facc15";x.beginPath();x.arc(c.x,c.y,9+Math.sin(frames/8)*1.5,0,6.3);x.fill();x.strokeStyle="#a16207";x.lineWidth=2;x.stroke()}
+ if(state==="aim"){x.strokeStyle="#f97316";x.lineWidth=4;x.setLineDash([10,8]);x.beginPath();x.moveTo(b.x,b.y);x.lineTo(b.x+Math.sin(ang)*(50+charge*110),b.y-Math.cos(ang)*(50+charge*110));x.stroke();x.setLineDash([])}
+ bob(b.x,b.y-2,state==="aim"?0:b.r);
+ x.restore();
+ text(`Depth ${depth}m`,12,34,26,"#fff","left");text(`Best ${Math.floor(save.best)}m`,12,62,18,"#fde68a","left");text(`🪙 ${save.coins}`,W-24,34,24,"#fde047","right");
+ if(state==="aim"){x.fillStyle="#0008";x.fillRect(W/2-120,H-50,240,16);x.fillStyle="#f472b6";x.fillRect(W/2-120,H-50,240*charge,16);text("Hold Space to charge, release to throw",W/2,H-62,18,"#fff")}
+ if(state==="done"){x.fillStyle="#000a";x.fillRect(0,0,W,H);text(res.nb?"New record!":"Landed!",W/2,H/2-60,44,"#f9a8d4");text(`Depth ${res.d}m`,W/2,H/2-8,34,"#fff");text(`+${res.earn} coins`,W/2,H/2+34,26,"#fde047");text("Press Space or click to go again",W/2,H/2+84,20,"#cbd5e1")}
+}
+function shopUI(){const s=document.querySelector("#shop");s.innerHTML="";for(const k in UP){const l=save.up[k],c=cost(l),bt=document.createElement("button");bt.textContent=`${UP[k].n} Lv${l} (${UP[k].d(l)}) – 🪙${c}`;bt.disabled=save.coins<c||state==="fly";bt.onclick=()=>{if(save.coins>=c){save.coins-=c;save.up[k]++;persist();shopUI()}};s.appendChild(bt)}}
+function down(){if(state==="aim")charging=true;else if(state==="done")init()}
+function up(){if(state==="aim"&&charging){charging=false;if(charge>.05)throwIt();else charge=0}}
+addEventListener("keydown",e=>{keys[e.code]=1;if(e.code==="Space"){e.preventDefault();if(!e.repeat)down()}if(e.code.startsWith("Arrow"))e.preventDefault()});
+addEventListener("keyup",e=>{keys[e.code]=0;if(e.code==="Space")up()});
+C.addEventListener("pointerdown",down);addEventListener("pointerup",up);
+const th=document.querySelector("#th");th.addEventListener("pointerdown",e=>{e.stopPropagation();down()});
+for(const[id,c]of[["l","ArrowLeft"],["r","ArrowRight"]]){const e=document.querySelector("#"+id);e.addEventListener("pointerdown",()=>keys[c]=1);e.addEventListener("pointerup",()=>keys[c]=0);e.addEventListener("pointerleave",()=>keys[c]=0)}
+let last=performance.now();function loop(t){const dt=Math.min(.033,(t-last)/1000);last=t;frames++;update(dt);draw();requestAnimationFrame(loop)}
+init();requestAnimationFrame(loop);
+</script></body></html>
