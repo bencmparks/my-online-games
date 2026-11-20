@@ -6,28 +6,27 @@ canvas{display:block;width:100%;height:auto;margin:.6rem auto;border:.2rem solid
 main:fullscreen{width:100vw;max-width:none;height:100vh;display:flex;flex-direction:column;justify-content:center;border-radius:0;overflow:auto}main:fullscreen canvas{width:auto;max-width:100%;max-height:calc(100vh - 11rem);margin:.4rem auto}main:fullscreen p{display:none}.row{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap;margin:.4rem 0}.row button{padding:.6rem .9rem;border:0;border-radius:.6rem;background:#b45309;color:#fff;font-weight:700;font-size:1rem;cursor:pointer;user-select:none}.row button:disabled{opacity:.45;cursor:default}
 </style></head>
 <body><main><a href="../">← All games</a><h1>🪓 Ledge Throw</h1>
-<p><strong>Click or tap</strong> to throw a ledge at the wall – it sticks where it hits. Climb your ledges to the 🚪 exit at the top! Move with <strong>A/D</strong> or <strong>◀ ▶</strong>, jump with <strong>W / Space</strong>. You only get a few ledges per level, so place them well. <strong>R</strong> restarts the level.</p>
+<p>Reach the 🌀 portal at the top of the wall! <strong>Click, tap or press E</strong> to shoot a ledge straight ahead at <strong>eye level</strong> – it sticks to the wall. You have unlimited ledges, but <strong>shooting a new one makes all the others vanish</strong>, even the one you stand on. Time it mid-jump: shoot while rising, then land on the new ledge. Move with <strong>A/D</strong> or <strong>◀ ▶</strong>, jump with <strong>W / Space</strong>. <strong>R</strong> restarts.</p>
 <canvas id="c" width="900" height="640" aria-label="Ledge Throw game"></canvas>
-<div class="row"><button id="l">◀</button><button id="j">⤒ Jump</button><button id="r">▶</button><button id="rs">↺ Restart</button><button id="fs">⛶ Fullscreen</button></div>
+<div class="row"><button id="l">◀</button><button id="j">⤒ Jump</button><button id="r">▶</button><button id="sh">🎯 Shoot</button><button id="rs">↺ Restart</button><button id="fs">⛶ Fullscreen</button></div>
 <div class="row" id="shop"></div>
 </main>
 <script>
 const C=document.querySelector("#c"),x=C.getContext("2d"),W=900,H=640,WALLX=560,GY=0,KEY="ledgeThrowClimbSave",PW=18,PH=34;
 let save={coins:0,level:1,up:{count:0,jump:0,len:0}};try{const s=JSON.parse(localStorage.getItem(KEY));if(s)save=Object.assign(save,s)}catch(e){}
-const UP={count:{n:"Ledges",d:l=>`+${l} per level`},jump:{n:"Jump",d:l=>`${Math.round(620+l*35)}`},len:{n:"Ledge size",d:l=>`${90+l*12}px`}};
+const UP={jump:{n:"Jump",d:l=>`${Math.round(620+l*35)}`},len:{n:"Ledge size",d:l=>`${90+l*12}px`}};
 const cost=l=>Math.round(60*Math.pow(l+1,1.6));
 const persist=()=>{try{localStorage.setItem(KEY,JSON.stringify(save))}catch(e){}};
-let level,TOP,left,ledges,fly,p,state,cy,keys={},mouse={x:300,y:300},fx,frames=0,msg="";
+let level,TOP,ledges,fly,p,state,cy,keys={},mouse={x:300,y:300},fx,frames=0,msg="";
 const ledgeLen=()=>90+save.up.len*12;
-function init(lv){level=lv===undefined?save.level:lv;TOP=-(420+level*60);left=Math.ceil(-TOP/115)+3+save.up.count;ledges=[];fly=[];fx=[];p={x:120,y:GY,vx:0,vy:0,g:true,f:1};state="play";cy=-540;msg="";shopUI()}
-function throwAt(mx,my){if(state!=="play"||left<=0)return;const dx=mx-p.x,dy=my-(p.y-PH/2),d=Math.hypot(dx,dy)||1,v=Math.min(1100,d*2.6+250);fly.push({x:p.x,y:p.y-PH/2,vx:dx/d*v,vy:dy/d*v,r:0});left--}
-function path(mx,my){const dx=mx-p.x,dy=my-(p.y-PH/2),d=Math.hypot(dx,dy)||1,v=Math.min(1100,d*2.6+250);let a=p.x,b=p.y-PH/2,vx=dx/d*v,vy=dy/d*v;const pts=[];for(let i=0;i<60;i++){vy+=900*.03;a+=vx*.03;b+=vy*.03;if(a>=WALLX||b>=GY)break;pts.push([a,b])}return pts}
+function init(lv){level=lv===undefined?save.level:lv;TOP=-(420+level*60);ledges=[];fly=[];fx=[];p={x:120,y:GY,vx:0,vy:0,g:true,f:1};state="play";cy=-540;msg="";shopUI()}
+function throwAt(){if(state!=="play"||p.x>WALLX-PW/2-2||fly.length)return;ledges=[];fly.push({x:p.x,y:p.y-30})}
 function win(){state="won";const earn=20+level*6;save.coins+=earn;save.level=level+1;persist();msg=`+${earn} coins`;shopUI()}
 function update(dt){
  for(const f of fx){f.t-=dt;f.y-=30*dt}fx=fx.filter(f=>f.t>0);
- for(const t of fly){t.vy+=900*dt;t.x+=t.vx*dt;t.y+=t.vy*dt;t.r+=dt*12;
-  if(t.x>=WALLX){t.dead=1;if(t.y<GY-6&&t.y>TOP+4)ledges.push({y:t.y,x0:WALLX-ledgeLen()});else fx.push({x:WALLX-40,y:t.y,t:1,s:"missed"})}
-  else if(t.y>=GY||t.x<-50){t.dead=1;fx.push({x:t.x,y:GY-20,t:1,s:"missed"})}}
+ for(const t of fly){t.x+=2400*dt;
+  if(t.x>=WALLX){t.dead=1;if(t.y<GY-6&&t.y>TOP+4)ledges.push({y:t.y,x0:WALLX-ledgeLen()});else fx.push({x:WALLX-40,y:t.y,t:1,s:"too high!"})}}
+
  fly=fly.filter(t=>!t.dead);
  if(state==="play"){
   const mv=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0);if(mv)p.f=mv;
@@ -42,7 +41,7 @@ function update(dt){
   if(p.vy>=0){
    for(const l of ledges)if(p.x+PW/2>l.x0&&p.x-PW/2<WALLX&&py<=l.y+2&&p.y>=l.y){p.y=l.y;p.vy=0;p.g=true}
    if(p.x+PW/2>WALLX&&py<=TOP+2&&p.y>=TOP){p.y=TOP;p.vy=0;p.g=true}}
-  if(p.y<=TOP&&p.x>WALLX+60&&p.x<WALLX+150&&p.g)win();
+  if(p.y<=TOP+2&&p.y>TOP-50&&p.x>WALLX+60&&p.x<WALLX+150)win();
  }
  const ty=p.y-380;cy+=(Math.max(TOP-300,Math.min(-540,ty))-cy)*Math.min(1,dt*5);
 }
@@ -58,25 +57,24 @@ function draw(){
  x.fillStyle="#a8a29e";x.fillRect(WALLX-6,Math.max(TOP,vt-10),6,Math.min(GY,vb+10)-Math.max(TOP,vt-10));
  x.fillStyle="#57534e";x.fillRect(WALLX,TOP,200,14);x.fillStyle="#65a30d";x.fillRect(WALLX,TOP,200,5);
  x.fillStyle="#365314";x.fillRect(0,GY,W,2000);x.fillStyle="#65a30d";x.fillRect(0,GY,W,10);
- x.fillStyle="#78350f";x.fillRect(WALLX+70,TOP-46,46,46);x.fillStyle="#fbbf24";x.fillRect(WALLX+75,TOP-41,36,41);text("EXIT",WALLX+93,TOP-54,16,"#fff");
+ for(let k=0;k<4;k++){x.strokeStyle=["#a78bfa","#22d3ee","#e879f9","#fff"][k];x.lineWidth=3;x.beginPath();x.ellipse(WALLX+105,TOP-30,16-k*3+Math.sin(frames/6+k)*2,28-k*5,0,0,6.3);x.stroke()}text("PORTAL",WALLX+105,TOP-66,16,"#fff");
  for(const l of ledges)plank(l.x0,l.y,ledgeLen());
- for(const t of fly){x.save();x.translate(t.x,t.y);x.rotate(t.r);x.fillStyle="#d97706";x.fillRect(-ledgeLen()/2,-4,ledgeLen(),8);x.restore()}
- if(state==="play"&&left>0&&!fly.length){x.strokeStyle="#fff9";x.lineWidth=3;x.setLineDash([6,8]);x.beginPath();let first=true;x.moveTo(p.x,p.y-PH/2);for(const q of path(mouse.x,mouse.y))x.lineTo(q[0],q[1]);x.stroke();x.setLineDash([])}
+ for(const t of fly){x.fillStyle="#fbbf24";x.fillRect(t.x-ledgeLen(),t.y-3,ledgeLen(),6)}
+ if(state==="play"&&p.x<WALLX-PW/2-2){x.strokeStyle="#fff7";x.lineWidth=2;x.setLineDash([6,8]);x.beginPath();x.moveTo(p.x+8,p.y-30);x.lineTo(WALLX,p.y-30);x.stroke();x.setLineDash([])}
  man(p.x,p.y,p.f);
  for(const f of fx){x.globalAlpha=Math.min(1,f.t*2);text(f.s,f.x,f.y,18,"#fca5a5");x.globalAlpha=1}
  x.restore();
- text(`Level ${level}`,14,32,26,"#fff","left");text(`Ledges: ${left}`,14,62,22,left?"#fcd34d":"#f87171","left");text(`🪙 ${save.coins}`,W-14,32,24,"#fde047","right");text(`Height ${Math.max(0,Math.round(-p.y/10))}/${Math.round(-TOP/10)}m`,W-14,60,18,"#bae6fd","right");
- if(state==="play"&&left===0&&!fly.length&&!ledges.some(l=>l.y<p.y-1)){text("Out of ledges! Press R to retry",W/2,100,26,"#f87171")}
- if(state==="won"){x.fillStyle="#000a";x.fillRect(0,0,W,H);text("Level complete!",W/2,H/2-50,46,"#fcd34d");text(msg,W/2,H/2,28,"#fde047");text("Press Space or click for the next level",W/2,H/2+50,20,"#cbd5e1")}
+ text(`Level ${level}`,14,32,26,"#fff","left");text("Shoot: click / E",14,62,20,"#fcd34d","left");text(`🪙 ${save.coins}`,W-14,32,24,"#fde047","right");text(`Height ${Math.max(0,Math.round(-p.y/10))}/${Math.round(-TOP/10)}m`,W-14,60,18,"#bae6fd","right");
+ if(state==="won"){x.fillStyle="#000a";x.fillRect(0,0,W,H);text("Portal reached!",W/2,H/2-50,46,"#fcd34d");text(msg,W/2,H/2,28,"#fde047");text("Press Space or click for the next level",W/2,H/2+50,20,"#cbd5e1")}
 }
 function shopUI(){const s=document.querySelector("#shop");s.innerHTML="";for(const k in UP){const l=save.up[k],c=cost(l),bt=document.createElement("button");bt.textContent=`${UP[k].n} Lv${l} (${UP[k].d(l)}) – 🪙${c}`;bt.disabled=save.coins<c;bt.onclick=()=>{if(save.coins>=c){save.coins-=c;save.up[k]++;persist();const lv=level;init(lv)}};s.appendChild(bt)}}
 function pos(e){const r=C.getBoundingClientRect();return{x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*H/r.height+cy}}
 C.addEventListener("pointermove",e=>{mouse=pos(e)});
-C.addEventListener("pointerdown",e=>{mouse=pos(e);if(state==="won")init(save.level);else throwAt(mouse.x,mouse.y)});
-addEventListener("keydown",e=>{keys[e.code]=1;if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code))e.preventDefault();if(e.code==="KeyR")init(level);if(e.code==="KeyF")fsToggle();if(e.code==="Space"&&state==="won")init(save.level)});
+C.addEventListener("pointerdown",e=>{mouse=pos(e);if(state==="won")init(save.level);else throwAt()});
+addEventListener("keydown",e=>{keys[e.code]=1;if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code))e.preventDefault();if(e.code==="KeyR")init(level);if(e.code==="KeyE"||e.code==="Enter")throwAt();if(e.code==="KeyF")fsToggle();if(e.code==="Space"&&state==="won")init(save.level)});
 addEventListener("keyup",e=>keys[e.code]=0);
 for(const[id,c]of[["l","ArrowLeft"],["r","ArrowRight"],["j","Space"]]){const e=document.querySelector("#"+id);e.addEventListener("pointerdown",()=>keys[c]=1);e.addEventListener("pointerup",()=>keys[c]=0);e.addEventListener("pointerleave",()=>keys[c]=0)}
-document.querySelector("#rs").onclick=()=>init(level);
+document.querySelector("#sh").addEventListener("pointerdown",e=>{e.stopPropagation();throwAt()});document.querySelector("#rs").onclick=()=>init(level);
 const fsToggle=()=>{const m=document.querySelector("main");if(document.fullscreenElement)document.exitFullscreen();else if(m.requestFullscreen)m.requestFullscreen().catch(()=>{})};
 document.querySelector("#fs").onclick=fsToggle;
 let last=performance.now();function loop(t){const dt=Math.min(.033,(t-last)/1000);last=t;frames++;update(dt);draw();requestAnimationFrame(loop)}
