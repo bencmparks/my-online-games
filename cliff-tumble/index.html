@@ -3,12 +3,12 @@
 :root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:#0b1020}
 main{width:min(100%,60rem);padding:1rem;border:.2rem solid #f59e0b;border-radius:1.25rem;background:rgb(8 12 30 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.4rem 0;color:#fcd34d;font-size:1.6rem}
 canvas{display:block;width:100%;height:auto;margin:.6rem auto;border:.2rem solid #475569;border-radius:.4rem;touch-action:none;cursor:crosshair}
-.row{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap;margin:.4rem 0}.row button{padding:.6rem .9rem;border:0;border-radius:.6rem;background:#b45309;color:#fff;font-weight:700;font-size:1rem;cursor:pointer;user-select:none}.row button:disabled{opacity:.45;cursor:default}
+main:fullscreen{width:100vw;max-width:none;height:100vh;display:flex;flex-direction:column;justify-content:center;border-radius:0;overflow:auto}main:fullscreen canvas{width:auto;max-width:100%;max-height:calc(100vh - 11rem);margin:.4rem auto}main:fullscreen p{display:none}.row{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap;margin:.4rem 0}.row button{padding:.6rem .9rem;border:0;border-radius:.6rem;background:#b45309;color:#fff;font-weight:700;font-size:1rem;cursor:pointer;user-select:none}.row button:disabled{opacity:.45;cursor:default}
 </style></head>
 <body><main><a href="../">← All games</a><h1>🪓 Ledge Throw</h1>
-<p><strong>Click or tap</strong> to throw a ledge at the wall – it sticks where it hits. Climb your ledges to the 🚪 exit at the TOP! Move with <strong>A/D</strong> or <strong>◀ ▶</strong>, jump with <strong>W / Space</strong>. You only get a few ledges per level, so place them well. <strong>R</strong> restarts the level.</p>
+<p><strong>Click or tap</strong> to throw a ledge at the wall – it sticks where it hits. Climb your ledges to the 🚪 exit at the top! Move with <strong>A/D</strong> or <strong>◀ ▶</strong>, jump with <strong>W / Space</strong>. You only get a few ledges per level, so place them well. <strong>R</strong> restarts the level.</p>
 <canvas id="c" width="900" height="640" aria-label="Ledge Throw game"></canvas>
-<div class="row"><button id="l">◀</button><button id="j">⤒ Jump</button><button id="r">▶</button><button id="rs">↺ Restart</button></div>
+<div class="row"><button id="l">◀</button><button id="j">⤒ Jump</button><button id="r">▶</button><button id="rs">↺ Restart</button><button id="fs">⛶ Fullscreen</button></div>
 <div class="row" id="shop"></div>
 </main>
 <script>
@@ -35,7 +35,7 @@ function update(dt){
   if((keys.KeyW||keys.ArrowUp||keys.Space)&&p.g){p.vy=-(620+save.up.jump*35);p.g=false}
   const py=p.y;p.vy+=1500*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.g=false;
   if(p.x<PW/2)p.x=PW/2;
-  if(p.y>-top-0&&false){}
+  
   if(p.y>TOP+6&&p.x>WALLX-PW/2)p.x=WALLX-PW/2;
   if(p.x>WALLX+190)p.x=WALLX+190;
   if(p.y>=GY){p.y=GY;p.vy=0;p.g=true}
@@ -44,7 +44,7 @@ function update(dt){
    if(p.x+PW/2>WALLX&&py<=TOP+2&&p.y>=TOP){p.y=TOP;p.vy=0;p.g=true}}
   if(p.y<=TOP&&p.x>WALLX+60&&p.x<WALLX+150&&p.g)win();
  }
- const ty=p.y-380;cy+=(Math.max(top-300,Math.min(-540,ty))-cy)*Math.min(1,dt*5);
+ const ty=p.y-380;cy+=(Math.max(TOP-300,Math.min(-540,ty))-cy)*Math.min(1,dt*5);
 }
 function text(s,a,b,size,col,al="center"){x.font=`bold ${size}px Arial`;x.textAlign=al;x.fillStyle=col;x.lineWidth=4;x.strokeStyle="#0f172a";x.lineJoin="round";x.strokeText(s,a,b);x.fillText(s,a,b)}
 function plank(x0,y,len){x.fillStyle="#92400e";x.fillRect(x0,y,len,10);x.fillStyle="#d97706";x.fillRect(x0,y,len,4);x.fillStyle="#451a03";for(let k=x0+14;k<x0+len-6;k+=22)x.fillRect(k,y+5,3,3)}
@@ -54,11 +54,11 @@ function draw(){
  x.save();x.translate(0,-cy);
  const vt=cy,vb=cy+H;
  x.fillStyle="#57534e";x.fillRect(WALLX,Math.max(TOP,vt-10),W-WALLX,Math.min(GY,vb+10)-Math.max(TOP,vt-10));
- x.fillStyle="#44403c";for(let k=Math.floor(vt/70)-1;k<vb/70+1;k++){const yy=k*70;if(yy<TOP||yy>GY)continue;x.fillRect(WALLX+((k*37)%5)*40,yy,60,8);x.fillRect(WALLX+((k*53)%4)*50+20,yy+30,40,8)}
+ x.fillStyle="#4f4b47";for(let k=Math.floor(vt/70)-1;k<vb/70+1;k++){const yy=k*70;if(yy<TOP||yy>GY)continue;x.fillRect(WALLX+20+((k*37)%5)*40,yy,22,4);x.fillRect(WALLX+((k*53)%4)*50+60,yy+30,18,4)}
  x.fillStyle="#a8a29e";x.fillRect(WALLX-6,Math.max(TOP,vt-10),6,Math.min(GY,vb+10)-Math.max(TOP,vt-10));
  x.fillStyle="#57534e";x.fillRect(WALLX,TOP,200,14);x.fillStyle="#65a30d";x.fillRect(WALLX,TOP,200,5);
  x.fillStyle="#365314";x.fillRect(0,GY,W,2000);x.fillStyle="#65a30d";x.fillRect(0,GY,W,10);
- x.fillStyle="#78350f";x.fillRect(WALLX+70,top-46,46,46);x.fillStyle="#fbbf24";x.fillRect(WALLX+75,top-41,36,41);text("EXIT",WALLX+93,top-54,16,"#fff");
+ x.fillStyle="#78350f";x.fillRect(WALLX+70,TOP-46,46,46);x.fillStyle="#fbbf24";x.fillRect(WALLX+75,TOP-41,36,41);text("EXIT",WALLX+93,TOP-54,16,"#fff");
  for(const l of ledges)plank(l.x0,l.y,ledgeLen());
  for(const t of fly){x.save();x.translate(t.x,t.y);x.rotate(t.r);x.fillStyle="#d97706";x.fillRect(-ledgeLen()/2,-4,ledgeLen(),8);x.restore()}
  if(state==="play"&&left>0&&!fly.length){x.strokeStyle="#fff9";x.lineWidth=3;x.setLineDash([6,8]);x.beginPath();let first=true;x.moveTo(p.x,p.y-PH/2);for(const q of path(mouse.x,mouse.y))x.lineTo(q[0],q[1]);x.stroke();x.setLineDash([])}
@@ -70,13 +70,15 @@ function draw(){
  if(state==="won"){x.fillStyle="#000a";x.fillRect(0,0,W,H);text("Level complete!",W/2,H/2-50,46,"#fcd34d");text(msg,W/2,H/2,28,"#fde047");text("Press Space or click for the next level",W/2,H/2+50,20,"#cbd5e1")}
 }
 function shopUI(){const s=document.querySelector("#shop");s.innerHTML="";for(const k in UP){const l=save.up[k],c=cost(l),bt=document.createElement("button");bt.textContent=`${UP[k].n} Lv${l} (${UP[k].d(l)}) – 🪙${c}`;bt.disabled=save.coins<c;bt.onclick=()=>{if(save.coins>=c){save.coins-=c;save.up[k]++;persist();const lv=level;init(lv)}};s.appendChild(bt)}}
-function pos(e){const r=C.getBoundingClientRect();return{x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.TOP)*H/r.height+cy}}
+function pos(e){const r=C.getBoundingClientRect();return{x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*H/r.height+cy}}
 C.addEventListener("pointermove",e=>{mouse=pos(e)});
 C.addEventListener("pointerdown",e=>{mouse=pos(e);if(state==="won")init(save.level);else throwAt(mouse.x,mouse.y)});
-addEventListener("keydown",e=>{keys[e.code]=1;if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code))e.preventDefault();if(e.code==="KeyR")init(level);if(e.code==="Space"&&state==="won")init(save.level)});
+addEventListener("keydown",e=>{keys[e.code]=1;if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code))e.preventDefault();if(e.code==="KeyR")init(level);if(e.code==="KeyF")fsToggle();if(e.code==="Space"&&state==="won")init(save.level)});
 addEventListener("keyup",e=>keys[e.code]=0);
 for(const[id,c]of[["l","ArrowLeft"],["r","ArrowRight"],["j","Space"]]){const e=document.querySelector("#"+id);e.addEventListener("pointerdown",()=>keys[c]=1);e.addEventListener("pointerup",()=>keys[c]=0);e.addEventListener("pointerleave",()=>keys[c]=0)}
 document.querySelector("#rs").onclick=()=>init(level);
+const fsToggle=()=>{const m=document.querySelector("main");if(document.fullscreenElement)document.exitFullscreen();else if(m.requestFullscreen)m.requestFullscreen().catch(()=>{})};
+document.querySelector("#fs").onclick=fsToggle;
 let last=performance.now();function loop(t){const dt=Math.min(.033,(t-last)/1000);last=t;frames++;update(dt);draw();requestAnimationFrame(loop)}
 init();requestAnimationFrame(loop);
 </script></body></html>
