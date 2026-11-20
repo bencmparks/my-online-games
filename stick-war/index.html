@@ -20,7 +20,7 @@ function newGame(){U=[];A=[];gold=[300,200+level*60];smax=[1500,1200+level*350];
  for(const k of carry)spawn(0,k);spawn(1,"miner");spawn(1,"miner");for(let i=0;i<level;i++)spawn(1,i%3===2?"archer":"sword")}
 function spawn(tm,ty){const d=T[ty];U.push({t:ty,tm,x:BX[tm]+(tm?-40:40)+Math.random()*20,hp:d.hp,max:d.hp,cd:0,an:Math.random()*6,sw:0,st:0,tmr:0,ar:tm?-1:1})}
 function pop(tm){return U.filter(u=>u.tm===tm).length}
-function buy(ty,tm=0){const d=T[ty];if(state!=="play"||gold[tm]<d.c||pop(tm)>=45||(tm===0&&spawnCd>0))return false;gold[tm]-=d.c;spawn(tm,ty);if(tm===0)spawnCd=.45;return true}
+function buy(ty,tm=0){const d=T[ty];if(state!=="play"||gold[tm]<d.c||(tm===0&&spawnCd>0))return false;gold[tm]-=d.c;spawn(tm,ty);if(tm===0)spawnCd=.45;return true}
 function nearest(u){let b=null,bd=1e9;for(const o of U)if(o.tm!==u.tm){const dd=Math.abs(o.x-u.x);if(dd<bd){bd=dd;b=o}}return b?{o:b,d:bd}:null}
 function hurt(o,dm){o.hp-=dm;o.hit=.12}
 function update(dt){
@@ -99,7 +99,7 @@ function draw(){
  x.strokeStyle="#f1f5f9";x.lineWidth=2;for(const a of A){const sx=a.x-cam,ang=Math.atan2(a.vy,a.vx);line(sx,a.y,sx-Math.cos(ang)*14,a.y-Math.sin(ang)*14)}
  for(const f of rainFx){x.fillStyle="rgba(251,191,36,.3)";x.fillRect(f.x-cam-4,0,8,GY)}
  x.restore();
- text(`💰 ${Math.floor(gold[0])}`,12,28,24,"#fde047","left");text(`Army ${pop(0)}/45`,12,54,16,"#bae6fd","left");
+ text(`💰 ${Math.floor(gold[0])}`,12,28,24,"#fde047","left");text(`Army ${pop(0)}`,12,54,16,"#bae6fd","left");
  text(`Level ${level+1}/20`,W/2,28,22,"#fff");text(stance?"⚔️ ATTACK":"🛡️ DEFEND",W/2,52,18,stance?"#fca5a5":"#86efac");
  text(rain>0?`Arrow Rain ${Math.ceil(rain)}s`:"Arrow Rain ready (R)",W-12,28,16,rain>0?"#94a3b8":"#fbbf24","right");
  const mw=140,mx=W-mw-12,my=44;x.fillStyle="rgba(15,23,42,.7)";x.fillRect(mx,my,mw,12);
