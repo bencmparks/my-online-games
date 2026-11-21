@@ -12,6 +12,7 @@ canvas{display:block;width:100%;height:auto;margin:.8rem auto;border:.2rem solid
 <button id="sp">Speed: 1x</button></div>
 <div class="row" id="shop"></div>
 </main>
+<script src="../ads.js"></script>
 <script>
 const C=document.querySelector("#c"),x=C.getContext("2d"),W=1280,H=680,G=900,R=12,KEY="ledgeThrowSave",Z=.32;
 let save={coins:0,best:0,stars:[],up:{pow:0,bounce:0,slide:0,boost:0,coin:0}};try{const s=JSON.parse(localStorage.getItem(KEY));if(s)save=Object.assign(save,s)}catch(e){}
@@ -102,7 +103,7 @@ const shop=document.querySelector("#shop");
 function setMode(i){puz=i;genTerrain();init()}
 function shopUI(){shop.innerHTML="";if(puz>=0){LV.forEach((L,i)=>{const bt=document.createElement("button"),st=save.stars[i]||0;bt.textContent=`${i+1}. ${L.n} ${"★".repeat(st)}${"☆".repeat(3-st)}`;if(i===puz)bt.className="t";bt.disabled=state==="fly";bt.onclick=()=>setMode(i);shop.append(bt)});const e=document.createElement("button");e.textContent="♾ Endless mode";e.disabled=state==="fly";e.onclick=()=>setMode(-1);shop.append(e);return}for(const k in UP){const l=save.up[k],max=UP[k].max&&l>=UP[k].max,c=cost(k,l),bt=document.createElement("button");bt.textContent=max?`${UP[k].n}: OWNED`:`${UP[k].n} Lv${l} → 🪙${c}`;bt.title=UP[k].d(l);bt.disabled=max||save.coins<c||state==="fly";bt.onclick=()=>{if(save.coins>=c&&state!=="fly"&&!max){save.coins-=c;save.up[k]++;persist();if(state==="aim")boosts=totalBoosts();shopUI()}};shop.append(bt)}const pz=document.createElement("button");pz.textContent="🧩 Puzzle mode";pz.className="t";pz.disabled=state==="fly";pz.onclick=()=>setMode(save.stars.findIndex(v=>!v)<0?0:save.stars.findIndex(v=>!v));shop.append(pz)}
 document.querySelector("#lg").addEventListener("pointerdown",e=>{e.preventDefault();dropLedge()});
-genTerrain();init();
+genTerrain();init();GameAds.init({reward:"+250 🪙",onReward:()=>{save.coins+=250;persist();shopUI()}});
 let last=performance.now();
 function loop(ts){const dt=Math.min(.033,(ts-last)/1000);last=ts;frames++;for(let k=0;k<spd;k++)update(dt);draw();
 requestAnimationFrame(loop)}

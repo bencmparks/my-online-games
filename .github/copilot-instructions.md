@@ -127,3 +127,7 @@ Keep a list of my games here.
 - Pipe Panic (`pipe-panic/`, rotate pipes to connect the water source to every tile, 4x4 to 8x8)
 - Code Breaker (`code-breaker/`, Mastermind-style 4-color code in 10 tries)
 - Pig Escape (`pig-escape/`, autumn pixel farm escape: 30 screens, Lila smashes crates and digs mud mounds one at a time and digs buried keys out of mud, presses paw plates; tip pigs on every screen, rescue a little piglet (brass key, cage) who squeezes through tiny fences; red/blue/gold keys, latches, farmers and dogs)
+
+## ads
+
+Shared ds.js (root) shows a cross-promo ad for another of my games; clicking it opens that game and gives a one-time reward via GameAds.init({reward, onReward}). Currently used in Cliff Chucker (+250 coins) and Pig Escape (Lila fully rested). Add it to other games with <script src="../ads.js"></script> after </main> and a GameAds.init call.

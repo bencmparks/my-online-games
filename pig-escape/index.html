@@ -11,7 +11,8 @@ main:fullscreen{width:100vw;max-width:none;height:100vh;display:flex;flex-direct
 <p>A funny pixel thinking game: escape the farm through 30 screens in <b>real time</b> – farmers and dogs keep patrolling, and if one <b>touches you</b> you go back to the start of the screen. Free <b>Lila</b> with a lever puzzle (read the signs for clues), tunnel between mud patches, and rescue the piglet. Find a <b>translator</b> for each animal (cow, sheep, chicken, duck, goat, horse), <b>bribe</b> toll-gate guards with the food they ask for, and learn <b>jokes</b> from the animals: one horse opens his gate only for the funniest joke. <b>Arrows / WASD</b> move (hold), <b>E</b> use / talk / tunnel, <b>Space</b> pause, <b>Q</b> choose where Lila distracts, <b>R</b> restart.</p>
 <canvas id="c" width="320" height="192" aria-label="Pig Escape game"></canvas>
 <div class="pad"><button id="bl">◀</button><button id="bu">▲</button><button id="bd">▼</button><button id="br">▶</button><button id="be">E: Use / Tunnel</button><button id="bw">Pause</button><button id="bq">Q: Lila distract</button><button id="bf">⛶ Fullscreen</button></div>
-</main><script>
+</main>
+<script src="../ads.js"></script><script>
 const C=document.querySelector("#c"),x=C.getContext("2d");x.imageSmoothingEnabled=false;
 const VW=320,VH=192,T=16,SW=20,SH=12,COLS=6,ROWS=5,N=30,MW=COLS*SW,MH=ROWS*SH,SOLID=new Set("#TWXGrLDhpqMuKJNVB"),signC={};
 let map,lila,piglet,farmers,items,npcs,P,keys,keys0={},buried,tun,leverAt,hist,msg="",msgT=0,state,noise,turns,decoyCd,caughtT,frames=0,spawn,signs,screenNo,aim,camX=0,camY=0;
@@ -413,5 +414,5 @@ C.addEventListener("pointerdown",e=>{if(!aim)return;const r=C.getBoundingClientR
 for(const[id,k]of[["bl","ArrowLeft"],["br","ArrowRight"],["bu","ArrowUp"],["bd","ArrowDown"]]){const b=document.querySelector("#"+id);b.addEventListener("pointerdown",()=>{if(aim){aimMove(k==="ArrowLeft"?-1:k==="ArrowRight"?1:0,k==="ArrowUp"?-1:k==="ArrowDown"?1:0)}else keys0[k]=1});for(const ev of["pointerup","pointerleave","pointercancel"])b.addEventListener(ev,()=>keys0[k]=0)}
 document.querySelector("#be").addEventListener("pointerdown",()=>aim?confirmAim():act());document.querySelector("#bw").addEventListener("pointerdown",()=>aim?(aim=null,msgT=0):waitTurn());document.querySelector("#bq").addEventListener("pointerdown",()=>aim?confirmAim():startAim());
 document.querySelector("#bf").onclick=()=>{const m=document.querySelector("main");document.fullscreenElement?document.exitFullscreen():m.requestFullscreen&&m.requestFullscreen()};
-init();requestAnimationFrame(loop);
+init();requestAnimationFrame(loop);GameAds.init({reward:"Lila rests no more",onReward:()=>{decoyCd=0;say("Thanks for visiting! Lila is fully rested.",4)}});
 </script></body></html>
