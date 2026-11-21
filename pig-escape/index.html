@@ -2,17 +2,17 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pig Escape | My Online Games</title><style>
 :root{color-scheme:dark;font-family:Arial,sans-serif;background:#1c1208;color:#f5e6c8}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:#1c1208}
 main{width:min(100%,62rem);padding:1rem;border:.2rem solid #f59e0b;border-radius:1.25rem;background:rgb(40 24 10 / 94%);text-align:center}a{color:#fcd34d}h1{margin:.4rem 0;color:#fbbf24;font-size:1.6rem}
-canvas{display:block;width:100%;height:auto;margin:.6rem auto;border:.2rem solid #92400e;border-radius:.4rem;touch-action:none}
+canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block;width:100%;height:auto;margin:.6rem auto;border:.2rem solid #92400e;border-radius:.4rem;touch-action:none}
 .pad{display:flex;flex-wrap:wrap;gap:.4rem;justify-content:center}.pad button{padding:.6rem 1rem;border:0;border-radius:.6rem;background:#b45309;color:#fff;font-weight:bold;font-size:1.1rem;cursor:pointer;touch-action:none;user-select:none}
 main:fullscreen{width:100vw;max-width:none;height:100vh;display:flex;flex-direction:column;justify-content:center;border-radius:0;overflow:auto}main:fullscreen canvas{width:auto;max-width:100%;max-height:calc(100vh - 8rem);margin:.4rem auto}main:fullscreen p{display:none}
 </style></head><body><main>
 <a href="../">← All games</a>
 <h1>🐖 Pig Escape</h1>
-<p>A funny thinking game: escape the farm through 30 screens. Everything is <b>turn-based</b> – farmers move only when you do, and if one <b>touches you</b> you go back to the start of the screen. Free <b>Lila</b> with a lever puzzle (read the signs for clues), tunnel between mud patches, and rescue the piglet. Find a <b>translator</b> for each animal (cow, sheep, chicken, duck, goat, horse), <b>bribe</b> toll-gate guards with the food they ask for, and learn <b>jokes</b> from the animals: one horse opens his gate only for the funniest joke. <b>Arrows / WASD</b> step, <b>E</b> use / talk / tunnel, <b>Space</b> wait, <b>Q</b> choose where Lila distracts, <b>R</b> restart.</p>
-<canvas id="c" width="640" height="384" aria-label="Pig Escape game"></canvas>
-<div class="pad"><button id="bl">◀</button><button id="bu">▲</button><button id="bd">▼</button><button id="br">▶</button><button id="be">E: Use / Tunnel</button><button id="bw">Wait</button><button id="bq">Q: Lila distract</button><button id="bf">⛶ Fullscreen</button></div>
+<p>A funny pixel thinking game: escape the farm through 30 screens in <b>real time</b> – farmers and dogs keep patrolling, and if one <b>touches you</b> you go back to the start of the screen. Free <b>Lila</b> with a lever puzzle (read the signs for clues), tunnel between mud patches, and rescue the piglet. Find a <b>translator</b> for each animal (cow, sheep, chicken, duck, goat, horse), <b>bribe</b> toll-gate guards with the food they ask for, and learn <b>jokes</b> from the animals: one horse opens his gate only for the funniest joke. <b>Arrows / WASD</b> move (hold), <b>E</b> use / talk / tunnel, <b>Space</b> pause, <b>Q</b> choose where Lila distracts, <b>R</b> restart.</p>
+<canvas id="c" width="320" height="192" aria-label="Pig Escape game"></canvas>
+<div class="pad"><button id="bl">◀</button><button id="bu">▲</button><button id="bd">▼</button><button id="br">▶</button><button id="be">E: Use / Tunnel</button><button id="bw">Pause</button><button id="bq">Q: Lila distract</button><button id="bf">⛶ Fullscreen</button></div>
 </main><script>
-const C=document.querySelector("#c"),x=C.getContext("2d");x.imageSmoothingEnabled=true;
+const C=document.querySelector("#c"),x=C.getContext("2d");x.imageSmoothingEnabled=false;
 const VW=320,VH=192,T=16,SW=20,SH=12,COLS=6,ROWS=5,N=30,MW=COLS*SW,MH=ROWS*SH,SOLID=new Set("#TWXGrLDhpqMuKJNVB"),signC={};
 let map,lila,piglet,farmers,items,npcs,P,keys,keys0={},buried,tun,leverAt,hist,msg="",msgT=0,state,noise,turns,decoyCd,caughtT,frames=0,spawn,signs,screenNo,aim,camX=0,camY=0;
 const SHAPES=["triangle","circle","square","diamond"],SCOL={triangle:"#ef4444",circle:"#3b82f6",square:"#22c55e",diamond:"#facc15"};
@@ -27,7 +27,7 @@ const scrOf=n=>{const sy=(n-1)/COLS|0,i=(n-1)%COLS;return[sy%2===0?i:COLS-1-i,sy
 const seqNo=(sx,sy)=>sy*COLS+(sy%2===0?sx+1:COLS-sx);
 const PLAN={1:["latch"],2:["lever","latch"],3:["latch","freeLila"],4:["mound","latch"],5:["plate","bribe"],6:["lever"],7:["red"],8:["bribe","red"],9:["lever","plate"],10:["latch","blue"],11:["red","bribe"],12:["freePiglet"],13:["pig"],14:["bribe","lever"],15:["plate","pig"],16:["blue","lever"],17:["bribe","pig"],18:["red"],19:["pig"],20:["lever","bribe"],21:["plate","red"],22:["blue","bribe"],23:["pig","lever"],24:["lever"],25:["bribe"],26:["red","joke"],27:["lever","blue"],28:["bribe","lever"],29:["lever","bribe"],30:["gold"]};
 const TIP={latch:"Latches are hoof work. Walk up and press E for each latch.",crate:"Crates are heavy. Stand next to one and press E: Lila smashes ONE crate per press, so it takes several presses.",mound:"Muddy mounds block the way. Press E and Lila digs away one pile at a time.",plate:"See the paw plate inside the pen? Stay close, press E, and Lila squeezes in to press it. The door opens.",red:"The red gate needs a red key, buried in a fenced mud garden. Stand on a linked mud patch and press E to tunnel in, then press E again so Lila digs it up!",blue:"The blue gate needs a blue key, buried in a fenced mud garden. Tunnel in from a linked mud patch (press E on it).",bribe:"Toll gates! A guard animal speaks only its own language, so find that animal's translator first. Then bring the food it asks for.",joke:"A horse guards this gate and only opens for a REALLY funny joke. Learn jokes from animals (you need their translator!) and tell them to the horse. It rates each one.",pig:"Those pink-wire fences have tiny holes. Only a piglet can squeeze through and unlatch them.",gold:"The golden gate is the last one. The gold key waited on the screen before this one.",lever:"Pull the levers in the right order to open the way. My clues tell you the order. A wrong pull resets them, so think first!",freeLila:"Lila the pig is locked in the cage ahead! Solve the lever puzzle with my clues to free her.",freePiglet:"A little piglet is locked in the cage ahead. You need the brass key from the fenced mud garden: tunnel in and dig it up."};
-const GEN=["Farmers only move when you move. Press Space to wait a turn.","Being seen is fine. Only a farmer or dog TOUCHING you sends you back to the start of the screen.","Farmers who see you will chase you. Tunnel through mud to lose them!","Dogs move two steps for every one of yours. Do not let them reach you.","Press Q to send Lila to any spot you choose. Farmers go to check the noise.","Linked mud patches have a dark hole. Press E on one to pop up in the other.","Farmers cannot see through fences or trees.","The dotted line shows where a farmer patrols. Plan your route!","Animals tell jokes! Translate them to learn a joke. Talk again for a new one.","Goats are everywhere. They are very opinionated about socks."];
+const GEN=["Everything happens in real time. Press Space to pause.","Being seen is fine. Only a farmer or dog TOUCHING you sends you back to the start of the screen.","Farmers who see you will chase you. Tunnel through mud to lose them!","Dogs run twice as fast as farmers. Do not let them reach you.","Press Q to send Lila to any spot you choose. Farmers go to check the noise. She needs a few seconds to rest after.","Linked mud patches have a dark hole. Press E on one to pop up in the other.","Farmers cannot see through fences or trees.","The dotted line shows where a farmer patrols. Plan your route!","Animals tell jokes! Translate them to learn a joke. Talk again for a new one.","Goats are everywhere. They are very opinionated about socks."];
 const NAMES=["Old Boar","Hamlet","Truffles","Porkchop","Sir Oinks","Rosie","Wilbur","Bacon Jr.","Penny","Gordy","Snout","Curly","Hammy","Trotter","Peppa","Napoleon","Snowball","Oinkers","Duchess","Butch","Pinky","Mudbath","Sage","Bristle","Clover","Tusk","Pudding","Maple","Nibbles","Big Ham"];
 const PCOL=["#f4a6b8","#e8b4a0","#d9c2a0","#c9a0dc","#a0c4e8","#e8e0a0","#f0a0a0","#b0e0b0"];
 const SP={cow:{c:"#f5f5f4",snd:"Moo",k:"C",tr:4,names:["Daisy","Bessie","Clarabelle","Buttercup"]},sheep:{c:"#e7e5e4",snd:"Baa",k:"S",tr:7,names:["Woolly","Fluffy","Cotton","Lambchop"]},chicken:{c:"#fde68a",snd:"Bawk",k:"K",tr:10,names:["Henrietta","Cluck","Peck","Nugget"]},duck:{c:"#fde047",snd:"Quack",k:"D",tr:13,names:["Waddles","Puddles","Mallory","Dabble"]},goat:{c:"#a8a29e",snd:"Meh-eh",k:"G",tr:16,names:["Billy","Nanny","Gruff","Capri"]},horse:{c:"#92400e",snd:"Neigh",k:"H",tr:19,names:["Thunder","Biscuit","Comet","Dusty"]}};
@@ -65,7 +65,7 @@ function init(){
  for(let n=1;n<=N;n++)build(n);
  keys={red:0,blue:0,gold:0,brass:0,tr:{},food:{},jokes:[]};
  P={tx:3,ty:5,x:ctr(3),y:ctr(5),ax:ctr(3),ay:ctr(5),f:1,fy:0};
- hist=[[3,5]];noise=null;aim=null;turns=0;decoyCd=0;caughtT=0;state="play";msg="You are a pig, alone in the pen. Farmers only move when you do. Find a way out!";msgT=6;spawn={tx:3,ty:5};screenNo=1;
+ hist=[[3,5]];noise=null;aim=null;turns=0;tickAcc=0;paused=false;decoyCd=0;caughtT=0;state="play";msg="You are a pig, alone in the pen. Farmers are on patrol. Find a way out!";msgT=6;spawn={tx:3,ty:5};screenNo=1;
 }
 function build(n){
  const[sx,sy]=scrOf(n),rn=rng(n*7919+3),occ=new Set(),abs=(lx,ly)=>[sx*SW+lx,sy*SH+ly];
@@ -116,7 +116,7 @@ function build(n){
  // tip pig
  const bx0=bxs[0],tx=Math.max(2,Math.min(17,bx0+(dir>0?-3:3)));
  const kinds=n===N?["gold"]:[...new Set(PLAN[n])];
- const lines=n===1?["Psst, new pig! You are in a pen on a farm. Walk right and open the latch with E.","Everything is turn-based: farmers only move when you do. Press Space to wait a turn.","Being seen is fine, but if a farmer touches you, you go back to the start of the screen."]:[...kinds.map(k=>TIP[k]),...(TRN[n]?[`A ${TRN[n]} translator lies on the ground near the top of this screen. Each kind of animal needs its own!`]:[]),...clueLines,GEN[(n*3)%GEN.length]];
+ const lines=n===1?["Psst, new pig! You are in a pen on a farm. Walk right and open the latch with E.","Everything is in real time: farmers keep walking. Press Space to pause.","Being seen is fine, but if a farmer touches you, you go back to the start of the screen."]:[...kinds.map(k=>TIP[k]),...(TRN[n]?[`A ${TRN[n]} translator lies on the ground near the top of this screen. Each kind of animal needs its own!`]:[]),...clueLines,GEN[(n*3)%GEN.length]];
  signs[abs(tx,10).join(",")]=lines.map(l=>"Sign: "+l);mark(tx,10,tx,10);
  {const sp=n%2===0?Object.keys(SP)[(n>>1)%6]:n>=3?"goat":null;
   if(sp){const cand=shuf(Array.from({length:16},(_,i)=>i+2).filter(v=>Math.abs(v-tx)>=3&&free(v,10,v,10)));if(cand.length){const c=abs(cand[0],10);mark(cand[0],10,cand[0],10);npcs.push({x:ctr(c[0]),y:ctr(c[1]),sp,name:SP[sp].names[n%4],lines:JOKES[sp],c:0})}}}
@@ -161,13 +161,17 @@ function pickup(){for(const it of items)if(!it.got&&Math.hypot(it.x-P.x,it.y-P.y
  else{keys[it.col]++;say(`You got the ${it.col} key!`,3)}}}
 function follow(snap){if(lila.free&&!noise){const h=hist[Math.max(0,hist.length-3)];setPos(lila,h[0],h[1],snap)}
  if(piglet.free){const h=hist[Math.max(0,hist.length-5)];setPos(piglet,h[0],h[1],snap)}}
+let tickAcc=0,paused=false;const TICK=.3;
+function checkCaught(){for(const f of farmers)if(sameScr(f,P)&&Math.hypot(P.x-f.x,P.y-f.y)<T*1.1){caught();return true}return false}
 function endTurn(){
- turns++;decoyCd=Math.max(0,decoyCd-1);if(noise&&--noise.t<=0){noise=null;follow()}
  pickup();
  if(tileAt(P.x,P.y)==="R"){state="won";return}
+ checkCaught()}
+function tick(){
+ turns++;decoyCd=Math.max(0,decoyCd-1);if(noise&&--noise.t<=0){noise=null;follow()}
  const[sx,sy]=scr(P.x,P.y);
  for(const f of farmers){const p=scr(f.x,f.y);if(p[0]===sx&&p[1]===sy)stepFarmer(f)}
- for(const f of farmers)if(sameScr(f,P)&&Math.hypot(P.x-f.x,P.y-f.y)<T*1.1){caught();return}}
+ checkCaught()}
 function tryMove(dx,dy){
  const nx=P.tx+dx,ny=P.ty+dy;if(dx)P.f=dx;P.fy=dx?0:dy;
  if(solidAt(ctr(nx),ctr(ny)))return;
@@ -227,19 +231,21 @@ function interact(){
  const c=COLN[ch];if(keys[c]>0){keys[c]--;openPair(t.tx,t.ty,ch);say(`The ${c} gate swings open!`);return true}
  say(`The ${c} gate is locked. You need the ${c} key.`);return false}
 const busy=()=>Math.hypot(P.x-P.ax,P.y-P.ay)>1.5;
-const canAct=()=>state==="play"&&caughtT<=0&&!busy()&&!aim;
+const canAct=()=>state==="play"&&!paused&&caughtT<=0&&!busy()&&!aim;
 function act(){if(canAct()&&interact())endTurn()}
-function waitTurn(){if(canAct()){say(rnd(WAITM),2);endTurn()}}
-function startAim(){if(!canAct())return;if(!lila.free){say("You have nobody to help you yet.",2);return}if(decoyCd>0){say(`Lila needs ${decoyCd} more turns to catch her breath.`,2);return}
+function waitTurn(){if(state==="play"&&!aim){paused=!paused;if(paused)say("Paused. Press Space to carry on.",30);else msgT=0}}
+function startAim(){if(!canAct())return;if(!lila.free){say("You have nobody to help you yet.",2);return}if(decoyCd>0){say(`Lila needs ${Math.ceil(decoyCd*TICK)} more seconds to catch her breath.`,2);return}
  aim={tx:Math.max(1,P.tx+P.f*3),ty:P.ty};keys0={};say("Choose where Lila makes noise: arrows or click, E to confirm, Esc to cancel.",30)}
 function aimMove(dx,dy){const[sx,sy]=scr(P.x,P.y),tx=aim.tx+dx,ty=aim.ty+dy;if(tx<sx*SW+1||tx>sx*SW+SW-2||ty<sy*SH+1||ty>sy*SH+SH-2)return;if(Math.hypot(tx-P.tx,ty-P.ty)>10)return;aim.tx=tx;aim.ty=ty}
 function confirmAim(){if(!aim)return;const{tx,ty}=aim;if(solidAt(ctr(tx),ctr(ty))){say("Pick an open tile for Lila to run to.",2);return}
- noise={tx,ty,t:6};setPos(lila,tx,ty);decoyCd=10;aim=null;msgT=0;say("Lila runs there and squeals! Farmers go to check.",3);endTurn()}
-function tw(e,dt){const dx=e.x-e.ax,dy=e.y-e.ay,d=Math.hypot(dx,dy);if(d<.5){e.ax=e.x;e.ay=e.y;e.mv=false;return}e.mv=true;if(dx)e.fc=dx>0?1:-1;const s=Math.min(d,170*dt);e.ax+=dx/d*s;e.ay+=dy/d*s}
+ noise={tx,ty,t:14};setPos(lila,tx,ty);decoyCd=24;aim=null;msgT=0;say("Lila runs there and squeals! Farmers go to check.",3);endTurn()}
+function tw(e,dt){const dx=e.x-e.ax,dy=e.y-e.ay,d=Math.hypot(dx,dy);if(d<.5){e.ax=e.x;e.ay=e.y;e.mv=false;return}e.mv=true;if(dx)e.fc=dx>0?1:-1;const s=Math.min(d,(e===P?120:150)*dt);e.ax+=dx/d*s;e.ay+=dy/d*s}
 function update(dt){
  frames++;if(msgT>0)msgT-=dt;if(caughtT>0)caughtT-=dt;
  tw(P,dt);tw(lila,dt);tw(piglet,dt);for(const f of farmers)tw(f,dt);
- if(state!=="play"||caughtT>0||aim||busy())return;
+ if(state!=="play"||caughtT>0||aim||paused)return;
+ tickAcc+=dt;while(tickAcc>=TICK){tickAcc-=TICK;tick();if(state!=="play"||caughtT>0)return}
+ if(busy())return;
  const dx=(keys0.ArrowRight||keys0.KeyD?1:0)-(keys0.ArrowLeft||keys0.KeyA?1:0),dy=(keys0.ArrowDown||keys0.KeyS?1:0)-(keys0.ArrowUp||keys0.KeyW?1:0);
  if(dx)tryMove(dx,0);else if(dy)tryMove(0,dy)}
 const FONT="bold 8px Verdana, Arial, sans-serif";
@@ -346,7 +352,7 @@ function tileDraw(tx,ty){const px=tx*T,py=ty*T,c=map[ty][tx],h=hash(tx,ty);
  else if(c==="B"){fr(px+1,py+1,3,14,1.2,"#78350f");fr(px+12,py+1,3,14,1.2,"#78350f");fr(px+1,py+5.5,14,5,1.6,"#fff");x.fillStyle="#dc2626";for(let k=2;k<14;k+=4){x.beginPath();x.moveTo(px+k,py+5.5);x.lineTo(px+k+2,py+5.5);x.lineTo(px+k,py+10.5);x.lineTo(px+k-2,py+10.5);x.closePath();x.fill()}x.strokeStyle="#7f1d1d";x.lineWidth=.6;rr(px+1,py+5.5,14,5,1.6);x.stroke();el(px+8,py+13,2.4,2.4,"#fbbf24");x.fillStyle="#78350f";x.font="bold 4px Arial";x.textAlign="center";x.fillText("$",px+8,py+14.4)}}
 const KC={red:"#ef4444",blue:"#3b82f6",gold:"#fbbf24",brass:"#cd7f32"};
 function draw(){
- x.setTransform(2,0,0,2,0,0);x.textBaseline="alphabetic";
+ x.setTransform(1,0,0,1,0,0);x.textBaseline="alphabetic";
  const[sx,sy]=scr(P.x,P.y),cx=sx*SW*T,cy=sy*SH*T;camX=cx;camY=cy;
  x.fillStyle="#1a2e14";x.fillRect(0,0,VW,VH);x.save();x.translate(-cx,-cy);
  for(let ty=sy*SH;ty<sy*SH+SH;ty++)for(let tx=sx*SW;tx<sx*SW+SW;tx++)tileDraw(tx,ty);
@@ -384,11 +390,11 @@ function draw(){
  let tkx=164;for(const s of Object.keys(SP)){const own=keys.tr[s];fr(tkx,3.5,8,9,2,own?SP[s].c:"#44403c");x.fillStyle=own?"#1f2937":"#78716c";x.font="bold 6px Verdana";x.textAlign="center";x.fillText(SP[s].k,tkx+4,10);tkx+=9.5}
  x.font=FONT;x.textAlign="left";x.fillStyle="#fde68a";x.fillText(`J${keys.jokes.length}`,224,11);
  let fx=246;for(const f of Object.keys(keys.food)){if(keys.food[f]>0&&fx<292){el(fx+3,8,3.2,3.2,FOOD[f][1]);fx+=9}}
- x.fillStyle="#fde68a";x.textAlign="right";x.fillText(`T${turns}`,VW-4,11);
+ x.fillStyle="#fde68a";x.textAlign="right";x.fillText(`${Math.floor(turns*TICK)}s`,VW-4,11);
  if(msgT>0&&msg){x.font=FONT;x.textAlign="center";const words=msg.split(" "),ls=[];let l="";for(const w of words){const t=l?l+" "+w:w;if(x.measureText(t).width>292&&l){ls.push(l);l=w}else l=t}ls.push(l);const bh=ls.length*10+8;
   x.fillStyle="rgba(20,12,6,.9)";rr(6,VH-bh-4,VW-12,bh,6);x.fill();x.strokeStyle="rgba(245,158,11,.6)";x.lineWidth=1;x.stroke();x.fillStyle="#fff";ls.forEach((ln,i)=>x.fillText(ln,VW/2,VH-bh-4+12+i*10))}
  if(caughtT>0){x.fillStyle="rgba(127,29,29,.55)";x.fillRect(0,0,VW,VH)}
- if(state==="won"){x.fillStyle="rgba(10,6,2,.82)";x.fillRect(0,0,VW,VH);x.textAlign="center";x.fillStyle="#fbbf24";x.font="bold 20px Verdana";x.fillText("YOU ESCAPED!",VW/2,70);x.font="bold 9px Verdana";x.fillStyle="#fff";x.fillText(piglet.free?"You, Lila and the piglet are free at last!":"You are free at last!",VW/2,95);x.fillText(`Turns: ${turns}   Jokes: ${keys.jokes.length}`,VW/2,112);x.fillStyle="#fde68a";x.fillText("Press R to play again",VW/2,140)}
+ if(state==="won"){x.fillStyle="rgba(10,6,2,.82)";x.fillRect(0,0,VW,VH);x.textAlign="center";x.fillStyle="#fbbf24";x.font="bold 20px Verdana";x.fillText("YOU ESCAPED!",VW/2,70);x.font="bold 9px Verdana";x.fillStyle="#fff";x.fillText(piglet.free?"You, Lila and the piglet are free at last!":"You are free at last!",VW/2,95);x.fillText(`Time: ${Math.floor(turns*TICK)}s   Jokes: ${keys.jokes.length}`,VW/2,112);x.fillStyle="#fde68a";x.fillText("Press R to play again",VW/2,140)}
 }
 let last=performance.now();
 function loop(t){const dt=Math.min(.05,(t-last)/1000);last=t;update(dt);draw();requestAnimationFrame(loop)}
