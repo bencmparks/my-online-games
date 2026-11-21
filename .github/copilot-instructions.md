@@ -126,3 +126,4 @@ Keep a list of my games here.
 - Pixel Picross (`pixel-picross/`, nonogram puzzles 5x5, 8x8, 10x10)
 - Pipe Panic (`pipe-panic/`, rotate pipes to connect the water source to every tile, 4x4 to 8x8)
 - Code Breaker (`code-breaker/`, Mastermind-style 4-color code in 10 tries)
+- Pig Escape (`pig-escape/`, pixel-art top-down pig simulator: you are a pig escaping a farm with Lila who starts with you; free Digger, Brutus, Dotty and Zippy who join you and have abilities; hint pigs; find the barn key, dodge farmers with vision cones, use Q to distract)

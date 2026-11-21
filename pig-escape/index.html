@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pig Escape | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:#0b1020}
+main{width:min(100%,62rem);padding:1rem;border:.2rem solid #f472b6;border-radius:1.25rem;background:rgb(8 12 30 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.4rem 0;color:#f9a8d4;font-size:1.6rem}
+canvas{display:block;width:100%;height:auto;image-rendering:pixelated;margin:.6rem auto;border:.2rem solid #475569;border-radius:.4rem;touch-action:none}
+.pad{display:flex;flex-wrap:wrap;gap:.4rem;justify-content:center}.pad button{padding:.6rem 1rem;border:0;border-radius:.6rem;background:#be185d;color:#fff;font-weight:bold;font-size:1.1rem;cursor:pointer;touch-action:none;user-select:none}
+main:fullscreen{width:100vw;max-width:none;height:100vh;display:flex;flex-direction:column;justify-content:center;border-radius:0;overflow:auto}main:fullscreen canvas{width:auto;max-width:100%;max-height:calc(100vh - 8rem);margin:.4rem auto}main:fullscreen p{display:none}
+</style></head><body><main>
+<a href="../">← All games</a>
+<h1>🐖 Pig Escape</h1>
+<p>You are a pig on a farm – escape through the gate! Find the key in the barn, free other pigs so they join you, and sneak past the farmers. <b>Arrows / WASD</b> move, <b>E</b> talk / free / use, <b>Q</b> send Dotty to make a distraction, <b>R</b> restart.</p>
+<canvas id="c" width="320" height="192" aria-label="Pig Escape game"></canvas>
+<div class="pad"><button id="bl">◀</button><button id="bu">▲</button><button id="bd">▼</button><button id="br">▶</button><button id="be">E: Use</button><button id="bq">Q: Distract</button><button id="bf">⛶ Fullscreen</button></div>
+</main><script>
+const C=document.querySelector("#c"),x=C.getContext("2d");x.imageSmoothingEnabled=false;
+const VW=320,VH=192,T=16,MW=40,MH=24,SOLID=new Set("#TWBcXGL");
+let map,pigs,farmers,items,P,cam,keys={},hist,msg="",msgT=0,state,noise,hasKey,time,decoyCd,caughtT,frames=0,seenBy;
+const hash=(a,b)=>{let h=(a*374761393+b*668265263)>>>0;h=((h^(h>>>13))*1274126177)>>>0;return(h^(h>>>16))/4294967296};
+function rectFill(x0,y0,x1,y1,ch){for(let yy=y0;yy<=y1;yy++)for(let xx=x0;xx<=x1;xx++)map[yy][xx]=ch}
+function outline(x0,y0,x1,y1,ch){for(let xx=x0;xx<=x1;xx++){map[y0][xx]=ch;map[y1][xx]=ch}for(let yy=y0;yy<=y1;yy++){map[yy][x0]=ch;map[yy][x1]=ch}}
+function init(){
+ map=Array.from({length:MH},()=>Array(MW).fill("."));
+ outline(0,0,MW-1,MH-1,"#");rectFill(34,0,34,MH-1,"#");rectFill(35,1,38,MH-2,"R");map[11][34]="G";
+ rectFill(7,0,7,6,"#");rectFill(0,6,7,6,"#");map[3][7]=".";
+ rectFill(0,8,7,8,"#");rectFill(0,14,7,14,"#");rectFill(7,8,7,14,"#");map[11][7]="L";
+ rectFill(0,16,7,16,"#");rectFill(7,16,7,23,"#");map[19][7]="c";
+ outline(12,17,18,22,"#");map[17][15]="X";
+ outline(20,7,28,13,"B");map[13][24]="X";
+ rectFill(10,3,14,5,"W");rectFill(16,2,19,4,"m");rectFill(24,20,30,22,"m");rectFill(10,11,12,12,"m");
+ for(const[tx,ty]of[[9,8],[10,9],[31,2],[32,8],[21,3],[27,3],[9,18],[20,19],[31,14],[31,20],[26,16],[16,9],[14,13],[30,6]])map[ty][tx]="T";
+ pigs=[
+  {n:"Digger",type:"digger",x:3.5,y:11,col:"#c08457",sz:1,txt:["Dig is my name. I can dig under cracked fences!"]},
+  {n:"Brutus",type:"brute",x:3.5,y:19,col:"#9f1239",sz:1.25,txt:["Brutus smash crates. Brutus strong!"]},
+  {n:"Dotty",type:"decoy",x:15.5,y:19.5,col:"#e879f9",sz:.9,txt:["Press Q and I'll run off and make noise!"]},
+  {n:"Zippy",type:"speedy",x:10.5,y:20,col:"#fde047",sz:.85,txt:["Zippy zoom zoom!"]},
+  {n:"Lila",type:"friend",x:2.5,y:4,col:"#c4b5fd",sz:1,start:1,txt:["Stay close, I will help you escape!","I smell something shiny in the red barn...","Together we can do this!"]},
+  {n:"Hamlet",type:"hint",x:9.5,y:2.5,col:"#fecdd3",sz:1,txt:["Psst! The key is in the big red barn.","Free Dig from the pen at the left – flip the latch with E.","Cracked fences only break for a digging pig."]},
+  {n:"Mama Sow",type:"hint",x:32,y:21,col:"#fb7185",sz:1.2,txt:["The gate at the east wall needs the barn key.","The farmers can't see through walls. Wait for them to walk away!","Crates block the barn door. Find someone strong."]}
+ ].map(p=>({...p,x:p.x*T,y:p.y*T,joined:!!p.start,fx:0,fy:0,vx:0}));
+ for(const p of pigs){p.fx=p.x;p.fy=p.y}
+ farmers=[
+  {x:19*T,y:16*T,pts:[[19,16],[30,16],[30,19],[19,19]],i:1,a:0,seen:0,wait:0},
+  {x:31*T,y:3*T,pts:[[31,3],[31,10],[31,18],[31,10]],i:1,a:1.57,seen:0,wait:0}
+ ].map(f=>({...f,pts:f.pts.map(([a,b])=>[a*T+8,b*T+8])}));
+ items=[{x:24*T+8,y:9*T+8,type:"key",got:false}];
+ P={x:3*T+8,y:3*T+8,f:1,fy:0,moving:false};hist=[];noise=null;hasKey=false;time=0;decoyCd=0;caughtT=0;state="play";msg="Find the key, free your friends, escape!";msgT=4;seenBy=null;
+}
+const tileAt=(px,py)=>{const tx=Math.floor(px/T),ty=Math.floor(py/T);return tx<0||ty<0||tx>=MW||ty>=MH?"#":map[ty][tx]};
+const solidAt=(px,py)=>SOLID.has(tileAt(px,py));
+const boxFree=(px,py)=>!(solidAt(px-5,py-5)||solidAt(px+5,py-5)||solidAt(px-5,py+1)||solidAt(px+5,py+1));
+const has=t=>pigs.some(p=>p.joined&&p.type===t);
+const say=(s,t=3)=>{msg=s;msgT=t};
+function blocked(x0,y0,x1,y1){const d=Math.hypot(x1-x0,y1-y0),n=Math.ceil(d/4);for(let i=1;i<n;i++){if(solidAt(x0+(x1-x0)*i/n,y0+(y1-y0)*i/n))return true}return false}
+function nearTile(chs,r){let best=null,bd=r;for(let ty=0;ty<MH;ty++)for(let tx=0;tx<MW;tx++)if(chs.includes(map[ty][tx])){const d=Math.hypot(tx*T+8-P.x,ty*T+8-P.y);if(d<bd){bd=d;best={tx,ty}}}return best}
+function interact(){
+ if(state!=="play")return;
+ const np=pigs.filter(p=>Math.hypot(p.x-P.x,p.y-P.y)<24).sort((a,b)=>Math.hypot(a.x-P.x,a.y-P.y)-Math.hypot(b.x-P.x,b.y-P.y))[0];
+ if(np){if(np.type==="hint"){np.k=(np.k||0)%np.txt.length;say(`${np.n}: ${np.txt[np.k++]}`,4)}else if(!np.joined){np.joined=true;say(`${np.n} joined you! ${np.txt[0]}`,4)}else{np.k=(np.k||0)%np.txt.length;say(`${np.n}: ${np.txt[np.k++]}`,3)}return}
+ const t=nearTile("LcXG",26);
+ if(!t){say("Nothing to use here.",1.5);return}
+ const ch=map[t.ty][t.tx];
+ if(ch==="L"){map[t.ty][t.tx]=".";say("Click! The pen latch is open.")}
+ else if(ch==="c"){if(has("digger")){map[t.ty][t.tx]=".";say("Dig tunnels under the fence!")}else say("This fence is cracked. A digging pig could get under it.")}
+ else if(ch==="X"){if(has("brute")){map[t.ty][t.tx]=".";say("CRASH! Brutus smashes the crate!")}else say("A heavy crate. You need a strong pig.")}
+ else if(ch==="G"){if(hasKey){map[t.ty][t.tx]=".";say("The gate swings open! Run for it!")}else say("The gate is locked. Find the key in the barn.")}
+}
+function decoy(){
+ if(state!=="play")return;if(!has("decoy")){say("You need Dotty to make a distraction.",2);return}
+ if(decoyCd>0){say("Dotty needs a moment...",1.5);return}
+ let nx=P.x,ny=P.y;for(let i=0;i<8;i++){const tx=nx+P.f*T,ty=ny+P.fy*T;if(solidAt(tx,ty))break;nx=tx;ny=ty}
+ if(Math.hypot(nx-P.x,ny-P.y)<T){nx=P.x;ny=P.y}
+ noise={x:nx,y:ny,t:6};decoyCd=10;say("Dotty runs off squealing!")}
+function caught(){caughtT=1.4;P.x=3*T+8;P.y=3*T+8;hist=[];noise=null;for(const f of farmers){f.seen=0;f.wait=0}say("Caught! Back to the pen... try again!",3)}
+function update(dt){
+ frames++;if(msgT>0)msgT-=dt;
+ if(state==="won")return;time+=dt;decoyCd=Math.max(0,decoyCd-dt);if(caughtT>0){caughtT-=dt;return}
+ let dx=(keys.ArrowRight||keys.KeyD?1:0)-(keys.ArrowLeft||keys.KeyA?1:0),dy=(keys.ArrowDown||keys.KeyS?1:0)-(keys.ArrowUp||keys.KeyW?1:0);
+ P.moving=!!(dx||dy);
+ if(P.moving){const l=Math.hypot(dx,dy);dx/=l;dy/=l;P.f=dx||P.f;P.fy=dy;if(dx)P.fy=0;
+  let sp=62*(has("speedy")?1.25:1)*(tileAt(P.x,P.y)==="m"?.6:1);
+  const nx=P.x+dx*sp*dt,ny=P.y+dy*sp*dt;if(boxFree(nx,P.y))P.x=nx;if(boxFree(P.x,ny))P.y=ny;
+  const h=hist[hist.length-1];if(!h||Math.hypot(h[0]-P.x,h[1]-P.y)>3){hist.push([P.x,P.y]);if(hist.length>400)hist.shift()}}
+ let idx=0;for(const p of pigs)if(p.joined){idx++;const h=hist[Math.max(0,hist.length-1-idx*5)]||[P.x-idx*8,P.y];p.fx=p.x;p.vx=h[0]-p.x;p.x+=(h[0]-p.x)*Math.min(1,dt*8);p.y+=(h[1]-p.y)*Math.min(1,dt*8)}
+ if(noise){noise.t-=dt;if(noise.t<=0)noise=null}
+ for(const it of items)if(!it.got&&Math.hypot(it.x-P.x,it.y-P.y)<12){it.got=true;hasKey=true;say("You found the barn key!",4)}
+ seenBy=null;
+ for(const f of farmers){
+  let tx,ty,wait=false;
+  if(noise&&Math.hypot(noise.x-f.x,noise.y-f.y)<190){tx=noise.x;ty=noise.y;if(Math.hypot(tx-f.x,ty-f.y)<10)wait=true}
+  else{const pt=f.pts[f.i];tx=pt[0];ty=pt[1];if(Math.hypot(tx-f.x,ty-f.y)<3){f.i=(f.i+1)%f.pts.length;tx=f.pts[f.i][0];ty=f.pts[f.i][1]}}
+  if(!wait){const d=Math.hypot(tx-f.x,ty-f.y)||1,sp=34*dt;f.a=Math.atan2(ty-f.y,tx-f.x);const nx=f.x+(tx-f.x)/d*sp,ny=f.y+(ty-f.y)/d*sp;if(!solidAt(nx,f.y))f.x=nx;if(!solidAt(f.x,ny))f.y=ny}
+  const d=Math.hypot(P.x-f.x,P.y-f.y);let diff=Math.abs(Math.atan2(P.y-f.y,P.x-f.x)-f.a);if(diff>Math.PI)diff=2*Math.PI-diff;
+  if(d<90&&diff<.75&&!blocked(f.x,f.y-4,P.x,P.y-4)){f.seen+=dt;seenBy=f}else f.seen=Math.max(0,f.seen-dt*2);
+  if(f.seen>.55){caught();break}}
+ if(P.x>35*T+4){state="won";say("",0)}
+}
+function pigSprite(px,py,col,face,sz,anim,lbl){
+ x.save();x.translate(Math.round(px),Math.round(py));x.scale(face<0?-sz:sz,sz);
+ const b=anim?Math.sin(frames/3)>0?1:0:0;
+ x.fillStyle="#0004";x.fillRect(-5,0,11,2);
+ x.fillStyle=col;x.fillRect(-5,-8,10,6);x.fillRect(3,-9,5,6);x.fillRect(-4,-9-b,2,2);x.fillRect(4,-11,2,2);
+ x.fillStyle="#0003";x.fillRect(-5,-3,10,1);
+ x.fillStyle=col;x.fillRect(-4,-2,2,2+b);x.fillRect(2,-2,2,3-b);
+ x.fillStyle="#7f1d1d";x.fillRect(8,-7,2,3);x.fillStyle="#f472b6";x.fillRect(8,-7,2,2);
+ x.fillStyle="#000";x.fillRect(5,-8,1,1);
+ x.fillStyle=col;x.fillRect(-7,-8,2,1);x.fillRect(-8,-9,1,1);
+ if(lbl){x.fillStyle=lbl;x.fillRect(-2,-10,3,2)}
+ x.restore()}
+function farmerSprite(f){const px=Math.round(f.x),py=Math.round(f.y),w=Math.sin(frames/6)>0?1:0;
+ x.fillStyle="#0004";x.fillRect(px-4,py,9,2);
+ x.fillStyle="#1d4ed8";x.fillRect(px-3,py-6,7,6);x.fillStyle="#1e3a8a";x.fillRect(px-3,py-1+w,2,2);x.fillRect(px+1,py-1-w,2,2);
+ x.fillStyle="#dc2626";x.fillRect(px-4,py-12,9,6);x.fillStyle="#fcd9b6";x.fillRect(px-2,py-17,5,5);
+ x.fillStyle="#facc15";x.fillRect(px-4,py-18,9,2);x.fillRect(px-2,py-20,5,2);
+ x.fillStyle="#000";x.fillRect(px-1,py-15,1,1);x.fillRect(px+1,py-15,1,1);
+ if(f.seen>0){x.fillStyle="#ef4444";x.fillRect(px-1,py-30,3,7);x.fillRect(px-1,py-21,3,2)}}
+function tileDraw(tx,ty){const px=tx*T,py=ty*T,c=map[ty][tx],h=hash(tx,ty);
+ const grass=()=>{x.fillStyle=h<.5?"#4aa84a":"#43a047";x.fillRect(px,py,T,T);x.fillStyle="#2e7d32";if(h>.3)x.fillRect(px+(h*13|0)%12+2,py+(h*29|0)%12+2,1,2);if(h>.7)x.fillRect(px+(h*7|0)%10+3,py+(h*17|0)%10+4,2,1)};
+ if(c==="R"){x.fillStyle="#6b7280";x.fillRect(px,py,T,T);x.fillStyle="#9ca3af";if((ty%2)===0)x.fillRect(px+6,py+6,4,1);return}
+ if(c==="m"){x.fillStyle="#78350f";x.fillRect(px,py,T,T);x.fillStyle="#92400e";x.fillRect(px+((h*11|0)%10)+1,py+((h*23|0)%10)+2,4,2);return}
+ if(c==="W"){x.fillStyle="#2563eb";x.fillRect(px,py,T,T);x.fillStyle="#60a5fa";x.fillRect(px+2+(frames>>4&1)*3,py+4,5,1);x.fillRect(px+8,py+10,4,1);return}
+ grass();
+ if(c==="T"){x.fillStyle="#5b3a1a";x.fillRect(px+6,py+9,4,7);x.fillStyle="#166534";x.fillRect(px+1,py+1,14,10);x.fillStyle="#22c55e";x.fillRect(px+3,py+2,6,3)}
+ else if(c==="#"||c==="c"||c==="L"||c==="G"){
+  if(c==="G"){x.fillStyle="#a16207";x.fillRect(px,py,T,T);x.fillStyle="#fde68a";x.fillRect(px+1,py+1,T-2,2);x.fillRect(px+1,py+13,T-2,2);x.fillStyle="#7c2d12";x.fillRect(px+7,py+6,3,4);x.fillStyle="#fbbf24";x.fillRect(px+7,py+7,3,3);return}
+  x.fillStyle="#92400e";x.fillRect(px+1,py,3,T);x.fillRect(px+12,py,3,T);x.fillStyle="#b45309";x.fillRect(px,py+3,T,3);x.fillRect(px,py+10,T,3);
+  if(c==="c"){x.fillStyle="#43a047";x.fillRect(px+4,py+3,7,10);x.fillStyle="#fde68a";x.fillRect(px+4,py+4,1,2);x.fillRect(px+5,py+6,2,1);x.fillRect(px+7,py+7,1,2);x.fillRect(px+8,py+9,2,1)}
+  if(c==="L"){x.fillStyle="#fbbf24";x.fillRect(px+6,py+5,4,5);x.fillStyle="#78350f";x.fillRect(px+7,py+6,2,2)}}
+ else if(c==="B"){x.fillStyle="#b91c1c";x.fillRect(px,py,T,T);x.fillStyle="#7f1d1d";x.fillRect(px,py+7,T,1);x.fillRect(px+7,py,1,T);x.fillStyle="#fef2f2";x.fillRect(px+1,py+1,T-2,1)}
+ else if(c==="X"){x.fillStyle="#b45309";x.fillRect(px+1,py+1,14,14);x.fillStyle="#78350f";x.fillRect(px+1,py+1,14,2);x.fillRect(px+1,py+13,14,2);x.fillRect(px+1,py+1,2,14);x.fillRect(px+13,py+1,2,14);for(let k=3;k<13;k++)x.fillRect(px+k,py+k,1,1),x.fillRect(px+16-k,py+k,1,1)}}
+function draw(){
+ cam={x:Math.max(0,Math.min(MW*T-VW,P.x-VW/2)),y:Math.max(0,Math.min(MH*T-VH,P.y-VH/2))};
+ x.fillStyle="#000";x.fillRect(0,0,VW,VH);x.save();x.translate(-Math.round(cam.x),-Math.round(cam.y));
+ // barn floor
+ for(let ty=Math.max(0,cam.y/T|0);ty<Math.min(MH,(cam.y+VH)/T+1);ty++)for(let tx=Math.max(0,cam.x/T|0);tx<Math.min(MW,(cam.x+VW)/T+1);tx++)tileDraw(tx,ty);
+ x.fillStyle="#7c4a1e55";x.fillRect(21*T,8*T,7*T,5*T);
+ for(let tx=36;tx<38;tx++){x.fillStyle="#facc15";x.fillRect(tx*T+6,1*T,4,MH*T-2*T)}
+ x.font="8px monospace";x.fillStyle="#fff";x.textAlign="center";x.fillText("EXIT →",36*T+16,6*T);
+ for(const it of items)if(!it.got){const b=Math.sin(frames/8)*2;x.fillStyle="#fbbf24";x.fillRect(it.x-4,it.y-3+b,6,6);x.fillRect(it.x+1,it.y-1+b,7,2);x.fillRect(it.x+5,it.y+1+b,2,3);x.fillStyle="#fff";x.fillRect(it.x-3,it.y-2+b,2,2)}
+ // vision cones
+ for(const f of farmers){x.fillStyle=f.seen>0?"#ef444455":"#fde04740";x.beginPath();x.moveTo(f.x,f.y-6);for(let a=-.75;a<=.751;a+=.075){let r=90;for(let d=6;d<=90;d+=4){if(solidAt(f.x+Math.cos(f.a+a)*d,f.y-6+Math.sin(f.a+a)*d)){r=d;break}}x.lineTo(f.x+Math.cos(f.a+a)*r,f.y-6+Math.sin(f.a+a)*r)}x.closePath();x.fill()}
+ const ents=[];for(const p of pigs)ents.push({y:p.y,f:()=>pigSprite(p.x,p.y,p.col,p.joined?Math.sign(p.vx)||1:p.type==="hint"?1:1,p.sz,p.joined&&Math.abs(p.vx)>.4,p.type==="hint"?"#fff":p.type==="friend"?"#a78bfa":null)});
+ for(const f of farmers)ents.push({y:f.y,f:()=>farmerSprite(f)});
+ ents.push({y:P.y,f:()=>pigSprite(P.x,P.y,"#f9a8d4",P.f,1,P.moving,"#22d3ee")});
+ ents.sort((a,b)=>a.y-b.y).forEach(e=>e.f());
+ if(noise){x.fillStyle="#fde047";x.font="10px monospace";x.fillText("♪ ♫",noise.x,noise.y-14+Math.sin(frames/4)*2);pigSprite(noise.x,noise.y,"#e879f9",1,.9,true)}
+ for(const p of pigs)if(!p.joined&&Math.hypot(p.x-P.x,p.y-P.y)<28){x.fillStyle="#fff";x.font="8px monospace";x.fillText(p.type==="hint"?"E: talk":"E: free",p.x,p.y-16)}
+ x.restore();
+ x.fillStyle="#000a";x.fillRect(0,0,VW,16);x.font="8px monospace";x.textAlign="left";x.fillStyle="#fbcfe8";x.fillText(`Pigs ${pigs.filter(p=>p.joined).length}/5`,4,11);
+ x.fillStyle=hasKey?"#fbbf24":"#64748b";x.fillText(hasKey?"KEY ✔":"KEY ✘",70,11);x.fillStyle=has("decoy")?(decoyCd>0?"#94a3b8":"#e879f9"):"#475569";x.fillText(`Q:Distract${decoyCd>0?" "+Math.ceil(decoyCd):""}`,118,11);
+ x.fillStyle="#fde68a";x.textAlign="right";x.fillText(`${time|0}s`,VW-4,11);
+ const ab=["digger","brute","decoy","speedy"].map(t=>has(t)?{digger:"Dig",brute:"Smash",decoy:"Decoy",speedy:"Fast"}[t]:null).filter(Boolean).join(" ");
+ x.fillStyle="#86efac";x.textAlign="left";x.fillText(ab,190,11);
+ if(msgT>0&&msg){x.fillStyle="#000b";x.fillRect(0,VH-26,VW,26);x.fillStyle="#fff";x.textAlign="center";wrap(msg,VW/2,VH-15)}
+ if(caughtT>0){x.fillStyle="#7f1d1d99";x.fillRect(0,0,VW,VH)}
+ if(state==="won"){x.fillStyle="#000c";x.fillRect(0,0,VW,VH);x.textAlign="center";x.fillStyle="#f9a8d4";x.font="bold 18px monospace";x.fillText("YOU ESCAPED!",VW/2,70);x.font="10px monospace";x.fillStyle="#fff";x.fillText(`You brought ${pigs.filter(p=>p.joined).length} pig friend${pigs.filter(p=>p.joined).length===1?"":"s"} to freedom!`,VW/2,95);x.fillText(`Time: ${time|0}s`,VW/2,112);x.fillStyle="#fde68a";x.fillText("Press R to play again",VW/2,140)}
+}
+function wrap(s,cx,cy){const w=s.split(" ");let l="",lines=[];for(const t of w){if((l+t).length>50){lines.push(l);l=""}l+=t+" "}lines.push(l);lines.forEach((ln,i)=>x.fillText(ln.trim(),cx,cy+(i-(lines.length-1)/2*0)*10+(i?0:0)-(lines.length>1?5:0)+(i*10)))}
+let last=performance.now();
+function loop(t){const dt=Math.min(.05,(t-last)/1000);last=t;update(dt);draw();requestAnimationFrame(loop)}
+addEventListener("keydown",e=>{keys[e.code]=1;if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Space"].includes(e.code))e.preventDefault();
+ if(!e.repeat){if(e.code==="KeyE"||e.code==="Enter"||e.code==="Space")interact();if(e.code==="KeyQ")decoy();if(e.code==="KeyR")init()}});
+addEventListener("keyup",e=>keys[e.code]=0);
+for(const[id,k]of[["bl","ArrowLeft"],["br","ArrowRight"],["bu","ArrowUp"],["bd","ArrowDown"]]){const b=document.querySelector("#"+id);b.addEventListener("pointerdown",()=>keys[k]=1);for(const ev of["pointerup","pointerleave","pointercancel"])b.addEventListener(ev,()=>keys[k]=0)}
+document.querySelector("#be").addEventListener("pointerdown",interact);document.querySelector("#bq").addEventListener("pointerdown",decoy);
+document.querySelector("#bf").onclick=()=>{const m=document.querySelector("main");document.fullscreenElement?document.exitFullscreen():m.requestFullscreen&&m.requestFullscreen()};
+init();requestAnimationFrame(loop);
+</script></body></html>
