@@ -2,220 +2,407 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pig Escape | My Online Games</title><style>
 :root{color-scheme:dark;font-family:Arial,sans-serif;background:#1c1208;color:#f5e6c8}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:#1c1208}
 main{width:min(100%,62rem);padding:1rem;border:.2rem solid #f59e0b;border-radius:1.25rem;background:rgb(40 24 10 / 94%);text-align:center}a{color:#fcd34d}h1{margin:.4rem 0;color:#fbbf24;font-size:1.6rem}
-canvas{display:block;width:100%;height:auto;image-rendering:pixelated;margin:.6rem auto;border:.2rem solid #92400e;border-radius:.4rem;touch-action:none}
+canvas{display:block;width:100%;height:auto;margin:.6rem auto;border:.2rem solid #92400e;border-radius:.4rem;touch-action:none}
 .pad{display:flex;flex-wrap:wrap;gap:.4rem;justify-content:center}.pad button{padding:.6rem 1rem;border:0;border-radius:.6rem;background:#b45309;color:#fff;font-weight:bold;font-size:1.1rem;cursor:pointer;touch-action:none;user-select:none}
 main:fullscreen{width:100vw;max-width:none;height:100vh;display:flex;flex-direction:column;justify-content:center;border-radius:0;overflow:auto}main:fullscreen canvas{width:auto;max-width:100%;max-height:calc(100vh - 8rem);margin:.4rem auto}main:fullscreen p{display:none}
 </style></head><body><main>
 <a href="../">← All games</a>
 <h1>🐖 Pig Escape</h1>
-<p>Escape the autumn farm through 30 screens! <b>Lila</b> follows you: she smashes crates <i>one at a time</i>, digs up mud mounds one pile at a time and digs buried keys out of the mud, and presses paw plates. Chat with the tip pigs, rescue the little <b>piglet</b> (it squeezes through tiny fences), dodge farmers and dogs. <b>Arrows / WASD</b> move, <b>E</b> use / talk / ask for help, <b>Q</b> Lila distracts, <b>R</b> restart.</p>
-<canvas id="c" width="320" height="192" aria-label="Pig Escape game"></canvas>
-<div class="pad"><button id="bl">◀</button><button id="bu">▲</button><button id="bd">▼</button><button id="br">▶</button><button id="be">E: Use / Help</button><button id="bq">Q: Distract</button><button id="bf">⛶ Fullscreen</button></div>
+<p>A funny thinking game: escape the farm through 30 screens. Everything is <b>turn-based</b> – farmers move only when you do, and if one <b>touches you</b> you go back to the start of the screen. Free <b>Lila</b> with a lever puzzle (read the signs for clues), tunnel between mud patches, and rescue the piglet. Find a <b>translator</b> for each animal (cow, sheep, chicken, duck, goat, horse), <b>bribe</b> toll-gate guards with the food they ask for, and learn <b>jokes</b> from the animals: one horse opens his gate only for the funniest joke. <b>Arrows / WASD</b> step, <b>E</b> use / talk / tunnel, <b>Space</b> wait, <b>Q</b> choose where Lila distracts, <b>R</b> restart.</p>
+<canvas id="c" width="640" height="384" aria-label="Pig Escape game"></canvas>
+<div class="pad"><button id="bl">◀</button><button id="bu">▲</button><button id="bd">▼</button><button id="br">▶</button><button id="be">E: Use / Tunnel</button><button id="bw">Wait</button><button id="bq">Q: Lila distract</button><button id="bf">⛶ Fullscreen</button></div>
 </main><script>
-const C=document.querySelector("#c"),x=C.getContext("2d");x.imageSmoothingEnabled=false;
-const VW=320,VH=192,T=16,SW=20,SH=12,COLS=6,ROWS=5,N=30,MW=COLS*SW,MH=ROWS*SH,SOLID=new Set("#TWXGrLDhpqMuK");
-let map,lila,piglet,farmers,items,npcs,P,keys,buried,keysHeld,hist,msg="",msgT=0,state,noise,time,decoyCd,caughtT,frames=0,spawn,signs,screenNo,keys0;
+const C=document.querySelector("#c"),x=C.getContext("2d");x.imageSmoothingEnabled=true;
+const VW=320,VH=192,T=16,SW=20,SH=12,COLS=6,ROWS=5,N=30,MW=COLS*SW,MH=ROWS*SH,SOLID=new Set("#TWXGrLDhpqMuKJNVB"),signC={};
+let map,lila,piglet,farmers,items,npcs,P,keys,keys0={},buried,tun,leverAt,hist,msg="",msgT=0,state,noise,turns,decoyCd,caughtT,frames=0,spawn,signs,screenNo,aim,camX=0,camY=0;
+const SHAPES=["triangle","circle","square","diamond"],SCOL={triangle:"#ef4444",circle:"#3b82f6",square:"#22c55e",diamond:"#facc15"};
+const ctr=t=>t*T+8;
 const hash=(a,b)=>{let h=(a*374761393+b*668265263)>>>0;h=((h^(h>>>13))*1274126177)>>>0;return(h^(h>>>16))/4294967296};
 const rng=s=>()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
 const L=(sx,sy,lx,ly,ch)=>{map[sy*SH+ly][sx*SW+lx]=ch};
 const G=(sx,sy,lx,ly)=>map[sy*SH+ly][sx*SW+lx];
 const FR=(sx,sy,x0,y0,x1,y1,ch)=>{for(let yy=y0;yy<=y1;yy++)for(let xx=x0;xx<=x1;xx++)L(sx,sy,xx,yy,ch)};
 const OL=(sx,sy,x0,y0,x1,y1,ch)=>{for(let xx=x0;xx<=x1;xx++){L(sx,sy,xx,y0,ch);L(sx,sy,xx,y1,ch)}for(let yy=y0;yy<=y1;yy++){L(sx,sy,x0,yy,ch);L(sx,sy,x1,yy,ch)}};
-const wp=(sx,sy,lx,ly)=>[(sx*SW+lx)*T+8,(sy*SH+ly)*T+8];
 const scrOf=n=>{const sy=(n-1)/COLS|0,i=(n-1)%COLS;return[sy%2===0?i:COLS-1-i,sy]};
 const seqNo=(sx,sy)=>sy*COLS+(sy%2===0?sx+1:COLS-sx);
-const PLAN={2:["crate","crate"],3:["latch","crate"],4:["mound","latch"],5:["plate","mound"],6:["plate"],7:["red"],8:["crate","red"],9:["mound","plate"],10:["latch","blue"],11:["red","mound"],12:["crate"],13:["pig"],14:["pig","crate"],15:["plate","pig"],16:["blue","pig"],17:["mound","pig"],18:["red"],19:["pig"],20:["latch","pig"],21:["plate","red"],22:["blue","mound"],23:["pig","pig"],24:["plate"],25:["pig"],26:["red","crate"],27:["mound","blue"],28:["pig","plate"],29:["crate","pig"],30:["gold"]};
-const TIP={crate:"Crates are heavy. Stand next to one and press E: Lila smashes ONE crate per press, so you may need several.",mound:"Muddy mounds block the way. Press E and Lila digs away one pile at a time.",latch:"Latches are hoof work. Walk up and press E for each latch.",plate:"See the paw plate inside the pen? Stay close, press E, and Lila squeezes in to press it. The door opens.",red:"The red gate needs a red key. Look for a buried X in the mud and press E so Lila digs it up!",blue:"The blue gate needs a blue key. It is buried in a mud patch somewhere on this screen.",pig:"Those pink-wire fences have tiny holes. Only a piglet can squeeze through and unlatch them.",gold:"The golden gate is the last one. The gold key waited on the screen before this one."};
-const GEN=["Farmers cannot see through fences or trees.","Dogs are fast but only see a short way ahead.","Press Q and Lila squeals. Farmers run to the noise!","Mud slows you down. Walk around it when farmers are near.","If a farmer catches you, you restart this screen only.","Yellow cones show what a farmer sees. Stay out of them.","Wait for a patrol to walk away, then dash across.","Lila follows you. Keep her close when you need help."];
+const PLAN={1:["latch"],2:["lever","latch"],3:["latch","freeLila"],4:["mound","latch"],5:["plate","bribe"],6:["lever"],7:["red"],8:["bribe","red"],9:["lever","plate"],10:["latch","blue"],11:["red","bribe"],12:["freePiglet"],13:["pig"],14:["bribe","lever"],15:["plate","pig"],16:["blue","lever"],17:["bribe","pig"],18:["red"],19:["pig"],20:["lever","bribe"],21:["plate","red"],22:["blue","bribe"],23:["pig","lever"],24:["lever"],25:["bribe"],26:["red","joke"],27:["lever","blue"],28:["bribe","lever"],29:["lever","bribe"],30:["gold"]};
+const TIP={latch:"Latches are hoof work. Walk up and press E for each latch.",crate:"Crates are heavy. Stand next to one and press E: Lila smashes ONE crate per press, so it takes several presses.",mound:"Muddy mounds block the way. Press E and Lila digs away one pile at a time.",plate:"See the paw plate inside the pen? Stay close, press E, and Lila squeezes in to press it. The door opens.",red:"The red gate needs a red key, buried in a fenced mud garden. Stand on a linked mud patch and press E to tunnel in, then press E again so Lila digs it up!",blue:"The blue gate needs a blue key, buried in a fenced mud garden. Tunnel in from a linked mud patch (press E on it).",bribe:"Toll gates! A guard animal speaks only its own language, so find that animal's translator first. Then bring the food it asks for.",joke:"A horse guards this gate and only opens for a REALLY funny joke. Learn jokes from animals (you need their translator!) and tell them to the horse. It rates each one.",pig:"Those pink-wire fences have tiny holes. Only a piglet can squeeze through and unlatch them.",gold:"The golden gate is the last one. The gold key waited on the screen before this one.",lever:"Pull the levers in the right order to open the way. My clues tell you the order. A wrong pull resets them, so think first!",freeLila:"Lila the pig is locked in the cage ahead! Solve the lever puzzle with my clues to free her.",freePiglet:"A little piglet is locked in the cage ahead. You need the brass key from the fenced mud garden: tunnel in and dig it up."};
+const GEN=["Farmers only move when you move. Press Space to wait a turn.","Being seen is fine. Only a farmer or dog TOUCHING you sends you back to the start of the screen.","Farmers who see you will chase you. Tunnel through mud to lose them!","Dogs move two steps for every one of yours. Do not let them reach you.","Press Q to send Lila to any spot you choose. Farmers go to check the noise.","Linked mud patches have a dark hole. Press E on one to pop up in the other.","Farmers cannot see through fences or trees.","The dotted line shows where a farmer patrols. Plan your route!","Animals tell jokes! Translate them to learn a joke. Talk again for a new one.","Goats are everywhere. They are very opinionated about socks."];
 const NAMES=["Old Boar","Hamlet","Truffles","Porkchop","Sir Oinks","Rosie","Wilbur","Bacon Jr.","Penny","Gordy","Snout","Curly","Hammy","Trotter","Peppa","Napoleon","Snowball","Oinkers","Duchess","Butch","Pinky","Mudbath","Sage","Bristle","Clover","Tusk","Pudding","Maple","Nibbles","Big Ham"];
 const PCOL=["#f4a6b8","#e8b4a0","#d9c2a0","#c9a0dc","#a0c4e8","#e8e0a0","#f0a0a0","#b0e0b0"];
+const SP={cow:{c:"#f5f5f4",snd:"Moo",k:"C",tr:4,names:["Daisy","Bessie","Clarabelle","Buttercup"]},sheep:{c:"#e7e5e4",snd:"Baa",k:"S",tr:7,names:["Woolly","Fluffy","Cotton","Lambchop"]},chicken:{c:"#fde68a",snd:"Bawk",k:"K",tr:10,names:["Henrietta","Cluck","Peck","Nugget"]},duck:{c:"#fde047",snd:"Quack",k:"D",tr:13,names:["Waddles","Puddles","Mallory","Dabble"]},goat:{c:"#a8a29e",snd:"Meh-eh",k:"G",tr:16,names:["Billy","Nanny","Gruff","Capri"]},horse:{c:"#92400e",snd:"Neigh",k:"H",tr:19,names:["Thunder","Biscuit","Comet","Dusty"]}};
+const TRN=Object.fromEntries(Object.keys(SP).map(s=>[SP[s].tr,s]));
+const BR={5:"cow",8:"sheep",11:"chicken",14:"duck",17:"goat",20:"horse",22:"cow",25:"sheep",28:"chicken",29:"duck"};
+const FOOD={apple:["Apple","#ef4444","Crunchy and suspiciously shiny."],corn:["Corn","#facc15","Golden and slightly judgy."],carrot:["Carrot","#f97316","Orange you glad?"],bread:["Bread","#d6a35c","Stale. Perfect."],sock:["Old Sock","#94a3b8","It smells like regret."],cheese:["Cheese","#fde047","Smells like a bad decision."],sugar:["Sugar Cube","#f8fafc","Tiny, sweet and worth a fortune."],hay:["Hay","#a16207","A snack AND a pillow."]};
+const FL={cow:["hay","cheese"],sheep:["carrot","sock"],chicken:["corn","bread"],duck:["bread","sock"],goat:["sock","apple"],horse:["sugar","apple"]};
+const ASK={cow:"Moo-ving on! Not without %F. Pay the toll and I'll pretend I saw nothing.",sheep:"Baa-d news: this gate costs one %F. Wool you help a sheep out?",chicken:"I am a very important gate chicken. One %F and I will look the other way. Cluck.",duck:"Quack. The toll is %F. Do not ask why. Do not tell the farmer. Duck rules.",goat:"Meh-eh. Bring me %F or I headbutt you. Headbutting is not a joke. It is my whole personality.",horse:"Neigh. Hay there! The toll is one %F. I can't just let anyone gallop through."};
+const THX={cow:"Moo-velous! %F! You are the udder best.",sheep:"Baa-ah! %F! You are wool-come to pass.",chicken:"Bawk bawk! %F! I did not see you. I am blind. And a chicken.",duck:"Quack! %F! Pleasure doing business. Now waddle along.",goat:"MEH! %F! Best day of my life. I am eating it NOW.",horse:"Neigh! %F! Stable decision. Off you gallop!"};
+const AFTER={cow:["I saw nothing. Cows have terrible memories.","Moo? Who are you? I have never met you."],sheep:["Baa. I'm just a sheep. I know nothing. Ever.","Please don't tell the flock I took a bribe."],chicken:["Bawk! I will deny everything.","The bribe was delicious. I mean... what bribe?"],duck:["Quack. I never take bribes. This is a lie.","Go! Before I want more bread."],goat:["Mmmf... *chewing*... go away...","Oh it was so good. Do you have more? No? Bye."],horse:["Neigh. We never spoke.","Nice doing business. Now giddy-up."]};
+const NOPE=o=>`A ${FOOD[o][0]}?! Do I look like I eat that? ...Do not answer.`;
+const JR={cow:[3,2,4],sheep:[2,3,4],chicken:[5,2,1],duck:[2,4,1],goat:[3,4,2,3,4],horse:[4,1,2]};
+const JOKES={cow:["Why did the cow cross the road? To get to the udder side.","I have a beef with the farmer. Not literally. That would be awkward.","I'd tell you a farm secret, but it's udderly confidential."],sheep:["I tried counting sheep to fall asleep. Now I am counting myself. Very confusing.","What do you call a sheep with no legs? A cloud.","I'm not following the flock. The flock is following me. They are lost."],chicken:["Why did the chicken cross the road? To get to the crazy horse's house! Knock knock. Who's there? The chicken.","I'm not chicken. I'm cautious. There's a difference. A small one.","Eggs? Don't look at me. I am on a break."],duck:["Everything is fine. I am a duck. Ducks are always fine.","I can walk, swim AND fly. And yet I'm stuck on this farm. Embarrassing.","Fun fact: nobody can prove my quack has an echo."],goat:["I eat anything. Cans, socks, hats. Not the farmer's hat. He watches.","They say goats are stubborn. I say they are wrong. (I am not changing my mind.)","I climbed the barn once. The view was great. The landing was not.","Knock knock. Who's there? Goat. Goat who? Goat to the door, I'm hungry.","My favorite game is hide and GOAT. I always lose. I am very loud."],horse:["Why the long face? I'm a horse. This IS my face.","I could outrun the farmer. But then who would carry the hay? Me. Always me.","Don't horse around. Actually, do. It's the only fun thing here."]};
+const TRMSG={cow:"You found the COW TRANSLATOR! It turns 'Moo' into 'Excuse me, good sir.' Very fancy.",sheep:"You found the SHEEP TRANSLATOR! 'Baa' now means 'I am extremely tired.' Relatable.",chicken:"You found the CHICKEN TRANSLATOR! Warning: 'Bawk' mostly means 'I am worried.'",duck:"You found the DUCK TRANSLATOR! 'Quack' means... a lot of rude things, actually.",goat:"You found the GOAT TRANSLATOR! 'Meh-eh' means 'I want to eat that.' All of it. Always.",horse:"You found the HORSE TRANSLATOR! 'Neigh' means 'ew, no.' Mostly."};
+const PJ=["Why don't pigs tell secrets? The barn has ears. And snouts.","I told a pig joke once. It was ham-barrassing.","Never trust a farmer who says it is 'just a little fence'.","Being a pig is easy: eat, roll in mud, plot escape. Repeat.","My cousin escaped once. He is now a very happy sausage-free pig in Paris."];
+const CAUGHTM=["Busted! The farmer plops you back at the start of the screen. Oink.","Farmer: 'Come here, ham!' You: 'Absolutely not.' (You go back.)","Gotcha! Back to the start of the screen. Your dignity stays here.","The farmer says 'bacon?!' and you teleport away in shame."];
+const WAITM=["You wait. You look very suspicious doing it.","You stand still like a very round rock.","You whistle casually. Pigs cannot whistle.","You contemplate life. Mostly lunch."];
+const TUNM=["SPLORCH! You tunnel through the mud and pop up in another patch. Mud in your ears.","Pig-mole mode activated! You pop out of the mud.","You tunnel through the mud and pop up in another patch! Worth the smell."];
+const rnd=a=>a[Math.random()*a.length|0];
+function perms(a){if(a.length<2)return[a];const r=[];a.forEach((v,i)=>perms([...a.slice(0,i),...a.slice(i+1)]).forEach(p=>r.push([v,...p])));return r}
+function genClues(names,order,shuf){
+ const S=[],ps=perms(names),pos=(p,s)=>p.indexOf(s);
+ for(const s of names){S.push({t:`The ${s} is pulled first.`,f:p=>p[0]===s},{t:`The ${s} is pulled last.`,f:p=>p[p.length-1]===s},{t:`The ${s} is not pulled first.`,f:p=>p[0]!==s},{t:`The ${s} is not pulled last.`,f:p=>p[p.length-1]!==s});
+  for(const t of names)if(t!==s){S.push({t:`The ${s} is pulled sometime before the ${t}.`,f:p=>pos(p,s)<pos(p,t)},{t:`The ${t} is pulled right after the ${s}.`,f:p=>pos(p,t)===pos(p,s)+1});if(s<t)S.push({t:`The ${s} and the ${t} are never pulled one after the other.`,f:p=>Math.abs(pos(p,s)-pos(p,t))!==1})}}
+ const good=shuf(S.filter(c=>c.f(order))),ch=[],uniq=a=>ps.filter(p=>a.every(c=>c.f(p))).length===1;
+ for(const c of good){ch.push(c);if(uniq(ch))break}
+ for(let i=ch.length-1;i>=0;i--){const t=ch.filter((_,j)=>j!==i);if(uniq(t))ch.splice(i,1)}
+ return ch.map(c=>c.t)}
 function init(){
- piglet={free:false,x:0,y:0,vx:0};map=Array.from({length:MH},()=>Array(MW).fill("."));signs={};buried={};items=[];npcs=[];farmers=[];
+ lila={free:false,x:0,y:0,ax:0,ay:0,fc:1};piglet={free:false,x:0,y:0,ax:0,ay:0,fc:1};
+ map=Array.from({length:MH},()=>Array(MW).fill("."));signs={};buried={};items=[];npcs=[];farmers=[];tun={};leverAt={};
  for(let sy=0;sy<ROWS;sy++)for(let sx=0;sx<COLS;sx++)OL(sx,sy,0,0,SW-1,SH-1,"#");
  for(let sy=0;sy<ROWS;sy++){for(let sx=0;sx<COLS-1;sx++){FR(sx,sy,SW-1,5,SW-1,6,".");FR(sx+1,sy,0,5,0,6,".")}
   if(sy<ROWS-1){const sx=sy%2===0?COLS-1:0;FR(sx,sy,9,SH-1,10,SH-1,".");FR(sx,sy+1,9,0,10,0,".")}}
  for(let n=1;n<=N;n++)build(n);
- keys={red:0,blue:0,gold:0,brass:0};
- lila={x:0,y:0,col:"#c4b5fd",vx:0};
- P={x:3*T+8,y:5*T+8,f:1,fy:0,moving:false};lila.x=P.x-10;lila.y=P.y;
- hist=[];noise=null;time=0;decoyCd=0;caughtT=0;state="play";msg="Escape the farm! Lila is right behind you.";msgT=4;spawn={x:P.x,y:P.y};screenNo=1;
+ keys={red:0,blue:0,gold:0,brass:0,tr:{},food:{},jokes:[]};
+ P={tx:3,ty:5,x:ctr(3),y:ctr(5),ax:ctr(3),ay:ctr(5),f:1,fy:0};
+ hist=[[3,5]];noise=null;aim=null;turns=0;decoyCd=0;caughtT=0;state="play";msg="You are a pig, alone in the pen. Farmers only move when you do. Find a way out!";msgT=6;spawn={tx:3,ty:5};screenNo=1;
 }
 function build(n){
- const[sx,sy]=scrOf(n),rn=rng(n*7919+3),occ=new Set();
+ const[sx,sy]=scrOf(n),rn=rng(n*7919+3),occ=new Set(),abs=(lx,ly)=>[sx*SW+lx,sy*SH+ly];
+ const shuf=a=>{for(let i=a.length-1;i>0;i--){const j=rn()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
  const ent=n===1?"L":(()=>{const[a,b]=scrOf(n-1);return b<sy?"T":a<sx?"L":"R"})();
  const ext=n===N?"R":(()=>{const[a,b]=scrOf(n+1);return b>sy?"B":a>sx?"R":"L"})();
- const turn=ent==="T"||ext==="B";let bxs=[],dir=1;
- if(n===1)bxs=[];else if(n===N){bxs=[10]}else if(!turn){bxs=ent==="L"?[6,14]:[14,6];dir=ent==="L"?1:-1}
- else if(ent==="L"){bxs=[7]}else if(ent==="T"&&ext==="L"){bxs=[7];dir=-1}else if(ent==="R"){bxs=[12];dir=-1}else bxs=[12];
+ const turn=ent==="T"||ext==="B";let bxs,dir=1;
+ if(n===1)bxs=[10];else if(n===N)bxs=[10];else if(!turn){bxs=ent==="L"?[6,14]:[14,6];dir=ent==="L"?1:-1}
+ else if(ent==="L")bxs=[7];else if(ent==="T"&&ext==="L"){bxs=[7];dir=-1}else if(ent==="R"){bxs=[12];dir=-1}else bxs=[12];
  const regs=bxs.map((bx,k)=>dir>0?[k?bxs[k-1]+2:1,bx-2]:[bx+2,k?bxs[k-1]-2:18]);
  const bad=(a,b)=>turn&&!(b<8||a>11);
  const free=(x0,y0,x1,y1)=>{for(let yy=y0;yy<=y1;yy++)for(let xx=x0;xx<=x1;xx++)if(G(sx,sy,xx,yy)!=="."||occ.has(xx+","+yy))return false;return true};
  const mark=(x0,y0,x1,y1)=>{for(let yy=y0;yy<=y1;yy++)for(let xx=x0;xx<=x1;xx++)occ.add(xx+","+yy)};
- const slot=(a,b,d)=>{const c=[];for(let x0=a;x0+2<=b;x0++)c.push(x0);if(d>0)c.reverse();for(const x0 of c)if(!bad(x0,x0+2)&&free(x0,1,x0+2,3)){mark(x0,1,x0+2,3);return x0}return -1};
- const bury=(a,b,col)=>{const c=[];for(let x0=a;x0+2<=b;x0++)c.push(x0);for(let i=c.length-1;i>0;i--){const j=rn()*(i+1)|0;[c[i],c[j]]=[c[j],c[i]]}
-  for(const x0 of c)if(free(x0,8,x0+2,9)){FR(sx,sy,x0,8,x0+2,9,"m");L(sx,sy,x0+1,8,"b");buried[`${sx*SW+x0+1},${sy*SH+8}`]=col;mark(x0,8,x0+2,9);return}};
+ const slot=(a,b,d,w=3)=>{const c=[];for(let x0=a;x0+w-1<=b;x0++)c.push(x0);if(d>0)c.reverse();for(const x0 of c)if(!bad(x0,x0+w-1)&&free(x0,1,x0+w-1,3)){mark(x0,1,x0+w-1,3);return x0}return -1};
+ const link=(p,q)=>{const cp=abs((p[0]+p[2])>>1,p[1]),cq=abs((q[0]+q[2])>>1,q[1]);
+  for(let yy=p[1];yy<=p[3];yy++)for(let xx=p[0];xx<=p[2];xx++)tun[abs(xx,yy).join(",")]=cq;
+  for(let yy=q[1];yy<=q[3];yy++)for(let xx=q[0];xx<=q[2];xx++)tun[abs(xx,yy).join(",")]=cp};
+ const patch=(a,b,ys)=>{for(let t=0;t<8;t++){const x0=a+(rn()*(b-a-1)|0),y0=ys[rn()*ys.length|0];if(b-a>=2&&free(x0,y0,x0+2,y0+1)){FR(sx,sy,x0,y0,x0+2,y0+1,"m");mark(x0,y0,x0+2,y0+1);return[x0,y0,x0+2,y0+1]}}return null};
+ const garden=(a,b,col)=>{const x0=slot(a,b,dir,3);if(x0<0)return false;
+  const p=patch(a,b,[8]);if(!p){return false}
+  OL(sx,sy,x0,1,x0+2,3,"#");L(sx,sy,x0+1,2,"b");buried[abs(x0+1,2).join(",")]=col;link([x0+1,2,x0+1,2],p);return true};
+ const bury=(a,b,col)=>{const p=patch(a,b,[8]);if(!p)return;L(sx,sy,p[0]+1,8,"b");buried[abs(p[0]+1,8).join(",")]=col};
+ const clueLines=[];
  bxs.forEach((bx,k)=>{const kind=n===N?"gold":PLAN[n][k],[a,b]=regs[k],ch={red:"r",blue:"u",gold:"G"};
-  FR(sx,sy,bx,1,bx,10,"#");
+  FR(sx,sy,bx,1,bx,10,"#");const gate=c=>FR(sx,sy,bx,5,bx,6,c);
   if(kind==="crate")FR(sx,sy,bx-1,5,bx+1,6,"X");
-  else if(kind==="mound"){FR(sx,sy,bx-1,5,bx+1,6,"M");for(const d of[-3,-2,2,3])FR(sx,sy,bx+d,4,bx+d,7,"m")}
-  else if(kind==="latch")FR(sx,sy,bx,5,bx,6,"L");
-  else if(kind==="pig")FR(sx,sy,bx,5,bx,6,"h");
-  else if(kind==="plate"){FR(sx,sy,bx,5,bx,6,"D");const x0=slot(a,b,dir);if(x0>=0){OL(sx,sy,x0,1,x0+2,3,"#");L(sx,sy,x0+1,2,"p")}}
-  else{FR(sx,sy,bx,5,bx,6,ch[kind]);if(kind!=="gold")bury(a,b,kind)}});
- if(n===12){const[a,b]=regs[0],x0=slot(a,b,dir);if(x0>=0){OL(sx,sy,x0,1,x0+2,3,"#");L(sx,sy,x0+1,2,"K");piglet.cx=(sx*SW+x0+1)*T+8;piglet.cy=(sy*SH+2)*T+8}bury(a,b,"brass")}
- if(n===N-1){const a=dir>0?bxs[bxs.length-1]+2:1;const kx=dir>0?18:a;items.push({x:wp(sx,sy,kx,2)[0],y:wp(sx,sy,kx,2)[1],type:"key",col:"gold",got:false});mark(kx,2,kx,2)}
- // mud, ponds, trees
- for(let i=0;i<2;i++){const x0=1+rn()*15|0,y0=7+rn()*2|0;if(free(x0,y0,x0+2,y0+1)){FR(sx,sy,x0,y0,x0+2,y0+1,"m")}}
- if(rn()<.4){const x0=1+rn()*14|0;if(!bad(x0,x0+3)&&free(x0,1,x0+3,2)){FR(sx,sy,x0,1,x0+3,2,"W");mark(x0,1,x0+3,2)}}
+  else if(kind==="mound"){FR(sx,sy,bx-1,5,bx+1,6,"M");for(const d of[-3,-2,2,3])if(G(sx,sy,bx+d,4)===".")FR(sx,sy,bx+d,4,bx+d,7,"m")}
+  else if(kind==="latch")gate("L");
+  else if(kind==="pig")gate("h");
+  else if(kind==="plate"){gate("D");const x0=slot(a,b,dir);if(x0>=0){OL(sx,sy,x0,1,x0+2,3,"#");L(sx,sy,x0+1,2,"p")}}
+  else if(kind==="lever"||kind==="freeLila"){gate(kind==="lever"?"N":"K");
+   if(kind==="freeLila"){const c=abs(bx,5);lila.cx=ctr(c[0]);lila.cy=ctr(c[1])}
+   const w=n>=14?4:3,x0=slot(a,b,dir,w),names=SHAPES.slice(0,w),order=shuf([...names]),disp=shuf([...names]);
+   const g={order,progress:0,target:kind,door:[abs(bx,5),abs(bx,6)],tiles:[]};
+   disp.forEach((s,i)=>{L(sx,sy,x0+i,2,"V");const c=abs(x0+i,2),o={shape:s,pulled:false,g};g.tiles.push(c);leverAt[c.join(",")]=o});
+   genClues(names,order,shuf).forEach((t,i)=>clueLines.push(`Clue ${i+1}: ${t}`))}
+  else if(kind==="freePiglet"){gate("J");const c=abs(bx,5);piglet.cx=ctr(c[0]);piglet.cy=ctr(c[1]);if(!garden(a,b,"brass"))bury(a,b,"brass")}
+  else if(kind==="bribe"||kind==="joke"){gate("B");const jk=kind==="joke",s=jk?"horse":BR[n],likes=FL[s],food=likes[rn()*likes.length|0],ds=Object.keys(FOOD).filter(f=>f!==food),decoy=ds[rn()*ds.length|0],bc=abs(bx,5),gc=abs(bx-dir,4);occ.add((bx-dir)+",4");
+   npcs.push({x:ctr(gc[0]),y:ctr(gc[1]),sp:s,name:SP[s].names[(n+k)%4],guard:{food,joke:jk,done:false,gx:bc[0],gy:bc[1]},r:36,lines:[],c:0});
+   if(!jk)for(const f of[food,decoy]){let placed=false;for(const y of shuf([4,9,3]))for(const xx of shuf(Array.from({length:b-a+1},(_,i)=>a+i)))if(!placed&&free(xx,y,xx,y)){const c=abs(xx,y);items.push({x:ctr(c[0]),y:ctr(c[1]),food:f,got:false});mark(xx,y,xx,y);placed=true}if(!placed)throw new Error("no food spot "+n)}}
+  else{gate(ch[kind]);if(kind!=="gold"&&!garden(a,b,kind))bury(a,b,kind)}});
+ if(n===N-1){const kx=dir>0?18:regs[regs.length-1][0];const c=abs(kx,2);items.push({x:ctr(c[0]),y:ctr(c[1]),col:"gold",got:false});mark(kx,2,kx,2)}
+ if(TRN[n]){const s=TRN[n],[a,b]=regs[0];let done=false;for(let xx=a;xx<=b&&!done;xx++)if(!bad(xx,xx)&&free(xx,3,xx,3)){const c=abs(xx,3);items.push({x:ctr(c[0]),y:ctr(c[1]),sp:s,got:false});mark(xx,3,xx,3);done=true}
+  if(!done)throw new Error("no translator spot "+n)}
+ // intervals between barriers: linked mud pairs and dog patrol
+ const ints=[];{let st=1;for(const b of[...bxs].sort((p,q)=>p-q)){ints.push([st,b-2]);st=b+2}ints.push([st,18])}
+ for(const[a,b]of ints){if(b-a<5)continue;const pa=patch(a,b,[7,8]),pb=patch(a,b,[7,8]);if(pa&&pb)link(pa,pb)}
  // tip pig
- const bx0=bxs.length?bxs[0]:10,tx=n===1?7:Math.max(2,Math.min(17,bx0+(dir>0?-3:3)));
- const kind0=n===1?null:n===N?"gold":PLAN[n][0];
- const lines=n===1?["Psst, new pig! Walk right to leave the pen. Lila will follow you.","Press E near things to use them. I'll give tips on every screen."]:n===12?[TIP[kind0],"A piglet is locked in the cage up top! The brass key is buried in the mud. Free it: it can squeeze where we can't."]:[TIP[kind0],GEN[(n*3)%GEN.length]];
- npcs.push({x:wp(sx,sy,tx,10)[0],y:wp(sx,sy,tx,10)[1],col:PCOL[n%PCOL.length],name:NAMES[(n-1)%NAMES.length],lines,c:0});mark(tx,10,tx,10);
+ const bx0=bxs[0],tx=Math.max(2,Math.min(17,bx0+(dir>0?-3:3)));
+ const kinds=n===N?["gold"]:[...new Set(PLAN[n])];
+ const lines=n===1?["Psst, new pig! You are in a pen on a farm. Walk right and open the latch with E.","Everything is turn-based: farmers only move when you do. Press Space to wait a turn.","Being seen is fine, but if a farmer touches you, you go back to the start of the screen."]:[...kinds.map(k=>TIP[k]),...(TRN[n]?[`A ${TRN[n]} translator lies on the ground near the top of this screen. Each kind of animal needs its own!`]:[]),...clueLines,GEN[(n*3)%GEN.length]];
+ signs[abs(tx,10).join(",")]=lines.map(l=>"Sign: "+l);mark(tx,10,tx,10);
+ {const sp=n%2===0?Object.keys(SP)[(n>>1)%6]:n>=3?"goat":null;
+  if(sp){const cand=shuf(Array.from({length:16},(_,i)=>i+2).filter(v=>Math.abs(v-tx)>=3&&free(v,10,v,10)));if(cand.length){const c=abs(cand[0],10);mark(cand[0],10,cand[0],10);npcs.push({x:ctr(c[0]),y:ctr(c[1]),sp,name:SP[sp].names[n%4],lines:JOKES[sp],c:0})}}}
  for(let ty=1;ty<=10;ty++)for(let lx=1;lx<=18;lx++){if(!(ty<=3||ty===10)||occ.has(lx+","+ty)||G(sx,sy,lx,ty)!==".")continue;if(bad(lx,lx))continue;if(n===1&&lx<5&&ty>=4)continue;if(rn()<.13)L(sx,sy,lx,ty,"T")}
- if(n===1)signs[`${sx*SW+4},${sy*SH+5}`]="Welcome, little pig! Arrows or WASD to move. Walk right to leave the pen.";
- if(n===N)signs[`${sx*SW+8},${sy*SH+5}`]="The golden gate! You need the gold key. Beyond it is the road to freedom!";
- if(n===N)FR(sx,sy,11,1,18,10,"R");
+ if(n===1){const c=abs(4,5);signs[c.join(",")]="Welcome, little pig! Arrows or WASD take one step at a time. Walk right to leave the pen."}
+ if(n===N){const c=abs(8,5);signs[c.join(",")]="The golden gate! You need the gold key. Beyond it is the road to freedom!";FR(sx,sy,11,1,18,10,"R")}
  // farmers and dogs
- const cols=[];const cnt=n===1?0:1+(n>4)+(n>12&&n%2===0)+(n>22);
- for(let c=2;c<=17;c++){if(bxs.some(b=>Math.abs(c-b)<3))continue;if(turn&&c>=6&&c<=13)continue;if(n===1&&c<6)continue;cols.push(c)}
- const used=[];for(let i=0;i<cnt&&cols.length;i++){const c=cols.splice(rn()*cols.length|0,1)[0];if(used.some(u=>Math.abs(u-c)<3)){i--;continue}used.push(c);
-  farmers.push(mkF(sx,sy,[[c,4+(i%2)*0],[c,9]],false))}
- if(n>=9&&n%3===0||n===N){const ints=[];let st=1;for(const b of[...bxs].sort((p,q)=>p-q)){ints.push([st,b-2]);st=b+2}ints.push([st,18]);
-  const w=ints.sort((p,q)=>(q[1]-q[0])-(p[1]-p[0]))[0];if(w[1]-w[0]>=6)farmers.push(mkF(sx,sy,[[w[0]+1,9],[w[1]-1,9]],true))}
+ const cnt=n<4?0:1+(n>12)+(n>22),cols=[];
+ for(let c=2;c<=17;c++){if(bxs.some(b=>Math.abs(c-b)<3))continue;if(turn&&c>=6&&c<=13)continue;cols.push(c)}
+ const used=[];for(let i=0;i<cnt&&cols.length;i++){const c=cols.splice(rn()*cols.length|0,1)[0];if(used.some(u=>Math.abs(u-c)<3)){i--;continue}used.push(c);farmers.push(mkF([abs(c,4),abs(c,9)],false))}
+ if(n>=9&&n%6===3||n===N){const w=[...ints].sort((p,q)=>(q[1]-q[0])-(p[1]-p[0]))[0];if(w[1]-w[0]>=6)farmers.push(mkF([abs(w[0]+1,9),abs(w[1]-1,9)],true))}
 }
-function mkF(sx,sy,pts,dog){const w=pts.map(([a,b])=>wp(sx,sy,a,b));return{x:w[0][0],y:w[0][1],pts:w,i:1,a:0,seen:0,dog,rng:dog?64:90,half:dog?.9:.75,sp:dog?58:34}}
+function mkF(pts,dog){const f={tx:pts[0][0],ty:pts[0][1],pts,i:1,a:Math.atan2(Math.sign(pts[1][1]-pts[0][1]),Math.sign(pts[1][0]-pts[0][0])),alert:0,lt:null,dog,rng:dog?52:68,half:dog?.8:.5};
+ f.x=f.ax=ctr(f.tx);f.y=f.ay=ctr(f.ty);f.init={tx:f.tx,ty:f.ty,i:1,a:f.a};return f}
 const tileAt=(px,py)=>{const tx=Math.floor(px/T),ty=Math.floor(py/T);return tx<0||ty<0||tx>=MW||ty>=MH?"#":map[ty][tx]};
 const solidAt=(px,py)=>SOLID.has(tileAt(px,py));
-const boxFree=(px,py)=>!(solidAt(px-5,py-5)||solidAt(px+5,py-5)||solidAt(px-5,py+1)||solidAt(px+5,py+1));
 const say=(s,t=3)=>{msg=s;msgT=t};
 const scr=(px,py)=>[Math.floor(px/(SW*T)),Math.floor(py/(SH*T))];
+const sameScr=(a,b)=>{const p=scr(a.x,a.y),q=scr(b.x,b.y);return p[0]===q[0]&&p[1]===q[1]};
 function blocked(x0,y0,x1,y1){const d=Math.hypot(x1-x0,y1-y0),n=Math.ceil(d/4);for(let i=1;i<n;i++)if(solidAt(x0+(x1-x0)*i/n,y0+(y1-y0)*i/n))return true;return false}
 function nearTile(chs,r){let best=null,bd=r;const[sx,sy]=scr(P.x,P.y);for(let ty=sy*SH;ty<sy*SH+SH;ty++)for(let tx=sx*SW;tx<sx*SW+SW;tx++)if(chs.includes(map[ty][tx])){const d=Math.hypot(tx*T+8-P.x,ty*T+8-P.y);if(d<bd){bd=d;best={tx,ty}}}return best}
-const lilaGo=(tx,ty)=>{lila.x=tx*T+8;lila.y=ty*T+8};
+function setPos(e,tx,ty,snap){e.x=ctr(tx);e.y=ctr(ty);if(snap){e.ax=e.x;e.ay=e.y}}
+function nextStep(sx,sy,tx,ty){if(sx===tx&&sy===ty)return null;const q=[[sx,sy]],prev=new Map([[sx+","+sy,null]]);let found=false;
+ for(let h=0;h<q.length&&q.length<900;h++){const[a,b]=q[h];if(a===tx&&b===ty){found=true;break}for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const nx=a+dx,ny=b+dy,k=nx+","+ny;if(prev.has(k)||Math.abs(nx-sx)>14||Math.abs(ny-sy)>14||nx<0||ny<0||nx>=MW||ny>=MH||SOLID.has(map[ny][nx]))continue;prev.set(k,[a,b]);q.push([nx,ny])}}
+ if(!found)return null;let c=[tx,ty],p=prev.get(c[0]+","+c[1]);while(p&&!(p[0]===sx&&p[1]===sy)){c=p;p=prev.get(c[0]+","+c[1])}return[c[0]-sx,c[1]-sy]}
+function sees(f){const dx=P.x-f.x,dy=P.y-f.y,d=Math.hypot(dx,dy);if(d>f.rng)return false;if(d<T*1.1)return true;let diff=Math.abs(Math.atan2(dy,dx)-f.a);if(diff>Math.PI)diff=2*Math.PI-diff;return diff<f.half&&!blocked(f.x,f.y,P.x,P.y)}
+function stepFarmer(f){
+ if(sees(f)){f.alert=6;f.lt=[P.tx,P.ty]}
+ for(let s=0;s<(f.dog?2:1);s++){
+  let tgt;
+  if(f.alert>0&&f.lt)tgt=f.lt;
+  else if(noise&&Math.hypot(ctr(noise.tx)-f.x,ctr(noise.ty)-f.y)<T*9)tgt=[noise.tx,noise.ty];
+  else{let pt=f.pts[f.i];if(f.tx===pt[0]&&f.ty===pt[1]){f.i=(f.i+1)%f.pts.length;pt=f.pts[f.i]}tgt=pt}
+  const st=nextStep(f.tx,f.ty,tgt[0],tgt[1]);
+  if(st){f.tx+=st[0];f.ty+=st[1];f.a=Math.atan2(st[1],st[0]);setPos(f,f.tx,f.ty)}}
+ if(sees(f)){f.alert=6;f.lt=[P.tx,P.ty]}else if(f.alert>0)f.alert--}
+function resetFarmers(){const[sx,sy]=scr(P.x,P.y);for(const f of farmers){const p=scr(f.x,f.y);if(p[0]===sx&&p[1]===sy){f.tx=f.init.tx;f.ty=f.init.ty;f.i=f.init.i;f.a=f.init.a;f.alert=0;f.lt=null;setPos(f,f.tx,f.ty,true)}}}
+function caught(){caughtT=.9;resetFarmers();P.tx=spawn.tx;P.ty=spawn.ty;setPos(P,P.tx,P.ty,true);hist=[[P.tx,P.ty]];noise=null;follow(true);say(rnd(CAUGHTM),3)}
+function pickup(){for(const it of items)if(!it.got&&Math.hypot(it.x-P.x,it.y-P.y)<12){it.got=true;
+ if(it.sp){keys.tr[it.sp]=true;say(TRMSG[it.sp],7)}
+ else if(it.food){keys.food[it.food]=(keys.food[it.food]||0)+1;say(`You grab the ${FOOD[it.food][0]}. ${FOOD[it.food][2]}`,4)}
+ else{keys[it.col]++;say(`You got the ${it.col} key!`,3)}}}
+function follow(snap){if(lila.free&&!noise){const h=hist[Math.max(0,hist.length-3)];setPos(lila,h[0],h[1],snap)}
+ if(piglet.free){const h=hist[Math.max(0,hist.length-5)];setPos(piglet,h[0],h[1],snap)}}
+function endTurn(){
+ turns++;decoyCd=Math.max(0,decoyCd-1);if(noise&&--noise.t<=0){noise=null;follow()}
+ pickup();
+ if(tileAt(P.x,P.y)==="R"){state="won";return}
+ const[sx,sy]=scr(P.x,P.y);
+ for(const f of farmers){const p=scr(f.x,f.y);if(p[0]===sx&&p[1]===sy)stepFarmer(f)}
+ for(const f of farmers)if(sameScr(f,P)&&Math.hypot(P.x-f.x,P.y-f.y)<T*1.1){caught();return}}
+function tryMove(dx,dy){
+ const nx=P.tx+dx,ny=P.ty+dy;if(dx)P.f=dx;P.fy=dx?0:dy;
+ if(solidAt(ctr(nx),ctr(ny)))return;
+ const[s0x,s0y]=scr(P.x,P.y);P.tx=nx;P.ty=ny;setPos(P,nx,ny);const[s1x,s1y]=scr(P.x,P.y);
+ if(s0x!==s1x||s0y!==s1y){spawn={tx:nx,ty:ny};screenNo=Math.max(screenNo,seqNo(s1x,s1y))}
+ hist.push([nx,ny]);if(hist.length>60)hist.shift();follow();endTurn()}
 const COLN={r:"red",u:"blue",G:"gold"};
 function openPair(tx,ty,ch){map[ty][tx]=".";for(const d of[-1,1])if(map[ty+d]&&map[ty+d][tx]===ch)map[ty+d][tx]="."}
+function pull(tx,ty){const o=leverAt[tx+","+ty],g=o.g;
+ if(o.pulled){say("That lever is already pulled.",2);return}
+ if(g.order[g.progress]===o.shape){o.pulled=true;g.progress++;
+  if(g.progress===g.order.length){g.progress=0;
+   if(g.target==="lever"){for(const[a,b]of g.door)map[b][a]=".";say("Click-click-click! The stone door slides open!",4)}
+   else{for(const[a,b]of g.door)map[b][a]=".";lila.free=true;setPos(lila,g.door[0][0],g.door[0][1],true);hist=hist.slice(-6);say("Lila is free! \"Oink! Thank you! I can smash crates, dig mud and press paw plates!\"",6)}}
+  else say("Clunk. That felt right...",2)}
+ else{for(const t of g.tiles)leverAt[t.join(",")].pulled=false;g.progress=0;say("CLUNK! Wrong order. All the levers spring back.",3)}}
+function talk(q){
+ const g=q.guard;
+ if(q.sp&&!keys.tr[q.sp]){const s=SP[q.sp].snd;say(`${q.name}: "${[s+"!",s+" "+s.toLowerCase()+" "+s+".",s+"?? "+s+"!!!"][q.c++%3]}" (You need the ${q.sp} translator.)`,6);return false}
+ if(g&&!g.done){
+  if(g.joke){
+   if(!keys.jokes.length){say(`${q.name}: Neigh. I only open this gate for a REALLY funny joke. You know none? Collect jokes from animals you can translate!`,8);return false}
+   const j=keys.jokes[(q.jc=q.jc||0)%keys.jokes.length];q.jc++;
+   const R=["","Neigh... zero laughs. 1/5.","A polite snort. 2/5.","Heh. Not bad. 3/5.","I chuckled! Not enough. 4/5.","HAHAHA! Best joke ever! 5/5!"];
+   if(j.r>=5){g.done=true;openPair(g.gx,g.gy,"B");say(`You: "${j.t}" ${q.name}: ${R[5]} The gate opens!`,8);return true}
+   say(`You: "${j.t}" ${q.name}: ${R[j.r]}`,8);return false}
+  const f=g.food;
+  if(keys.food[f]>0){keys.food[f]--;g.done=true;openPair(g.gx,g.gy,"B");say(`${q.name}: ${THX[q.sp].replace("%F",FOOD[f][0])} The toll gate opens!`,6);return true}
+  const o=Object.keys(keys.food).find(k=>keys.food[k]>0);
+  say(`${q.name}: ${o?NOPE(o)+" ":""}${ASK[q.sp].replace("%F",FOOD[f][0])}`,8);return false}
+ const L=g?AFTER[q.sp]:q.lines,i=q.c++%L.length;let extra="";
+ if(!g&&!keys.jokes.some(j=>j.t===L[i])){keys.jokes.push({t:L[i],r:JR[q.sp][i]});extra=" (Joke learned!)"}
+ say(`${q.name}: ${L[i]}${extra}`,8);return false}
 function interact(){
- if(state!=="play")return;
- for(const q of npcs)if(Math.hypot(q.x-P.x,q.y-P.y)<24){say(q.name+": "+q.lines[q.c++%q.lines.length],6);return}
- const t=nearTile("LXMbruGh",28)||nearTile("p",100)||nearTile("K",60)||nearTile("D",28);
- if(!t){for(const k in signs){const[sx,sy]=k.split(",").map(Number);if(Math.hypot(sx*T+8-P.x,sy*T+8-P.y)<26){say(signs[k],6);return}}
-  if(piglet.free&&Math.hypot(piglet.x-P.x,piglet.y-P.y)<24){say("Piglet: Squeak! I can fit through tiny holes!",3);return}
-  if(Math.hypot(lila.x-P.x,lila.y-P.y)<24){say(["Lila: Oink! I smash crates one at a time.","Lila: I dig mud mounds and buried keys!","Lila: Stay out of the farmers' sight!"][(frames>>3)%3],3);return}say("Nothing to use here.",1.5);return}
+ for(const q of npcs)if(Math.hypot(q.x-P.x,q.y-P.y)<(q.r||26))return talk(q);
+ const here=tun[P.tx+","+P.ty];
+ if(here&&map[P.ty][P.tx]!=="b"){P.tx=here[0];P.ty=here[1];setPos(P,P.tx,P.ty,true);hist.push([P.tx,P.ty]);follow(true);for(const f of farmers){f.alert=0;f.lt=null}say(rnd(TUNM),3);return true}
+ const t=nearTile("LXMbruGhNVB",28)||nearTile("p",100)||nearTile("KJ",60)||nearTile("D",28);
+ if(!t){for(const k in signs){const[sx,sy]=k.split(",").map(Number);if(Math.hypot(ctr(sx)-P.x,ctr(sy)-P.y)<26){const s=signs[k];if(Array.isArray(s)){signC[k]=(signC[k]||0)+1;say(s[(signC[k]-1)%s.length],8)}else say(s,6);return false}}
+  if(piglet.free&&Math.hypot(piglet.x-P.x,piglet.y-P.y)<24){say("Piglet: Squeak! I can fit through tiny holes!",3);return false}
+  if(lila.free&&Math.hypot(lila.x-P.x,lila.y-P.y)<24){say(["Lila: Oink! I smash crates one at a time.","Lila: I dig mud mounds and buried keys!","Lila: Press Q and tell me where to make a noise."][(frames>>3)%3],3);return false}
+  say(tun[P.tx+","+P.ty]?"":"Nothing to use here.",1.5);return false}
  const ch=map[t.ty][t.tx];
- if(ch==="L"){map[t.ty][t.tx]=".";say("Click! The latch is open.")}
- else if(ch==="X"){lilaGo(t.tx,t.ty);map[t.ty][t.tx]=".";say("CRASH! Lila smashes a crate!")}
- else if(ch==="M"){lilaGo(t.tx,t.ty);map[t.ty][t.tx]=".";say("Lila digs away a pile of mud!")}
- else if(ch==="b"){lilaGo(t.tx,t.ty);map[t.ty][t.tx]="m";const col=buried[t.tx+","+t.ty];items.push({x:t.tx*T+8,y:t.ty*T+8,type:"key",col,got:false});say(`Lila digs in the mud... a ${col} key!`,4)}
- else if(ch==="p"){lilaGo(t.tx,t.ty);map[t.ty][t.tx]="q";const[sx,sy]=scr(P.x,P.y);for(let yy=sy*SH;yy<sy*SH+SH;yy++)for(let xx=sx*SW;xx<sx*SW+SW;xx++)if(map[yy][xx]==="D")map[yy][xx]=".";say("Lila squeezes in and presses the plate. The door opens!",4)}
- else if(ch==="D")say("The door is shut. Find the paw plate in a pen nearby!",3);
- else if(ch==="K"){if(keys.brass>0){keys.brass--;map[t.ty][t.tx]=".";piglet.free=true;piglet.x=t.tx*T+8;piglet.y=t.ty*T+8;hist=hist.slice(-3);say("The cage opens! The little piglet joins you!",5)}else say("A piglet is locked in the cage! You need the brass key buried in the mud nearby.",4)}
- else if(ch==="h"){if(piglet.free){piglet.x=t.tx*T+8;piglet.y=t.ty*T+8;openPair(t.tx,t.ty,"h");say("The piglet squeezes through the tiny hole and unlatches the fence!",4)}else say("A tiny hole! Too small for you and Lila. A piglet could fit...",4)}
- else{const c=COLN[ch];if(keys[c]>0){keys[c]--;openPair(t.tx,t.ty,ch);say(`The ${c} gate swings open!`)}else say(`The ${c} gate is locked. You need the ${c} key.`)}
-}
-function decoy(){
- if(state!=="play")return;if(decoyCd>0){say("Lila needs a moment...",1.5);return}
- let nx=P.x,ny=P.y;for(let i=0;i<8;i++){const tx=nx+P.f*T,ty=ny+P.fy*T;if(solidAt(tx,ty))break;nx=tx;ny=ty}
- noise={x:nx,y:ny,t:6};decoyCd=10;say("Lila runs off and squeals!")}
-function caught(){caughtT=1.2;P.x=spawn.x;P.y=spawn.y;hist=[];lila.x=P.x-8;lila.y=P.y;piglet.x=P.x-14;piglet.y=P.y;noise=null;for(const f of farmers)f.seen=0;say("Caught! Back to the start of this screen.",3)}
+ if("XMbp".includes(ch)&&!lila.free){say("You can't do this alone. Free Lila first!",3);return false}
+ if(ch==="L"){map[t.ty][t.tx]=".";say("Click! The latch is open.");return true}
+ if(ch==="X"){setPos(lila,t.tx,t.ty,true);map[t.ty][t.tx]=".";say("CRASH! Lila smashes a crate!");return true}
+ if(ch==="M"){setPos(lila,t.tx,t.ty,true);map[t.ty][t.tx]=".";say("Lila digs away a pile of mud!");return true}
+ if(ch==="b"){setPos(lila,t.tx,t.ty,true);map[t.ty][t.tx]="m";const col=buried[t.tx+","+t.ty];items.push({x:ctr(t.tx),y:ctr(t.ty),col,got:false});say(`Lila digs in the mud... a ${col} key! Press E again to tunnel out.`,4);return true}
+ if(ch==="p"){setPos(lila,t.tx,t.ty,true);map[t.ty][t.tx]="q";const[sx,sy]=scr(P.x,P.y);for(let yy=sy*SH;yy<sy*SH+SH;yy++)for(let xx=sx*SW;xx<sx*SW+SW;xx++)if(map[yy][xx]==="D")map[yy][xx]=".";say("Lila squeezes in and presses the plate. The door opens!",4);return true}
+ if(ch==="D"){say("The door is shut. Find the paw plate in a pen nearby!",3);return false}
+ if(ch==="V"){pull(t.tx,t.ty);return true}
+ if(ch==="N"){say("A stone door. There are levers nearby. Pull them in the right order!",4);return false}
+ if(ch==="B"){say("A toll gate! Talk to the guard animal beside it.",4);return false}
+ if(ch==="K"){say("Lila is locked in this cage! Solve the lever puzzle nearby to free her.",4);return false}
+ if(ch==="J"){if(keys.brass>0){keys.brass--;openPair(t.tx,t.ty,"J");piglet.free=true;setPos(piglet,t.tx,t.ty,true);hist=hist.slice(-6);say("The cage opens! The little piglet joins you!",5);return true}say("A piglet is locked in the cage! You need the brass key from the mud garden.",4);return false}
+ if(ch==="h"){if(piglet.free){setPos(piglet,t.tx,t.ty,true);openPair(t.tx,t.ty,"h");say("The piglet squeezes through the tiny hole and unlatches the fence!",4);return true}say("A tiny hole! Too small for you and Lila. A piglet could fit...",4);return false}
+ const c=COLN[ch];if(keys[c]>0){keys[c]--;openPair(t.tx,t.ty,ch);say(`The ${c} gate swings open!`);return true}
+ say(`The ${c} gate is locked. You need the ${c} key.`);return false}
+const busy=()=>Math.hypot(P.x-P.ax,P.y-P.ay)>1.5;
+const canAct=()=>state==="play"&&caughtT<=0&&!busy()&&!aim;
+function act(){if(canAct()&&interact())endTurn()}
+function waitTurn(){if(canAct()){say(rnd(WAITM),2);endTurn()}}
+function startAim(){if(!canAct())return;if(!lila.free){say("You have nobody to help you yet.",2);return}if(decoyCd>0){say(`Lila needs ${decoyCd} more turns to catch her breath.`,2);return}
+ aim={tx:Math.max(1,P.tx+P.f*3),ty:P.ty};keys0={};say("Choose where Lila makes noise: arrows or click, E to confirm, Esc to cancel.",30)}
+function aimMove(dx,dy){const[sx,sy]=scr(P.x,P.y),tx=aim.tx+dx,ty=aim.ty+dy;if(tx<sx*SW+1||tx>sx*SW+SW-2||ty<sy*SH+1||ty>sy*SH+SH-2)return;if(Math.hypot(tx-P.tx,ty-P.ty)>10)return;aim.tx=tx;aim.ty=ty}
+function confirmAim(){if(!aim)return;const{tx,ty}=aim;if(solidAt(ctr(tx),ctr(ty))){say("Pick an open tile for Lila to run to.",2);return}
+ noise={tx,ty,t:6};setPos(lila,tx,ty);decoyCd=10;aim=null;msgT=0;say("Lila runs there and squeals! Farmers go to check.",3);endTurn()}
+function tw(e,dt){const dx=e.x-e.ax,dy=e.y-e.ay,d=Math.hypot(dx,dy);if(d<.5){e.ax=e.x;e.ay=e.y;e.mv=false;return}e.mv=true;if(dx)e.fc=dx>0?1:-1;const s=Math.min(d,170*dt);e.ax+=dx/d*s;e.ay+=dy/d*s}
 function update(dt){
- frames++;if(msgT>0)msgT-=dt;
- if(state==="won")return;time+=dt;decoyCd=Math.max(0,decoyCd-dt);if(caughtT>0){caughtT-=dt;return}
- let dx=(keys0.ArrowRight||keys0.KeyD?1:0)-(keys0.ArrowLeft||keys0.KeyA?1:0),dy=(keys0.ArrowDown||keys0.KeyS?1:0)-(keys0.ArrowUp||keys0.KeyW?1:0);
- P.moving=!!(dx||dy);
- if(P.moving){const l=Math.hypot(dx,dy);dx/=l;dy/=l;if(dx)P.f=dx>0?1:-1;P.fy=dx?0:dy;
-  const sp=62*(tileAt(P.x,P.y)==="m"||tileAt(P.x,P.y)==="b"?.6:1),nx=P.x+dx*sp*dt,ny=P.y+dy*sp*dt;
-  const[s0x,s0y]=scr(P.x,P.y);if(boxFree(nx,P.y))P.x=nx;if(boxFree(P.x,ny))P.y=ny;
-  const[s1x,s1y]=scr(P.x,P.y);if(s0x!==s1x||s0y!==s1y){spawn={x:P.x,y:P.y};screenNo=Math.max(screenNo,seqNo(s1x,s1y))}
-  const h=hist[hist.length-1];if(!h||Math.hypot(h[0]-P.x,h[1]-P.y)>3){hist.push([P.x,P.y]);if(hist.length>400)hist.shift()}}
- {const h=hist[Math.max(0,hist.length-6)]||[P.x-9,P.y];lila.vx=h[0]-lila.x;lila.x+=(h[0]-lila.x)*Math.min(1,dt*8);lila.y+=(h[1]-lila.y)*Math.min(1,dt*8)}
- if(piglet.free){const h=hist[Math.max(0,hist.length-14)]||[P.x-16,P.y];piglet.vx=h[0]-piglet.x;piglet.x+=(h[0]-piglet.x)*Math.min(1,dt*7);piglet.y+=(h[1]-piglet.y)*Math.min(1,dt*7)}
- if(noise){noise.t-=dt;if(noise.t<=0)noise=null}
- for(const it of items)if(!it.got&&Math.hypot(it.x-P.x,it.y-P.y)<12){it.got=true;keys[it.col]++;say(`You got the ${it.col} key!`,3)}
- for(const f of farmers){
-  let tx,ty,wait=false;
-  if(noise&&Math.hypot(noise.x-f.x,noise.y-f.y)<190){tx=noise.x;ty=noise.y;if(Math.hypot(tx-f.x,ty-f.y)<10)wait=true}
-  else{let pt=f.pts[f.i];if(Math.hypot(pt[0]-f.x,pt[1]-f.y)<3){f.i=(f.i+1)%f.pts.length;pt=f.pts[f.i]}tx=pt[0];ty=pt[1]}
-  if(!wait){const d=Math.hypot(tx-f.x,ty-f.y)||1,sp=f.sp*dt;f.a=Math.atan2(ty-f.y,tx-f.x);const nx=f.x+(tx-f.x)/d*sp,ny=f.y+(ty-f.y)/d*sp;if(!solidAt(nx,f.y))f.x=nx;if(!solidAt(f.x,ny))f.y=ny}
-  const d=Math.hypot(P.x-f.x,P.y-f.y);let diff=Math.abs(Math.atan2(P.y-f.y,P.x-f.x)-f.a);if(diff>Math.PI)diff=2*Math.PI-diff;
-  if(d<f.rng&&diff<f.half&&!blocked(f.x,f.y-4,P.x,P.y-4))f.seen+=dt;else f.seen=Math.max(0,f.seen-dt*2);
-  if(f.seen>.55){caught();break}}
- if(tileAt(P.x,P.y)==="R"){state="won";say("",0)}
-}
+ frames++;if(msgT>0)msgT-=dt;if(caughtT>0)caughtT-=dt;
+ tw(P,dt);tw(lila,dt);tw(piglet,dt);for(const f of farmers)tw(f,dt);
+ if(state!=="play"||caughtT>0||aim||busy())return;
+ const dx=(keys0.ArrowRight||keys0.KeyD?1:0)-(keys0.ArrowLeft||keys0.KeyA?1:0),dy=(keys0.ArrowDown||keys0.KeyS?1:0)-(keys0.ArrowUp||keys0.KeyW?1:0);
+ if(dx)tryMove(dx,0);else if(dy)tryMove(0,dy)}
+const FONT="bold 8px Verdana, Arial, sans-serif";
+const rr=(a,b,w,h,r)=>{x.beginPath();x.moveTo(a+r,b);x.arcTo(a+w,b,a+w,b+h,r);x.arcTo(a+w,b+h,a,b+h,r);x.arcTo(a,b+h,a,b,r);x.arcTo(a,b,a+w,b,r);x.closePath()};
+const fr=(a,b,w,h,r,c)=>{rr(a,b,w,h,r);x.fillStyle=c;x.fill()};
+const el=(cx,cy,rx,ry,c)=>{x.beginPath();x.ellipse(cx,cy,rx,ry,0,0,7);x.fillStyle=c;x.fill()};
+const tri=(a,b,c,d,e,f,col)=>{x.beginPath();x.moveTo(a,b);x.lineTo(c,d);x.lineTo(e,f);x.closePath();x.fillStyle=col;x.fill()};
+const shade=(h,a)=>{const n=parseInt(h.slice(1),16);let r=n>>16,g=n>>8&255,b=n&255;const t=a<0?0:255,p=Math.abs(a);r=Math.round(r+(t-r)*p);g=Math.round(g+(t-g)*p);b=Math.round(b+(t-b)*p);return`rgb(${r},${g},${b})`};
+const hh=(tx,ty,k)=>hash(tx*3+k,ty*5+k*7);
 function pigSprite(px,py,col,face,sz,anim,lbl){
- x.save();x.translate(Math.round(px),Math.round(py));x.scale(face<0?-sz:sz,sz);
- const b=anim?Math.sin(frames/3)>0?1:0:0;
- x.fillStyle="#0005";x.fillRect(-6,0,12,2);
- x.fillStyle="#0007";x.fillRect(-6,-9,12,8);x.fillRect(2,-10,7,8);
- x.fillStyle=col;x.fillRect(-5,-8,10,6);x.fillRect(3,-9,5,6);x.fillRect(-4,-9-b,2,2);x.fillRect(4,-11,2,2);
- x.fillStyle="#0003";x.fillRect(-5,-3,10,1);
- x.fillStyle=col;x.fillRect(-4,-2,2,2+b);x.fillRect(2,-2,2,3-b);
- x.fillStyle="#fb7185";x.fillRect(8,-7,2,2);x.fillStyle="#7f1d1d";x.fillRect(8,-5,2,1);
- x.fillStyle="#000";x.fillRect(5,-8,1,1);
- x.fillStyle=col;x.fillRect(-7,-8,2,1);x.fillRect(-8,-9,1,1);
- if(lbl){x.fillStyle=lbl;x.fillRect(-2,-10,3,2)}
+ x.save();x.translate(px,py);x.scale(face<0?-sz:sz,sz);
+ const b=anim?Math.sin(frames/3):0,dk=shade(col,-.3);
+ el(0,.5,9,2.5,"rgba(0,0,0,.3)");
+ fr(-5.2,-5,2.8,5+b*.8,1.2,dk);fr(2.4,-5,2.8,5-b*.8,1.2,dk);
+ x.strokeStyle=dk;x.lineWidth=1.3;x.lineCap="round";x.beginPath();x.arc(-9,-8,2.2,Math.PI*.2,Math.PI*1.7);x.stroke();
+ el(-1,-8,7.8,5.5,col);el(-1,-6,6.2,3,shade(col,.2));
+ tri(2.6,-11,4.4,-15.4,7,-11.4,dk);tri(6.4,-12,9.8,-14.4,9.6,-10.4,col);
+ el(6.5,-9,4.5,4.2,col);
+ if(lbl)fr(2.8,-12,2.4,7,1,lbl);
+ el(10.3,-8,2.5,2.1,"#fb7185");el(9.6,-8,.5,.7,"#9f1239");el(11.1,-8,.5,.7,"#9f1239");
+ el(7.4,-10.2,.95,1.15,"#1f1410");el(7.7,-10.6,.3,.3,"#fff");el(8.3,-7.4,1.3,.8,"rgba(244,63,94,.35)");
  x.restore()}
-function farmerSprite(f){const px=Math.round(f.x),py=Math.round(f.y),w=Math.sin(frames/6)>0?1:0;
- if(f.dog){const d=Math.cos(f.a)<0?-1:1;x.save();x.translate(px,py);x.scale(d,1);x.fillStyle="#0005";x.fillRect(-6,0,12,2);x.fillStyle="#44403c";x.fillRect(-6,-7,11,5);x.fillRect(3,-10,6,6);x.fillRect(-8,-9,2,3);x.fillStyle="#1c1917";x.fillRect(4,-12,2,3);x.fillRect(-5,-2,2,2+w);x.fillRect(2,-2,2,3-w);x.fillStyle="#f97316";x.fillRect(7,-8,2,2);x.fillStyle="#ef4444";x.fillRect(3,-5,2,1);x.restore();
-  if(f.seen>0){x.fillStyle="#ef4444";x.fillRect(px-1,py-22,3,6);x.fillRect(px-1,py-14,3,2)}return}
- x.fillStyle="#0005";x.fillRect(px-4,py,9,2);
- x.fillStyle="#15803d";x.fillRect(px-3,py-6,7,6);x.fillStyle="#14532d";x.fillRect(px-3,py-1+w,2,2);x.fillRect(px+1,py-1-w,2,2);
- x.fillStyle="#b45309";x.fillRect(px-4,py-12,9,6);x.fillStyle="#fcd9b6";x.fillRect(px-2,py-17,5,5);
- x.fillStyle="#fde68a";x.fillRect(px-5,py-18,11,2);x.fillRect(px-3,py-21,7,3);x.fillStyle="#92400e";x.fillRect(px-3,py-19,7,1);
- x.fillStyle="#000";x.fillRect(px-1,py-15,1,1);x.fillRect(px+1,py-15,1,1);
- if(f.seen>0){x.fillStyle="#ef4444";x.fillRect(px-1,py-32,3,7);x.fillRect(px-1,py-23,3,2)}}
-function fence(px,py){x.fillStyle="#00000030";x.fillRect(px+2,py+2,3,T);x.fillRect(px+13,py+2,3,T);x.fillStyle="#f1ead8";x.fillRect(px+1,py,3,T);x.fillRect(px+12,py,3,T);x.fillStyle="#d7ceb5";x.fillRect(px,py+3,T,3);x.fillRect(px,py+10,T,3);x.fillStyle="#fffbeb";x.fillRect(px,py+3,T,1);x.fillRect(px,py+10,T,1)}
+function animalSprite(px,py,sp,face){
+ x.save();x.translate(px,py);x.scale(face<0?-1:1,1);
+ const bob=Math.sin(frames/10+px)*.5,leg=(a,h,c)=>fr(a,-h,2,h,.9,c);
+ el(0,.5,9.5,2.5,"rgba(0,0,0,.3)");
+ if(sp==="cow"){
+  for(const a of[-6,-2.5,3,6.5])leg(a,5,"#d6d3d1");
+  x.strokeStyle="#27272a";x.lineWidth=1;x.lineCap="round";x.beginPath();x.moveTo(-8.5,-11);x.quadraticCurveTo(-11.5,-8,-10.5,-5);x.stroke();el(-10.5,-4.4,1.1,1.6,"#27272a");
+  el(0,-8.5+bob,8.9,5.6,"#fafaf9");el(-3,-10+bob,2.7,1.9,"#27272a");el(3.2,-6.6+bob,2.2,1.6,"#27272a");el(-1.5,-3.7,1.7,1.1,"#f9a8d4");
+  el(8,-11+bob,4,3.6,"#fafaf9");el(10.8,-9.6+bob,2.6,2.1,"#f9a8d4");el(10.4,-9.6+bob,.45,.5,"#9d174d");el(11.6,-9.6+bob,.45,.5,"#9d174d");
+  fr(5.2,-15.4+bob,1.4,2.8,.7,"#fde68a");fr(9.6,-15.4+bob,1.4,2.8,.7,"#fde68a");el(5.2,-12.6+bob,1.9,1,"#e7e5e4");el(8.4,-12+bob,.9,1,"#1f1410")}
+ else if(sp==="sheep"){
+  for(const a of[-4.5,-1,2.5,5])leg(a,5,"#3f3f46");
+  for(const[a,b,r]of[[-5,-8,4.2],[-1,-11,4.6],[4,-9.5,4.2],[-2,-6,5],[3,-6.5,4]])el(a,b+bob,r,r*.92,"#fafaf9");
+  el(-1,-5,4,1.6,"#e7e5e4");el(8.6,-9+bob,3,3.3,"#3f3f46");el(6.4,-11+bob,1.9,1,"#27272a");el(9.3,-9.8+bob,.8,.9,"#fff")}
+ else if(sp==="chicken"){
+  x.strokeStyle="#f97316";x.lineWidth=1;x.lineCap="round";x.beginPath();x.moveTo(-1,-2);x.lineTo(-1,0);x.moveTo(2,-2);x.lineTo(2,0);x.stroke();
+  el(-6,-9,2.2,3.7,"#f59e0b");el(0,-6.5+bob,5.7,4.7,"#fde68a");el(-1,-6+bob,3.5,2.4,"#fbbf24");
+  el(4.6,-11.5+bob,3,3,"#fde68a");el(4.2,-14.4+bob,1.2,1.2,"#ef4444");el(5.8,-14.3+bob,1.1,1.1,"#ef4444");
+  tri(7.3,-12+bob,10.4,-11+bob,7.3,-10.1+bob,"#f97316");el(6.7,-9.3+bob,.9,1.4,"#ef4444");el(5.5,-12.2+bob,.75,.85,"#1f1410")}
+ else if(sp==="duck"){
+  x.strokeStyle="#fb923c";x.lineWidth=1;x.lineCap="round";x.beginPath();x.moveTo(-1,-2);x.lineTo(-1,0);x.moveTo(2,-2);x.lineTo(2,0);x.stroke();
+  el(0,-6+bob,6.8,4.3,"#fde047");el(-6.8,-8.6+bob,2.3,1.7,"#facc15");el(-1,-5.6+bob,3.9,2.4,"#eab308");
+  el(5.3,-10.6+bob,3.3,3.3,"#fde047");el(9.2,-9.7+bob,2.9,1.2,"#fb923c");el(5.9,-11.3+bob,.75,.85,"#1f1410")}
+ else if(sp==="goat"){
+  for(const a of[-5,-2,2,5])leg(a,5,"#a8a29e");
+  el(0,-8.5+bob,7.7,4.7,"#d6d3d1");el(-8.7,-10+bob,1.7,1,"#a8a29e");el(5.6,-11+bob,3.1,4,"#d6d3d1");el(8.2,-12.6+bob,3.5,2.9,"#e7e5e4");
+  x.strokeStyle="#fef3c7";x.lineWidth=1.3;x.lineCap="round";x.beginPath();x.moveTo(6.6,-14.8+bob);x.quadraticCurveTo(4,-19,2,-17.5+bob);x.moveTo(8.6,-14.8+bob);x.quadraticCurveTo(7,-19.6,4.6,-18.4+bob);x.stroke();
+  tri(9.2,-10.6+bob,10.9,-10.6+bob,10,-6.8+bob,"#f5f5f4");el(5.4,-14+bob,2,.9,"#a8a29e");el(8.6,-13.3+bob,.8,.9,"#1f1410");el(11,-12+bob,.9,.7,"#57534e")}
+ else{
+  for(const a of[-8,-4,3,7]){leg(a,7,"#78350f");fr(a-.1,-1,2.2,1.2,.5,"#1c1917")}
+  x.strokeStyle="#1c1917";x.lineWidth=2.4;x.lineCap="round";x.beginPath();x.moveTo(-9,-14);x.quadraticCurveTo(-13,-10,-11.5,-5);x.stroke();
+  el(0,-12+bob,9.6,5.6,"#92400e");el(-1,-10+bob,6,2.6,"#a8550f");
+  x.fillStyle="#92400e";x.beginPath();x.moveTo(5,-15+bob);x.lineTo(9,-23+bob);x.lineTo(13,-21+bob);x.lineTo(10,-12+bob);x.closePath();x.fill();
+  el(12.4,-21.4+bob,4.2,2.5,"#92400e");el(15.7,-20.6+bob,1.9,1.7,"#b45309");
+  tri(5,-16+bob,8.8,-24.4+bob,10.6,-22.6+bob,"#1c1917");tri(11,-23.6+bob,12.4,-26.4+bob,13.4,-23.6+bob,"#78350f");el(13.2,-22+bob,.8,.9,"#1f1410");el(16.6,-20.6+bob,.4,.5,"#451a03")}
+ x.restore()}
+function alertMark(px,py){el(px,py,4.2,4.2,"#ef4444");x.fillStyle="#fff";x.font="bold 8px Arial";x.textAlign="center";x.fillText("!",px,py+3)}
+function farmerSprite(f){const px=f.ax,py=f.ay,w=f.mv?Math.sin(frames/3):0;
+ if(f.dog){const d=Math.cos(f.a)<0?-1:1;x.save();x.translate(px,py);x.scale(d,1);el(0,.5,9.5,2.5,"rgba(0,0,0,.3)");
+  x.strokeStyle="#44403c";x.lineWidth=2.2;x.lineCap="round";x.beginPath();x.moveTo(-5,-4);x.lineTo(-5+w,0);x.moveTo(-2,-4);x.lineTo(-2-w,0);x.moveTo(3,-4);x.lineTo(3+w,0);x.moveTo(6,-4);x.lineTo(6-w,0);x.moveTo(-7,-8);x.quadraticCurveTo(-11,-11,-10,-14);x.stroke();
+  el(0,-7,8,4.3,"#57534e");el(8,-10,3.8,3.4,"#57534e");el(11.3,-9,2.5,1.8,"#292524");el(11.8,-9.5,.65,.6,"#000");el(5.8,-12.4,1.6,2.6,"#292524");
+  el(8.7,-10.9,.85,.95,"#fff");el(8.9,-10.9,.45,.5,"#000");fr(4.4,-9,1.9,4.6,.8,"#ef4444");el(11,-7.4,.9,1.5,"#fb7185");x.restore();
+  if(f.alert>0)alertMark(px,py-20);return}
+ el(px,py+.5,6.5,2.2,"rgba(0,0,0,.3)");
+ fr(px-3.6,py-5,2.9,5+w*.8,1.2,"#1e3a8a");fr(px+.7,py-5,2.9,5-w*.8,1.2,"#1e3a8a");el(px-2.2,py-.2+w*.4,2.5,1.3,"#3f2a14");el(px+2.2,py-.2-w*.4,2.5,1.3,"#3f2a14");
+ fr(px-5.6,py-13.4,11.2,5,2.4,"#dc2626");fr(px-4.4,py-12.4,8.8,9,3,"#2563eb");fr(px-2,py-10.4,4,3,1,"#1d4ed8");el(px-3.4,py-11,.8,.8,"#fde047");el(px+3.4,py-11,.8,.8,"#fde047");
+ el(px,py-17,4,4,"#fcd9b6");el(px,py-20,7.6,2.2,"#e8c45a");fr(px-3.8,py-24.6,7.6,5.4,2.4,"#fde047");fr(px-3.8,py-21.4,7.6,1.4,.4,"#92400e");
+ el(px-1.4,py-17.4,.7,.8,"#1f1410");el(px+1.6,py-17.4,.7,.8,"#1f1410");fr(px-2.6,py-15.8,5.2,1.3,.6,"#78350f");
+ x.strokeStyle="#92400e";x.lineWidth=1;x.beginPath();x.moveTo(px+7,py-2);x.lineTo(px+7,py-16);x.stroke();x.strokeStyle="#9ca3af";x.beginPath();x.moveTo(px+5.5,py-14.5);x.lineTo(px+5.5,py-17);x.moveTo(px+7,py-14.5);x.lineTo(px+7,py-17.5);x.moveTo(px+8.5,py-14.5);x.lineTo(px+8.5,py-17);x.stroke();
+ if(f.alert>0)alertMark(px,py-31)}
+function fence(px,py){el(px+8,py+15,8,2,"rgba(0,0,0,.22)");fr(px,py+3.5,T,3.2,1.4,"#d8b07a");fr(px,py+9.5,T,3.2,1.4,"#d8b07a");fr(px,py+3.5,T,1,.5,"#f0d4a4");fr(px,py+9.5,T,1,.5,"#f0d4a4");fr(px+5,py+1,6,14,2.4,"#b2814a");fr(px+5.6,py+1.4,2,13,1,"#cd9b61")}
+function shape(s,cx,cy,r,col){x.fillStyle=col;x.beginPath();if(s==="circle")x.arc(cx,cy,r,0,7);else if(s==="square")x.rect(cx-r,cy-r,2*r,2*r);else if(s==="triangle"){x.moveTo(cx,cy-r);x.lineTo(cx+r,cy+r);x.lineTo(cx-r,cy+r)}else{x.moveTo(cx,cy-r-1);x.lineTo(cx+r+1,cy);x.lineTo(cx,cy+r+1);x.lineTo(cx-r-1,cy)}x.closePath();x.fill();x.strokeStyle="rgba(0,0,0,.35)";x.lineWidth=.6;x.stroke()}
+function keyIcon(cx,cy,col,s=1){x.save();x.translate(cx,cy);x.scale(s,s);x.strokeStyle=col;x.fillStyle=col;x.lineWidth=1.8;x.lineCap="round";x.beginPath();x.arc(-3,0,2.6,0,7);x.stroke();x.fillRect(-.5,-.8,7,1.7);x.fillRect(3.6,0,1.4,3);x.fillRect(5.6,0,1.2,2.2);x.restore()}
+function grass(px,py,tx,ty){const h=hash(tx,ty);x.fillStyle=h<.33?"#86b95c":h<.66?"#7fb356":"#8abe60";x.fillRect(px,py,T,T);
+ el(px+4+hh(tx,ty,1)*8,py+4+hh(tx,ty,2)*8,5,3,"rgba(60,110,40,.16)");
+ x.strokeStyle="#5f9446";x.lineWidth=.8;x.lineCap="round";for(let k=0;k<3;k++){const a=px+2+hh(tx,ty,k+3)*12,b=py+4+hh(tx,ty,k+6)*10;x.beginPath();x.moveTo(a,b);x.lineTo(a-1,b-3);x.moveTo(a,b);x.lineTo(a+1.2,b-2.6);x.stroke()}
+ if(h>.88){const a=px+3+hh(tx,ty,9)*10,b=py+3+hh(tx,ty,10)*10,c=["#fff","#fbcfe8","#fde047"][(h*100|0)%3];for(let k=0;k<5;k++)el(a+Math.cos(k*1.26)*1.5,b+Math.sin(k*1.26)*1.5,1,1,c);el(a,b,.9,.9,"#f59e0b")}}
+function mud(px,py,tx,ty,c){x.fillStyle="#6a4426";x.fillRect(px,py,T,T);
+ for(let k=0;k<3;k++)el(px+3+hh(tx,ty,k+1)*10,py+3+hh(tx,ty,k+4)*10,3.4,1.8,"#80552f");
+ for(let k=0;k<2;k++)el(px+3+hh(tx,ty,k+7)*10,py+3+hh(tx,ty,k+9)*10,2.6,1.3,"#4f301a");
+ if(tun[tx+","+ty]&&c!=="M"){el(px+8,py+8.6,5.6,3.8,"#8a5a30");el(px+8,py+8,5,3.3,"#2a170a");el(px+8,py+7.6,3.8,2.3,"#120a03")}
+ if(c==="b"){el(px+8,py+8,5,5,"rgba(253,224,71,.28)");keyIcon(px+8,py+8,"#fbbf24",.9)}
+ if(c==="M"){el(px+8,py+12,8,4.4,"rgba(0,0,0,.25)");el(px+8,py+10,7.6,5.4,"#7b4d27");el(px+8,py+8,6,4.4,"#93602f");el(px+6,py+6.6,2.6,1.4,"#b98350");el(px+11,py+10,2,1.1,"#5a3820")}}
 function tileDraw(tx,ty){const px=tx*T,py=ty*T,c=map[ty][tx],h=hash(tx,ty);
- if(c==="R"){x.fillStyle="#44403c";x.fillRect(px,py,T,T);x.fillStyle="#fbbf24";x.fillRect(px+6,py+7,4,2);x.fillStyle="#57534e";x.fillRect(px+2,py+2,2,1);x.fillRect(px+11,py+12,2,1);return}
- if(c==="m"||c==="b"||c==="M"){x.fillStyle="#4a2c12";x.fillRect(px,py,T,T);x.fillStyle="#6b4020";x.fillRect(px+((h*11|0)%10)+1,py+((h*23|0)%10)+2,4,2);x.fillStyle="#2d1a0a";x.fillRect(px+((h*7|0)%11)+2,py+((h*17|0)%11)+1,3,1);
-  if(c==="b"){x.fillStyle="#fbbf24";x.fillRect(px+4,py+4,2,8);x.fillRect(px+10,py+4,2,8);x.fillRect(px+4,py+4,8,2);x.fillRect(px+4,py+10,8,2);x.fillStyle="#2d1a0a";x.fillRect(px+7,py+5,2,6)}
-  if(c==="M"){x.fillStyle="#7a4a24";x.fillRect(px+1,py+5,14,10);x.fillRect(px+3,py+2,10,5);x.fillStyle="#a56a3a";x.fillRect(px+4,py+3,5,2);x.fillRect(px+3,py+7,4,2);x.fillStyle="#3a220e";x.fillRect(px+10,py+10,3,2);x.fillRect(px+2,py+12,3,2)}return}
- if(c==="W"){x.fillStyle="#0e7490";x.fillRect(px,py,T,T);x.fillStyle="#67e8f9";x.fillRect(px+2+(frames>>4&1)*3,py+4,5,1);x.fillRect(px+8,py+10,4,1);return}
- x.fillStyle=h<.5?"#a3933f":"#9a8b38";x.fillRect(px,py,T,T);x.fillStyle="#7c7230";if(h>.3)x.fillRect(px+(h*13|0)%12+2,py+(h*29|0)%12+2,1,2);if(h>.8){x.fillStyle="#f59e0b";x.fillRect(px+(h*19|0)%12+2,py+(h*31|0)%12+2,2,2)}
- if(c==="T"){x.fillStyle="#00000030";x.fillRect(px+3,py+12,11,3);x.fillStyle="#4a2b12";x.fillRect(px+6,py+9,4,7);x.fillStyle=h<.5?"#c2410c":"#b45309";x.fillRect(px+1,py+1,14,10);x.fillStyle=h<.5?"#ea580c":"#f59e0b";x.fillRect(px+3,py+2,7,4);x.fillStyle="#fde047";x.fillRect(px+4,py+3,2,1);x.fillRect(px+10,py+6,2,1)}
- else if(c==="#"||c==="L"||c==="D"&&false)fence(px,py);
- if(c==="L"){x.fillStyle="#fbbf24";x.fillRect(px+5,py+6,6,6);x.fillStyle="#78350f";x.fillRect(px+7,py+8,2,2);x.fillStyle="#fbbf24";x.fillRect(px+6,py+3,1,3);x.fillRect(px+9,py+3,1,3);x.fillRect(px+6,py+3,4,1)}
- else if(c==="h"){fence(px,py);x.fillStyle="#f472b6";for(let k=0;k<T;k+=4){x.fillRect(px+k,py,1,T);x.fillRect(px,py+k,T,1)}x.fillStyle="#000";x.fillRect(px+5,py+9,6,7);x.fillStyle="#fbcfe8";x.fillRect(px+5,py+9,6,1)}
- else if(c==="D"){x.fillStyle="#334155";x.fillRect(px,py,T,T);x.fillStyle="#94a3b8";x.fillRect(px+1,py+1,T-2,2);x.fillRect(px+1,py+13,T-2,2);x.fillStyle="#0f172a";x.fillRect(px+6,py+5,4,6);x.fillStyle="#f472b6";x.fillRect(px+7,py+6,2,3)}
- else if(c==="r"||c==="u"||c==="G"){const base=c==="r"?"#b91c1c":c==="u"?"#1d4ed8":"#a16207",lt=c==="r"?"#fca5a5":c==="u"?"#93c5fd":"#fde68a";x.fillStyle=base;x.fillRect(px,py,T,T);x.fillStyle=lt;x.fillRect(px+1,py+1,T-2,2);x.fillRect(px+1,py+13,T-2,2);for(let k=3;k<T;k+=4)x.fillRect(px+k,py+3,1,10);x.fillStyle="#000";x.fillRect(px+6,py+6,4,5);x.fillStyle=lt;x.fillRect(px+7,py+7,2,2)}
- else if(c==="p"||c==="q"){x.fillStyle=c==="q"?"#334155":"#64748b";x.fillRect(px+1,py+1,14,14);x.fillStyle=c==="q"?"#4ade80":"#fbcfe8";const o=c==="q"?1:0;x.fillRect(px+5,py+8+o,6,4);x.fillRect(px+4,py+5+o,2,2);x.fillRect(px+7,py+4+o,2,2);x.fillRect(px+10,py+5+o,2,2)}
- else if(c==="K"){x.fillStyle="#1e1b18";x.fillRect(px+1,py+1,14,14);x.fillStyle="#cbd5e1";for(let k=2;k<15;k+=3)x.fillRect(px+k,py+1,1,14);x.fillRect(px+1,py+1,14,1);x.fillRect(px+1,py+14,14,1);x.fillStyle="#cd7f32";x.fillRect(px+6,py+7,4,3)}
- else if(c==="X"){x.fillStyle="#8d6e63";x.fillRect(px+1,py+1,14,14);x.fillStyle="#5d4037";x.fillRect(px+1,py+5,14,1);x.fillRect(px+1,py+10,14,1);x.fillStyle="#cbd5e1";x.fillRect(px+1,py+1,3,3);x.fillRect(px+12,py+1,3,3);x.fillRect(px+1,py+12,3,3);x.fillRect(px+12,py+12,3,3);x.fillStyle="#3e2723";for(let k=3;k<13;k++){x.fillRect(px+k,py+k,1,1);x.fillRect(px+16-k,py+k,1,1)}}}
+ if(c==="R"){x.fillStyle="#4b5563";x.fillRect(px,py,T,T);for(let k=0;k<3;k++)el(px+3+hh(tx,ty,k)*10,py+3+hh(tx,ty,k+3)*10,1.6,.9,"#6b7280");fr(px+3,py+7,10,2,1,"#fbbf24");return}
+ if(c==="m"||c==="b"||c==="M"){mud(px,py,tx,ty,c);return}
+ if(c==="W"){x.fillStyle="#0e7490";x.fillRect(px,py,T,T);fr(px+2+(frames>>4&1)*3,py+4,5,1.2,.6,"#67e8f9");return}
+ grass(px,py,tx,ty);
+ if(c==="T"){el(px+8,py+14,7.4,2.6,"rgba(0,0,0,.28)");fr(px+6.4,py+8,3.2,7.4,1.2,"#6b4423");
+  const dk=h<.7?"#3b7d34":"#c2410c",md=h<.7?"#4f9a3f":"#ea580c",lt=h<.7?"#79bf55":"#fbbf24";
+  el(px+8,py+5.6,8.2,6.8,dk);el(px+5.4,py+4.4,5.4,4.8,md);el(px+10.6,py+5,5,4.4,md);el(px+6,py+2.8,2.6,1.9,lt);if(h<.15){for(const[a,b]of[[4,7],[11,4],[9,9]])el(px+a,py+b,1.1,1.1,"#ef4444")}}
+ else if(c==="#")fence(px,py);
+ else if(c==="L"){fence(px,py);fr(px+4.4,py+6.4,7.2,6.4,1.6,"#fbbf24");x.strokeStyle="#d97706";x.lineWidth=1.3;x.beginPath();x.arc(px+8,py+6.4,2.4,Math.PI,0);x.stroke();el(px+8,py+9.2,1,1.2,"#78350f")}
+ else if(c==="h"){fence(px,py);x.strokeStyle="rgba(244,114,182,.9)";x.lineWidth=.7;for(let k=0;k<=T;k+=4){x.beginPath();x.moveTo(px+k,py);x.lineTo(px+k,py+T);x.moveTo(px,py+k);x.lineTo(px+T,py+k);x.stroke()}el(px+8,py+11,3.2,4,"#1f1410");el(px+8,py+8.6,3.2,.9,"#fbcfe8")}
+ else if(c==="D"){fr(px,py,T,T,2,"#475569");fr(px+1,py+1,T-2,3,1,"#94a3b8");fr(px+1,py+12,T-2,3,1,"#94a3b8");fr(px+4,py+5,8,6,2,"#1e293b");el(px+8,py+8,2.4,2,"#f472b6");for(const[a,b]of[[3,3],[13,3],[3,13],[13,13]])el(px+a,py+b,.7,.7,"#cbd5e1")}
+ else if(c==="N"){fr(px,py,T,T,2,"#78716c");x.strokeStyle="#57534e";x.lineWidth=.8;x.beginPath();x.moveTo(px,py+5);x.lineTo(px+T,py+5);x.moveTo(px,py+11);x.lineTo(px+T,py+11);x.moveTo(px+8,py);x.lineTo(px+8,py+5);x.moveTo(px+4,py+5);x.lineTo(px+4,py+11);x.moveTo(px+12,py+5);x.lineTo(px+12,py+11);x.moveTo(px+8,py+11);x.lineTo(px+8,py+T);x.stroke();el(px+8,py+8,2.2,2.2,"#fbbf24");fr(px+7.4,py+8,1.2,3,.5,"#fbbf24")}
+ else if(c==="V"){const o=leverAt[tx+","+ty];fr(px+1.5,py+8,13,7,2.4,"#6b7280");fr(px+1.5,py+8,13,2.4,1.2,"#9ca3af");x.strokeStyle=o.pulled?"#22c55e":"#92400e";x.lineWidth=2;x.lineCap="round";x.beginPath();x.moveTo(px+8,py+9);x.lineTo(px+(o.pulled?4:8),py+(o.pulled?5:2));x.stroke();el(px+(o.pulled?4:8),py+(o.pulled?5:2),2,2,o.pulled?"#22c55e":"#ef4444");shape(o.shape,px+8,py+12.4,2.3,SCOL[o.shape])}
+ else if(c==="r"||c==="u"||c==="G"){const base=c==="r"?"#b91c1c":c==="u"?"#1d4ed8":"#a16207",lt=c==="r"?"#fca5a5":c==="u"?"#93c5fd":"#fde68a";fr(px+.5,py+.5,T-1,T-1,3,base);x.fillStyle=lt;for(let k=3;k<T;k+=4)x.fillRect(px+k,py+2,1.2,12);fr(px+1.5,py+1.5,T-3,2,1,lt);fr(px+1.5,py+12.5,T-3,2,1,lt);el(px+8,py+8,3.2,3.2,"#fbbf24");el(px+8,py+7.4,1,1,"#1f1410");fr(px+7.6,py+7.6,.9,3,.4,"#1f1410")}
+ else if(c==="p"||c==="q"){fr(px+1,py+1,14,14,3,c==="q"?"#334155":"#64748b");const o=c==="q"?1:0,cl=c==="q"?"#4ade80":"#fbcfe8";el(px+8,py+10+o,3.2,2.6,cl);for(const[a,b]of[[4.4,6.6],[7,5],[9.6,5],[12,6.6]])el(px+a+.4,py+b+o,1.2,1.4,cl)}
+ else if(c==="K"||c==="J"){fr(px+1,py+1,14,14,2,"#1e1b18");x.fillStyle="#cbd5e1";for(let k=2;k<15;k+=3)fr(px+k,py+1,1.4,14,.6,"#cbd5e1");fr(px+1,py+1,14,1.6,.6,"#cbd5e1");fr(px+1,py+13.4,14,1.6,.6,"#cbd5e1");if(c==="J")el(px+8,py+8,2.2,2.2,"#cd7f32")}
+ else if(c==="X"){fr(px+1,py+1,14,14,2.4,"#b07a45");x.strokeStyle="#7c4f26";x.lineWidth=1;x.beginPath();x.moveTo(px+1,py+5.6);x.lineTo(px+15,py+5.6);x.moveTo(px+1,py+10.4);x.lineTo(px+15,py+10.4);x.moveTo(px+3,py+3);x.lineTo(px+13,py+13);x.moveTo(px+13,py+3);x.lineTo(px+3,py+13);x.stroke();for(const[a,b]of[[3,3],[13,3],[3,13],[13,13]])el(px+a,py+b,1.1,1.1,"#cbd5e1")}
+ else if(c==="B"){fr(px+1,py+1,3,14,1.2,"#78350f");fr(px+12,py+1,3,14,1.2,"#78350f");fr(px+1,py+5.5,14,5,1.6,"#fff");x.fillStyle="#dc2626";for(let k=2;k<14;k+=4){x.beginPath();x.moveTo(px+k,py+5.5);x.lineTo(px+k+2,py+5.5);x.lineTo(px+k,py+10.5);x.lineTo(px+k-2,py+10.5);x.closePath();x.fill()}x.strokeStyle="#7f1d1d";x.lineWidth=.6;rr(px+1,py+5.5,14,5,1.6);x.stroke();el(px+8,py+13,2.4,2.4,"#fbbf24");x.fillStyle="#78350f";x.font="bold 4px Arial";x.textAlign="center";x.fillText("$",px+8,py+14.4)}}
 const KC={red:"#ef4444",blue:"#3b82f6",gold:"#fbbf24",brass:"#cd7f32"};
 function draw(){
- const[sx,sy]=scr(P.x,P.y),cx=sx*SW*T,cy=sy*SH*T;
- x.fillStyle="#000";x.fillRect(0,0,VW,VH);x.save();x.translate(-cx,-cy);
+ x.setTransform(2,0,0,2,0,0);x.textBaseline="alphabetic";
+ const[sx,sy]=scr(P.x,P.y),cx=sx*SW*T,cy=sy*SH*T;camX=cx;camY=cy;
+ x.fillStyle="#1a2e14";x.fillRect(0,0,VW,VH);x.save();x.translate(-cx,-cy);
  for(let ty=sy*SH;ty<sy*SH+SH;ty++)for(let tx=sx*SW;tx<sx*SW+SW;tx++)tileDraw(tx,ty);
- for(const k in signs){const[a,b]=k.split(",").map(Number);if(a<sx*SW||a>=sx*SW+SW||b<sy*SH||b>=sy*SH+SH)continue;x.fillStyle="#4a2b12";x.fillRect(a*T+7,b*T+8,2,8);x.fillStyle="#fde68a";x.fillRect(a*T+3,b*T+2,10,8);x.fillStyle="#78350f";x.fillRect(a*T+5,b*T+4,6,1);x.fillRect(a*T+5,b*T+6,4,1)}
- for(const it of items)if(!it.got){const b=Math.sin(frames/8)*2;x.fillStyle=KC[it.col];x.fillRect(it.x-4,it.y-3+b,6,6);x.fillRect(it.x+1,it.y-1+b,7,2);x.fillRect(it.x+5,it.y+1+b,2,3);x.fillStyle="#fff";x.fillRect(it.x-3,it.y-2+b,2,2)}
- for(const f of farmers){if(f.x<cx-100||f.x>cx+VW+100||f.y<cy-100||f.y>cy+VH+100)continue;x.fillStyle=f.seen>0?"#ef444455":"#fde04740";x.beginPath();x.moveTo(f.x,f.y-6);for(let a=-f.half;a<=f.half+.001;a+=.075){let r=f.rng;for(let d=6;d<=f.rng;d+=4){if(solidAt(f.x+Math.cos(f.a+a)*d,f.y-6+Math.sin(f.a+a)*d)){r=d;break}}x.lineTo(f.x+Math.cos(f.a+a)*r,f.y-6+Math.sin(f.a+a)*r)}x.closePath();x.fill()}
- const ents=[];ents.push({y:lila.y,f:()=>pigSprite(lila.x,lila.y,lila.col,Math.sign(lila.vx)||1,1,Math.abs(lila.vx)>.4,"#a78bfa")});
- if(piglet.free)ents.push({y:piglet.y,f:()=>pigSprite(piglet.x,piglet.y,"#fbcfe8",Math.sign(piglet.vx)||1,.65,Math.abs(piglet.vx)>.4,"#fde047")});
- else if(piglet.cx!==undefined)ents.push({y:piglet.cy+1,f:()=>pigSprite(piglet.cx,piglet.cy+4,"#fbcfe8",1,.65,true,"#fde047")});
- for(const q of npcs)ents.push({y:q.y,f:()=>{pigSprite(q.x,q.y,q.col,1,1,false,"#f59e0b");if(Math.hypot(q.x-P.x,q.y-P.y)<40){x.fillStyle="#fff";x.font="8px monospace";x.textAlign="center";x.fillText("E: talk",q.x,q.y-16)}else{x.fillStyle="#fde68a";x.fillRect(q.x-2,q.y-18,4,5);x.fillStyle="#000";x.fillRect(q.x-1,q.y-17,2,1)}}});
- for(const f of farmers)ents.push({y:f.y,f:()=>farmerSprite(f)});
- ents.push({y:P.y,f:()=>pigSprite(P.x,P.y,"#f9a8d4",P.f,1,P.moving,"#22d3ee")});
+ for(const k in signs){const[a,b]=k.split(",").map(Number);if(a<sx*SW||a>=sx*SW+SW||b<sy*SH||b>=sy*SH+SH)continue;el(a*T+8,b*T+15,5,1.6,"rgba(0,0,0,.25)");fr(a*T+7,b*T+8,2,8,.8,"#6b4423");fr(a*T+2.4,b*T+1.6,11.2,8.4,2,"#f5deb3");x.strokeStyle="#92400e";x.lineWidth=.8;rr(a*T+2.4,b*T+1.6,11.2,8.4,2);x.stroke();fr(a*T+4.4,b*T+3.8,7,1,.5,"#92400e");fr(a*T+4.4,b*T+6,5,1,.5,"#92400e")}
+ for(const it of items)if(!it.got){const b=Math.sin(frames/8)*1.5;x.save();x.translate(it.x,it.y+b);el(0,0,8,8,"rgba(255,240,150,.22)");
+  if(it.sp){fr(-5,-4.6,10,9,2.4,"#334155");fr(-3.8,-3.4,7.6,4.4,1.4,SP[it.sp].c);fr(-1,-8,2,3.6,1,"#22d3ee");el(0,-8.4,1.4,1.4,"#22d3ee");el(-1.6,3,.8,.8,"#fff");el(1.6,3,.8,.8,"#fff");x.fillStyle="#1f2937";x.font="bold 5px Arial";x.textAlign="center";x.fillText(SP[it.sp].k,0,.8)}
+  else if(it.food){el(0,0,4.6,4.6,FOOD[it.food][1]);el(-1.4,-1.4,1.5,1.2,"rgba(255,255,255,.55)");x.strokeStyle="rgba(0,0,0,.4)";x.lineWidth=.7;x.beginPath();x.arc(0,0,4.6,0,7);x.stroke()}
+  else keyIcon(0,0,KC[it.col],1.15);
+  x.restore()}
+ const here=f=>f.x>=cx&&f.x<cx+VW&&f.y>=cy&&f.y<cy+VH;
+ x.fillStyle="rgba(253,224,71,.5)";for(const f of farmers){if(!here(f))continue;for(let k=0;k<f.pts.length;k++){if(f.pts.length===2&&k===1)break;const a=f.pts[k],b=f.pts[(k+1)%f.pts.length],n=Math.max(Math.abs(a[0]-b[0]),Math.abs(a[1]-b[1]));for(let i=0;i<=n;i++){x.beginPath();x.arc(ctr(a[0]+Math.sign(b[0]-a[0])*i),ctr(a[1]+Math.sign(b[1]-a[1])*i),1,0,7);x.fill()}}}
+ for(const f of farmers){if(!here(f))continue;x.fillStyle=f.alert>0?"rgba(239,68,68,.3)":"rgba(253,224,71,.22)";x.beginPath();x.moveTo(f.ax,f.ay-6);for(let a=-f.half;a<=f.half+.001;a+=.075){let r=f.rng;for(let d=6;d<=f.rng;d+=4){if(solidAt(f.x+Math.cos(f.a+a)*d,f.y-6+Math.sin(f.a+a)*d)){r=d;break}}x.lineTo(f.ax+Math.cos(f.a+a)*r,f.ay-6+Math.sin(f.a+a)*r)}x.closePath();x.fill()}
+ const ents=[];
+ if(lila.free)ents.push({y:lila.ay,f:()=>pigSprite(lila.ax,lila.ay,"#c4b5fd",lila.fc,1,lila.mv,"#a78bfa")});
+ else if(lila.cx!==undefined)ents.push({y:lila.cy+2,f:()=>pigSprite(lila.cx,lila.cy+4,"#c4b5fd",1,1,true,"#a78bfa")});
+ if(piglet.free)ents.push({y:piglet.ay,f:()=>pigSprite(piglet.ax,piglet.ay,"#fbcfe8",piglet.fc,.65,piglet.mv,"#fde047")});
+ else if(piglet.cx!==undefined)ents.push({y:piglet.cy+2,f:()=>pigSprite(piglet.cx,piglet.cy+4,"#fbcfe8",1,.65,true,"#fde047")});
+ for(const q of npcs)ents.push({y:q.y,f:()=>{animalSprite(q.x,q.y,q.sp,q.guard?(q.guard.gx*T+8>q.x?1:-1):(P.x>q.x?1:-1));const hy=q.y-(q.sp==="horse"?30:q.sp==="chicken"||q.sp==="duck"?20:22);
+  if(Math.hypot(q.x-P.x,q.y-P.y)<(q.r||26)+14){fr(q.x-12,hy-6,24,9,4,"rgba(20,12,6,.85)");x.fillStyle="#fff";x.font="bold 6px Verdana";x.textAlign="center";x.fillText("E: talk",q.x,hy)}
+  else{el(q.x,hy-1,4.5,3.6,"rgba(255,255,255,.92)");x.fillStyle="#1f1410";x.font="bold 6px Verdana";x.textAlign="center";x.fillText(q.guard&&!q.guard.done?(q.guard.joke?"?":"$"):"…",q.x,hy+1.4)}}});
+ for(const f of farmers)ents.push({y:f.ay,f:()=>farmerSprite(f)});
+ ents.push({y:P.ay,f:()=>pigSprite(P.ax,P.ay,"#f9a8d4",P.f,1,busy(),"#22d3ee")});
  ents.sort((a,b)=>a.y-b.y).forEach(e=>e.f());
- if(noise){x.fillStyle="#fde047";x.font="10px monospace";x.textAlign="center";x.fillText("♪ ♫",noise.x,noise.y-14+Math.sin(frames/4)*2);pigSprite(noise.x,noise.y,lila.col,1,1,true)}
+ if(noise){x.fillStyle="#fde047";x.font="bold 10px Arial";x.textAlign="center";x.fillText("♪ ♫",ctr(noise.tx),ctr(noise.ty)-14+Math.sin(frames/4)*2)}
+ if(aim){const[sx0,sy0]=[sx*SW,sy*SH];for(let ty=sy0+1;ty<sy0+SH-1;ty++)for(let tx=sx0+1;tx<sx0+SW-1;tx++)if(Math.hypot(tx-P.tx,ty-P.ty)<=10&&!SOLID.has(map[ty][tx])){x.fillStyle="rgba(196,181,253,.16)";x.fillRect(tx*T,ty*T,T,T)}
+  x.strokeStyle=solidAt(ctr(aim.tx),ctr(aim.ty))?"#ef4444":"#fde047";x.lineWidth=1.6;rr(aim.tx*T+1,aim.ty*T+1,T-2,T-2,3);x.stroke();x.fillStyle="#fde047";x.font="bold 10px Arial";x.textAlign="center";x.fillText("♪",ctr(aim.tx),aim.ty*T-2)}
  x.restore();
- x.fillStyle="#2a104a22";x.fillRect(0,0,VW,VH);
- x.fillStyle="#000b";x.fillRect(0,0,VW,16);x.font="8px monospace";x.textAlign="left";x.fillStyle="#fcd34d";x.fillText(`Screen ${seqNo(sx,sy)}/${N}`,4,11);
- let kx=76;for(const k of["red","blue","gold","brass"]){x.fillStyle=keys[k]>0?KC[k]:"#57534e";x.fillRect(kx,4,8,8);x.fillStyle="#0008";x.fillRect(kx+2,6,3,3);kx+=11}
- x.fillStyle=piglet.free?"#fbcfe8":"#78716c";x.fillText(piglet.free?"Piglet ✔":"Piglet ✘",126,11);
- x.fillStyle=decoyCd>0?"#a8a29e":"#c4b5fd";x.fillText(`Q:Lila${decoyCd>0?" "+Math.ceil(decoyCd):""}`,184,11);
- x.fillStyle="#fde68a";x.textAlign="right";x.fillText(`${time|0}s`,VW-4,11);
- if(msgT>0&&msg){x.fillStyle="#000c";x.fillRect(0,VH-34,VW,34);x.fillStyle="#fff";x.textAlign="center";const w=msg.split(" "),ls=[];let l="";for(const t of w){if((l+t).length>48){ls.push(l.trim());l=""}l+=t+" "}ls.push(l.trim());ls.forEach((ln,i)=>x.fillText(ln,VW/2,VH-22+(i-(ls.length-1)/2)*10+(ls.length>1?2:4)))}
- if(caughtT>0){x.fillStyle="#7f1d1d99";x.fillRect(0,0,VW,VH)}
- if(state==="won"){x.fillStyle="#000c";x.fillRect(0,0,VW,VH);x.textAlign="center";x.fillStyle="#fbbf24";x.font="bold 18px monospace";x.fillText("YOU ESCAPED!",VW/2,70);x.font="10px monospace";x.fillStyle="#fff";x.fillText(piglet.free?"You, Lila and the piglet are free at last!":"You and Lila are free at last!",VW/2,95);x.fillText(`Time: ${time|0}s`,VW/2,112);x.fillStyle="#fde68a";x.fillText("Press R to play again",VW/2,140)}
+ const vg=x.createRadialGradient(VW/2,VH/2,VH*.45,VW/2,VH/2,VH*.95);vg.addColorStop(0,"rgba(255,220,150,0)");vg.addColorStop(1,"rgba(40,20,0,.32)");x.fillStyle=vg;x.fillRect(0,0,VW,VH);
+ x.fillStyle="rgba(20,12,6,.78)";x.fillRect(0,0,VW,16);x.fillStyle="rgba(245,158,11,.6)";x.fillRect(0,16,VW,.8);
+ x.font=FONT;x.textAlign="left";x.fillStyle="#fcd34d";x.fillText(`${seqNo(sx,sy)}/${N}`,4,11);
+ let kx=30;for(const k of["red","blue","gold","brass"]){if(keys[k]>0)keyIcon(kx+4,8,KC[k],.8);else{el(kx+4,8,3,3,"#57534e")}kx+=11}
+ x.fillStyle=lila.free?"#c4b5fd":"#78716c";x.fillText(lila.free?"Lila✔":"Lila✘",75,11);
+ x.fillStyle=piglet.free?"#fbcfe8":"#78716c";x.fillText(piglet.free?"Pig✔":"Pig✘",108,11);
+ x.fillStyle=decoyCd>0?"#a8a29e":"#c4b5fd";if(lila.free)x.fillText(`Q:${decoyCd>0?decoyCd:"ok"}`,136,11);
+ let tkx=164;for(const s of Object.keys(SP)){const own=keys.tr[s];fr(tkx,3.5,8,9,2,own?SP[s].c:"#44403c");x.fillStyle=own?"#1f2937":"#78716c";x.font="bold 6px Verdana";x.textAlign="center";x.fillText(SP[s].k,tkx+4,10);tkx+=9.5}
+ x.font=FONT;x.textAlign="left";x.fillStyle="#fde68a";x.fillText(`J${keys.jokes.length}`,224,11);
+ let fx=246;for(const f of Object.keys(keys.food)){if(keys.food[f]>0&&fx<292){el(fx+3,8,3.2,3.2,FOOD[f][1]);fx+=9}}
+ x.fillStyle="#fde68a";x.textAlign="right";x.fillText(`T${turns}`,VW-4,11);
+ if(msgT>0&&msg){x.font=FONT;x.textAlign="center";const words=msg.split(" "),ls=[];let l="";for(const w of words){const t=l?l+" "+w:w;if(x.measureText(t).width>292&&l){ls.push(l);l=w}else l=t}ls.push(l);const bh=ls.length*10+8;
+  x.fillStyle="rgba(20,12,6,.9)";rr(6,VH-bh-4,VW-12,bh,6);x.fill();x.strokeStyle="rgba(245,158,11,.6)";x.lineWidth=1;x.stroke();x.fillStyle="#fff";ls.forEach((ln,i)=>x.fillText(ln,VW/2,VH-bh-4+12+i*10))}
+ if(caughtT>0){x.fillStyle="rgba(127,29,29,.55)";x.fillRect(0,0,VW,VH)}
+ if(state==="won"){x.fillStyle="rgba(10,6,2,.82)";x.fillRect(0,0,VW,VH);x.textAlign="center";x.fillStyle="#fbbf24";x.font="bold 20px Verdana";x.fillText("YOU ESCAPED!",VW/2,70);x.font="bold 9px Verdana";x.fillStyle="#fff";x.fillText(piglet.free?"You, Lila and the piglet are free at last!":"You are free at last!",VW/2,95);x.fillText(`Turns: ${turns}   Jokes: ${keys.jokes.length}`,VW/2,112);x.fillStyle="#fde68a";x.fillText("Press R to play again",VW/2,140)}
 }
 let last=performance.now();
 function loop(t){const dt=Math.min(.05,(t-last)/1000);last=t;update(dt);draw();requestAnimationFrame(loop)}
-keys0={};
-addEventListener("keydown",e=>{keys0[e.code]=1;if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Space"].includes(e.code))e.preventDefault();
- if(!e.repeat){if(e.code==="KeyE"||e.code==="Enter"||e.code==="Space")interact();if(e.code==="KeyQ")decoy();if(e.code==="KeyR")init()}});
+addEventListener("keydown",e=>{
+ if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Space","Escape"].includes(e.code))e.preventDefault();
+ if(aim){if(e.code==="ArrowLeft"||e.code==="KeyA")aimMove(-1,0);else if(e.code==="ArrowRight"||e.code==="KeyD")aimMove(1,0);else if(e.code==="ArrowUp"||e.code==="KeyW")aimMove(0,-1);else if(e.code==="ArrowDown"||e.code==="KeyS")aimMove(0,1);
+  else if(!e.repeat&&(e.code==="KeyE"||e.code==="Enter"||e.code==="KeyQ"))confirmAim();else if(e.code==="Escape"||e.code==="Space"){aim=null;msgT=0}return}
+ keys0[e.code]=1;
+ if(!e.repeat){if(e.code==="KeyE"||e.code==="Enter")act();if(e.code==="Space")waitTurn();if(e.code==="KeyQ")startAim();if(e.code==="KeyR")init()}});
 addEventListener("keyup",e=>keys0[e.code]=0);
-for(const[id,k]of[["bl","ArrowLeft"],["br","ArrowRight"],["bu","ArrowUp"],["bd","ArrowDown"]]){const b=document.querySelector("#"+id);b.addEventListener("pointerdown",()=>keys0[k]=1);for(const ev of["pointerup","pointerleave","pointercancel"])b.addEventListener(ev,()=>keys0[k]=0)}
-document.querySelector("#be").addEventListener("pointerdown",interact);document.querySelector("#bq").addEventListener("pointerdown",decoy);
+C.addEventListener("pointerdown",e=>{if(!aim)return;const r=C.getBoundingClientRect(),tx=Math.floor(((e.clientX-r.left)/r.width*VW+camX)/T),ty=Math.floor(((e.clientY-r.top)/r.height*VH+camY)/T),[sx,sy]=scr(P.x,P.y);
+ if(tx>=sx*SW+1&&tx<=sx*SW+SW-2&&ty>=sy*SH+1&&ty<=sy*SH+SH-2&&Math.hypot(tx-P.tx,ty-P.ty)<=10){aim.tx=tx;aim.ty=ty;confirmAim()}});
+for(const[id,k]of[["bl","ArrowLeft"],["br","ArrowRight"],["bu","ArrowUp"],["bd","ArrowDown"]]){const b=document.querySelector("#"+id);b.addEventListener("pointerdown",()=>{if(aim){aimMove(k==="ArrowLeft"?-1:k==="ArrowRight"?1:0,k==="ArrowUp"?-1:k==="ArrowDown"?1:0)}else keys0[k]=1});for(const ev of["pointerup","pointerleave","pointercancel"])b.addEventListener(ev,()=>keys0[k]=0)}
+document.querySelector("#be").addEventListener("pointerdown",()=>aim?confirmAim():act());document.querySelector("#bw").addEventListener("pointerdown",()=>aim?(aim=null,msgT=0):waitTurn());document.querySelector("#bq").addEventListener("pointerdown",()=>aim?confirmAim():startAim());
 document.querySelector("#bf").onclick=()=>{const m=document.querySelector("main");document.fullscreenElement?document.exitFullscreen():m.requestFullscreen&&m.requestFullscreen()};
 init();requestAnimationFrame(loop);
 </script></body></html>
