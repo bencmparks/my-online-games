@@ -46,4 +46,4 @@ function loop(ts){const dt=Math.min(.05,(ts-last)/1000);last=ts;step(dt);draw();
 addEventListener("keydown",e=>{if(e.repeat)return;if(e.code==="ArrowLeft"||e.code==="KeyA"){e.preventDefault();press(1)}if(e.code==="ArrowRight"||e.code==="KeyD"){e.preventDefault();press(2)}if(e.code==="Space"||e.code==="Enter"){if(st==="idle"||st==="done"){e.preventDefault();start()}}});
 $("#L").onpointerdown=e=>{e.preventDefault();press(1)};$("#R").onpointerdown=e=>{e.preventDefault();press(2)};$("#go").onclick=start;
 requestAnimationFrame(loop);
-</script></body></html>
+</script><script src="../ads.js"></script></body></html>

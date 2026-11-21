@@ -103,4 +103,4 @@ function draw(){x.clearRect(0,0,800,400);x.save();if(S.boom&&S.boom.t<.8)x.trans
 let last=performance.now(),spd=1;function loop(n){const dt=Math.min(.05,(n-last)/1000);last=n;for(let i=0;i<spd;i++)upd(dt);draw();requestAnimationFrame(loop)}
 $("#sp").onclick=()=>{spd=spd===1?3:1;$("#sp").textContent="⏩ Speed x"+spd;$("#sp").classList.toggle("on",spd===3)};
 reset();btns();shop();requestAnimationFrame(loop);
-</script></main></body></html>
+</script></main><script src="../ads.js"></script></body></html>

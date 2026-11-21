@@ -31,4 +31,4 @@ go.onclick=()=>{const s=score(cur);guesses.push(Object.assign([...cur],{s}));cur
  if(s[0]===L){over=true;msg.textContent=`🎉 Cracked it in ${guesses.length} ${guesses.length===1?"try":"tries"}!`}else if(guesses.length>=TRIES){over=true;msg.textContent="💥 Out of tries! The code is shown below."}render()};
 document.querySelector("#new").onclick=newGame;
 newGame();
-</script></body></html>
+</script><script src="../ads.js"></script></body></html>

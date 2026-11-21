@@ -307,4 +307,4 @@ let last=0,acc=0;
 function loop(ts){acc+=Math.min(100,ts-last);last=ts;while(acc>=1000/60){tick();acc-=1000/60}draw();requestAnimationFrame(loop)}
 window.CB={load,fire,tick,state:()=>({phase,shots,killed,total,lvl,levels:L.length})};
 requestAnimationFrame(ts=>{last=ts;loop(ts)});
-</script></body></html>
+</script><script src="../ads.js"></script></body></html>

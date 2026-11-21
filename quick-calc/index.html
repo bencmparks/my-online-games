@@ -6,4 +6,4 @@ const q=document.querySelector("#question"),answers=document.querySelector("#ans
 function next(){let a=1+Math.floor(Math.random()*12),b=1+Math.floor(Math.random()*12);answer=a+b;q.textContent=`${a} + ${b}`;let choices=new Set([answer]);while(choices.size<4)choices.add(answer+(Math.floor(Math.random()*9)-4));answers.replaceChildren();[...choices].sort(()=>Math.random()-.5).forEach(n=>{let button=document.createElement("button");button.textContent=n;button.onclick=()=>pick(n);answers.append(button)})}
 function pick(n){if(!live)return;if(n===answer){score++;scoreEl.textContent=score;status.textContent="Correct!";next()}else{status.textContent="Try the next one!";next()}}
 setInterval(()=>{if(!live)return;time--;timeEl.textContent=time;if(time<=0){live=false;status.textContent=`Time! Final score: ${score}.`;answers.replaceChildren()}},1000);next();
-</script></body></html>
+</script><script src="../ads.js"></script></body></html>

@@ -36,4 +36,4 @@ async function pick(i){
  if(i===hid){M.textContent="Correct! 🎉";round++;if(round-1>best){best=round-1;try{localStorage.setItem("cupShuffleBest",best)}catch(e){}bs()}await wait(1300);play()}
  else{cups[i].classList.add("up");M.textContent=`Wrong! You made it through ${round-1} round${round===2?"":"s"}.`;round=1;B.textContent="Play again";B.hidden=false;state="idle"}}
 B.onclick=play;build();
-</script></body></html>
+</script><script src="../ads.js"></script></body></html>

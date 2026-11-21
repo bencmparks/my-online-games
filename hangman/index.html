@@ -46,4 +46,4 @@ $("#kb").onclick=e=>{if(e.target.tagName==="BUTTON")guess(e.target.textContent)}
 $("#nw").onclick=()=>{if(!done&&wrong>0){streak=0;save()}newWord()};
 addEventListener("keydown",e=>{if(e.ctrlKey||e.metaKey||e.altKey)return;if(/^[a-z]$/i.test(e.key))guess(e.key.toLowerCase());else if(e.key==="Enter"&&done)newWord()});
 newWord();
-</script></body></html>
+</script><script src="../ads.js"></script></body></html>

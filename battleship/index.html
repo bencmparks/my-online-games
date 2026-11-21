@@ -43,4 +43,4 @@ function cpu(){let r,cc;
  msg.textContent+=` CPU: ${o.sunk?"sank one of your ships!":o.hit?"hit your ship!":"missed."}`;busy=false}
 function start(){E=place();M=place();eb=build(en,false);mb=build(me,true);busy=false;over=false;queue=[];msg.textContent="Your turn: fire at the enemy waters!";paint(E,eb,false);paint(M,mb,true);upd()}
 document.getElementById("again").onclick=start;start();
-</script></body></html>
+</script><script src="../ads.js"></script></body></html>

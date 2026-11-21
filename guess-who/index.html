@@ -53,4 +53,4 @@ function cpuTurn(){if(over)return;
  if(best<0){const g=cand[0];if(g.i===mine.i)end(false,`😈 The CPU guessed ${mine.n}!`);else cand=cand.filter(c=>c.i!==g.i);return}
  cpuAsked.add(best);const q=QS[best],ans=q.f(mine);cand=cand.filter(p=>q.f(p)===ans);say(`<b>CPU:</b> ${q.t} → <b>${ans?"Yes":"No"}</b>`);msg.textContent=`The CPU asked: "${q.t}" You answered ${ans?"Yes":"No"}. Your turn!`}
 $("again").onclick=start;start();
-</script></body></html>
+</script><script src="../ads.js"></script></body></html>

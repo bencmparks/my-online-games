@@ -61,4 +61,4 @@ addEventListener("keydown",e=>{const k=e.key;if(/^[0-9]$/.test(k)){if(+k<=N)put(
  else if(k.startsWith("Arrow")){e.preventDefault();if(sel<0)sel=0;else{const r=sel/N|0,c=sel%N,dr={ArrowUp:-1,ArrowDown:1}[k]||0,dc={ArrowLeft:-1,ArrowRight:1}[k]||0;sel=((r+dr+N)%N)*N+(c+dc+N)%N}draw()}});
 setInterval(()=>{if(!done)$("#t").textContent=fmt(Math.floor((Date.now()-t0)/1000))},500);
 mark();newGame();
-</script></body></html>
+</script><script src="../ads.js"></script></body></html>

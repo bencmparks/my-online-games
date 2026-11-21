@@ -123,4 +123,4 @@ else if(msg.t==="spell"||msg.t==="round"){const ok=msg.t==="spell"?validSpell(ms
 if(waiters[msg.t]){const w=waiters[msg.t];delete waiters[msg.t];w(msg)}else(inbox[msg.t]=inbox[msg.t]||[]).push(msg)}},
 onEnd(){lockOnline(false);newGame()}});
 [modeEl,oppEl].forEach(e=>e.addEventListener("change",()=>{e.blur();newGame()}));newBtn.addEventListener("click",()=>newGame());newGame();
-</script></body></html>
+</script><script src="../ads.js"></script></body></html>

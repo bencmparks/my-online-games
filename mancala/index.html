@@ -59,4 +59,4 @@ function newGame(){gid++;s=[4,4,4,4,4,4,0,4,4,4,4,4,4,0];turn=0;busy=false;over=
 DN.forEach((n,i)=>{const b=document.createElement("button");b.textContent=n;b.dataset.d=i;b.onclick=()=>{D=i;mark();newGame()};$("#df").append(b)});
 function mark(){document.querySelectorAll("#df button").forEach(b=>b.classList.toggle("on",+b.dataset.d===D))}
 $("#nw").onclick=newGame;mark();newGame();
-</script></body></html>
+</script><script src="../ads.js"></script></body></html>

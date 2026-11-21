@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Element Merging | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#4c1d95,#0b1020 70%)}
+main{width:min(100%,64rem);padding:1.25rem;border:.2rem solid #a78bfa;border-radius:1.25rem;background:rgb(10 10 30 / 94%);text-align:center}a{color:#c4b5fd}h1{margin:.5rem 0;color:#ddd6fe;font-size:1.7rem}
+.top{display:flex;gap:.6rem;justify-content:center;align-items:center;flex-wrap:wrap;margin:.5rem 0}.top button{padding:.5rem .9rem;border:0;border-radius:.6rem;background:#7c3aed;color:#fff;font-weight:700;cursor:pointer}
+#bar{height:.7rem;width:min(100%,24rem);background:#1e1b4b;border-radius:1rem;overflow:hidden}#bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#a78bfa,#f472b6);transition:width .4s}
+#work{position:relative;height:22rem;margin:.6rem 0;border:.15rem dashed #6d28d9;border-radius:.8rem;background:rgb(30 27 75 / 55%);overflow:hidden;touch-action:none}
+#work .hint{position:absolute;inset:0;display:grid;place-items:center;color:#6d6a9a;pointer-events:none;padding:1rem}
+.chip{position:absolute;display:flex;align-items:center;gap:.3rem;padding:.3rem .6rem;border-radius:2rem;background:#312e81;border:.12rem solid #a78bfa;font-weight:700;cursor:grab;user-select:none;touch-action:none;white-space:nowrap;transform:translate(-50%,-50%)}
+.chip.drag{cursor:grabbing;z-index:5;box-shadow:0 0 1.2rem #c4b5fd;transform:translate(-50%,-50%) scale(1.1)}.chip.pop{animation:pop .5s}.chip.no{animation:no .35s}.chip .e{font-size:1.5rem}
+@keyframes pop{0%{transform:translate(-50%,-50%) scale(.2)}60%{transform:translate(-50%,-50%) scale(1.5)}100%{transform:translate(-50%,-50%) scale(1)}}
+@keyframes no{25%{transform:translate(-60%,-50%)}75%{transform:translate(-40%,-50%)}}
+#toast{min-height:1.6rem;color:#fde68a;font-weight:700}
+#shelf{display:flex;gap:.4rem;flex-wrap:wrap;justify-content:center;max-height:14rem;overflow:auto;padding:.3rem}
+#shelf button{display:flex;align-items:center;gap:.3rem;padding:.3rem .6rem;border-radius:2rem;border:.12rem solid #6d28d9;background:#1e1b4b;color:#e5e7eb;font-weight:700;cursor:pointer}#shelf button:hover{background:#4c1d95}#shelf button.new{border-color:#fde047}
+#hints{margin:.5rem 0;color:#a7f3d0;font-weight:700}
+</style></head>
+<body><main><a href="../">← All games</a><h1>⚗️ Element Merging</h1>
+<p>Start with 💧 water, 🔥 fire, 🌍 earth and 💨 air. Tap an element below to add it, then <strong>drag one onto another</strong> to merge them. Double-click an element in the field to remove it. Stuck? Click the ad for <strong>2 free hints</strong>!</p>
+<div class="top"><span id="count"></span><div id="bar"><i></i></div><button id="clear">Clear field</button><button id="reset">Reset progress</button></div>
+<div id="toast"></div>
+<div id="work"><div class="hint">Tap elements below, then drag them together</div></div>
+<div id="hints"></div>
+<div id="shelf"></div>
+</main>
+<script src="../ads.js"></script>
+<script>
+const START=["water","fire","earth","air"];
+const EL={water:["💧","Water"],fire:["🔥","Fire"],earth:["🌍","Earth"],air:["💨","Air"],
+steam:["♨️","Steam"],mud:["🟤","Mud"],lava:["🟠","Lava"],energy:["⚡","Energy"],dust:["🌫️","Dust"],bubble:["🫧","Bubble"],cloud:["☁️","Cloud"],rain:["🌧️","Rain"],lightning:["🌩️","Lightning"],plant:["🌱","Plant"],tree:["🌳","Tree"],forest:["🌲","Forest"],ash:["⚫","Ash"],stone:["🪨","Stone"],sand:["⏳","Sand"],glass:["🪟","Glass"],mountain:["⛰️","Mountain"],river:["〰️","River"],lake:["🏞️","Lake"],ocean:["🌊","Ocean"],island:["🏝️","Island"],beach:["🏖️","Beach"],brick:["🧱","Brick"],wall:["🚧","Wall"],house:["🏠","House"],village:["🏘️","Village"],city:["🏙️","City"],swamp:["🪷","Swamp"],life:["🧬","Life"],fish:["🐟","Fish"],bird:["🐦","Bird"],dragon:["🐉","Dragon"],golem:["🗿","Golem"],monkey:["🐒","Monkey"],egg:["🥚","Egg"],chicken:["🐔","Chicken"],human:["🧑","Human"],tool:["🔨","Tool"],farmer:["🧑‍🌾","Farmer"],field:["🟩","Field"],wheat:["🌾","Wheat"],bread:["🍞","Bread"],cookedfish:["🍤","Cooked Fish"],metal:["🔩","Metal"],steel:["⚙️","Steel"],electricity:["🔌","Electricity"],lightbulb:["💡","Light Bulb"],sword:["⚔️","Sword"],axe:["🪓","Axe"],family:["👪","Family"],snow:["❄️","Snow"],ice:["🧊","Ice"],snowman:["⛄","Snowman"],volcano:["🌋","Volcano"],sun:["☀️","Sun"],rainbow:["🌈","Rainbow"],desert:["🏜️","Desert"],oasis:["🌴","Oasis"],cactus:["🌵","Cactus"],flower:["🌸","Flower"],bee:["🐝","Bee"],honey:["🍯","Honey"],sky:["🌤️","Sky"],star:["⭐","Star"],moon:["🌙","Moon"],planet:["🪐","Planet"],galaxy:["🌌","Galaxy"],universe:["🌠","Universe"],robot:["🤖","Robot"],skyscraper:["🏢","Skyscraper"],airplane:["✈️","Airplane"],ship:["🚢","Ship"],earthquake:["🫨","Earthquake"],wave:["🏄","Wave"],knight:["🛡️","Knight"],fisherman:["🎣","Fisherman"]};
+const RECIPES=`water+fire=steam
+water+earth=mud
+fire+earth=lava
+air+fire=energy
+air+earth=dust
+air+water=bubble
+steam+air=cloud
+cloud+water=rain
+cloud+energy=lightning
+rain+earth=plant
+plant+earth=tree
+tree+tree=forest
+tree+fire=ash
+lava+water=stone
+stone+air=sand
+sand+fire=glass
+stone+stone=mountain
+mountain+rain=river
+water+water=lake
+lake+lake=ocean
+ocean+earth=island
+sand+water=beach
+mud+fire=brick
+brick+brick=wall
+brick+glass=house
+house+house=village
+village+village=city
+mud+plant=swamp
+swamp+energy=life
+lightning+mud=life
+life+water=fish
+life+air=bird
+life+fire=dragon
+life+stone=golem
+life+tree=monkey
+life+life=egg
+egg+bird=chicken
+life+mud=human
+human+stone=tool
+human+plant=farmer
+farmer+earth=field
+field+plant=wheat
+wheat+fire=bread
+fish+fire=cookedfish
+stone+fire=metal
+metal+fire=steel
+metal+energy=electricity
+electricity+glass=lightbulb
+metal+tool=sword
+tool+tree=axe
+human+house=family
+cloud+mountain=snow
+snow+water=ice
+snow+human=snowman
+mountain+lava=volcano
+fire+energy=sun
+sun+rain=rainbow
+sun+sand=desert
+desert+water=oasis
+desert+plant=cactus
+plant+sun=flower
+flower+life=bee
+bee+flower=honey
+air+air=sky
+sky+energy=star
+sky+stone=moon
+sky+earth=planet
+star+star=galaxy
+galaxy+galaxy=universe
+human+electricity=robot
+city+steel=skyscraper
+sky+metal=airplane
+metal+water=ship
+energy+earth=earthquake
+energy+water=wave
+human+dragon=knight
+human+fish=fisherman`.split("\n").map(l=>{const[a,r]=l.split("="),[x,y]=a.split("+");return{a:x,b:y,r}});
+const key=(a,b)=>[a,b].sort().join("+"),MAP=new Map(RECIPES.map(r=>[key(r.a,r.b),r.r]));
+const KEY="elementMergingSave";let found=new Set(START);
+try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.found)found=new Set([...START,...s.found])}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify({found:[...found]}))}catch(e){}};
+const work=document.querySelector("#work"),shelf=document.querySelector("#shelf"),toast=document.querySelector("#toast"),hintsEl=document.querySelector("#hints");
+const total=new Set([...START,...RECIPES.map(r=>r.r)]).size;
+let fresh=null,tt=0,hintList=[];
+function say(t){toast.textContent=t;clearTimeout(tt);tt=setTimeout(()=>toast.textContent="",3500)}
+function renderShelf(){shelf.innerHTML="";for(const id of found){const b=document.createElement("button");if(id===fresh)b.className="new";b.innerHTML=`<span class="e">${EL[id][0]}</span>${EL[id][1]}`;b.onclick=()=>chip(id,work.clientWidth/2+(Math.random()-.5)*160,work.clientHeight/2+(Math.random()-.5)*120);shelf.append(b)}
+ document.querySelector("#count").textContent=`Discovered ${found.size} / ${total}`;document.querySelector("#bar i").style.width=found.size/total*100+"%";renderHints()}
+function chip(id,x,y){const c=document.createElement("div");c.className="chip pop";c.dataset.id=id;c.innerHTML=`<span class="e">${EL[id][0]}</span>${EL[id][1]}`;c.style.left=x+"px";c.style.top=y+"px";const h=work.querySelector(".hint");if(h)h.style.display="none";work.append(c);
+ let dx=0,dy=0;
+ c.addEventListener("pointerdown",e=>{c.setPointerCapture(e.pointerId);c.classList.remove("pop","no");c.classList.add("drag");const r=work.getBoundingClientRect();dx=c.offsetLeft-(e.clientX-r.left);dy=c.offsetTop-(e.clientY-r.top);c._d=true});
+ c.addEventListener("pointermove",e=>{if(!c._d)return;const r=work.getBoundingClientRect();c.style.left=Math.max(10,Math.min(r.width-10,e.clientX-r.left+dx))+"px";c.style.top=Math.max(10,Math.min(r.height-10,e.clientY-r.top+dy))+"px"});
+ const up=()=>{if(!c._d)return;c._d=false;c.classList.remove("drag");tryMerge(c)};
+ c.addEventListener("pointerup",up);c.addEventListener("pointercancel",up);
+ c.addEventListener("dblclick",()=>c.remove());
+ return c}
+function tryMerge(c){const cx=c.offsetLeft,cy=c.offsetTop;
+ for(const o of work.querySelectorAll(".chip")){if(o===c)continue;if(Math.hypot(o.offsetLeft-cx,o.offsetTop-cy)>70)continue;
+  const res=MAP.get(key(c.dataset.id,o.dataset.id));
+  if(!res){c.classList.add("no");say("Nothing happens... try something else!");return}
+  const x=(cx+o.offsetLeft)/2,y=(cy+o.offsetTop)/2;c.remove();o.remove();chip(res,x,y);
+  if(!found.has(res)){found.add(res);fresh=res;save();say(`✨ New: ${EL[res][0]} ${EL[res][1]}! (${found.size}/${total})`);renderShelf()}else say(`${EL[res][0]} ${EL[res][1]}`);
+  if(found.size===total)say("🎉 You discovered every element!");
+  return}}
+function giveHints(){const pool=RECIPES.filter(r=>!found.has(r.r)&&found.has(r.a)&&found.has(r.b)&&!hintList.some(h=>h.r===r.r));
+ for(let i=0;i<2&&pool.length;i++)hintList.push(pool.splice(Math.random()*pool.length|0,1)[0]);
+ say(hintList.length?"💡 Two new hints!":"No new hints available right now!");renderHints()}
+function renderHints(){hintList=hintList.filter(h=>!found.has(h.r));hintsEl.innerHTML=hintList.length?"💡 Hints: "+hintList.map(h=>`${EL[h.a][0]} ${EL[h.a][1]} + ${EL[h.b][0]} ${EL[h.b][1]} = ❓`).join(" &nbsp;•&nbsp; "):""}
+document.querySelector("#clear").onclick=()=>work.querySelectorAll(".chip").forEach(c=>c.remove());
+document.querySelector("#reset").onclick=()=>{if(confirm("Reset all discovered elements?")){found=new Set(START);hintList=[];save();fresh=null;work.querySelectorAll(".chip").forEach(c=>c.remove());renderShelf()}};
+renderShelf();
+GameAds.init({reward:"2 free hints 💡",onReward:giveHints});
+</script></body></html>

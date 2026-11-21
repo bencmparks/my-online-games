@@ -128,6 +128,9 @@ Keep a list of my games here.
 - Code Breaker (`code-breaker/`, Mastermind-style 4-color code in 10 tries)
 - Pig Escape (`pig-escape/`, autumn pixel farm escape: 30 screens, Lila smashes crates and digs mud mounds one at a time and digs buried keys out of mud, presses paw plates; tip pigs on every screen, rescue a little piglet (brass key, cage) who squeezes through tiny fences; red/blue/gold keys, latches, farmers and dogs)
 
+- Element Merging (`element-merging/`, start with water/fire/earth/air and merge 80 elements; ad gives 2 hints)
+- Element Playground (`element-playground/`, falling-sand sandbox with 13 elements)
+
 ## ads
 
-Shared ds.js (root) shows a cross-promo ad for another of my games; clicking it opens that game and gives a one-time reward via GameAds.init({reward, onReward}). Currently used in Cliff Chucker (+250 coins) and Pig Escape (Lila fully rested). Add it to other games with <script src="../ads.js"></script> after </main> and a GameAds.init call.
+Shared `ads.js` (root) shows a cross-promo ad with a **Get hint** button. Clicking it opens a ~8 s "gameplay video" overlay (the advertised game runs in a frame played by simulated input), then gives a reward via `GameAds.init({reward, onReward})`. Games without init get +10 site-wide Ad Coins. Most games include `<script src="../ads.js"></script>`. Custom rewards: Cliff Chucker (+250 coins), Pig Escape (Lila rested), Element Merging (2 hints), Element Playground (element rain).

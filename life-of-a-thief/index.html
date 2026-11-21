@@ -220,4 +220,4 @@ function goTo(){const n=Math.min(TOTAL,Math.max(1,Math.floor(+GO.value)||1));GO.
 document.querySelector("#goBtn").onclick=goTo;
 document.querySelectorAll("[data-k]").forEach(b=>{const k=b.dataset.k;b.onpointerdown=e=>{e.preventDefault();press(k)};b.onpointerup=b.onpointerleave=b.onpointercancel=()=>release(k);b.oncontextmenu=e=>e.preventDefault()});
 load(lvl);say("Jump to the gem, then reach the exit.",2.5);requestAnimationFrame(frame);
-</script></body></html>
+</script><script src="../ads.js"></script></body></html>

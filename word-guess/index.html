@@ -34,4 +34,4 @@ function submit(){const guess=cells[row].map(c=>c.textContent).join(""),res=Arra
  col=0;if(over){localStorage.setItem("wgWins",wins);localStorage.setItem("wgStreak",streak);upd()}}
 addEventListener("keydown",e=>{if(e.ctrlKey||e.metaKey||e.altKey)return;if(e.key==="Enter")press("⏎");else if(e.key==="Backspace")press("⌫");else if(/^[a-zA-Z]$/.test(e.key))press(e.key.toLowerCase())});
 document.getElementById("again").onclick=start;start();
-</script></body></html>
+</script><script src="../ads.js"></script></body></html>

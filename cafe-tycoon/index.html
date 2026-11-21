@@ -212,4 +212,4 @@ addEventListener("keyup",e=>{keys[e.code]=false});
 C.addEventListener("pointerdown",e=>{const r=C.getBoundingClientRect();P.mt={x:(e.clientX-r.left)/r.width*VW+cam.x,y:(e.clientY-r.top)/r.height*VH+cam.y}});
 function loop(ts){let dt=Math.min(.05,(ts-last)/1000||0)*speed;last=ts;while(dt>0){const d=Math.min(dt,.05);update(d);dt-=d}draw();ui();requestAnimationFrame(loop)}
 applyMarket();buildMk();syncWorkers();requestAnimationFrame(loop);setInterval(save,5000);
-</script></body></html>
+</script><script src="../ads.js"></script></body></html>

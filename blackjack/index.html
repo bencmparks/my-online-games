@@ -41,4 +41,4 @@ $("stand").onclick=()=>{if(phase==="play")finish()};
 $("dbl").onclick=()=>{if(phase!=="play"||P.length!==2||chips<bet)return;chips-=bet;bet*=2;P.push(draw());finish()};
 $("reset").onclick=()=>{chips=100;localStorage.setItem("bjChips",100);P=[];D=[];phase="bet";$("msg").textContent="Fresh start with 100 chips.";render(false)};
 newDeck();P=[];D=[];$("msg").textContent="Place a bet to deal.";render(false);
-</script></body></html>
+</script><script src="../ads.js"></script></body></html>

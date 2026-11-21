@@ -28,4 +28,4 @@ function bump(){scoreEl.classList.remove("bump");void scoreEl.offsetWidth;scoreE
 function smash(i){if(!live)return;const h=holes[i];if(!h.state)return;if(h.state==="bomb"){score=Math.max(0,score-3);statusEl.textContent="Boom! -3 points.";h.el.classList.add("boom");fly(i,"-3",true);setTimeout(()=>h.el.classList.remove("boom"),300)}else{score++;statusEl.textContent="Smash!";h.el.classList.add("hit");fly(i,"+1")}bump();scoreEl.textContent=score;clearTimeout(h.timer);h.state=null;setTimeout(()=>hide(i),220)}
 function end(){live=false;clearTimeout(popTimer);clearInterval(clock);holes.forEach((_,i)=>hide(i));if(score>best){best=score;localStorage.setItem("moleSmashBest",best);bestEl.textContent=best;statusEl.textContent=`New best: ${score}!`}else statusEl.textContent=`Time! You smashed ${score}.`;startButton.disabled=false}
 startButton.addEventListener("click",()=>{score=0;time=30;scoreEl.textContent=0;timeEl.textContent=30;live=true;startButton.disabled=true;statusEl.textContent="Go!";pop();clock=setInterval(()=>{time--;timeEl.textContent=time;if(time<=0)end()},1000)});
-</script></body></html>
+</script><script src="../ads.js"></script></body></html>

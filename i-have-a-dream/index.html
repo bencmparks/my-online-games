@@ -69,4 +69,4 @@ function memShow(){const words=passages[pi].split(/\s+/);const n=Math.max(1,Math
    g.textContent="Next →";g.onclick=()=>{lvl++;if(lvl>=LV.length){lvl=0;pi++}if(pi>=passages.length){$("#area").innerHTML='<div class="quote">🏆 You memorized it all! Final score '+ms+'</div>';$("#msg").textContent="";g.textContent="Play again";g.onclick=()=>{pi=0;lvl=0;ms=0;memShow()};return}memShow()}}
   else $("#msg").textContent="❌ "+ok+"/"+ins.length+" correct. Fix the red ones and check again."}}
 start();
-</script></body></html>
+</script><script src="../ads.js"></script></body></html>

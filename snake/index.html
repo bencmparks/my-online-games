@@ -31,4 +31,4 @@
   canvas.addEventListener("pointermove", event => { if (!swipe) return; const dx = event.clientX - swipe.x, dy = event.clientY - swipe.y; if (Math.max(Math.abs(dx), Math.abs(dy)) < 24) return; turn(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : (dy > 0 ? "down" : "up")); swipe = { x: event.clientX, y: event.clientY }; });
   ["pointerup", "pointercancel"].forEach(name => canvas.addEventListener(name, () => { swipe = null; }));
   start();
-</script></body></html>
+</script><script src="../ads.js"></script></body></html>

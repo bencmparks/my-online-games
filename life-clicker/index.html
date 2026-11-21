@@ -117,4 +117,4 @@ function save(){try{localStorage.setItem("lifeClicker",JSON.stringify({cells,tot
 setInterval(()=>{const g=cps()/10;if(g){cells+=g;total+=g}growAll(.01);render()},100);setInterval(save,5000);
 $("reset").onclick=()=>{if(confirm("Start over from a single cell?")){cells=0;total=0;PARTS.forEach(p=>{lv[p.id]=0;p.st.forEach((_,i)=>gm[p.id+i]=0)});save();render()}};
 render();
-</script></body></html>
+</script><script src="../ads.js"></script></body></html>

@@ -51,4 +51,4 @@ onMessage(m){if(role==="host"){if(m.t==="start")begin();else if(m.t==="d"&&state
 else if(role==="guest"&&m.t==="s")applySnap(m)},
 onEnd(){role=null;document.querySelector("#tp2").style.display="";clearInterval(timer);state="ready";score=[0,0];show();grid=Array.from({length:CH},()=>Array(CW).fill(0));pl=[];draw();startBtn.textContent="Start round";statusEl.textContent="Online game ended. Press Space or Start to play locally."}});
 grid=Array.from({length:CH},()=>Array(CW).fill(0));pl=[];draw();
-</script></body></html>
+</script><script src="../ads.js"></script></body></html>
