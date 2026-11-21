@@ -6,26 +6,33 @@ canvas{display:block;width:100%;height:auto;margin:.8rem auto;border:.2rem solid
 .row{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap;margin:.4rem 0}.row button{padding:.6rem .9rem;border:0;border-radius:.6rem;background:#0891b2;color:#fff;font-weight:700;font-size:1rem;cursor:pointer;user-select:none}.row button:disabled{opacity:.4;cursor:not-allowed}.row button.t{background:#f97316}
 </style></head>
 <body><main><a href="../">← All games</a><h1>🪂 Cliff Chucker</h1>
-<p>Fling poor Bob off the cliff and watch him tumble down the ledges! Set the angle with <strong>W/S</strong> (or ▲▼), <strong>hold Space or the mouse</strong> to charge the power, release to throw. In the air, <strong>tap Space or click</strong> to use a rocket boost. There is no distance limit: the farther he goes, the more coins you earn to upgrade (upgrades never max out).</p>
+<p>Fling poor Bob off the cliff and watch him tumble down the ledges! Set the angle with <strong>W/S</strong> (or ▲▼), <strong>hold Space or the mouse</strong> to charge the power, release to throw. In the air, <strong>tap Space or click</strong> to use a rocket boost. There is no distance limit: the farther he goes, the more coins you earn to upgrade (upgrades never max out). You can only see a small circle around Bob, so buy the <strong>🔦 Lantern</strong>. Power-ups: <strong>💥 Double Barrel</strong> (rockets fire two barrels and you get 2 more rockets) and <strong>🪜 Ledge Maker</strong> (press <strong>L</strong> in the air to drop a springy ledge, 2 at a time).</p>
 <canvas id="c" width="1280" height="680" aria-label="Cliff Chucker game"></canvas>
-<div class="row"><button id="au">▲ Angle</button><button id="ad">▼ Angle</button><button id="th" class="t">🚀 Hold to throw</button><button id="sp">Speed: 1x</button></div>
+<div class="row"><button id="au">▲ Angle</button><button id="ad">▼ Angle</button><button id="th" class="t">🚀 Hold to throw</button><button id="lg">🪜 Ledge (L)</button>
+<button id="sp">Speed: 1x</button></div>
 <div class="row" id="shop"></div>
 </main>
 <script>
 const C=document.querySelector("#c"),x=C.getContext("2d"),W=1280,H=680,G=900,R=12,KEY="ledgeThrowSave",Z=.32;
 let save={coins:0,best:0,up:{pow:0,bounce:0,slide:0,boost:0,coin:0}};try{const s=JSON.parse(localStorage.getItem(KEY));if(s)save=Object.assign(save,s)}catch(e){}
-const UP={pow:{n:"Power",d:l=>`Speed ${600+l*70}`},bounce:{n:"Bounce",d:l=>`Bounce ${Math.round(35+l*4)}%`},slide:{n:"Slide",d:l=>`Slide ${l}`},boost:{n:"Rockets",d:l=>`${1+l} boosts`},coin:{n:"Coins",d:l=>`x${(1+l*.2).toFixed(1)}`}};
-const cost=l=>Math.round(150*Math.pow(l+1,1.8));
+save.up=Object.assign({pow:0,bounce:0,slide:0,boost:0,coin:0,lens:0,db:0,ledge:0},save.up);
+const UP={pow:{n:"Power",d:l=>`Speed ${600+l*70}`},bounce:{n:"Bounce",d:l=>`Bounce ${Math.round(35+l*4)}%`},slide:{n:"Slide",d:l=>`Slide ${l}`},boost:{n:"Rockets",d:l=>`${1+l} boosts`},coin:{n:"Coins",d:l=>`x${(1+l*.2).toFixed(1)}`},
+ lens:{n:"🔦 Lantern",d:l=>`See ${viewR(l)} px around Bob`},
+ db:{n:"💥 Double Barrel",d:l=>l?"Each rocket fires 2 barrels (almost double kick) and you get 2 more rockets":"Power-up: rockets fire 2 barrels and you get 2 more rockets",base:500,max:1},
+ ledge:{n:"🪜 Ledge Maker",d:l=>l?`Press L / Ledge to drop a springy ledge: ${1+l} at a time`:"Power-up: drop springy ledges mid-air (2 at a time). Press L",base:400}};
+const cost=(k,l)=>Math.round((UP[k].base||150)*Math.pow(l+1,1.8)),viewR=l=>200+l*40,maxLedges=()=>save.up.ledge?1+save.up.ledge:0,totalBoosts=()=>1+save.up.boost+(save.up.db?2:0);
 function persist(){try{localStorage.setItem(KEY,JSON.stringify(save))}catch(e){}}
 let seed=1;function rnd(){seed=(seed*1664525+1013904223)>>>0;return seed/4294967296}
-let segs,b,state,ang,charge,chDir,charging,cx,cy,dist,still,boosts,flameT,trail,res,rockFx;
+let ledges=[],ledgeCd=0,segs,b,state,ang,charge,chDir,charging,cx,cy,dist,still,boosts,flameT,trail,res,rockFx;
 function genTerrain(){seed=12345;segs=[{x0:-400,x1:160,y:200}];ensure(3000)}
 function ensure(xm){let l=segs[segs.length-1];while(l.x1<xm){const w=90+rnd()*220,drop=segs.length>4&&rnd()<.12?-12-rnd()*16:20+rnd()*(60+Math.min(80,l.x1/500));segs.push({x0:l.x1,x1:l.x1+w,y:l.y+drop});l=segs[segs.length-1]}}
-function init(){state="aim";ang=.7;charge=0;chDir=1;charging=false;b={x:100,y:200-R,vx:0,vy:0,r:0,g:false};dist=0;still=0;boosts=1+save.up.boost;trail=[];rockFx=[];res=null;cx=0;cy=0;shopUI()}
+function init(){state="aim";ang=.7;charge=0;chDir=1;charging=false;b={x:100,y:200-R,vx:0,vy:0,r:0,g:false};dist=0;still=0;boosts=totalBoosts();ledges=[];ledgeCd=0;trail=[];rockFx=[];res=null;cx=0;cy=0;shopUI()}
 function throwIt(){const v=(600+save.up.pow*70)*(.25+.75*charge);b.vx=Math.cos(ang)*v;b.vy=-Math.sin(ang)*v;state="fly";b.g=false;shopUI()}
-function boost(){if(state!=="fly"||boosts<=0)return;boosts--;b.vx+=320;b.vy=Math.min(b.vy,0)-260;for(let k=0;k<14;k++)rockFx.push({x:b.x,y:b.y,vx:-120-Math.random()*160,vy:(Math.random()-.5)*180,t:.5})}
+function boost(){if(state!=="fly"||boosts<=0)return;boosts--;const k2=save.up.db?1.9:1;b.vx+=320*k2;b.vy=Math.min(b.vy,0)-260*k2;for(let k=0;k<14*k2;k++)rockFx.push({x:b.x,y:b.y+(save.up.db?(k%2?8:-8):0),vx:-120-Math.random()*160,vy:(Math.random()-.5)*180,t:.5})}
+function dropLedge(){if(state!=="fly"||!maxLedges()||ledgeCd>0)return;ledges.push({x0:b.x+40,x1:b.x+240,y:b.y+110,t:0});while(ledges.length>maxLedges())ledges.shift();ledgeCd=.5}
 function finish(){state="done";dist=Math.max(0,(b.x-100)/10);const earn=Math.round(dist*(1+save.up.coin*.2));save.coins+=earn;const nb=dist>save.best;if(nb)save.best=dist;persist();res={dist,earn,nb};shopUI()}
 function update(dt){
+ ledgeCd=Math.max(0,ledgeCd-dt);for(const l of ledges)l.t=Math.max(0,l.t-dt);
  for(const f of rockFx){f.t-=dt;f.x+=f.vx*dt;f.y+=f.vy*dt}rockFx=rockFx.filter(f=>f.t>0);
  if(state==="aim"){if(keys.KeyW||keys.ArrowUp)ang=Math.min(1.35,ang+1.2*dt);if(keys.KeyS||keys.ArrowDown)ang=Math.max(.1,ang-1.2*dt);if(charging){charge+=chDir*1.5*dt;if(charge>=1){charge=1;chDir=-1}if(charge<=0){charge=0;chDir=1}}}
  if(state==="fly"){
@@ -36,6 +43,7 @@ function update(dt){
     if(b.x+R>sg.x0&&b.x-R<sg.x1&&b.y+R>sg.y){
      if(py+R<=sg.y+6||b.y-R<sg.y-0&&b.vy>0&&py+R<=sg.y+10){b.y=sg.y-R;const e=Math.min(.92,.35+save.up.bounce*.04);if(b.vy>90)b.vy=-b.vy*e;else b.vy=0;b.g=true;b.vx*=Math.pow(Math.min(.97,.25+save.up.slide*.06),h*(Math.abs(b.vy)>1?.5:2.2))}
      else if(b.x<(sg.x0+sg.x1)/2){b.x=sg.x0-R;if(b.vx>0)b.vx*=-.35}else{b.x=sg.x1+R;if(b.vx<0)b.vx*=-.35}}}}
+  for(const l of ledges){if(b.vy>0&&b.x>l.x0-R&&b.x<l.x1+R&&b.y+R>=l.y&&b.y+R<=l.y+26){b.y=l.y-R;b.vy=-Math.max(620,b.vy*.95);b.vx*=1.06;l.t=.3}}
   b.r+=b.vx*dt/R;
   if(b.g&&Math.abs(b.vx)<14&&Math.abs(b.vy)<30)still+=dt;else still=0;if(still>.8)finish();
   if(b.x<0&&b.vx<0)b.vx=0;
@@ -56,24 +64,27 @@ function draw(){
  x.strokeStyle="rgba(255,255,255,.5)";x.lineWidth=3;x.beginPath();trail.forEach((p,i)=>i?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1]));x.stroke();
  for(const f of rockFx){x.globalAlpha=f.t*2;x.fillStyle="#fb923c";x.fillRect(f.x-3,f.y-3,6,6)}x.globalAlpha=1;
  x.fillStyle="#7c2d12";x.fillRect(70,200-4,60,4);
+ for(const l of ledges){x.fillStyle="#a16207";x.fillRect(l.x0,l.y,l.x1-l.x0,12);x.fillStyle="#facc15";x.fillRect(l.x0,l.y,l.x1-l.x0,4);x.fillStyle="#ef4444";const sq=l.t>0?10:0;x.fillRect(l.x0+20,l.y+12,10,16-sq);x.fillRect(l.x1-30,l.y+12,10,16-sq)}
  x.save();x.translate(b.x,b.y);x.scale(2.2,2.2);x.translate(-b.x,-b.y);bob(b.x,b.y-2,state==="aim"?0:b.r);x.restore();
  if(state==="aim"){x.strokeStyle="#f97316";x.lineWidth=4;x.setLineDash([10,8]);x.beginPath();x.moveTo(b.x,b.y);x.lineTo(b.x+Math.cos(ang)*(60+charge*110),b.y-Math.sin(ang)*(60+charge*110));x.stroke();x.setLineDash([])}
  x.restore();
+ {const sx=(b.x-cx)*Z,sy=(b.y-cy)*Z,r=viewR(save.up.lens),gr=x.createRadialGradient(sx,sy,r*.35,sx,sy,r);gr.addColorStop(0,"rgba(5,8,20,0)");gr.addColorStop(1,"rgba(5,8,20,.97)");x.fillStyle=gr;x.fillRect(0,0,W,H)}
  text(`${Math.max(0,Math.floor((b.x-100)/10))} m`,W/2,40,34,"#fff");text(`🪙 ${save.coins}`,12,30,22,"#fde047","left");text(`Best ${Math.floor(save.best)} m`,W-12,30,18,"#fff","right");
  if(state==="aim"){x.fillStyle="rgba(15,23,42,.7)";x.fillRect(W/2-100,H-40,200,18);x.fillStyle=charge>.85?"#ef4444":"#22c55e";x.fillRect(W/2-100,H-40,200*charge,18);text("Hold to charge, release to throw",W/2,H-50,16,"#fff")}
- if(state==="fly")text(`🚀 Boosts: ${boosts} (tap Space / click)`,W/2,H-16,16,"#fff");
+ if(state==="fly")text(`🚀 Boosts: ${boosts}${save.up.db?" 💥x2":""} (tap Space / click)${maxLedges()?`   🪜 Ledges ${ledges.length}/${maxLedges()} (L)`:""}`,W/2,H-16,16,"#fff");
  if(state==="done"&&res){x.fillStyle="rgba(0,0,0,.55)";x.fillRect(0,0,W,H);text(`${res.dist.toFixed(0)} m`,W/2,170,64,"#fde047");text(`+${res.earn} coins${res.nb?"  🏆 New best!":""}`,W/2,220,28,"#fff");text("Upgrade below, then press Space or Throw again",W/2,270,20,"#cbd5e1")}
 }
 const keys={};
 function pressStart(){if(state==="aim"){charging=true}else if(state==="fly")boost();else if(state==="done")init()}
 function pressEnd(){if(state==="aim"&&charging){charging=false;if(charge>0.02)throwIt();else charge=0}}
-addEventListener("keydown",e=>{if(["ArrowUp","ArrowDown","Space"].includes(e.code))e.preventDefault();if(e.repeat)return;keys[e.code]=true;if(e.code==="Space")pressStart()});
+addEventListener("keydown",e=>{if(["ArrowUp","ArrowDown","Space"].includes(e.code))e.preventDefault();if(e.repeat)return;keys[e.code]=true;if(e.code==="Space")pressStart();if(e.code==="KeyL")dropLedge()});
 addEventListener("keyup",e=>{keys[e.code]=false;if(e.code==="Space")pressEnd()});
 C.addEventListener("pointerdown",pressStart);addEventListener("pointerup",pressEnd);
 const th=document.querySelector("#th");th.addEventListener("pointerdown",e=>{e.preventDefault();pressStart()});th.addEventListener("pointerleave",pressEnd);
 for(const[id,code]of[["#au","KeyW"],["#ad","KeyS"]]){const bt=document.querySelector(id);bt.addEventListener("pointerdown",e=>{e.preventDefault();keys[code]=true});for(const ev of["pointerup","pointerleave"])bt.addEventListener(ev,()=>keys[code]=false)}
 const shop=document.querySelector("#shop");
-function shopUI(){shop.innerHTML="";for(const k in UP){const l=save.up[k],max=false,bt=document.createElement("button");bt.textContent=max?`${UP[k].n}: MAX`:`${UP[k].n} Lv${l} → 🪙${cost(l)}`;bt.title=UP[k].d(l);bt.disabled=save.coins<cost(l)||state==="fly";bt.onclick=()=>{if(save.coins>=cost(l)&&state!=="fly"){save.coins-=cost(l);save.up[k]++;persist();if(state==="aim")boosts=1+save.up.boost;shopUI()}};shop.append(bt)}}
+function shopUI(){shop.innerHTML="";for(const k in UP){const l=save.up[k],max=UP[k].max&&l>=UP[k].max,c=cost(k,l),bt=document.createElement("button");bt.textContent=max?`${UP[k].n}: OWNED`:`${UP[k].n} Lv${l} → 🪙${c}`;bt.title=UP[k].d(l);bt.disabled=max||save.coins<c||state==="fly";bt.onclick=()=>{if(save.coins>=c&&state!=="fly"&&!max){save.coins-=c;save.up[k]++;persist();if(state==="aim")boosts=totalBoosts();shopUI()}};shop.append(bt)}}
+document.querySelector("#lg").addEventListener("pointerdown",e=>{e.preventDefault();dropLedge()});
 genTerrain();init();
 let last=performance.now();
 function loop(ts){const dt=Math.min(.033,(ts-last)/1000);last=ts;frames++;for(let k=0;k<spd;k++)update(dt);draw();
