@@ -6,7 +6,7 @@ canvas{display:block;width:100%;height:auto;margin:.8rem auto;border:.2rem solid
 .row{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap;margin:.4rem 0}.row button{padding:.6rem .9rem;border:0;border-radius:.6rem;background:#0891b2;color:#fff;font-weight:700;font-size:1rem;cursor:pointer;user-select:none}.row button:disabled{opacity:.4;cursor:not-allowed}.row button.t{background:#f97316}
 </style></head>
 <body><main><a href="../">← All games</a><h1>🪂 Cliff Chucker</h1>
-<p>Fling poor Bob off the cliff and watch him tumble down the ledges! Set the angle with <strong>W/S</strong> (or ▲▼), <strong>hold Space or the mouse</strong> to charge the power, release to throw. In the air, <strong>tap Space or click</strong> to use a rocket boost. There is no distance limit: the farther he goes, the more coins you earn to upgrade (upgrades never max out). You can only see a small circle around Bob, so buy the <strong>🔦 Lantern</strong>. Power-ups: <strong>💥 Double Barrel</strong> (rockets fire two barrels and you get 2 more rockets) and <strong>🪜 Ledge Maker</strong> (press <strong>L</strong> in the air to drop a springy ledge, 2 at a time).</p>
+<p>Fling poor Bob off the cliff and watch him tumble down the ledges! Set the angle with <strong>W/S</strong> (or ▲▼), <strong>hold Space or the mouse</strong> to charge the power, release to throw. In the air, <strong>tap Space or click</strong> to use a rocket boost. There is no distance limit: the farther he goes, the more coins you earn to upgrade (upgrades never max out). You can only see a small circle around Bob, so buy the <strong>🔦 Lantern</strong>. Power-ups: <strong>💥 Double Barrel</strong> (rockets fire two barrels and you get 2 more rockets) and <strong>🪜 Ledge Maker</strong> (press <strong>L</strong> in the air to drop a springy ledge, 2 at a time). Want a brain-teaser? Try <strong>🧩 Puzzle mode</strong>: 10 levels with a fixed throw power and a limited number of rockets and ledges. Land and stop in the green goal zone, using as few as you can for 3 stars.</p>
 <canvas id="c" width="1280" height="680" aria-label="Cliff Chucker game"></canvas>
 <div class="row"><button id="au">▲ Angle</button><button id="ad">▼ Angle</button><button id="th" class="t">🚀 Hold to throw</button><button id="lg">🪜 Ledge (L)</button>
 <button id="sp">Speed: 1x</button></div>
@@ -14,34 +14,48 @@ canvas{display:block;width:100%;height:auto;margin:.8rem auto;border:.2rem solid
 </main>
 <script>
 const C=document.querySelector("#c"),x=C.getContext("2d"),W=1280,H=680,G=900,R=12,KEY="ledgeThrowSave",Z=.32;
-let save={coins:0,best:0,up:{pow:0,bounce:0,slide:0,boost:0,coin:0}};try{const s=JSON.parse(localStorage.getItem(KEY));if(s)save=Object.assign(save,s)}catch(e){}
-save.up=Object.assign({pow:0,bounce:0,slide:0,boost:0,coin:0,lens:0,db:0,ledge:0},save.up);
+let save={coins:0,best:0,stars:[],up:{pow:0,bounce:0,slide:0,boost:0,coin:0}};try{const s=JSON.parse(localStorage.getItem(KEY));if(s)save=Object.assign(save,s)}catch(e){}
+save.stars=Array.isArray(save.stars)?save.stars:[];save.up=Object.assign({pow:0,bounce:0,slide:0,boost:0,coin:0,lens:0,db:0,ledge:0},save.up);
 const UP={pow:{n:"Power",d:l=>`Speed ${600+l*70}`},bounce:{n:"Bounce",d:l=>`Bounce ${Math.round(35+l*4)}%`},slide:{n:"Slide",d:l=>`Slide ${l}`},boost:{n:"Rockets",d:l=>`${1+l} boosts`},coin:{n:"Coins",d:l=>`x${(1+l*.2).toFixed(1)}`},
  lens:{n:"🔦 Lantern",d:l=>`See ${viewR(l)} px around Bob`},
  db:{n:"💥 Double Barrel",d:l=>l?"Each rocket fires 2 barrels (almost double kick) and you get 2 more rockets":"Power-up: rockets fire 2 barrels and you get 2 more rockets",base:500,max:1},
  ledge:{n:"🪜 Ledge Maker",d:l=>l?`Press L / Ledge to drop a springy ledge: ${1+l} at a time`:"Power-up: drop springy ledges mid-air (2 at a time). Press L",base:400}};
-const cost=(k,l)=>Math.round((UP[k].base||150)*Math.pow(l+1,1.8)),viewR=l=>200+l*40,maxLedges=()=>save.up.ledge?1+save.up.ledge:0,totalBoosts=()=>1+save.up.boost+(save.up.db?2:0);
+const cost=(k,l)=>Math.round((UP[k].base||150)*Math.pow(l+1,1.8)),viewR=l=>200+l*40,maxLedges=()=>puz>=0?2:save.up.ledge?1+save.up.ledge:0,totalBoosts=()=>puz>=0?LV[puz].boosts:1+save.up.boost+(save.up.db?2:0),U=k=>puz>=0?0:save.up[k],dbOn=()=>puz<0&&save.up.db;
+let puz=-1,ub=0,ul=0,ledgesLeft=0;
+const LV=[
+ {n:"First Flight",v:600,boosts:0,ledges:0,par:0,segs:[[260,240],[320,290]],goal:2},
+ {n:"Mind the Gap",v:600,boosts:0,ledges:0,par:0,segs:[[120,230],[260,620],[200,230],[320,260]],goal:4},
+ {n:"Short Arm",v:420,boosts:1,ledges:0,par:1,segs:[[100,230],[330,620],[200,230],[260,250]],goal:4},
+ {n:"Deep Pit",v:380,boosts:1,ledges:0,par:1,segs:[[100,230],[380,640],[200,240],[260,250]],goal:4},
+ {n:"Springboard",v:350,boosts:0,ledges:2,par:1,segs:[[100,230],[400,640],[260,240]],goal:3},
+ {n:"Two Canyons",v:400,boosts:1,ledges:1,par:1,segs:[[100,230],[300,640],[110,240],[300,640],[260,250]],goal:5},
+ {n:"Stair Climb",v:300,boosts:2,ledges:0,par:2,segs:[[100,230],[300,640],[100,200],[300,640],[260,170]],goal:5},
+ {n:"The Wall",v:350,boosts:1,ledges:2,par:1,segs:[[100,230],[200,110],[200,260],[260,260]],goal:4},
+ {n:"Triple Jump",v:400,boosts:2,ledges:2,par:2,segs:[[100,230],[300,640],[90,230],[320,640],[90,230],[330,640],[260,230]],goal:7},
+ {n:"Grand Finale",v:420,boosts:2,ledges:2,par:2,segs:[[100,230],[330,640],[90,40],[300,640],[100,230],[340,640],[260,200]],goal:7}];
+const LANT=330;
 function persist(){try{localStorage.setItem(KEY,JSON.stringify(save))}catch(e){}}
 let seed=1;function rnd(){seed=(seed*1664525+1013904223)>>>0;return seed/4294967296}
 let ledges=[],ledgeCd=0,segs,b,state,ang,charge,chDir,charging,cx,cy,dist,still,boosts,flameT,trail,res,rockFx;
-function genTerrain(){seed=12345;segs=[{x0:-400,x1:160,y:200}];ensure(3000)}
+function genTerrain(){seed=12345;segs=[{x0:-400,x1:160,y:200}];if(puz>=0){const L=LV[puz];for(const[w,y]of L.segs)segs.push({x0:segs[segs.length-1].x1,x1:segs[segs.length-1].x1+w,y});const g=segs[segs.length-1];segs.push({x0:g.x1,x1:g.x1+4000,y:g.y-260});return}ensure(3000)}
 function ensure(xm){let l=segs[segs.length-1];while(l.x1<xm){const w=90+rnd()*220,drop=segs.length>4&&rnd()<.12?-12-rnd()*16:20+rnd()*(60+Math.min(80,l.x1/500));segs.push({x0:l.x1,x1:l.x1+w,y:l.y+drop});l=segs[segs.length-1]}}
-function init(){state="aim";ang=.7;charge=0;chDir=1;charging=false;b={x:100,y:200-R,vx:0,vy:0,r:0,g:false};dist=0;still=0;boosts=totalBoosts();ledges=[];ledgeCd=0;trail=[];rockFx=[];res=null;cx=0;cy=0;shopUI()}
-function throwIt(){const v=(600+save.up.pow*70)*(.25+.75*charge);b.vx=Math.cos(ang)*v;b.vy=-Math.sin(ang)*v;state="fly";b.g=false;shopUI()}
-function boost(){if(state!=="fly"||boosts<=0)return;boosts--;const k2=save.up.db?1.9:1;b.vx+=320*k2;b.vy=Math.min(b.vy,0)-260*k2;for(let k=0;k<14*k2;k++)rockFx.push({x:b.x,y:b.y+(save.up.db?(k%2?8:-8):0),vx:-120-Math.random()*160,vy:(Math.random()-.5)*180,t:.5})}
-function dropLedge(){if(state!=="fly"||!maxLedges()||ledgeCd>0)return;ledges.push({x0:b.x+40,x1:b.x+240,y:b.y+110,t:0});while(ledges.length>maxLedges())ledges.shift();ledgeCd=.5}
-function finish(){state="done";dist=Math.max(0,(b.x-100)/10);const earn=Math.round(dist*(1+save.up.coin*.2));save.coins+=earn;const nb=dist>save.best;if(nb)save.best=dist;persist();res={dist,earn,nb};shopUI()}
+function init(){state="aim";ang=.7;charge=0;chDir=1;charging=false;b={x:100,y:200-R,vx:0,vy:0,r:0,g:false};dist=0;still=0;boosts=totalBoosts();ledgesLeft=puz>=0?LV[puz].ledges:0;ub=0;ul=0;ledges=[];ledgeCd=0;trail=[];rockFx=[];res=null;cx=0;cy=0;shopUI()}
+function throwIt(){const v=(puz>=0?LV[puz].v:600+save.up.pow*70)*(.25+.75*charge);b.vx=Math.cos(ang)*v;b.vy=-Math.sin(ang)*v;state="fly";b.g=false;shopUI()}
+function boost(){if(state!=="fly"||boosts<=0)return;boosts--;ub++;const k2=dbOn()?1.9:1;b.vx+=320*k2;b.vy=Math.min(b.vy,0)-260*k2;for(let k=0;k<14*k2;k++)rockFx.push({x:b.x,y:b.y+(dbOn()?(k%2?8:-8):0),vx:-120-Math.random()*160,vy:(Math.random()-.5)*180,t:.5})}
+function dropLedge(){if(state!=="fly"||!maxLedges()||ledgeCd>0||puz>=0&&ledgesLeft<=0)return;if(puz>=0){ledgesLeft--;ul++}ledges.push({x0:b.x+40,x1:b.x+240,y:b.y+110,t:0});while(ledges.length>maxLedges())ledges.shift();ledgeCd=.5}
+const goalSeg=()=>segs[LV[puz].goal];
+function finish(){state="done";if(puz>=0){const g=goalSeg(),ok=b.g&&b.x>g.x0&&b.x<g.x1,par=LV[puz].par,used=ub+ul,stars=!ok?0:used<=par?3:used<=par+1?2:1;if(ok&&stars>(save.stars[puz]||0)){save.stars[puz]=stars;persist()}res={puz:true,ok,stars,used,par};shopUI();return}dist=Math.max(0,(b.x-100)/10);const earn=Math.round(dist*(1+save.up.coin*.2));save.coins+=earn;const nb=dist>save.best;if(nb)save.best=dist;persist();res={dist,earn,nb};shopUI()}
 function update(dt){
  ledgeCd=Math.max(0,ledgeCd-dt);for(const l of ledges)l.t=Math.max(0,l.t-dt);
  for(const f of rockFx){f.t-=dt;f.x+=f.vx*dt;f.y+=f.vy*dt}rockFx=rockFx.filter(f=>f.t>0);
  if(state==="aim"){if(keys.KeyW||keys.ArrowUp)ang=Math.min(1.35,ang+1.2*dt);if(keys.KeyS||keys.ArrowDown)ang=Math.max(.1,ang-1.2*dt);if(charging){charge+=chDir*1.5*dt;if(charge>=1){charge=1;chDir=-1}if(charge<=0){charge=0;chDir=1}}}
  if(state==="fly"){
-  ensure(b.x+6000);
+  if(puz<0)ensure(b.x+6000);
   const sub=3,h=dt/sub;
   for(let s=0;s<sub;s++){b.vy+=G*h;const py=b.y;b.x+=b.vx*h;b.y+=b.vy*h;b.g=false;
    for(const sg of segs){if(sg.x1<b.x-R-5||sg.x0>b.x+R+5)continue;
     if(b.x+R>sg.x0&&b.x-R<sg.x1&&b.y+R>sg.y){
-     if(py+R<=sg.y+6||b.y-R<sg.y-0&&b.vy>0&&py+R<=sg.y+10){b.y=sg.y-R;const e=Math.min(.92,.35+save.up.bounce*.04);if(b.vy>90)b.vy=-b.vy*e;else b.vy=0;b.g=true;b.vx*=Math.pow(Math.min(.97,.25+save.up.slide*.06),h*(Math.abs(b.vy)>1?.5:2.2))}
+     if(py+R<=sg.y+6||b.y-R<sg.y-0&&b.vy>0&&py+R<=sg.y+10){b.y=sg.y-R;const e=Math.min(.92,.35+U("bounce")*.04);if(b.vy>90)b.vy=-b.vy*e;else b.vy=0;b.g=true;b.vx*=Math.pow(Math.min(.97,.25+U("slide")*.06),h*(Math.abs(b.vy)>1?.5:2.2))}
      else if(b.x<(sg.x0+sg.x1)/2){b.x=sg.x0-R;if(b.vx>0)b.vx*=-.35}else{b.x=sg.x1+R;if(b.vx<0)b.vx*=-.35}}}}
   for(const l of ledges){if(b.vy>0&&b.x>l.x0-R&&b.x<l.x1+R&&b.y+R>=l.y&&b.y+R<=l.y+26){b.y=l.y-R;b.vy=-Math.max(620,b.vy*.95);b.vx*=1.06;l.t=.3}}
   b.r+=b.vx*dt/R;
@@ -63,16 +77,18 @@ function draw(){
  for(let m=0;m<=Math.ceil((cx+W/Z)/1000);m++){const mxp=100+m*1000;if(mxp<cx-50)continue;const sg=segs.find(s=>mxp>=s.x0&&mxp<s.x1);if(sg){x.fillStyle="#fff";x.fillRect(mxp-2,sg.y-60,4,60);text(m*100+"m",mxp,sg.y-66,40,"#fff")}}
  x.strokeStyle="rgba(255,255,255,.5)";x.lineWidth=3;x.beginPath();trail.forEach((p,i)=>i?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1]));x.stroke();
  for(const f of rockFx){x.globalAlpha=f.t*2;x.fillStyle="#fb923c";x.fillRect(f.x-3,f.y-3,6,6)}x.globalAlpha=1;
+ if(puz>=0){const g=goalSeg();x.fillStyle="rgba(34,197,94,.85)";x.fillRect(g.x0,g.y-6,g.x1-g.x0,10);x.fillStyle="#fff";x.fillRect((g.x0+g.x1)/2-2,g.y-90,4,90);x.fillStyle="#ef4444";x.fillRect((g.x0+g.x1)/2+2,g.y-90,44,28)}
  x.fillStyle="#7c2d12";x.fillRect(70,200-4,60,4);
  for(const l of ledges){x.fillStyle="#a16207";x.fillRect(l.x0,l.y,l.x1-l.x0,12);x.fillStyle="#facc15";x.fillRect(l.x0,l.y,l.x1-l.x0,4);x.fillStyle="#ef4444";const sq=l.t>0?10:0;x.fillRect(l.x0+20,l.y+12,10,16-sq);x.fillRect(l.x1-30,l.y+12,10,16-sq)}
  x.save();x.translate(b.x,b.y);x.scale(2.2,2.2);x.translate(-b.x,-b.y);bob(b.x,b.y-2,state==="aim"?0:b.r);x.restore();
  if(state==="aim"){x.strokeStyle="#f97316";x.lineWidth=4;x.setLineDash([10,8]);x.beginPath();x.moveTo(b.x,b.y);x.lineTo(b.x+Math.cos(ang)*(60+charge*110),b.y-Math.sin(ang)*(60+charge*110));x.stroke();x.setLineDash([])}
  x.restore();
- {const sx=(b.x-cx)*Z,sy=(b.y-cy)*Z,r=viewR(save.up.lens),gr=x.createRadialGradient(sx,sy,r*.35,sx,sy,r);gr.addColorStop(0,"rgba(5,8,20,0)");gr.addColorStop(1,"rgba(5,8,20,.97)");x.fillStyle=gr;x.fillRect(0,0,W,H)}
- text(`${Math.max(0,Math.floor((b.x-100)/10))} m`,W/2,40,34,"#fff");text(`🪙 ${save.coins}`,12,30,22,"#fde047","left");text(`Best ${Math.floor(save.best)} m`,W-12,30,18,"#fff","right");
+ {const sx=(b.x-cx)*Z,sy=(b.y-cy)*Z,r=puz>=0?LANT:viewR(save.up.lens),gr=x.createRadialGradient(sx,sy,r*.35,sx,sy,r);gr.addColorStop(0,"rgba(5,8,20,0)");gr.addColorStop(1,"rgba(5,8,20,.97)");x.fillStyle=gr;x.fillRect(0,0,W,H)}
+ text(puz>=0?`Level ${puz+1}: ${LV[puz].n}  🏁 ${Math.max(0,Math.round((goalSeg().x0+goalSeg().x1)/2-b.x)/10|0)} m to go`:`${Math.max(0,Math.floor((b.x-100)/10))} m`,W/2,40,puz>=0?28:34,"#fff");text(`🪙 ${save.coins}`,12,30,22,"#fde047","left");text(`Best ${Math.floor(save.best)} m`,W-12,30,18,"#fff","right");
  if(state==="aim"){x.fillStyle="rgba(15,23,42,.7)";x.fillRect(W/2-100,H-40,200,18);x.fillStyle=charge>.85?"#ef4444":"#22c55e";x.fillRect(W/2-100,H-40,200*charge,18);text("Hold to charge, release to throw",W/2,H-50,16,"#fff")}
- if(state==="fly")text(`🚀 Boosts: ${boosts}${save.up.db?" 💥x2":""} (tap Space / click)${maxLedges()?`   🪜 Ledges ${ledges.length}/${maxLedges()} (L)`:""}`,W/2,H-16,16,"#fff");
- if(state==="done"&&res){x.fillStyle="rgba(0,0,0,.55)";x.fillRect(0,0,W,H);text(`${res.dist.toFixed(0)} m`,W/2,170,64,"#fde047");text(`+${res.earn} coins${res.nb?"  🏆 New best!":""}`,W/2,220,28,"#fff");text("Upgrade below, then press Space or Throw again",W/2,270,20,"#cbd5e1")}
+ if(state==="fly"&&puz>=0)text(`🚀 Rockets left: ${boosts} (tap Space)   🪜 Ledges left: ${ledgesLeft} (L)`,W/2,H-16,16,"#fff");else if(state==="fly")text(`🚀 Boosts: ${boosts}${dbOn()?" 💥x2":""} (tap Space / click)${maxLedges()?`   🪜 Ledges ${ledges.length}/${maxLedges()} (L)`:""}`,W/2,H-16,16,"#fff");
+ if(state==="done"&&res&&res.puz){x.fillStyle="rgba(0,0,0,.55)";x.fillRect(0,0,W,H);text(res.ok?"Solved!":"Not in the goal zone",W/2,160,56,res.ok?"#86efac":"#fca5a5");if(res.ok){text("★".repeat(res.stars)+"☆".repeat(3-res.stars),W/2,230,60,"#fde047");text(`You used ${res.used} rocket/ledge${res.used===1?"":"s"} (3 stars: ${res.par} or fewer)`,W/2,275,22,"#fff")}else text("Land and stop inside the green zone",W/2,215,26,"#fff");text("Press Space to try again, or pick a level below",W/2,320,20,"#cbd5e1")}
+ else if(state==="done"&&res){x.fillStyle="rgba(0,0,0,.55)";x.fillRect(0,0,W,H);text(`${res.dist.toFixed(0)} m`,W/2,170,64,"#fde047");text(`+${res.earn} coins${res.nb?"  🏆 New best!":""}`,W/2,220,28,"#fff");text("Upgrade below, then press Space or Throw again",W/2,270,20,"#cbd5e1")}
 }
 const keys={};
 function pressStart(){if(state==="aim"){charging=true}else if(state==="fly")boost();else if(state==="done")init()}
@@ -83,7 +99,8 @@ C.addEventListener("pointerdown",pressStart);addEventListener("pointerup",pressE
 const th=document.querySelector("#th");th.addEventListener("pointerdown",e=>{e.preventDefault();pressStart()});th.addEventListener("pointerleave",pressEnd);
 for(const[id,code]of[["#au","KeyW"],["#ad","KeyS"]]){const bt=document.querySelector(id);bt.addEventListener("pointerdown",e=>{e.preventDefault();keys[code]=true});for(const ev of["pointerup","pointerleave"])bt.addEventListener(ev,()=>keys[code]=false)}
 const shop=document.querySelector("#shop");
-function shopUI(){shop.innerHTML="";for(const k in UP){const l=save.up[k],max=UP[k].max&&l>=UP[k].max,c=cost(k,l),bt=document.createElement("button");bt.textContent=max?`${UP[k].n}: OWNED`:`${UP[k].n} Lv${l} → 🪙${c}`;bt.title=UP[k].d(l);bt.disabled=max||save.coins<c||state==="fly";bt.onclick=()=>{if(save.coins>=c&&state!=="fly"&&!max){save.coins-=c;save.up[k]++;persist();if(state==="aim")boosts=totalBoosts();shopUI()}};shop.append(bt)}}
+function setMode(i){puz=i;genTerrain();init()}
+function shopUI(){shop.innerHTML="";if(puz>=0){LV.forEach((L,i)=>{const bt=document.createElement("button"),st=save.stars[i]||0;bt.textContent=`${i+1}. ${L.n} ${"★".repeat(st)}${"☆".repeat(3-st)}`;if(i===puz)bt.className="t";bt.disabled=state==="fly";bt.onclick=()=>setMode(i);shop.append(bt)});const e=document.createElement("button");e.textContent="♾ Endless mode";e.disabled=state==="fly";e.onclick=()=>setMode(-1);shop.append(e);return}for(const k in UP){const l=save.up[k],max=UP[k].max&&l>=UP[k].max,c=cost(k,l),bt=document.createElement("button");bt.textContent=max?`${UP[k].n}: OWNED`:`${UP[k].n} Lv${l} → 🪙${c}`;bt.title=UP[k].d(l);bt.disabled=max||save.coins<c||state==="fly";bt.onclick=()=>{if(save.coins>=c&&state!=="fly"&&!max){save.coins-=c;save.up[k]++;persist();if(state==="aim")boosts=totalBoosts();shopUI()}};shop.append(bt)}const pz=document.createElement("button");pz.textContent="🧩 Puzzle mode";pz.className="t";pz.disabled=state==="fly";pz.onclick=()=>setMode(save.stars.findIndex(v=>!v)<0?0:save.stars.findIndex(v=>!v));shop.append(pz)}
 document.querySelector("#lg").addEventListener("pointerdown",e=>{e.preventDefault();dropLedge()});
 genTerrain();init();
 let last=performance.now();
