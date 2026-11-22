@@ -21,8 +21,8 @@ button{margin:.5rem .25rem 0;padding:.6rem 1.1rem;border:1px solid #4b7a4b;borde
 <main>
 <a href="../">← All games</a>
 <h1>Tile IO</h1>
-<p>Lead your commando out of your camp, claim ground and march back to lock it in. Cut an enemy's trail to eliminate them, and don't let anyone cut yours. Move with WASD or arrows, or click or tap where you want to go. In Circle mode you are a round circle and steer in any direction, even diagonally, by moving the mouse. You only see a fifth of the board, with you in the middle.</p>
-<div><button id="mClassic" class="on">Classic</button><button id="mCircle">Circle mode</button></div>
+<p>Lead your commando out of your camp, claim ground and march back to lock it in. Cut an enemy's trail to eliminate them, and don't let anyone cut yours. Move with WASD or arrows, or click or tap where you want to go. In Circle mode you are a round circle and steer in any direction, even diagonally, by moving the mouse. You only see a fifth of the board, with you in the middle. If you are caught, you come back in at a new camp as long as the others own less than half of the map. In the Teams modes you and two allies (green, teal and blue) face three rival robots (red, orange and yellow): allies never cut each other and can use each other's ground, and your team wins at 60% of the map.</p>
+<div><button id="mClassic" class="on">Classic</button><button id="mCircle">Circle mode</button><button id="mTeams">Teams</button><button id="mTeamsCircle">Teams circle</button></div>
 <canvas id="c" width="800" height="560"></canvas>
 <button id="again">New game</button>
 </main>
@@ -30,10 +30,14 @@ button{margin:.5rem .25rem 0;padding:.6rem 1.1rem;border:1px solid #4b7a4b;borde
 const c=document.getElementById("c"),x=c.getContext("2d");
 let CW=100,CH=70,CS=8,SC=1;const BK="army-commando-best";
 let owner=new Uint8Array(CW*CH),trail=new Uint8Array(CW*CH);
-const terr=document.createElement("canvas"),RGB=["#22c55e","#ef4444","#3b82f6","#eab308","#a855f7","#f97316","#14b8a6"].map(h=>[1,3,5].map(i=>parseInt(h.substr(i,2),16)));
+const terr=document.createElement("canvas"),toRGB=l=>l.map(h=>[1,3,5].map(i=>parseInt(h.substr(i,2),16)));
 const idx=(a,b)=>b*CW+a;
-const COLS=["#22c55e","#ef4444","#3b82f6","#eab308","#a855f7","#f97316","#14b8a6"];
-const NAMES=["You","Alpha","Bravo","Charlie","Delta","Echo","Foxtrot"];
+const COLS_SOLO=["#22c55e","#ef4444","#3b82f6","#eab308","#a855f7","#f97316","#14b8a6"],COLS_TEAM=["#22c55e","#14b8a6","#3b82f6","#ef4444","#f97316","#eab308"];
+let COLS=COLS_SOLO,RGB=toRGB(COLS);
+const NAMES_SOLO=["You","Alpha","Bravo","Charlie","Delta","Echo","Foxtrot"],NAMES_TEAM=["You","Ally 1","Ally 2","Foe 1","Foe 2","Foe 3"];
+let teams=false;
+// allies share a team (ids 1-3 against 4-6) in the Teams modes
+const ally=(p,q)=>p===q||(teams&&p>0&&q>0&&(p<=3)===(q<=3));
 const rnd=(a,b)=>a+Math.random()*(b-a);
 const DIRS=[[1,0],[-1,0],[0,1],[0,-1]];
 let ag=[],over=false,won=false,winT=0,fall=[],best=+localStorage.getItem(BK)||0,cnt=[],cntT=0,flash=0,msg="",msgT=0;
@@ -60,7 +64,8 @@ function spawn(a){
 }
 function newGame(){
   owner.fill(0);trail.fill(0);over=false;won=false;fall=[];ag=[];
-  for(let i=0;i<7;i++){const a={id:i+1,name:NAMES[i],col:COLS[i],bot:i>0,kills:0,respawn:0,aggr:Math.random()<.5,speed:(i?6.2+Math.random()*1.2:8)*SC};ag.push(a);a.alive=false;a.trail=[];spawn(a)}
+  const names=teams?NAMES_TEAM:NAMES_SOLO;COLS=teams?COLS_TEAM:COLS_SOLO;RGB=toRGB(COLS);
+  for(let i=0;i<names.length;i++){const a={id:i+1,name:names[i],col:COLS[i],bot:i>0,kills:0,respawn:0,aggr:Math.random()<.5,speed:(i?6.2+Math.random()*1.2:8)*SC};ag.push(a);a.alive=false;a.trail=[];spawn(a)}
   msg="Go!";msgT=1.5;
 }
 function pct(id){let s=0;for(let i=0;i<owner.length;i++)if(owner[i]===id)s++;return 100*s/owner.length}
@@ -73,8 +78,14 @@ function kill(v,by){
   if(heir&&v.bot&&!by.bot)flash=.25;
   for(let i=0;i<owner.length;i++)if(owner[i]===v.id)owner[i]=heir;
   if(by&&by!==v)by.kills++;
-  v.respawn=3;
-  if(!v.bot){over=true;const p=Math.round(pct(1)||0);cntT=0;if(lastPct>best){best=lastPct;localStorage.setItem(BK,best)}}
+  v.respawn=v.bot?3:2;
+  if(!v.bot){
+    // you come back in unless the others already own half of the map
+    let others=0;for(let i=0;i<owner.length;i++)if(owner[i]&&!ally(owner[i],v.id))others++;
+    cntT=0;
+    if(others/owner.length>=.5){over=true;if(lastPct>best){best=lastPct;localStorage.setItem(BK,best)}}
+    else{msg="Caught! Coming back in...";msgT=2}
+  }
   else if(by&&!by.bot){msg="Eliminated "+v.name+"!";msgT=1.5}
 }
 let lastPct=0;
@@ -98,7 +109,7 @@ function claim(a){
   for(const t of a.trail){owner[t]=a.id;trail[t]=0}
   a.trail=[];a.out=false;
   const seen=new Uint8Array(owner.length),q=[];
-  const push=(X,Y)=>{const k=idx(X,Y);if(!seen[k]&&owner[k]!==a.id){seen[k]=1;q.push(k)}};
+  const push=(X,Y)=>{const k=idx(X,Y);if(!seen[k]&&!ally(owner[k],a.id)){seen[k]=1;q.push(k)}};
   for(let i=0;i<CW;i++){push(i,0);push(i,CH-1)}
   for(let j=0;j<CH;j++){push(0,j);push(CW-1,j)}
   for(let h=0;h<q.length;h++){
@@ -107,10 +118,10 @@ function claim(a){
   }
   let sx=0,sy=0,n=0;
   for(let k=0;k<owner.length;k++){
-    if(!seen[k]&&owner[k]!==a.id){
+    if(!seen[k]&&!ally(owner[k],a.id)){
       const tv=trail[k];
       owner[k]=a.id;
-      if(tv){const v=ag[tv-1];if(v&&v!==a)kill(v,a)}
+      if(tv){const v=ag[tv-1];if(v&&v!==a&&!ally(v.id,a.id))kill(v,a)}
     }
     if(owner[k]===a.id){sx+=k%CW;sy+=(k/CW)|0;n++}
   }
@@ -123,9 +134,9 @@ function enter(a){
   if(trail[k]){
     const v=ag[trail[k]-1];
     if(v===a){if(circle&&a.trail.slice(-4).includes(k))return;kill(a,null);return}
-    kill(v,a);
+    if(!ally(v.id,a.id))kill(v,a);
   }
-  if(owner[k]===a.id){if(a.out)claim(a)}
+  if(ally(owner[k],a.id)){if(a.out)claim(a)}
   else{trail[k]=a.id;a.trail.push(k);if(!a.out){a.out=true;a.steps=0}}
 }
 function botPick(a){
@@ -148,7 +159,7 @@ function botPick(a){
       s+=(before-after)*3;
     }else if(a.out&&a.aggr){
       let nd=1e9;
-      for(const v of ag)if(v!==a&&v.alive)for(const t of v.trail){const d2=Math.abs((t%CW)-(a.cx+d[0]))+Math.abs(((t/CW)|0)-(a.cy+d[1]));if(d2<nd)nd=d2}
+      for(const v of ag)if(v!==a&&v.alive&&!ally(v.id,a.id))for(const t of v.trail){const d2=Math.abs((t%CW)-(a.cx+d[0]))+Math.abs(((t/CW)|0)-(a.cy+d[1]));if(d2<nd)nd=d2}
       if(nd<14*SC)s+=(14*SC-nd)*.25/SC;
     }
     if(s>bs){bs=s;pick=d}
@@ -174,9 +185,11 @@ function pos(e){const r=c.getBoundingClientRect();mouse.x=(e.clientX-r.left)/r.w
 c.addEventListener("pointerdown",e=>{if(over){newGame();return}pos(e);try{c.setPointerCapture(e.pointerId)}catch(_){}});
 c.addEventListener("pointermove",e=>{if(e.pointerType!=="mouse"&&!(e.buttons&1))return;pos(e)});
 document.getElementById("again").onclick=newGame;
-function setMode(v){circle=v;SC=v?2:1;CW=100*SC;CH=70*SC;CS=8/SC;owner=new Uint8Array(CW*CH);trail=new Uint8Array(CW*CH);terr.width=CW;terr.height=CH;document.getElementById("mClassic").classList.toggle("on",!v);document.getElementById("mCircle").classList.toggle("on",v);newGame()}
-document.getElementById("mClassic").onclick=()=>setMode(false);
-document.getElementById("mCircle").onclick=()=>setMode(true);
+function setMode(v,tm){teams=!!tm;circle=v;SC=v?2:1;CW=100*SC;CH=70*SC;CS=8/SC;owner=new Uint8Array(CW*CH);trail=new Uint8Array(CW*CH);terr.width=CW;terr.height=CH;[["mClassic",!v&&!tm],["mCircle",v&&!tm],["mTeams",!v&&tm],["mTeamsCircle",v&&tm]].forEach(([id,on])=>document.getElementById(id).classList.toggle("on",on));newGame()}
+document.getElementById("mClassic").onclick=()=>setMode(false,false);
+document.getElementById("mCircle").onclick=()=>setMode(true,false);
+document.getElementById("mTeams").onclick=()=>setMode(false,true);
+document.getElementById("mTeamsCircle").onclick=()=>setMode(true,true);
 
 function step(a){
   if(circle&&!a.bot)return stepFree(a);
@@ -201,7 +214,7 @@ function stepFree(a){
 }
 function moveTo(a,nx,ny){
   if(nx<0||ny<0||nx>=CW||ny>=CH)return false;
-  const w=ag.find(o=>o!==a&&o.alive&&Math.max(Math.abs(o.cx-nx),Math.abs(o.cy-ny))<SC);
+  const w=ag.find(o=>o!==a&&o.alive&&!ally(o.id,a.id)&&Math.max(Math.abs(o.cx-nx),Math.abs(o.cy-ny))<SC);
   if(w){
     // head-on: the player wins; between robots the one who moved in loses
     if(a.bot&&!w.bot){kill(a,w);return false}
@@ -213,7 +226,7 @@ function update(dt){
   msgT-=dt;flash=Math.max(0,flash-dt);
   for(const a of ag){
     if(!a.alive){
-      if(a.bot&&!over){a.respawn-=dt;if(a.respawn<=0)spawn(a)}
+      if(!over){a.respawn-=dt;if(a.respawn<=0&&spawn(a)&&!a.bot){msg="Back in the fight!";msgT=1.5}}
       continue;
     }
     if(over)continue;
@@ -224,7 +237,7 @@ function update(dt){
   if(cntT<=0){
     cntT=.4;cnt=ag.map(()=>0);
     for(let i=0;i<owner.length;i++)if(owner[i])cnt[owner[i]-1]++;
-    if(!over){lastPct=Math.round(100*cnt[0]/owner.length);if(cnt[0]>=owner.length)win()}
+    if(!over){const mine=teams?(cnt[0]||0)+(cnt[1]||0)+(cnt[2]||0):cnt[0];lastPct=Math.round(100*mine/owner.length);if(teams?mine>=owner.length*.6:mine>=owner.length)win()}
   }
 }
 function drawSmooth(){
@@ -279,10 +292,10 @@ function draw(){
   }
   x.restore();
   if(flash>0){x.fillStyle="rgba(255,255,255,"+flash*.5+")";x.fillRect(0,0,c.width,c.height)}
-  const tot=owner.length,mine=cnt[0]||0;
+  const tot=owner.length,mine=teams?(cnt[0]||0)+(cnt[1]||0)+(cnt[2]||0):cnt[0]||0;
   x.fillStyle="#000a";x.fillRect(0,0,250,56);
   x.textAlign="left";x.font="bold 16px Arial";x.fillStyle="#fff";
-  x.fillText("Territory "+(100*mine/tot).toFixed(1)+"%",10,22);
+  x.fillText((teams?"Team ":"Territory ")+(100*mine/tot).toFixed(1)+"%",10,22);
   x.font="13px Arial";x.fillStyle="#bbf7d0";x.fillText("Kills "+ag[0].kills+"   Best "+best+"%",10,44);
   const lb=ag.map((a,i)=>({a,n:cnt[i]||0})).sort((p,q)=>q.n-p.n).slice(0,5);
   x.fillStyle="#000a";x.fillRect(c.width-150,0,150,10+lb.length*18);
