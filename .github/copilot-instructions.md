@@ -133,4 +133,4 @@ Keep a list of my games here.
 
 ## ads
 
-Shared `ads.js` (root) shows a cross-promo ad with a **Get hint** button. Clicking it opens a ~8 s "gameplay video" overlay (the advertised game runs in a frame played by simulated input), then gives a reward via `GameAds.init({reward, onReward})`. Games without init get +10 site-wide Ad Coins. Most games include `<script src="../ads.js"></script>`. Custom rewards: Cliff Chucker (+250 coins), Pig Escape (Lila rested), Element Merging (2 hints), Element Playground (element rain).
+Shared `ads.js` (root) shows a cross-promo ad with a **Get hint** button. Clicking it plays an ~8 s recorded gameplay video (`ads/<game>.webm`, recorded from the real game with simulated input; only canvas games in `HAS_VIDEO` in `ads.js` are advertised), then gives a reward via `GameAds.init({reward, onReward})`. Games without init get +10 site-wide Ad Coins. Most games include `<script src="../ads.js"></script>`. Custom rewards: Cliff Chucker (+250 coins), Pig Escape (Lila rested), Element Merging (2 hints), Element Playground (element rain).
