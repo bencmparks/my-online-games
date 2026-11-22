@@ -21,7 +21,7 @@ button{margin:.5rem .25rem 0;padding:.6rem 1.1rem;border:1px solid #4b7a4b;borde
 <main>
 <a href="../">← All games</a>
 <h1>Tile IO</h1>
-<p>Lead your commando out of your camp, claim ground and march back to lock it in. Cut an enemy's trail to eliminate them, and don't let anyone cut yours. Move with WASD or arrows, or click or tap where you want to go. In Circle mode you are a round circle and steer in any direction, even diagonally, by moving the mouse. You only see a fifth of the board, with you in the middle. If you are caught, you come back in at a new camp as long as the others own less than half of the map. In the Teams modes you and two allies (green, teal and blue) face three rival robots (red, orange and yellow): allies never cut each other and can use each other's ground, and your team wins at 60% of the map.</p>
+<p>Lead your commando out of your camp, claim ground and march back to lock it in. Cut an enemy's trail to eliminate them, and don't let anyone cut yours. Move with WASD or arrows, or click or tap where you want to go. In Circle mode you are a round circle and steer in any direction, even diagonally, by moving the mouse. You only see a fifth of the board, with you in the middle. If you are caught, you come back in at a new camp as long as the others own less than half of the map. In the Teams modes you and two soldier robots form one green army (you start at the same spot and share all the ground) against a red army of three robots, and your army wins at 60% of the map.</p>
 <div><button id="mClassic" class="on">Classic</button><button id="mCircle">Circle mode</button><button id="mTeams">Teams</button><button id="mTeamsCircle">Teams circle</button></div>
 <canvas id="c" width="800" height="560"></canvas>
 <button id="again">New game</button>
@@ -32,11 +32,11 @@ let CW=100,CH=70,CS=8,SC=1;const BK="army-commando-best";
 let owner=new Uint8Array(CW*CH),trail=new Uint8Array(CW*CH);
 const terr=document.createElement("canvas"),toRGB=l=>l.map(h=>[1,3,5].map(i=>parseInt(h.substr(i,2),16)));
 const idx=(a,b)=>b*CW+a;
-const COLS_SOLO=["#22c55e","#ef4444","#3b82f6","#eab308","#a855f7","#f97316","#14b8a6"],COLS_TEAM=["#22c55e","#14b8a6","#3b82f6","#ef4444","#f97316","#eab308"];
+const COLS_SOLO=["#22c55e","#ef4444","#3b82f6","#eab308","#a855f7","#f97316","#14b8a6"],COLS_TEAM=["#22c55e","#22c55e","#22c55e","#ef4444","#ef4444","#ef4444"];
 let COLS=COLS_SOLO,RGB=toRGB(COLS);
-const NAMES_SOLO=["You","Alpha","Bravo","Charlie","Delta","Echo","Foxtrot"],NAMES_TEAM=["You","Ally 1","Ally 2","Foe 1","Foe 2","Foe 3"];
+const NAMES_SOLO=["You","Alpha","Bravo","Charlie","Delta","Echo","Foxtrot"],NAMES_TEAM=["You","Soldier 1","Soldier 2","Red 1","Red 2","Red 3"];
 let teams=false;
-// allies share a team (ids 1-3 against 4-6) in the Teams modes
+// soldiers of one army (ids 1-3 against 4-6) share one territory id (a.tm) in the Teams modes
 const ally=(p,q)=>p===q||(teams&&p>0&&q>0&&(p<=3)===(q<=3));
 const rnd=(a,b)=>a+Math.random()*(b-a);
 const DIRS=[[1,0],[-1,0],[0,1],[0,-1]];
@@ -48,6 +48,15 @@ const ZOOM=Math.sqrt(5);let camX=400,camY=280;
 
 function spawn(a){
   let found=false;
+  if(teams){
+    // soldiers join their army: same spot as a mate at the start, otherwise on the army's own ground
+    const mate=ag.find(o=>o!==a&&o.tm===a.tm&&o.alive&&!o.out);
+    if(mate){a.cx=mate.cx;a.cy=mate.cy;found=true}
+    else{
+      const own=[];for(let k=0;k<owner.length;k++)if(owner[k]===a.tm&&!trail[k])own.push(k);
+      if(own.length){const k=own[Math.random()*own.length|0];a.cx=k%CW;a.cy=(k/CW)|0;found=true}
+    }
+  }
   for(let t=0;t<300&&!found;t++){
     const cx=3*SC+Math.floor(Math.random()*(CW-6*SC)),cy=3*SC+Math.floor(Math.random()*(CH-6*SC)),R=4*SC;
     let free=true;
@@ -55,7 +64,7 @@ function spawn(a){
     if(!free)continue;
     found=true;
     a.cx=cx;a.cy=cy;
-    for(let j=-2*SC;j<=2*SC;j++)for(let i=-2*SC;i<=2*SC;i++)owner[idx(cx+i,cy+j)]=a.id;
+    for(let j=-2*SC;j<=2*SC;j++)for(let i=-2*SC;i<=2*SC;i++)owner[idx(cx+i,cy+j)]=a.tm;
   }
   if(!found){a.alive=false;a.trail=[];a.respawn=1;return false}
   const d=DIRS[Math.random()*4|0];
@@ -65,7 +74,7 @@ function spawn(a){
 function newGame(){
   owner.fill(0);trail.fill(0);over=false;won=false;fall=[];ag=[];
   const names=teams?NAMES_TEAM:NAMES_SOLO;COLS=teams?COLS_TEAM:COLS_SOLO;RGB=toRGB(COLS);
-  for(let i=0;i<names.length;i++){const a={id:i+1,name:names[i],col:COLS[i],bot:i>0,kills:0,respawn:0,aggr:Math.random()<.5,speed:(i?6.2+Math.random()*1.2:8)*SC};ag.push(a);a.alive=false;a.trail=[];spawn(a)}
+  for(let i=0;i<names.length;i++){const a={id:i+1,name:names[i],col:COLS[i],tm:teams?(i<3?1:4):i+1,bot:i>0,kills:0,respawn:0,aggr:Math.random()<.5,speed:(i?6.2+Math.random()*1.2:8)*SC};ag.push(a);a.alive=false;a.trail=[];spawn(a)}
   msg="Go!";msgT=1.5;
 }
 function pct(id){let s=0;for(let i=0;i<owner.length;i++)if(owner[i]===id)s++;return 100*s/owner.length}
@@ -74,14 +83,14 @@ function kill(v,by){
   v.alive=false;
   for(const t of v.trail)trail[t]=0;
   v.trail=[];
-  const heir=by&&by!==v?by.id:0;
+  const heir=by&&by!==v?by.tm:0;
   if(heir&&v.bot&&!by.bot)flash=.25;
-  for(let i=0;i<owner.length;i++)if(owner[i]===v.id)owner[i]=heir;
+  if(!teams||!ag.some(o=>o!==v&&o.tm===v.tm&&o.alive))for(let i=0;i<owner.length;i++)if(owner[i]===v.tm)owner[i]=heir;
   if(by&&by!==v)by.kills++;
   v.respawn=v.bot?3:2;
   if(!v.bot){
     // you come back in unless the others already own half of the map
-    let others=0;for(let i=0;i<owner.length;i++)if(owner[i]&&!ally(owner[i],v.id))others++;
+    let others=0;for(let i=0;i<owner.length;i++)if(owner[i]&&owner[i]!==v.tm)others++;
     cntT=0;
     if(others/owner.length>=.5){over=true;if(lastPct>best){best=lastPct;localStorage.setItem(BK,best)}}
     else{msg="Caught! Coming back in...";msgT=2}
@@ -106,10 +115,10 @@ function win(){
 }
 
 function claim(a){
-  for(const t of a.trail){owner[t]=a.id;trail[t]=0}
+  for(const t of a.trail){owner[t]=a.tm;trail[t]=0}
   a.trail=[];a.out=false;
   const seen=new Uint8Array(owner.length),q=[];
-  const push=(X,Y)=>{const k=idx(X,Y);if(!seen[k]&&!ally(owner[k],a.id)){seen[k]=1;q.push(k)}};
+  const push=(X,Y)=>{const k=idx(X,Y);if(!seen[k]&&owner[k]!==a.tm){seen[k]=1;q.push(k)}};
   for(let i=0;i<CW;i++){push(i,0);push(i,CH-1)}
   for(let j=0;j<CH;j++){push(0,j);push(CW-1,j)}
   for(let h=0;h<q.length;h++){
@@ -118,12 +127,12 @@ function claim(a){
   }
   let sx=0,sy=0,n=0;
   for(let k=0;k<owner.length;k++){
-    if(!seen[k]&&!ally(owner[k],a.id)){
+    if(!seen[k]&&owner[k]!==a.tm){
       const tv=trail[k];
-      owner[k]=a.id;
+      owner[k]=a.tm;
       if(tv){const v=ag[tv-1];if(v&&v!==a&&!ally(v.id,a.id))kill(v,a)}
     }
-    if(owner[k]===a.id){sx+=k%CW;sy+=(k/CW)|0;n++}
+    if(owner[k]===a.tm){sx+=k%CW;sy+=(k/CW)|0;n++}
   }
   if(n){a.hx=sx/n;a.hy=sy/n}
   a.steps=0;a.limit=rnd(6,18)*SC;
@@ -136,7 +145,7 @@ function enter(a){
     if(v===a){if(circle&&a.trail.slice(-4).includes(k))return;kill(a,null);return}
     if(!ally(v.id,a.id))kill(v,a);
   }
-  if(ally(owner[k],a.id)){if(a.out)claim(a)}
+  if(owner[k]===a.tm){if(a.out)claim(a)}
   else{trail[k]=a.id;a.trail.push(k);if(!a.out){a.out=true;a.steps=0}}
 }
 function botPick(a){
@@ -237,7 +246,7 @@ function update(dt){
   if(cntT<=0){
     cntT=.4;cnt=ag.map(()=>0);
     for(let i=0;i<owner.length;i++)if(owner[i])cnt[owner[i]-1]++;
-    if(!over){const mine=teams?(cnt[0]||0)+(cnt[1]||0)+(cnt[2]||0):cnt[0];lastPct=Math.round(100*mine/owner.length);if(teams?mine>=owner.length*.6:mine>=owner.length)win()}
+    if(!over){const mine=cnt[0];lastPct=Math.round(100*mine/owner.length);if(teams?mine>=owner.length*.6:mine>=owner.length)win()}
   }
 }
 function drawSmooth(){
@@ -292,15 +301,15 @@ function draw(){
   }
   x.restore();
   if(flash>0){x.fillStyle="rgba(255,255,255,"+flash*.5+")";x.fillRect(0,0,c.width,c.height)}
-  const tot=owner.length,mine=teams?(cnt[0]||0)+(cnt[1]||0)+(cnt[2]||0):cnt[0]||0;
+  const tot=owner.length,mine=cnt[0]||0;
   x.fillStyle="#000a";x.fillRect(0,0,250,56);
   x.textAlign="left";x.font="bold 16px Arial";x.fillStyle="#fff";
   x.fillText((teams?"Team ":"Territory ")+(100*mine/tot).toFixed(1)+"%",10,22);
   x.font="13px Arial";x.fillStyle="#bbf7d0";x.fillText("Kills "+ag[0].kills+"   Best "+best+"%",10,44);
-  const lb=ag.map((a,i)=>({a,n:cnt[i]||0})).sort((p,q)=>q.n-p.n).slice(0,5);
+  const lb=ag.map((a,i)=>({a,n:cnt[i]||0})).filter(r=>!teams||r.a.id===r.a.tm).sort((p,q)=>q.n-p.n).slice(0,5);
   x.fillStyle="#000a";x.fillRect(c.width-150,0,150,10+lb.length*18);
   x.textAlign="left";x.font="bold 13px Arial";
-  lb.forEach((r,i)=>{x.fillStyle=r.a.col;x.fillText((i+1)+". "+r.a.name+" "+(100*r.n/tot).toFixed(1)+"%",c.width-144,18+i*18)});
+  lb.forEach((r,i)=>{x.fillStyle=r.a.col;x.fillText((i+1)+". "+(teams?(r.a.tm===1?"Your army":"Red army"):r.a.name)+" "+(100*r.n/tot).toFixed(1)+"%",c.width-144,18+i*18)});
   x.textAlign="center";
   if(msgT>0){x.font="bold 36px Arial";x.fillStyle="rgba(255,255,255,"+Math.min(1,msgT)+")";x.fillText(msg,c.width/2,90)}
   if(won){
