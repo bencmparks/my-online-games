@@ -21,7 +21,7 @@ button{margin:.5rem .25rem 0;padding:.6rem 1.1rem;border:1px solid #4b7a4b;borde
 <main>
 <a href="../">← All games</a>
 <h1>Tile IO</h1>
-<p>Lead your commando out of your camp, claim ground and march back to lock it in. Cut an enemy's trail to eliminate them, and don't let anyone cut yours. Move with WASD or arrows, or click or tap where you want to go. In Circle mode you are a round circle and steer in any direction, even diagonally, by moving the mouse. You only see a fifth of the board, with you in the middle. If you are caught, you come back in at a new camp as long as the others own less than half of the map. In the Teams modes you and two soldier robots form one green army (you start at the same spot and share all the ground) against a red army of three robots, and your army wins at 60% of the map.</p>
+<p>Lead your commando out of your camp, claim ground and march back to lock it in. Cut an enemy's trail to eliminate them, and don't let anyone cut yours. Move with WASD or arrows, or click or tap where you want to go. In Circle mode you are a round circle and steer in any direction, even diagonally, by moving the mouse. You only see a fifth of the board, with you in the middle. If you are caught, you come back in at a new camp as long as the others own less than half of the map. In the Teams modes you and two soldier robots form one green army (you start at the same spot and share all the ground) against a red army of three robots, and your army wins at 95% of the map.</p>
 <div><button id="mClassic" class="on">Classic</button><button id="mCircle">Circle mode</button><button id="mTeams">Teams</button><button id="mTeamsCircle">Teams circle</button></div>
 <canvas id="c" width="800" height="560"></canvas>
 <button id="again">New game</button>
@@ -246,7 +246,7 @@ function update(dt){
   if(cntT<=0){
     cntT=.4;cnt=ag.map(()=>0);
     for(let i=0;i<owner.length;i++)if(owner[i])cnt[owner[i]-1]++;
-    if(!over){const mine=cnt[0];lastPct=Math.round(100*mine/owner.length);if(teams?mine>=owner.length*.6:mine>=owner.length)win()}
+    if(!over){const mine=cnt[0];lastPct=Math.round(100*mine/owner.length);if(teams?mine>=owner.length*.95:mine>=owner.length)win()}
   }
 }
 function drawSmooth(){
