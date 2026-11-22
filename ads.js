@@ -24,7 +24,7 @@
     ["bowling", "Bowling", "🎳", "Strike!"],
   ];
   const here = location.pathname.split("/").filter(Boolean).slice(-1)[0] || "";
-  const HAS_VIDEO = "breakout flappy-parrot tank-duel kart-rush hoops plinko space-rocks fruit-slice air-hockey pig-escape ledge-throw tower-defense bowling".split(" ");
+  const HAS_VIDEO = "breakout flappy-parrot tank-duel hoops space-rocks fruit-slice air-hockey tower-defense bowling".split(" ");
   const pool = GAMES.filter((g) => HAS_VIDEO.indexOf(g[0]) >= 0 && g[0] !== here && location.pathname.indexOf("/" + g[0] + "/") < 0);
   let timer = null, inited = false;
   const coinKey = "adCoins";
@@ -92,8 +92,8 @@
       let sec = 0;
       const tick = setInterval(() => {
         sec += 0.25;
-        bar.style.width = Math.min(100, (sec / 8) * 100) + "%";
-        if (sec >= 9) finish();
+        bar.style.width = Math.min(100, (sec / 10) * 100) + "%";
+        if (sec >= 11) finish();
       }, 250);
     }
     next();
