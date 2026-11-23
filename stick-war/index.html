@@ -3,10 +3,10 @@
 :root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{display:grid;place-items:center;min-height:100vh;margin:0;padding:1rem;background:radial-gradient(circle at 50% 0,#334155,#0b1020 70%)}
 main{width:min(100%,58rem);padding:1.25rem;border:.2rem solid #94a3b8;border-radius:1.25rem;background:rgb(8 12 30 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.5rem 0;color:#e2e8f0;font-size:1.6rem}
 canvas{display:block;width:100%;height:auto;margin:.8rem auto;border:.2rem solid #475569;border-radius:.4rem;touch-action:none}
-.row{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap}.row button{padding:.6rem .9rem;border:0;border-radius:.6rem;background:#2563eb;color:#fff;font-weight:700;font-size:1rem;cursor:pointer;user-select:none}.row button:disabled{opacity:.4;cursor:not-allowed}.row button.s{background:#7c3aed}
+.row{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap}.row button{padding:.6rem .9rem;border:0;border-radius:.6rem;background:#2563eb;color:#fff;font-weight:700;font-size:1rem;cursor:pointer;user-select:none}.row button:disabled{opacity:.4;cursor:not-allowed}.row button.s{background:#7c3aed}.row button.tab{background:#334155}.row button.tab.sel{background:#f59e0b;color:#111}
 </style></head>
 <body><main><a href="../">← All games</a><h1>⚔️ Stick Legion</h1>
-<p>A birds-eye battle: the whole field is on screen and your army stands in organised ranks (tough fighters in front, archers and witches behind, necromancers at the back, and necromancers march forward with the army). Your miners and necromancers cannot be attacked. Every level opens with its own story chunk. Press <strong>M</strong> to turn all your necromancers into miners. Miners dig gold automatically. Buy units with the buttons or keys <strong>1-9</strong>. <strong>Q</strong> switches your army between <em>Attack</em> (they march in formation) and <em>Defend</em>. <strong>R</strong> calls Arrow Rain on the enemy front. 100 levels in 10 story chapters! You are the Blue Brigade, rebelling against the cruel White Warriors. New units unlock as you go: Witch (level 4), Berserker (7), Ice Berserker (11) and Necromancer (15), who turns fallen bodies into zombies, and Creepy Necromancer (19), who turns them into exploding creepers instead. After a win, a fifth of each kind of surviving warrior stays with you for the next level (rounded up), and for every soldier kind you have none of, another fifth of your miners stays; the rest go home. Your soldiers are stick figures with helmets and weapons. Earn 🪙 coins from kills and wins, then spend them in the Armory below the game: Helmet (health), Weapon (damage), Arm (attack speed), Pickaxe (mining speed), Legs (move speed) and Cart (gold per trip). Every upgrade also makes the gear look cooler.</p>
+<p>A birds-eye battle: the whole field is on screen and your army stands in organised ranks (tough fighters in front, archers and witches behind, necromancers at the back, and necromancers march forward with the army). Your miners and necromancers cannot be attacked. Every level opens with its own story chunk. Press <strong>M</strong> to turn all your necromancers into miners. Miners dig gold automatically. Buy units with the buttons or keys <strong>1-9</strong>. <strong>Q</strong> switches your army between <em>Attack</em> (they march in formation) and <em>Defend</em>. <strong>R</strong> calls Arrow Rain on the enemy front. 100 levels in 10 story chapters! You are the Blue Brigade, rebelling against the cruel White Warriors. New units unlock as you go: Witch (level 4), Berserker (7), Ice Berserker (11) and Necromancer (15), who turns fallen bodies into zombies, and Creepy Necromancer (19), who turns them into exploding creepers instead. After a win, a fifth of each kind of surviving warrior stays with you for the next level (rounded up), and for every soldier kind you have none of, another fifth of your miners stays; the rest go home. Your soldiers are stick figures with helmets and weapons. Earn 🪙 coins from kills and wins, then spend them in the Armory below the game, where every kind of soldier has its own upgrades (for example the Berserker helmet or the Necromancer arm): Helmet (health), Weapon (damage), Arm (attack speed), Legs (move speed), and for miners Pickaxe (mining speed) and Cart (gold per trip). Every upgrade also makes that soldier look cooler.</p>
 <canvas id="c" width="900" height="420" aria-label="Stick Legion game"></canvas>
 <div class="row" id="btns"></div>
 </main>
@@ -18,9 +18,14 @@ const T={miner:{n:"Miner",c:50,hp:40,sp:80,dmg:0,r:0,cd:0,k:"1"},sword:{n:"Sword
 const RK={sword:0,berserker:0,iceb:0,giant:0,zombie:0,creeper:0,archer:1,witch:1,necro:2,cnecro:2},TO=["giant","berserker","iceb","sword","zombie","creeper","archer","witch","necro","cnecro"];
 let level=0,carry=["miner","miner"];try{level=Math.min(99,+localStorage.getItem(KEY)||0);const c=JSON.parse(localStorage.getItem("stickLegionArmy"));if(Array.isArray(c))carry=c.filter(k=>T[k])}catch(e){}
 let coins=+localStorage.getItem("stickLegionCoins")||0,up={d:0,h:0,m:0,s:0,g:0,a:0,p:0,l:0};try{Object.assign(up,JSON.parse(localStorage.getItem("stickLegionUp")))}catch(e){}
-const UPS={h:{n:"🪖 Helmet",b:40,i:"+12% health, and a cooler helmet"},d:{n:"🗡️ Weapon",b:40,i:"+12% damage, and a sharper weapon"},a:{n:"💪 Arm",b:45,i:"+10% attack speed (rate of fire), and a stronger arm"},p:{n:"⛏️ Pickaxe",b:45,i:"+12% mining speed, and a better pickaxe"},l:{n:"🦵 Legs",b:40,i:"+5% move speed, and faster boots"},m:{n:"🛒 Cart",b:50,i:"+15% gold per trip, and a bigger cart"},s:{n:"🗿 Statue",b:60,i:"+20% statue health"},g:{n:"💰 Start gold",b:30,i:"+100 starting gold"}};
-const ucost=k=>Math.round(UPS[k].b*Math.pow(1.6,up[k])),dmul=u=>u.tm?1:1+up.d*.12;
-function saveC(){try{localStorage.setItem("stickLegionCoins",coins);localStorage.setItem("stickLegionUp",JSON.stringify(up))}catch(e){}}
+const UPS={h:{n:"🪖 Helmet",b:40,i:"+12% health, and a cooler helmet"},d:{n:"🗡️ Weapon",b:40,i:"+12% damage, and a sharper weapon (necromancers: the minions they raise)"},a:{n:"💪 Arm",b:45,i:"+10% attack speed (necromancers: raise bodies faster)"},p:{n:"⛏️ Pickaxe",b:45,i:"+12% mining speed, and a better pickaxe"},l:{n:"🦵 Legs",b:40,i:"+5% move speed, and faster boots"},m:{n:"🛒 Cart",b:50,i:"+15% gold per trip, and a bigger cart"}};
+const UPT=Object.keys(T).filter(k=>!T[k].nb),SRC={zombie:"necro",creeper:"cnecro"},KEYS={miner:["h","p","l","m"]};
+const ug={};for(const k of UPT)ug[k]={h:0,d:0,a:0,p:0,l:0,m:0};
+try{const sv=JSON.parse(localStorage.getItem("stickLegionUg"));if(sv)for(const k of UPT)Object.assign(ug[k],sv[k]);else for(const k of UPT)for(const s of["h","d","a","p","l","m"])ug[k][s]=up[s]||0}catch(e){}
+const gv=(ty,k)=>(ug[SRC[ty]||ty]||{})[k]||0,keysFor=ty=>KEYS[ty]||["h","d","a","l"];
+let selT="sword";
+const lvl=k=>ug[selT][k],ucost=k=>Math.round(UPS[k].b*Math.pow(1.6,lvl(k))),dmul=u=>u.tm?1:1+gv(u.t,"d")*.12;
+function saveC(){try{localStorage.setItem("stickLegionCoins",coins);localStorage.setItem("stickLegionUp",JSON.stringify(up));localStorage.setItem("stickLegionUg",JSON.stringify(ug))}catch(e){}}
 const STORY=[
 {t:"Chapter 1: The First Banner",s:"For a hundred years the cruel White Warriors have ruled these lands, taxing every mine and burning every village that dared to complain. You are the commander of the Blue Brigade, a handful of miners with pickaxes and a dream. Tonight you raise the first blue banner. Destroy the white statues, one outpost at a time, and let the whole land see: the rebellion has begun."},
 {t:"Chapter 2: Frost on the Border",s:"News of your victories spreads. Villages hide blue ribbons in their windows, and brave fighters walk through the snow to join you. The White Warriors answer by sending their frozen northern guard. Hold the border and the Blue Brigade will grow."},
@@ -135,13 +140,13 @@ const LV=[
 "The final battle: the last white statue stands before the throne. The Brigade stands behind you, every fighter ready. Raise the blue banner, Commander."
 ];const ENDING="The last white statue falls. The Empress's throne is empty, the white banners come down, and blue flags fly over every mine and village. The rebellion is won, Commander. The Blue Brigade is free!";
 let shown=-1,B=[],U,A,gold,statue,smax,stance,state,t,aiT,spawnCd,rain,rainFx,puffs,shake;
-function newGame(){U=[];A=[];B=[];gold=[300+up.g*100,200+Math.min(level,60)*60];smax=[1500*(1+up.s*.2),1200+Math.min(level,39)*350+Math.max(0,level-39)*150];statue=smax.slice();stance=0;state=shown!==level?(shown=level,"story"):"play";t=0;aiT=2;spawnCd=0;rain=0;rainFx=[];puffs=[];shake=0;
+function newGame(){U=[];A=[];B=[];gold=[300,200+Math.min(level,60)*60];smax=[1500,1200+Math.min(level,39)*350+Math.max(0,level-39)*150];statue=smax.slice();stance=0;state=shown!==level?(shown=level,"story"):"play";t=0;aiT=2;spawnCd=0;rain=0;rainFx=[];puffs=[];shake=0;
  for(const k of carry)spawn(0,k);spawn(1,"miner");spawn(1,"miner");for(let i=0;i<Math.min(level,30);i++)spawn(1,i%3===2?"archer":"sword");formation()}
-function spawn(tm,ty,px,py){const d=T[ty],hm=tm?1+Math.max(0,level-30)*.015:1+up.h*.12;U.push({t:ty,tm,x:px!=null?px:BX[tm]+(tm?-60:60)+Math.random()*20,y:py!=null?py:CY+(Math.random()-.5)*240,hp:d.hp*hm,max:d.hp*hm,cd:0,sw:0,st:0,tmr:0,fa:tm?Math.PI:0,fx:0,fy:CY})}
+function spawn(tm,ty,px,py){const d=T[ty],hm=tm?1+Math.max(0,level-30)*.015:1+gv(ty,"h")*.12;U.push({t:ty,tm,x:px!=null?px:BX[tm]+(tm?-60:60)+Math.random()*20,y:py!=null?py:CY+(Math.random()-.5)*240,hp:d.hp*hm,max:d.hp*hm,cd:0,sw:0,st:0,tmr:0,fa:tm?Math.PI:0,fx:0,fy:CY})}
 function pop(tm){return U.filter(u=>u.tm===tm).length}
 function buy(ty,tm=0){const d=T[ty];if(state!=="play"||d.nb||level<(d.ul||0)||gold[tm]<d.c||(tm===0&&spawnCd>0))return false;gold[tm]-=d.c;spawn(tm,ty);if(tm===0)spawnCd=.45;return true}
 const prot=o=>o.tm===0&&(o.t==="miner"||!!T[o.t].nec);
-function toMiners(){if(state!=="play")return;for(const u of U)if(u.tm===0&&T[u.t].nec){const r=u.hp/u.max;u.t="miner";u.st=0;u.cd=0;u.fuse=null;u.max=T.miner.hp*(1+up.h*.12);u.hp=Math.max(1,u.max*r)}}
+function toMiners(){if(state!=="play")return;for(const u of U)if(u.tm===0&&T[u.t].nec){const r=u.hp/u.max;u.t="miner";u.st=0;u.cd=0;u.fuse=null;u.max=T.miner.hp*(1+gv("miner","h")*.12);u.hp=Math.max(1,u.max*r)}}
 function nearest(u){let b=null,bd=1e9;for(const o of U)if(o.tm!==u.tm&&!prot(o)){const dd=Math.hypot(o.x-u.x,o.y-u.y);if(dd<bd){bd=dd;b=o}}return b?{o:b,d:bd}:null}
 function hurt(o,dm){o.hp-=dm;o.hit=.12}
 function shoot(u,tx,ty,orb){const dx=tx-u.x,dy=ty-u.y,dd=Math.hypot(dx,dy)||1,sp=orb?320:380;A.push({x:u.x,y:u.y,vx:dx/dd*sp,vy:dy/dd*sp,tm:u.tm,dm:T[u.t].dmg*dmul(u),orb,life:dd/sp+.4})}
@@ -162,14 +167,14 @@ function update(dt){
  for(const u of U)if(u.t!=="miner"&&!T[u.t].nec){const q=u.tm?-1:1;if(fr[u.tm]===null||u.x*q>fr[u.tm]*q)fr[u.tm]=u.x}
  for(const u of U){
   const d=T[u.t],dir=u.tm?-1:1;if(u.sw>0)u.sw-=dt;if(u.hit>0)u.hit-=dt;if(u.cd>0)u.cd-=dt;let moving=false;if(u.fz>0){u.fz-=dt;continue}if(u.fuse!=null){u.fuse-=dt;if(u.fuse<=0)boom(u);continue}
-  const go=(tx,ty,stop)=>{const dx=tx-u.x,dy=ty-u.y,dd=Math.hypot(dx,dy);if(dd>stop){const spd=d.sp*(u.tm?1:1+up.l*.05);u.x+=dx/dd*spd*dt;u.y+=dy/dd*spd*dt;u.fa=Math.atan2(dy,dx);moving=true}return dd};
+  const go=(tx,ty,stop)=>{const dx=tx-u.x,dy=ty-u.y,dd=Math.hypot(dx,dy);if(dd>stop){const spd=d.sp*(u.tm?1:1+gv(u.t,"l")*.05);u.x+=dx/dd*spd*dt;u.y+=dy/dd*spd*dt;u.fa=Math.atan2(dy,dx);moving=true}return dd};
   if(u.t==="miner"){
-   if(u.st===0){if(go(MX[u.tm],MY[u.tm],10)<=10){u.st=1;u.tmr=1.6/(u.tm?1:1+up.p*.12)}}
+   if(u.st===0){if(go(MX[u.tm],MY[u.tm],10)<=10){u.st=1;u.tmr=1.6/(u.tm?1:1+gv(u.t,"p")*.12)}}
    else if(u.st===1){u.tmr-=dt;u.sw=.2;if(u.tmr<=0)u.st=2}
-   else{if(go(BX[u.tm]+dir*60,CY,10)<=10){gold[u.tm]+=u.tm?20*(1+Math.min(level,40)*.08):20*(1+up.m*.15);u.st=0}}
+   else{if(go(BX[u.tm]+dir*60,CY,10)<=10){gold[u.tm]+=u.tm?20*(1+Math.min(level,40)*.08):20*(1+gv(u.t,"m")*.15);u.st=0}}
   }else if(d.nec){
    let bb=null,bd=1e9;for(const b of B){const dd=Math.hypot(b.x-u.x,b.y-u.y);if(dd<bd){bd=dd;bb=b}}
-   if(bb&&bd<400){if(bd>40)go(bb.x,bb.y,0);else{u.fa=Math.atan2(bb.y-u.y,bb.x-u.x);if(u.cd<=0){u.cd=2.2;u.sw=.5;spawn(u.tm,d.nec,bb.x,bb.y);B.splice(B.indexOf(bb),1)}}}
+   if(bb&&bd<400){if(bd>40)go(bb.x,bb.y,0);else{u.fa=Math.atan2(bb.y-u.y,bb.x-u.x);if(u.cd<=0){u.cd=2.2/(u.tm?1:1+gv(u.t,"a")*.1);u.sw=.5;spawn(u.tm,d.nec,bb.x,bb.y);B.splice(B.indexOf(bb),1)}}}
    else if((u.tm?army1>=thr:stance===1)&&fr[u.tm]!==null)go(fr[u.tm]-dir*70,u.fy,6);
    else go(u.fx,u.fy,6);
   }else{
@@ -177,7 +182,7 @@ function update(dt){
    if(n&&n.d<=sd){tgt=n.o;dist=n.d}else if(sdist<=Math.max(d.r,60)){tgt="s";dist=sdist}
    if(tgt){
     const tx=tgt==="s"?sx:tgt.x,ty=tgt==="s"?CY:tgt.y;u.fa=Math.atan2(ty-u.y,tx-u.x);
-    if(dist<=d.r+(tgt==="s"?0:6)){if(u.cd<=0){u.cd=d.cd/(u.tm?1:1+up.a*.1);u.sw=.25;
+    if(dist<=d.r+(tgt==="s"?0:6)){if(u.cd<=0){u.cd=d.cd/(u.tm?1:1+gv(u.t,"a")*.1);u.sw=.25;
       if(u.t==="creeper")u.fuse=.6;else if(u.t==="witch")shoot(u,tx,ty,1);else if(u.t==="archer")shoot(u,tx,ty,0);
       else if(tgt==="s"){statue[1-u.tm]-=d.dmg*dmul(u);shake=.1}else{hurt(tgt,d.dmg*dmul(u));if(d.fz)tgt.fz=d.fz}}}
     else go(tx,ty,0);
@@ -206,7 +211,7 @@ function text(s,a,b,size,col,al="center"){x.font=`bold ${size}px Arial`;x.textAl
 function line(a,b,c,d){x.beginPath();x.moveTo(a,b);x.lineTo(c,d);x.stroke()}
 function para(s,cx,y,mw,lh,size,col){x.font=`bold ${size}px Arial`;const w=s.split(" ");let ln="",yy=y;for(const a of w){const tt=ln?ln+" "+a:a;if(x.measureText(tt).width>mw&&ln){text(ln,cx,yy,size,col);yy+=lh;ln=a}else ln=tt}text(ln,cx,yy,size,col);return yy}
 const MET=["#94a3b8","#cbd5e1","#d97706","#fbbf24","#67e8f9","#f0abfc"],PKC=["#78716c","#94a3b8","#e2e8f0","#fbbf24","#67e8f9","#f0abfc"],WOOD=["#92400e","#a16207","#64748b","#b45309","#0e7490","#a21caf"];
-const tr=lv=>lv>=12?5:lv>=8?4:lv>=5?3:lv>=3?2:lv>=1?1:0,gt=(u,k)=>tr(u.tm?Math.floor(level/15):up[k]);
+const tr=lv=>lv>=12?5:lv>=8?4:lv>=5?3:lv>=3?2:lv>=1?1:0,gt=(u,k)=>tr(u.tm?Math.floor(level/15):gv(u.t,k));
 function ln(c,a,b,d,e){c.beginPath();c.moveTo(a,b);c.lineTo(d,e);c.stroke()}
 function helmet(c,hx,hy,t,tc){
  c.fillStyle=MET[t];c.beginPath();c.arc(hx,hy,6.8,Math.PI,0);c.lineTo(hx+6.8,hy+1.5);c.lineTo(hx-6.8,hy+1.5);c.closePath();c.fill();
@@ -322,13 +327,16 @@ for(const k in T){if(T[k].nb)continue;const b=document.createElement("button");b
 const sb=document.createElement("button");sb.className="s";sb.onclick=()=>{if(state==="play")stance^=1};bt.append(sb);
 const rb=document.createElement("button");rb.className="s";rb.textContent="🏹 Arrow Rain (R)";rb.onclick=doRain;bt.append(rb);
 const mb=document.createElement("button");mb.className="s";mb.textContent="⛏️ Necromancers → Miners (M)";mb.onclick=toMiners;bt.append(mb);
-const arm=document.createElement("div");arm.innerHTML="<h2 style=\"margin:.8rem 0 .2rem;font-size:1.2rem\">🛡️ Armory: upgrade your stick soldiers</h2><p style=\"margin:0;font-size:.85rem;color:#94a3b8\">Every upgrade makes the gear look better: helmets grow plumes, horns and wings, weapons and pickaxes shine, boots sprout wings, and carts get bigger.</p><canvas id=\"pv\" width=\"640\" height=\"150\" aria-label=\"Your gear preview\"></canvas>";
-const ub=document.createElement("div");ub.className="row";arm.append(ub);bt.after(arm);const uB={};const pv=arm.querySelector("#pv").getContext("2d");
-function preview(){const tm=performance.now(),a=tm/110,s=(tm%1400)/1400;pv.fillStyle="#365314";pv.fillRect(0,0,640,150);pv.fillStyle="#3f6212";for(let i=0;i<8;i++)pv.fillRect(i*80,0,40,150);
- [["sword",70,1.9],["archer",190,1.9],["giant",320,1.45],["miner",520,1.9]].forEach(([t0,px,z])=>stick(pv,{t:t0,tm:0,fa:0,an:a,mv:t0==="miner"||t0==="giant",st:2,sw:t0==="sword"&&s<.25?.3*(1-s/.25):0,hit:0,fz:0,cd:t0==="archer"&&s>.5?0:1},z,px,100))}
-for(const k in UPS){const b=document.createElement("button");b.className="u";b.onclick=()=>{if(coins>=ucost(k)){coins-=ucost(k);up[k]++;saveC()}};ub.append(b);uB[k]=b}
-function ui(){preview();for(const k in UPS){uB[k].textContent=`${UPS[k].n} Lv${up[k]} 🪙${ucost(k)}`;uB[k].title=UPS[k].i;uB[k].disabled=coins<ucost(k)}
- mb.hidden=level<14;mb.disabled=state!=="play"||!U.some(u=>u.tm===0&&T[u.t].nec);
+const arm=document.createElement("div");arm.innerHTML="<h2 style=\"margin:.8rem 0 .2rem;font-size:1.2rem\">🛡️ Armory: upgrade each kind of soldier</h2><p style=\"margin:0;font-size:.85rem;color:#94a3b8\">Pick a soldier, then upgrade its helmet, weapon, arm, legs (miners: pickaxe and cart). Each kind has its own gear, and it looks better with every tier.</p>";
+const tabs=document.createElement("div");tabs.className="row";tabs.style.marginTop="8px";const tB={};
+for(const k of UPT){const b=document.createElement("button");b.className="tab";b.textContent=T[k].n;b.onclick=()=>{selT=k};tabs.append(b);tB[k]=b}
+const pvc=document.createElement("canvas");pvc.width=640;pvc.height=150;pvc.setAttribute("aria-label","Your gear preview");
+const ub=document.createElement("div");ub.className="row";arm.append(tabs,pvc,ub);bt.after(arm);const uB={};const pv=pvc.getContext("2d");
+function preview(){const tm=performance.now(),a=tm/110,s=(tm%1400)/1400,gi=selT==="giant";pv.fillStyle="#365314";pv.fillRect(0,0,640,150);pv.fillStyle="#3f6212";for(let i=0;i<8;i++)pv.fillRect(i*80,0,40,150);
+ stick(pv,{t:selT,tm:0,fa:0,an:a,mv:true,st:2,sw:s<.25?.3*(1-s/.25):0,hit:0,fz:0,cd:s>.5?0:1},gi?3.1:3.3,320,gi?120:128)}
+for(const k in UPS){const b=document.createElement("button");b.className="u";b.onclick=()=>{if(coins>=ucost(k)){coins-=ucost(k);ug[selT][k]++;saveC()}};ub.append(b);uB[k]=b}
+function ui(){preview();for(const k of UPT){tB[k].hidden=level<(T[k].ul||0);tB[k].classList.toggle("sel",k===selT)}if(level<(T[selT].ul||0))selT="sword";
+ const ks=keysFor(selT);for(const k in UPS){uB[k].hidden=!ks.includes(k);uB[k].textContent=`${UPS[k].n} Lv${lvl(k)} 🪙${ucost(k)}`;uB[k].title=UPS[k].i;uB[k].disabled=coins<ucost(k)} mb.hidden=level<14;mb.disabled=state!=="play"||!U.some(u=>u.tm===0&&T[u.t].nec);
  for(const k in bs){bs[k].hidden=level<(T[k].ul||0);bs[k].disabled=gold[0]<T[k].c||state!=="play"}sb.textContent=stance?"⚔️ Attacking (Q)":"🛡️ Defending (Q)"}
 newGame();
 let last=performance.now();
