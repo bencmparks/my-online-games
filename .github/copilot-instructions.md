@@ -122,7 +122,7 @@ Keep a list of my games here.
 - Bomb Mergers (`merge-blast/`, formerly Merge Blast; Poki-style: buy bombs, drag to merge or Merge all, launch at enemy castles, idle income, upgrades)
 - Turbo Goal Derby 3D (`rocket-soccer/`, formerly Rocket Soccer Derby; 3D chase-cam 2v2 rocket-car soccer vs AI, B ball cam, boost pads, demolitions, Easy/Normal/Hard)
 - Cliff Chucker (`ledge-throw/`, formerly Ledge Throw; bigger screen, no max distance, uncapped coin upgrades; limited lantern view, Double Barrel rockets and Ledge Maker (2 springy ledges at a time) power-ups; Puzzle mode with 10 levels, fixed throw power, limited rockets and ledges, 3 stars)
-- Ledge Launch (`ledge-launch/`, throw platforms straight out from right below your feet (also in mid-air) at wall blocks to cross pits and spikes and climb towers to the portal; each wall block holds only one platform so a second throw at it removes the first; portal spins and fades you into the next level; endless generated levels)
+- Ledge Launch (`ledge-launch/`, throw platforms straight out from right below your feet (also in mid-air) at wall blocks to cross pits and spikes and climb towers to the portal; you only have one ledge at a time so any new throw removes the old one (puzzle levels: wide pits, towers after spikes); ledges fly out a little lower, below your feet in mid-air; portal spins and fades you into the next level; endless generated levels)
 - Pixel Picross (`pixel-picross/`, nonogram puzzles 5x5, 8x8, 10x10)
 - Pipe Panic (`pipe-panic/`, rotate pipes to connect the water source to every tile, 4x4 to 8x8)
 - Code Breaker (`code-breaker/`, Mastermind-style 4-color code in 10 tries)

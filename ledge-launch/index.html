@@ -6,7 +6,7 @@ canvas{display:block;width:100%;height:auto;margin:.6rem auto;border:.2rem solid
 .row{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap;margin:.4rem 0}.row button{padding:.6rem .9rem;border:0;border-radius:.6rem;background:#0e7490;color:#fff;font-weight:700;font-size:1rem;cursor:pointer;user-select:none;touch-action:none}
 </style></head>
 <body><main><a href="../">← All games</a><h1>🚀 Ledge Launch</h1>
-<p>Throw platforms at walls and climb to the 🌀 portal! <strong>Click or tap</strong> to the left or right of you (or press <strong>E</strong>) to throw a platform straight out from right below your feet. Jump and throw in mid-air to build a staircase up tall walls. <strong>A/D or arrows</strong> move, <strong>W, Up or Space</strong> jump. Every wall block holds only <strong>one platform</strong>: throw another at the same block and the first one goes away. Avoid the spikes and pits!</p>
+<p>Throw platforms at walls and climb to the 🌀 portal! <strong>Click or tap</strong> to the left or right of you (or press <strong>E</strong>) to throw a platform straight out from right below your feet. Jump and throw in mid-air to build a staircase up tall walls. <strong>A/D or arrows</strong> move, <strong>W, Up or Space</strong> jump. You only have <strong>one ledge</strong>: throw another and the first one disappears. Wide pits need a ledge on the far pillar, and towers need a mid-air throw, so plan which wall gets your ledge. Avoid the spikes and pits!</p>
 <canvas id="c" width="960" height="540" aria-label="Ledge Launch game"></canvas>
 <div class="row"><button id="bl">◀</button><button id="bj">⤒ Jump</button><button id="br">▶</button><button id="be">🎯 Throw forward</button><button id="rs">↺ Restart level</button></div>
 </main>
@@ -26,19 +26,21 @@ function build(lv){
   seed=lv*7919+5;
   const grounds=[],blocks=[],spikes=[];
   let c=-300,gx=-300;
-  const n=3+Math.min(lv,7),tall=2+Math.min(lv>>1,5);
+  const n=3+Math.min(lv,8);
   c+=500;
   for(let i=0;i<n;i++){
     c+=260+rnd()*160;
     const t=rnd();
     if(t<.4){
-      grounds.push([gx,c]);c+=110+rnd()*(40+Math.min(lv*6,50));gx=c;
+      grounds.push([gx,c]);c+=230+rnd()*(30+Math.min(lv*4,40));gx=c;
       blocks.push({x:c,y:GY-BH,w:BW,h:BH,plat:null});c+=BW;
     }else if(t<.75){
-      for(let j=0;j<tall;j++)blocks.push({x:c,y:GY-BH*(j+1),w:BW,h:BH,plat:null});
+      for(let j=0;j<2;j++)blocks.push({x:c,y:GY-BH*(j+1),w:BW,h:BH,plat:null});
       c+=BW;
     }else{
       const w=50+rnd()*(25+Math.min(lv*3,15));spikes.push([c,c+w]);c+=w;
+      // spikes right before a tower: jump over them and throw in mid-air to reach the top
+      if(rnd()<.6){c+=10;for(let j=0;j<2;j++)blocks.push({x:c,y:GY-BH*(j+1),w:BW,h:BH,plat:null});c+=BW}
     }
   }
   c+=300;grounds.push([gx,c+200]);
@@ -71,7 +73,7 @@ function ray(ox,oy,dx,dy){
 }
 // platforms always fly straight out, level with the spot right below your feet (just above the ground when standing)
 function aim(dir){
-  const ox=p.x,oy=Math.min(p.y+4,GY-6);
+  const ox=p.x,oy=Math.min(p.y+28,GY-6);
   return{ox,oy,dx:dir,dy:0,hit:ray(ox,oy,dir,0)};
 }
 function throwAt(tx){
@@ -82,7 +84,8 @@ function throwAt(tx){
 }
 function stick(s){
   const w=s.w;
-  if(w.plat){ghosts.push({q:w.plat,t:.3});plats.splice(plats.indexOf(w.plat),1);puff(platBox(w.plat).l+PL/2,w.plat.y,"#67e8f9",10)}
+  for(const o of plats){ghosts.push({q:o,t:.3});puff(platBox(o).l+PL/2,o.y,"#67e8f9",10);o.wall.plat=null}
+  plats.length=0;
   const side=Math.abs(s.dx)>.05?(s.dx>0?-1:1):-p.f;
   const q={wall:w,side,y:Math.max(s.y1,w.y+6),ext:0};
   w.plat=q;plats.push(q);puff(s.x1,s.y1,"#a5f3fc",8);
