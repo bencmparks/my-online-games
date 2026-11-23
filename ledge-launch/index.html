@@ -73,7 +73,7 @@ function ray(ox,oy,dx,dy){
 }
 // platforms always fly straight out, level with the spot right below your feet (just above the ground when standing)
 function aim(dir){
-  const ox=p.x,oy=Math.min(p.y+28,GY-6);
+  const ox=p.x,oy=Math.min(p.y+7,GY-6);
   return{ox,oy,dx:dir,dy:0,hit:ray(ox,oy,dir,0)};
 }
 function throwAt(tx){
