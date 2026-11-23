@@ -6,7 +6,7 @@ canvas{display:block;width:100%;height:auto;margin:.8rem auto;border:.2rem solid
 .row{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap}.row button{padding:.6rem .9rem;border:0;border-radius:.6rem;background:#2563eb;color:#fff;font-weight:700;font-size:1rem;cursor:pointer;user-select:none}.row button:disabled{opacity:.4;cursor:not-allowed}.row button.s{background:#7c3aed}
 </style></head>
 <body><main><a href="../">← All games</a><h1>⚔️ Stick Legion</h1>
-<p>A birds-eye battle: the whole field is on screen and your army stands in organised ranks (tough fighters in front, archers and witches behind, necromancers at the back, and necromancers march forward with the army). Your miners and necromancers cannot be attacked. Every level opens with its own story chunk. Press <strong>M</strong> to turn all your necromancers into miners. Miners dig gold automatically. Buy units with the buttons or keys <strong>1-9</strong>. <strong>Q</strong> switches your army between <em>Attack</em> (they march in formation) and <em>Defend</em>. <strong>R</strong> calls Arrow Rain on the enemy front. 100 levels in 10 story chapters! You are the Blue Brigade, rebelling against the cruel White Warriors. New units unlock as you go: Witch (level 4), Berserker (7), Ice Berserker (11) and Necromancer (15), who turns fallen bodies into zombies, and Creepy Necromancer (19), who turns them into exploding creepers instead. After a win, a fifth of each kind of surviving warrior stays with you for the next level (rounded up), and for every soldier kind you have none of, another fifth of your miners stays; the rest go home. Earn 🪙 coins from kills and wins, then buy permanent upgrades below the canvas.</p>
+<p>A birds-eye battle: the whole field is on screen and your army stands in organised ranks (tough fighters in front, archers and witches behind, necromancers at the back, and necromancers march forward with the army). Your miners and necromancers cannot be attacked. Every level opens with its own story chunk. Press <strong>M</strong> to turn all your necromancers into miners. Miners dig gold automatically. Buy units with the buttons or keys <strong>1-9</strong>. <strong>Q</strong> switches your army between <em>Attack</em> (they march in formation) and <em>Defend</em>. <strong>R</strong> calls Arrow Rain on the enemy front. 100 levels in 10 story chapters! You are the Blue Brigade, rebelling against the cruel White Warriors. New units unlock as you go: Witch (level 4), Berserker (7), Ice Berserker (11) and Necromancer (15), who turns fallen bodies into zombies, and Creepy Necromancer (19), who turns them into exploding creepers instead. After a win, a fifth of each kind of surviving warrior stays with you for the next level (rounded up), and for every soldier kind you have none of, another fifth of your miners stays; the rest go home. Your soldiers are stick figures with helmets and weapons. Earn 🪙 coins from kills and wins, then spend them in the Armory below the game: Helmet (health), Weapon (damage), Arm (attack speed), Pickaxe (mining speed), Legs (move speed) and Cart (gold per trip). Every upgrade also makes the gear look cooler.</p>
 <canvas id="c" width="900" height="420" aria-label="Stick Legion game"></canvas>
 <div class="row" id="btns"></div>
 </main>
@@ -17,8 +17,8 @@ const T={miner:{n:"Miner",c:50,hp:40,sp:80,dmg:0,r:0,cd:0,k:"1"},sword:{n:"Sword
  witch:{n:"Witch",c:300,hp:70,sp:58,dmg:24,r:260,cd:1.6,k:"5",ul:3},berserker:{n:"Berserker",c:350,hp:320,sp:72,dmg:55,r:36,cd:1.1,k:"6",ul:6},iceb:{n:"Ice Berserker",c:450,hp:300,sp:66,dmg:32,r:36,cd:1.2,k:"7",ul:10,fz:1.8},necro:{n:"Necromancer",c:400,hp:90,sp:50,dmg:0,r:0,cd:0,k:"8",ul:14,nec:"zombie"},cnecro:{n:"Creepy Necromancer",c:450,hp:90,sp:50,dmg:0,r:0,cd:0,k:"9",ul:18,nec:"creeper"},zombie:{n:"Zombie",c:0,hp:70,sp:60,dmg:12,r:26,cd:.7,nb:1},creeper:{n:"Creeper",c:0,hp:45,sp:95,dmg:110,r:30,cd:0,nb:1}};
 const RK={sword:0,berserker:0,iceb:0,giant:0,zombie:0,creeper:0,archer:1,witch:1,necro:2,cnecro:2},TO=["giant","berserker","iceb","sword","zombie","creeper","archer","witch","necro","cnecro"];
 let level=0,carry=["miner","miner"];try{level=Math.min(99,+localStorage.getItem(KEY)||0);const c=JSON.parse(localStorage.getItem("stickLegionArmy"));if(Array.isArray(c))carry=c.filter(k=>T[k])}catch(e){}
-let coins=+localStorage.getItem("stickLegionCoins")||0,up={d:0,h:0,m:0,s:0,g:0};try{Object.assign(up,JSON.parse(localStorage.getItem("stickLegionUp")))}catch(e){}
-const UPS={d:{n:"⚔️ Damage",b:40,i:"+12% damage"},h:{n:"❤️ Health",b:40,i:"+12% health"},m:{n:"⛏️ Mining",b:50,i:"+15% gold per trip"},s:{n:"🗿 Statue",b:60,i:"+20% statue health"},g:{n:"💰 Start gold",b:30,i:"+100 starting gold"}};
+let coins=+localStorage.getItem("stickLegionCoins")||0,up={d:0,h:0,m:0,s:0,g:0,a:0,p:0,l:0};try{Object.assign(up,JSON.parse(localStorage.getItem("stickLegionUp")))}catch(e){}
+const UPS={h:{n:"🪖 Helmet",b:40,i:"+12% health, and a cooler helmet"},d:{n:"🗡️ Weapon",b:40,i:"+12% damage, and a sharper weapon"},a:{n:"💪 Arm",b:45,i:"+10% attack speed (rate of fire), and a stronger arm"},p:{n:"⛏️ Pickaxe",b:45,i:"+12% mining speed, and a better pickaxe"},l:{n:"🦵 Legs",b:40,i:"+5% move speed, and faster boots"},m:{n:"🛒 Cart",b:50,i:"+15% gold per trip, and a bigger cart"},s:{n:"🗿 Statue",b:60,i:"+20% statue health"},g:{n:"💰 Start gold",b:30,i:"+100 starting gold"}};
 const ucost=k=>Math.round(UPS[k].b*Math.pow(1.6,up[k])),dmul=u=>u.tm?1:1+up.d*.12;
 function saveC(){try{localStorage.setItem("stickLegionCoins",coins);localStorage.setItem("stickLegionUp",JSON.stringify(up))}catch(e){}}
 const STORY=[
@@ -162,9 +162,9 @@ function update(dt){
  for(const u of U)if(u.t!=="miner"&&!T[u.t].nec){const q=u.tm?-1:1;if(fr[u.tm]===null||u.x*q>fr[u.tm]*q)fr[u.tm]=u.x}
  for(const u of U){
   const d=T[u.t],dir=u.tm?-1:1;if(u.sw>0)u.sw-=dt;if(u.hit>0)u.hit-=dt;if(u.cd>0)u.cd-=dt;let moving=false;if(u.fz>0){u.fz-=dt;continue}if(u.fuse!=null){u.fuse-=dt;if(u.fuse<=0)boom(u);continue}
-  const go=(tx,ty,stop)=>{const dx=tx-u.x,dy=ty-u.y,dd=Math.hypot(dx,dy);if(dd>stop){u.x+=dx/dd*d.sp*dt;u.y+=dy/dd*d.sp*dt;u.fa=Math.atan2(dy,dx);moving=true}return dd};
+  const go=(tx,ty,stop)=>{const dx=tx-u.x,dy=ty-u.y,dd=Math.hypot(dx,dy);if(dd>stop){const spd=d.sp*(u.tm?1:1+up.l*.05);u.x+=dx/dd*spd*dt;u.y+=dy/dd*spd*dt;u.fa=Math.atan2(dy,dx);moving=true}return dd};
   if(u.t==="miner"){
-   if(u.st===0){if(go(MX[u.tm],MY[u.tm],10)<=10){u.st=1;u.tmr=1.6}}
+   if(u.st===0){if(go(MX[u.tm],MY[u.tm],10)<=10){u.st=1;u.tmr=1.6/(u.tm?1:1+up.p*.12)}}
    else if(u.st===1){u.tmr-=dt;u.sw=.2;if(u.tmr<=0)u.st=2}
    else{if(go(BX[u.tm]+dir*60,CY,10)<=10){gold[u.tm]+=u.tm?20*(1+Math.min(level,40)*.08):20*(1+up.m*.15);u.st=0}}
   }else if(d.nec){
@@ -177,7 +177,7 @@ function update(dt){
    if(n&&n.d<=sd){tgt=n.o;dist=n.d}else if(sdist<=Math.max(d.r,60)){tgt="s";dist=sdist}
    if(tgt){
     const tx=tgt==="s"?sx:tgt.x,ty=tgt==="s"?CY:tgt.y;u.fa=Math.atan2(ty-u.y,tx-u.x);
-    if(dist<=d.r+(tgt==="s"?0:6)){if(u.cd<=0){u.cd=d.cd;u.sw=.25;
+    if(dist<=d.r+(tgt==="s"?0:6)){if(u.cd<=0){u.cd=d.cd/(u.tm?1:1+up.a*.1);u.sw=.25;
       if(u.t==="creeper")u.fuse=.6;else if(u.t==="witch")shoot(u,tx,ty,1);else if(u.t==="archer")shoot(u,tx,ty,0);
       else if(tgt==="s"){statue[1-u.tm]-=d.dmg*dmul(u);shake=.1}else{hurt(tgt,d.dmg*dmul(u));if(d.fz)tgt.fz=d.fz}}}
     else go(tx,ty,0);
@@ -186,7 +186,7 @@ function update(dt){
     if(atk)go(sx,u.fy,10);else go(u.fx,u.fy,6);
    }
   }
-  if(moving)u.an=(u.an||0)+dt*d.sp*.12;u.x=Math.max(20,Math.min(WW-20,u.x));u.y=Math.max(20,Math.min(WH-20,u.y));
+  u.mv=moving;if(moving)u.an=(u.an||0)+dt*d.sp*.12;u.x=Math.max(20,Math.min(WW-20,u.x));u.y=Math.max(20,Math.min(WH-20,u.y));
  }
  for(let i=0;i<U.length;i++)for(let j=i+1;j<U.length;j++){const a=U[i],b=U[j],dx=b.x-a.x,dy=b.y-a.y;if(Math.abs(dx)<14&&Math.abs(dy)<14){const dd=Math.hypot(dx,dy)||1,p=(14-dd)*.5*Math.min(1,dt*8),ux=dx/dd,uy=dy/dd;a.x-=ux*p;a.y-=uy*p;b.x+=ux*p;b.y+=uy*p}}
  for(const a of A){a.x+=a.vx*dt;a.y+=a.vy*dt;a.life-=dt;if(a.life<=0){a.dead=1;continue}
@@ -205,7 +205,59 @@ function update(dt){
 function text(s,a,b,size,col,al="center"){x.font=`bold ${size}px Arial`;x.textAlign=al;x.fillStyle=col;x.lineWidth=4;x.strokeStyle="#0f172a";x.lineJoin="round";x.strokeText(s,a,b);x.fillText(s,a,b)}
 function line(a,b,c,d){x.beginPath();x.moveTo(a,b);x.lineTo(c,d);x.stroke()}
 function para(s,cx,y,mw,lh,size,col){x.font=`bold ${size}px Arial`;const w=s.split(" ");let ln="",yy=y;for(const a of w){const tt=ln?ln+" "+a:a;if(x.measureText(tt).width>mw&&ln){text(ln,cx,yy,size,col);yy+=lh;ln=a}else ln=tt}text(ln,cx,yy,size,col);return yy}
-function figure(u){
+const MET=["#94a3b8","#cbd5e1","#d97706","#fbbf24","#67e8f9","#f0abfc"],PKC=["#78716c","#94a3b8","#e2e8f0","#fbbf24","#67e8f9","#f0abfc"],WOOD=["#92400e","#a16207","#64748b","#b45309","#0e7490","#a21caf"];
+const tr=lv=>lv>=12?5:lv>=8?4:lv>=5?3:lv>=3?2:lv>=1?1:0,gt=(u,k)=>tr(u.tm?Math.floor(level/15):up[k]);
+function ln(c,a,b,d,e){c.beginPath();c.moveTo(a,b);c.lineTo(d,e);c.stroke()}
+function helmet(c,hx,hy,t,tc){
+ c.fillStyle=MET[t];c.beginPath();c.arc(hx,hy,6.8,Math.PI,0);c.lineTo(hx+6.8,hy+1.5);c.lineTo(hx-6.8,hy+1.5);c.closePath();c.fill();
+ if(t>=1){c.fillStyle=tc;c.fillRect(hx-1,hy-7,2,6)}
+ if(t>=2){c.strokeStyle=MET[t];c.lineWidth=2;ln(c,hx+3.5,hy,hx+3.5,hy+5)}
+ if(t>=3){c.fillStyle=tc;c.beginPath();c.moveTo(hx-3,hy-6);c.quadraticCurveTo(hx-2,hy-14,hx+6,hy-9);c.lineTo(hx+3,hy-6);c.fill()}
+ if(t>=4){c.strokeStyle="#f1f5f9";c.lineWidth=2;c.beginPath();c.moveTo(hx-6,hy-2);c.quadraticCurveTo(hx-12,hy-5,hx-9,hy-12);c.moveTo(hx+6,hy-2);c.quadraticCurveTo(hx+12,hy-5,hx+9,hy-12);c.stroke()}
+ if(t>=5){c.fillStyle="#f43f5e";c.beginPath();c.arc(hx,hy-3,1.9,0,6.3);c.fill();c.strokeStyle="#fde68a";c.lineWidth=1.4;ln(c,hx-6,hy,hx-12,hy-3);ln(c,hx-6,hy+1,hx-12,hy+2);ln(c,hx+6,hy,hx+12,hy-3);ln(c,hx+6,hy+1,hx+12,hy+2)}
+}
+function stick(c,u,sc,gx,gy){
+ const ty=u.t,gi=ty==="giant",tc=u.tm?"#f1f5f9":"#3b82f6",nc=!!T[ty].nec;
+ const flash=u.hit>0||u.fuse!=null&&Math.floor(u.fuse*14)%2;
+ const bc=flash?"#fff":u.fz>0?"#bae6fd":ty==="zombie"?"#84cc16":ty==="iceb"?"#67e8f9":ty==="necro"?"#64748b":ty==="cnecro"?"#22c55e":ty==="witch"?"#a78bfa":ty==="miner"?"#d4a017":tc;
+ const f=Math.cos(u.fa||0)<0?-1:1,ht=gt(u,"h"),wt=gt(u,"d"),at=gt(u,"a"),pt=gt(u,"p"),lt=gt(u,"l"),ct=gt(u,"m");
+ const lg=u.mv?Math.sin((u.an||0)*1.6)*6:0,q=Math.max(0,u.sw||0)/.3,hx=7+q*3,hy=-11-q*10,wa=q>0?-1.2+(1-q)*1.7:-.35,dx=Math.cos(wa),dy=Math.sin(wa);
+ c.save();c.translate(gx,gy);c.scale(sc*f,sc);c.lineCap="round";c.lineJoin="round";
+ c.fillStyle="rgba(0,0,0,.28)";c.beginPath();c.ellipse(0,10,9,3.5,0,0,6.3);c.fill();
+ if(ty==="miner"){const w=9+ct*2.4;c.strokeStyle="#78716c";c.lineWidth=1.5;ln(c,-14,-3,-3,-9);
+  c.fillStyle=WOOD[ct];c.fillRect(-14-w,-6,w,7);c.strokeStyle="#0f172a";c.lineWidth=.8;c.strokeRect(-14-w,-6,w,7);
+  c.fillStyle="#0f172a";c.beginPath();c.arc(-12-w*.2,2,2.2,0,6.3);c.arc(-16-w*.8,2,2.2,0,6.3);c.fill();
+  if(ct>=3){c.strokeStyle=MET[ct];c.lineWidth=1.2;c.strokeRect(-14-w,-6,w,7)}
+  if(u.st===2){c.fillStyle="#fbbf24";for(let i=0;i<2+ct*2;i++){c.beginPath();c.arc(-14-w*.5+(i%4-1.5)*2.8,-8-Math.floor(i/4)*3,2.2,0,6.3);c.fill()}}}
+ c.strokeStyle=bc;c.lineWidth=2.4;ln(c,0,-5,-lg,10);ln(c,0,-5,lg,10);
+ if(lt>=1){c.strokeStyle=MET[lt];c.lineWidth=3.6;ln(c,-lg-1,8.6,-lg+2.5,10);ln(c,lg-1,8.6,lg+2.5,10)}
+ if(lt>=3){c.strokeStyle="#fde68a";c.lineWidth=1.2;for(const s of[-lg,lg]){ln(c,s-1,7.5,s-7,4.5);ln(c,s-1,9,s-7,8)}}
+ if(lt>=5&&u.mv){c.strokeStyle="rgba(240,171,252,.7)";c.lineWidth=1.5;ln(c,-9,5,-21,5);ln(c,-9,9,-19,9)}
+ c.strokeStyle=bc;c.lineWidth=3;ln(c,0,-18,0,-5);
+ c.lineWidth=2.2;ln(c,0,-15,-4,-7);
+ if(ty==="zombie"){c.lineWidth=2.4;ln(c,0,-15,10,-14);ln(c,0,-14,9,-9)}
+ else{
+  c.strokeStyle=bc;c.lineWidth=2.4+at*.25;ln(c,0,-15,hx,hy);
+  if(at>=1){c.fillStyle=MET[at];c.beginPath();c.arc(hx*.55,-15+(hy+15)*.55,1.7+at*.3,0,6.3);c.fill()}
+  if(at>=3){c.fillStyle=MET[at];c.beginPath();c.arc(hx,hy,2.6,0,6.3);c.fill()}
+  if(at>=5){c.fillStyle="#fef08a";for(let i=0;i<3;i++){c.beginPath();c.arc(hx+Math.cos((u.an||0)*2+i*2.1)*5,hy+Math.sin((u.an||0)*2+i*2.1)*5,.9,0,6.3);c.fill()}}
+  const wc=MET[wt];c.strokeStyle=wc;c.shadowColor=wt>=4?wc:"transparent";c.shadowBlur=wt>=4?6:0;
+  if(ty==="sword"){const L=14+wt*1.6;c.lineWidth=2.2+wt*.15;ln(c,hx,hy,hx+dx*L,hy+dy*L);c.strokeStyle="#78350f";c.lineWidth=2;ln(c,hx-dy*3-dx*1,hy+dx*3-dy*1,hx+dy*3-dx*1,hy-dx*3-dy*1)}
+  else if(gi){c.strokeStyle="#a16207";c.lineWidth=4;ln(c,hx,hy,hx+dx*20,hy+dy*20);c.fillStyle=wc;c.beginPath();c.arc(hx+dx*22,hy+dy*22,5+wt*.4,0,6.3);c.fill()}
+  else if(ty==="berserker"||ty==="iceb"){c.strokeStyle="#92400e";c.lineWidth=2.4;ln(c,hx,hy,hx+dx*15,hy+dy*15);c.fillStyle=ty==="iceb"?"#a5f3fc":wc;c.beginPath();c.arc(hx+dx*15,hy+dy*15,5+wt*.3,0,6.3);c.fill()}
+  else if(ty==="miner"){const pc=PKC[pt],ex=hx+dx*13,ey=hy+dy*13;c.strokeStyle="#92400e";c.lineWidth=2;ln(c,hx,hy,ex,ey);c.strokeStyle=pc;c.shadowColor=pt>=4?pc:"transparent";c.shadowBlur=pt>=4?5:0;c.lineWidth=2.6+pt*.2;ln(c,ex-dy*6,ey+dx*6,ex+dy*6,ey-dx*6);ln(c,ex-dy*6,ey+dx*6,ex-dy*6+dx*2,ey+dx*6+dy*2)}
+  else if(ty==="archer"){c.lineWidth=2;c.beginPath();c.arc(hx+2,hy,10,-1.2,1.2);c.stroke();c.shadowBlur=0;c.strokeStyle="#e2e8f0";c.lineWidth=.8;ln(c,hx+2+Math.cos(-1.2)*10,hy+Math.sin(-1.2)*10,hx+2+Math.cos(1.2)*10,hy+Math.sin(1.2)*10);if(u.cd<=0){c.strokeStyle="#cbd5e1";c.lineWidth=1.2;ln(c,hx-2,hy,hx+11,hy)}}
+  else if(ty==="witch"||nc){c.strokeStyle="#92400e";c.lineWidth=2;ln(c,hx-2,hy+9,hx+1,hy-15);c.fillStyle=ty==="witch"?"#e9d5ff":ty==="cnecro"?"#4ade80":"#86efac";c.beginPath();c.arc(hx+1,hy-16,u.sw>0?5:3.4,0,6.3);c.fill()}
+  c.shadowBlur=0;c.shadowColor="transparent"}
+ c.fillStyle=ty==="zombie"?"#84cc16":nc?"#94a3b8":"#fcd9b6";if(flash)c.fillStyle="#fff";c.beginPath();c.arc(0,-24,5.5,0,6.3);c.fill();
+ c.fillStyle="#0f172a";c.beginPath();c.arc(2.4,-24.5,.9,0,6.3);c.fill();
+ if(ty==="witch"){c.fillStyle="#4c1d95";c.beginPath();c.moveTo(-8,-26);c.lineTo(0,-41);c.lineTo(8,-26);c.fill();c.fillRect(-9,-27,18,2.4)}
+ else if(nc){c.fillStyle=ty==="cnecro"?"#14532d":"#1e293b";c.beginPath();c.arc(0,-24,7,Math.PI,0);c.lineTo(7,-18);c.lineTo(-7,-18);c.closePath();c.fill();c.fillStyle=ty==="cnecro"?"#4ade80":"#86efac";c.beginPath();c.arc(2.4,-23.5,1.1,0,6.3);c.fill()}
+ else if(ty!=="zombie"){helmet(c,0,-24,ht,tc);if(ty==="miner"){c.fillStyle="#fef08a";c.beginPath();c.arc(6,-26,2,0,6.3);c.fill()}}
+ c.restore()}
+function stickUnit(u){const gi=u.t==="giant",sc=gi?2.5:1.6;stick(x,u,sc,u.x,u.y);
+ if(u.fz>0){x.strokeStyle="rgba(186,230,253,.9)";x.lineWidth=3;x.beginPath();x.arc(u.x,u.y-12*sc,17*sc,0,6.3);x.stroke()}
+ if(u.hp<u.max){const by=u.y-(gi?96:64);x.fillStyle="#7f1d1d";x.fillRect(u.x-15,by,30,5);x.fillStyle="#22c55e";x.fillRect(u.x-15,by,30*Math.max(0,u.hp/u.max),5)}}function figure(u){if(u.t!=="creeper"){stickUnit(u);return}
  const gi=u.t==="giant",r=gi?28:17,tcol=u.tm?"#f8fafc":"#2563eb",col=u.t==="creeper"?"#4ade80":u.t==="zombie"?"#84cc16":u.t==="iceb"?"#67e8f9":u.t==="necro"?"#334155":u.t==="cnecro"?"#14532d":u.t==="witch"?"#7c3aed":u.t==="miner"?"#ca8a04":tcol;
  x.save();x.translate(u.x,u.y);x.rotate(u.fa||0);x.lineCap="round";
  x.fillStyle="rgba(0,0,0,.28)";x.beginPath();x.ellipse(4,5,r,r*.85,0,0,6.3);x.fill();
@@ -270,9 +322,12 @@ for(const k in T){if(T[k].nb)continue;const b=document.createElement("button");b
 const sb=document.createElement("button");sb.className="s";sb.onclick=()=>{if(state==="play")stance^=1};bt.append(sb);
 const rb=document.createElement("button");rb.className="s";rb.textContent="🏹 Arrow Rain (R)";rb.onclick=doRain;bt.append(rb);
 const mb=document.createElement("button");mb.className="s";mb.textContent="⛏️ Necromancers → Miners (M)";mb.onclick=toMiners;bt.append(mb);
-const ub=document.createElement("div");ub.className="row";ub.style.marginTop="8px";bt.after(ub);const uB={};
+const arm=document.createElement("div");arm.innerHTML="<h2 style=\"margin:.8rem 0 .2rem;font-size:1.2rem\">🛡️ Armory: upgrade your stick soldiers</h2><p style=\"margin:0;font-size:.85rem;color:#94a3b8\">Every upgrade makes the gear look better: helmets grow plumes, horns and wings, weapons and pickaxes shine, boots sprout wings, and carts get bigger.</p><canvas id=\"pv\" width=\"640\" height=\"150\" aria-label=\"Your gear preview\"></canvas>";
+const ub=document.createElement("div");ub.className="row";arm.append(ub);bt.after(arm);const uB={};const pv=arm.querySelector("#pv").getContext("2d");
+function preview(){const tm=performance.now(),a=tm/110,s=(tm%1400)/1400;pv.fillStyle="#365314";pv.fillRect(0,0,640,150);pv.fillStyle="#3f6212";for(let i=0;i<8;i++)pv.fillRect(i*80,0,40,150);
+ [["sword",70,1.9],["archer",190,1.9],["giant",320,1.45],["miner",520,1.9]].forEach(([t0,px,z])=>stick(pv,{t:t0,tm:0,fa:0,an:a,mv:t0==="miner"||t0==="giant",st:2,sw:t0==="sword"&&s<.25?.3*(1-s/.25):0,hit:0,fz:0,cd:t0==="archer"&&s>.5?0:1},z,px,100))}
 for(const k in UPS){const b=document.createElement("button");b.className="u";b.onclick=()=>{if(coins>=ucost(k)){coins-=ucost(k);up[k]++;saveC()}};ub.append(b);uB[k]=b}
-function ui(){for(const k in UPS){uB[k].textContent=`${UPS[k].n} Lv${up[k]} 🪙${ucost(k)}`;uB[k].title=UPS[k].i;uB[k].disabled=coins<ucost(k)}
+function ui(){preview();for(const k in UPS){uB[k].textContent=`${UPS[k].n} Lv${up[k]} 🪙${ucost(k)}`;uB[k].title=UPS[k].i;uB[k].disabled=coins<ucost(k)}
  mb.hidden=level<14;mb.disabled=state!=="play"||!U.some(u=>u.tm===0&&T[u.t].nec);
  for(const k in bs){bs[k].hidden=level<(T[k].ul||0);bs[k].disabled=gold[0]<T[k].c||state!=="play"}sb.textContent=stance?"⚔️ Attacking (Q)":"🛡️ Defending (Q)"}
 newGame();
