@@ -6,7 +6,7 @@ canvas{display:block;width:100%;height:auto;margin:.8rem auto;border:.2rem solid
 .row{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap}.row button{padding:.6rem .9rem;border:0;border-radius:.6rem;background:#2563eb;color:#fff;font-weight:700;font-size:1rem;cursor:pointer;user-select:none}.row button:disabled{opacity:.4;cursor:not-allowed}.row button.s{background:#7c3aed}
 </style></head>
 <body><main><a href="../">← All games</a><h1>⚔️ Stick Legion</h1>
-<p>A birds-eye battle: the whole field is on screen and your army stands in organised ranks (tough fighters in front, archers and witches behind, necromancers at the back). Miners dig gold automatically. Buy units with the buttons or keys <strong>1-9</strong>. <strong>Q</strong> switches your army between <em>Attack</em> (they march in formation) and <em>Defend</em>. <strong>R</strong> calls Arrow Rain on the enemy front. 100 levels in 10 story chapters! You are the Blue Brigade, rebelling against the cruel White Warriors. New units unlock as you go: Witch (level 4), Berserker (7), Ice Berserker (11) and Necromancer (15), who turns fallen bodies into zombies, and Creepy Necromancer (19), who turns them into exploding creepers instead. After a win, a fifth of each kind of surviving warrior stays with you for the next level (rounded up), and for every soldier kind you have none of, another fifth of your miners stays; the rest go home. Earn 🪙 coins from kills and wins, then buy permanent upgrades below the canvas.</p>
+<p>A birds-eye battle: the whole field is on screen and your army stands in organised ranks (tough fighters in front, archers and witches behind, necromancers at the back, and necromancers march forward with the army). Your miners and necromancers cannot be attacked. Press <strong>M</strong> to turn all your necromancers into miners. Miners dig gold automatically. Buy units with the buttons or keys <strong>1-9</strong>. <strong>Q</strong> switches your army between <em>Attack</em> (they march in formation) and <em>Defend</em>. <strong>R</strong> calls Arrow Rain on the enemy front. 100 levels in 10 story chapters! You are the Blue Brigade, rebelling against the cruel White Warriors. New units unlock as you go: Witch (level 4), Berserker (7), Ice Berserker (11) and Necromancer (15), who turns fallen bodies into zombies, and Creepy Necromancer (19), who turns them into exploding creepers instead. After a win, a fifth of each kind of surviving warrior stays with you for the next level (rounded up), and for every soldier kind you have none of, another fifth of your miners stays; the rest go home. Earn 🪙 coins from kills and wins, then buy permanent upgrades below the canvas.</p>
 <canvas id="c" width="900" height="420" aria-label="Stick Legion game"></canvas>
 <div class="row" id="btns"></div>
 </main>
@@ -39,7 +39,9 @@ function newGame(){U=[];A=[];B=[];gold=[300+up.g*100,200+Math.min(level,60)*60];
 function spawn(tm,ty,px,py){const d=T[ty],hm=tm?1+Math.max(0,level-30)*.015:1+up.h*.12;U.push({t:ty,tm,x:px!=null?px:BX[tm]+(tm?-60:60)+Math.random()*20,y:py!=null?py:CY+(Math.random()-.5)*240,hp:d.hp*hm,max:d.hp*hm,cd:0,sw:0,st:0,tmr:0,fa:tm?Math.PI:0,fx:0,fy:CY})}
 function pop(tm){return U.filter(u=>u.tm===tm).length}
 function buy(ty,tm=0){const d=T[ty];if(state!=="play"||d.nb||level<(d.ul||0)||gold[tm]<d.c||(tm===0&&spawnCd>0))return false;gold[tm]-=d.c;spawn(tm,ty);if(tm===0)spawnCd=.45;return true}
-function nearest(u){let b=null,bd=1e9;for(const o of U)if(o.tm!==u.tm){const dd=Math.hypot(o.x-u.x,o.y-u.y);if(dd<bd){bd=dd;b=o}}return b?{o:b,d:bd}:null}
+const prot=o=>o.tm===0&&(o.t==="miner"||!!T[o.t].nec);
+function toMiners(){if(state!=="play")return;for(const u of U)if(u.tm===0&&T[u.t].nec){const r=u.hp/u.max;u.t="miner";u.st=0;u.cd=0;u.fuse=null;u.max=T.miner.hp*(1+up.h*.12);u.hp=Math.max(1,u.max*r)}}
+function nearest(u){let b=null,bd=1e9;for(const o of U)if(o.tm!==u.tm&&!prot(o)){const dd=Math.hypot(o.x-u.x,o.y-u.y);if(dd<bd){bd=dd;b=o}}return b?{o:b,d:bd}:null}
 function hurt(o,dm){o.hp-=dm;o.hit=.12}
 function shoot(u,tx,ty,orb){const dx=tx-u.x,dy=ty-u.y,dd=Math.hypot(dx,dy)||1,sp=orb?320:380;A.push({x:u.x,y:u.y,vx:dx/dd*sp,vy:dy/dd*sp,tm:u.tm,dm:T[u.t].dmg*dmul(u),orb,life:dd/sp+.4})}
 function formation(){
@@ -47,7 +49,7 @@ function formation(){
   for(const u of U)if(u.tm===tm&&u.t!=="miner")rows[RK[u.t]].push(u);
   rows.forEach((g,ri)=>{g.sort((a,b)=>TO.indexOf(a.t)-TO.indexOf(b.t));const R=10,bx=RALLY[tm]-dir*ri*110;
    g.forEach((u,i)=>{const col=Math.floor(i/R),row=i%R,n=Math.min(R,g.length-col*R);u.fx=Math.max(40,Math.min(WW-40,bx-dir*col*40));u.fy=CY+(row-(n-1)/2)*46})})}}
-function boom(u){u.hp=0;const R=110,dm=T.creeper.dmg*dmul(u);for(const o of U)if(o.tm!==u.tm){const dd=Math.hypot(o.x-u.x,o.y-u.y);if(dd<R)hurt(o,dm*(dd<R/2?1:.5))}if(Math.hypot(u.x-BX[1-u.tm],u.y-CY)<R+34)statue[1-u.tm]-=dm*2;puffs.push({x:u.x,y:u.y,t:.4,r:R,c:"74,222,128"});shake=.2}
+function boom(u){u.hp=0;const R=110,dm=T.creeper.dmg*dmul(u);for(const o of U)if(o.tm!==u.tm&&!prot(o)){const dd=Math.hypot(o.x-u.x,o.y-u.y);if(dd<R)hurt(o,dm*(dd<R/2?1:.5))}if(Math.hypot(u.x-BX[1-u.tm],u.y-CY)<R+34)statue[1-u.tm]-=dm*2;puffs.push({x:u.x,y:u.y,t:.4,r:R,c:"74,222,128"});shake=.2}
 function update(dt){
  t+=dt;if(spawnCd>0)spawnCd-=dt;if(shake>0)shake-=dt;
  for(const p of puffs)p.t-=dt;puffs=puffs.filter(p=>p.t>0);
@@ -55,7 +57,8 @@ function update(dt){
  if(rain>0)rain-=dt;
  for(const f of rainFx){f.t-=dt;if(f.t<=0&&!f.done){f.done=true;puffs.push({x:f.x,y:f.y,t:.3});for(const o of U)if(o.tm===1&&Math.hypot(o.x-f.x,o.y-f.y)<45)hurt(o,18);if(Math.hypot(f.x-BX[1],f.y-CY)<60)statue[1]-=18}}rainFx=rainFx.filter(f=>!f.done);
  formation();
- const army1=U.filter(u=>u.tm===1&&u.t!=="miner").length,thr=Math.min(4+level*1.5,30);
+ const army1=U.filter(u=>u.tm===1&&u.t!=="miner").length,thr=Math.min(4+level*1.5,30),fr=[null,null];
+ for(const u of U)if(u.t!=="miner"&&!T[u.t].nec){const q=u.tm?-1:1;if(fr[u.tm]===null||u.x*q>fr[u.tm]*q)fr[u.tm]=u.x}
  for(const u of U){
   const d=T[u.t],dir=u.tm?-1:1;if(u.sw>0)u.sw-=dt;if(u.hit>0)u.hit-=dt;if(u.cd>0)u.cd-=dt;let moving=false;if(u.fz>0){u.fz-=dt;continue}if(u.fuse!=null){u.fuse-=dt;if(u.fuse<=0)boom(u);continue}
   const go=(tx,ty,stop)=>{const dx=tx-u.x,dy=ty-u.y,dd=Math.hypot(dx,dy);if(dd>stop){u.x+=dx/dd*d.sp*dt;u.y+=dy/dd*d.sp*dt;u.fa=Math.atan2(dy,dx);moving=true}return dd};
@@ -66,6 +69,7 @@ function update(dt){
   }else if(d.nec){
    let bb=null,bd=1e9;for(const b of B){const dd=Math.hypot(b.x-u.x,b.y-u.y);if(dd<bd){bd=dd;bb=b}}
    if(bb&&bd<400){if(bd>40)go(bb.x,bb.y,0);else{u.fa=Math.atan2(bb.y-u.y,bb.x-u.x);if(u.cd<=0){u.cd=2.2;u.sw=.5;spawn(u.tm,d.nec,bb.x,bb.y);B.splice(B.indexOf(bb),1)}}}
+   else if((u.tm?army1>=thr:stance===1)&&fr[u.tm]!==null)go(fr[u.tm]-dir*70,u.fy,6);
    else go(u.fx,u.fy,6);
   }else{
    const n=nearest(u),sd=Math.max(d.r,190),sx=BX[1-u.tm],sdist=Math.hypot(u.x-sx,u.y-CY)-34;let tgt=null,dist=1e9;
@@ -85,7 +89,7 @@ function update(dt){
  }
  for(let i=0;i<U.length;i++)for(let j=i+1;j<U.length;j++){const a=U[i],b=U[j],dx=b.x-a.x,dy=b.y-a.y;if(Math.abs(dx)<14&&Math.abs(dy)<14){const dd=Math.hypot(dx,dy)||1,p=(14-dd)*.5*Math.min(1,dt*8),ux=dx/dd,uy=dy/dd;a.x-=ux*p;a.y-=uy*p;b.x+=ux*p;b.y+=uy*p}}
  for(const a of A){a.x+=a.vx*dt;a.y+=a.vy*dt;a.life-=dt;if(a.life<=0){a.dead=1;continue}
-  for(const o of U)if(o.tm!==a.tm&&Math.hypot(o.x-a.x,o.y-a.y)<(o.t==="giant"?26:16)){hurt(o,a.dm);a.dead=1;break}
+  for(const o of U)if(o.tm!==a.tm&&!prot(o)&&Math.hypot(o.x-a.x,o.y-a.y)<(o.t==="giant"?26:16)){hurt(o,a.dm);a.dead=1;break}
   const sx=BX[1-a.tm];if(!a.dead&&Math.hypot(a.x-sx,a.y-CY)<34){statue[1-a.tm]-=a.dm;a.dead=1}}
  A=A.filter(a=>!a.dead);
  {const dead=U.filter(u=>u.hp<=0);for(const u of dead)if(u.t!=="miner"&&u.t!=="creeper")B.push({x:u.x,y:u.y,tm:u.tm,t:25});if(B.length>40)B.splice(0,B.length-40);const k=dead.filter(u=>u.tm===1).length;if(k){coins+=k*2;saveC()}}
@@ -156,16 +160,18 @@ function act(){if(state==="story"){state="play";return}if(state==="win"){if(leve
 function doRain(){if(state!=="play"||rain>0)return;rain=30;const en=U.filter(u=>u.tm===1&&u.t!=="miner"),front=en.length?Math.min(...en.map(u=>u.x)):BX[1]-500,cx=Math.max(200,Math.min(WW-200,front));for(let k=0;k<28;k++)rainFx.push({x:cx-120+Math.random()*240,y:CY-210+Math.random()*420,t:k*.04})}
 addEventListener("keydown",e=>{if(e.code==="Space")e.preventDefault();keys[e.code]=true;
  if(state!=="play"){if(e.code==="Space"||e.code==="Enter")act();return}
- if(e.code==="KeyQ")stance^=1;if(e.code==="KeyR")doRain();for(const k in T)if(e.key===T[k].k)buy(k)});
+ if(e.code==="KeyQ")stance^=1;if(e.code==="KeyR")doRain();if(e.code==="KeyM")toMiners();for(const k in T)if(e.key===T[k].k)buy(k)});
 addEventListener("keyup",e=>{keys[e.code]=false});
 C.addEventListener("pointerdown",()=>{if(state!=="play")act()});
 const bt=document.querySelector("#btns"),bs={};
 for(const k in T){if(T[k].nb)continue;const b=document.createElement("button");b.textContent=`${T[k].n} (${T[k].k}) 💰${T[k].c}`;b.onclick=()=>buy(k);bt.append(b);bs[k]=b}
 const sb=document.createElement("button");sb.className="s";sb.onclick=()=>{if(state==="play")stance^=1};bt.append(sb);
 const rb=document.createElement("button");rb.className="s";rb.textContent="🏹 Arrow Rain (R)";rb.onclick=doRain;bt.append(rb);
+const mb=document.createElement("button");mb.className="s";mb.textContent="⛏️ Necromancers → Miners (M)";mb.onclick=toMiners;bt.append(mb);
 const ub=document.createElement("div");ub.className="row";ub.style.marginTop="8px";bt.after(ub);const uB={};
 for(const k in UPS){const b=document.createElement("button");b.className="u";b.onclick=()=>{if(coins>=ucost(k)){coins-=ucost(k);up[k]++;saveC()}};ub.append(b);uB[k]=b}
 function ui(){for(const k in UPS){uB[k].textContent=`${UPS[k].n} Lv${up[k]} 🪙${ucost(k)}`;uB[k].title=UPS[k].i;uB[k].disabled=coins<ucost(k)}
+ mb.hidden=level<14;mb.disabled=state!=="play"||!U.some(u=>u.tm===0&&T[u.t].nec);
  for(const k in bs){bs[k].hidden=level<(T[k].ul||0);bs[k].disabled=gold[0]<T[k].c||state!=="play"}sb.textContent=stance?"⚔️ Attacking (Q)":"🛡️ Defending (Q)"}
 newGame();
 let last=performance.now();
