@@ -6,7 +6,7 @@ canvas{display:block;width:100%;height:auto;margin:.6rem auto;border:.2rem solid
 .row{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap;margin:.4rem 0}.row button{padding:.6rem .9rem;border:0;border-radius:.6rem;background:#0e7490;color:#fff;font-weight:700;font-size:1rem;cursor:pointer;user-select:none;touch-action:none}
 </style></head>
 <body><main><a href="../">← All games</a><h1>🚀 Ledge Launch</h1>
-<p>Throw platforms at walls and climb to the 🌀 portal! <strong>Click or tap</strong> to the left or right of you (or press <strong>E</strong>) to throw a platform straight out from right below your feet. Jump and throw in mid-air to build a staircase up tall walls. <strong>A/D or arrows</strong> move, <strong>W, Up or Space</strong> jump. You only have <strong>one ledge</strong>: throw another and the first one disappears. Wide pits need a ledge on the far pillar, and towers need a mid-air throw, so plan which wall gets your ledge. Avoid the spikes and pits!</p>
+<p>Throw platforms at walls and climb to the 🌀 portal! <strong>Click or tap</strong> to the left or right of you (or press <strong>E</strong>) to throw a platform straight out from right below your feet. Jump and throw in mid-air to build a staircase up tall walls. <strong>A/D or arrows</strong> move, <strong>W, Up or Space</strong> jump. You only have <strong>one ledge</strong>: throw another and the first one disappears. Only the glowing <strong>cyan blocks</strong> hold a ledge (grey stone blocks the throw), and you have a <strong>limited number of throws</strong> each level, so think before you throw: where you stand and how high you are decides which block you hit. Wide pits need a ledge on the far pillar, tall towers need a step and a mid-air throw. Avoid the spikes and pits!</p>
 <canvas id="c" width="960" height="540" aria-label="Ledge Launch game"></canvas>
 <div class="row"><button id="bl">◀</button><button id="bj">⤒ Jump</button><button id="br">▶</button><button id="be">🎯 Throw forward</button><button id="rs">↺ Restart level</button></div>
 </main>
@@ -18,38 +18,44 @@ const G={level:+localStorage.getItem(KEY)||1};
 const keys={},mouse={x:W/2,y:H/2,has:false};
 let seed=1;const rnd=()=>(seed=(seed*1664525+1013904223)>>>0)/4294967296;
 const stars=Array.from({length:70},(_,i)=>({x:(i*137)%W,y:(i*89)%330,s:1+(i%3)}));
-let L,p,cam,state,stateT,flash,msg,msgT,deaths,clock,shots,plats,ghosts,sparks,coyote,buffer,safeX;
+let left,L,p,cam,state,stateT,flash,msg,msgT,deaths,clock,shots,plats,ghosts,sparks,coyote,buffer,safeX;
 
 // ---------- level generation ----------
 // Sections: a pit with a pillar to throw at, a tower of stacked blocks, or a patch of spikes.
 function build(lv){
   seed=lv*7919+5;
   const grounds=[],blocks=[],spikes=[];
-  let c=-300,gx=-300;
+  let c=-300,gx=-300,need=0;
   const n=3+Math.min(lv,8);
+  const blk=(x,j,sticky)=>blocks.push({x,y:GY-BH*(j+1),w:BW,h:BH,plat:null,sticky});
   c+=500;
   for(let i=0;i<n;i++){
     c+=260+rnd()*160;
     const t=rnd();
     if(t<.4){
-      grounds.push([gx,c]);c+=230+rnd()*(30+Math.min(lv*4,40));gx=c;
-      blocks.push({x:c,y:GY-BH,w:BW,h:BH,plat:null});c+=BW;
+      // wide pit: a grey block at the edge blocks low throws, so throw from on top of it (or in mid-air)
+      if(lv>=2&&rnd()<.7){c+=BW;blk(c-BW,0,false)}
+      grounds.push([gx,c]);c+=215+rnd()*40;gx=c;
+      blk(c,0,true);c+=BW;need++;
     }else if(t<.75){
-      for(let j=0;j<2;j++)blocks.push({x:c,y:GY-BH*(j+1),w:BW,h:BH,plat:null});
-      c+=BW;
+      if(lv>=3&&rnd()<.5){
+        // three-block tower: climb the grey step first, then jump and throw at the top block
+        blk(c,0,false);c+=BW;
+        blk(c,0,false);blk(c,1,false);blk(c,2,true);c+=BW;
+      }else{blk(c,0,false);blk(c,1,true);c+=BW}
+      need++;
     }else{
       const w=50+rnd()*(25+Math.min(lv*3,15));spikes.push([c,c+w]);c+=w;
       // spikes right before a tower: jump over them and throw in mid-air to reach the top
-      if(rnd()<.6){c+=10;for(let j=0;j<2;j++)blocks.push({x:c,y:GY-BH*(j+1),w:BW,h:BH,plat:null});c+=BW}
+      if(rnd()<.6){c+=10;blk(c,0,false);blk(c,1,true);c+=BW;need++}
     }
   }
   c+=300;grounds.push([gx,c+200]);
   const solids=grounds.map(g=>({x:g[0],y:GY,w:g[1]-g[0],h:400})).concat(blocks);
-  return{grounds,blocks,spikes,solids,portal:{x:c+100,y:GY-34}};
-}
-function start(lv){
+  return{grounds,blocks,spikes,solids,portal:{x:c+100,y:GY-34},limit:need+Math.max(1,3-(lv>>1))};
+}function start(lv){
   if(lv)G.level=lv;
-  L=build(G.level);plats=[];ghosts=[];shots=[];sparks=[];
+  L=build(G.level);left=L.limit;plats=[];ghosts=[];shots=[];sparks=[];
   p={x:120,y:GY,vx:0,vy:0,f:1,g:true,rot:0,a:1,sc:1};
   cam={x:p.x-W/2,y:GY-380};
   state="play";stateT=0;coyote=0;buffer=0;safeX=120;clock=0;deaths=0;
@@ -65,7 +71,7 @@ const platBox=q=>q.side<0?{l:q.wall.x-PL*q.ext,r:q.wall.x}:{l:q.wall.x+q.wall.w,
 function ray(ox,oy,dx,dy){
   for(let d=0;d<=RANGE;d+=3){
     const x=ox+dx*d,y=oy+dy*d;
-    const w=L.blocks.find(b=>x>b.x&&x<b.x+b.w&&y>b.y&&y<b.y+b.h);
+    const w=L.blocks.find(b=>ox>b.x&&ox<b.x+b.w?false:x>b.x&&x<b.x+b.w&&y>b.y&&y<b.y+b.h);
     if(w)return{w,x,y,d};
     if(y>=GY&&L.grounds.some(g=>x>g[0]&&x<g[1]))return{x,y,d};
   }
@@ -78,6 +84,8 @@ function aim(dir){
 }
 function throwAt(tx){
   if(state!=="play")return;
+  if(left<=0){msg="No throws left - press Restart";msgT=2;return}
+  left--;
   if(tx!==undefined&&Math.abs(tx-p.x)>4)p.f=tx>p.x?1:-1;
   const a=aim(p.f);
   shots.push({x0:a.ox,y0:a.oy,x1:a.hit.x,y1:a.hit.y,dx:a.dx,w:a.hit.w,t:0,dur:Math.max(.04,a.hit.d/SHOT_SPEED)});
@@ -118,7 +126,7 @@ function update(dt){
   if(state==="play"){
     clock+=dt;
     const n=Math.ceil(dt*120);for(let i=0;i<n&&state==="play";i++)physics(dt/n);
-    for(const s of shots){s.t+=dt/s.dur;if(s.t>=1){s.done=true;if(s.w)stick(s);else puff(s.x1,s.y1,"#94a3b8",6)}}
+    for(const s of shots){s.t+=dt/s.dur;if(s.t>=1){s.done=true;if(s.w&&s.w.sticky)stick(s);else puff(s.x1,s.y1,"#94a3b8",6)}}
     shots=shots.filter(s=>!s.done);
   }else if(state==="enter"){
     stateT+=dt;const t=Math.min(stateT/SPIN,1);
@@ -147,8 +155,8 @@ function draw(){
   x.fillStyle="#f87171";
   for(const s of L.spikes)for(let a=s[0];a<s[1];a+=14){x.beginPath();x.moveTo(sx(a),sy(GY));x.lineTo(sx(Math.min(a+7,s[1])),sy(GY-16));x.lineTo(sx(Math.min(a+14,s[1])),sy(GY));x.fill()}
   for(const w of L.blocks){
-    x.fillStyle="#64748b";x.fillRect(sx(w.x),sy(w.y),w.w,w.h);x.strokeStyle="#334155";x.lineWidth=3;x.strokeRect(sx(w.x)+1.5,sy(w.y)+1.5,w.w-3,w.h-3);
-    x.fillStyle="#94a3b8";x.fillRect(sx(w.x)+4,sy(w.y)+4,w.w-8,5);
+    x.fillStyle=w.sticky?"#0e7490":"#475569";x.fillRect(sx(w.x),sy(w.y),w.w,w.h);x.strokeStyle=w.sticky?"#22d3ee":"#1e293b";x.lineWidth=3;x.strokeRect(sx(w.x)+1.5,sy(w.y)+1.5,w.w-3,w.h-3);
+    x.fillStyle=w.sticky?"#67e8f9":"#64748b";x.fillRect(sx(w.x)+4,sy(w.y)+4,w.w-8,5);
   }
   const drawPlat=(q,a)=>{const b=platBox(q);x.globalAlpha=a;x.shadowColor="#22d3ee";x.shadowBlur=12;x.fillStyle="#22d3ee";x.fillRect(sx(b.l),sy(q.y),b.r-b.l,10);x.shadowBlur=0;x.fillStyle="#cffafe";x.fillRect(sx(b.l),sy(q.y),b.r-b.l,3);x.globalAlpha=1};
   for(const q of plats)drawPlat(q,1);
@@ -168,8 +176,8 @@ function draw(){
     x.restore();
   }
   for(const f of sparks){x.globalAlpha=Math.max(0,f.t*2);x.fillStyle=f.col;x.fillRect(sx(f.x),sy(f.y),3,3)}x.globalAlpha=1;
-  x.fillStyle="#000a";x.fillRect(0,0,230,30);x.fillStyle="#fff";x.font="bold 16px Arial";x.textAlign="left";
-  x.fillText("Level "+G.level+"  ·  "+clock.toFixed(0)+"s  ·  Falls "+deaths,10,21);
+  x.fillStyle="#000a";x.fillRect(0,0,340,30);x.fillStyle="#fff";x.font="bold 16px Arial";x.textAlign="left";
+  x.fillText("Level "+G.level+"  ·  "+clock.toFixed(0)+"s  ·  Falls "+deaths+"  ·  Throws "+left,10,21);
   if(msgT>0){x.textAlign="center";x.font="bold 26px Arial";x.fillStyle="rgba(255,255,255,"+Math.min(1,msgT)+")";x.fillText(msg,W/2,80)}
   if(flash>0){x.fillStyle="rgba(255,255,255,"+flash+")";x.fillRect(0,0,W,H)}
 }
