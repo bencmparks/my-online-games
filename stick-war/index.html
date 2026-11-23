@@ -6,7 +6,7 @@ canvas{display:block;width:100%;height:auto;margin:.8rem auto;border:.2rem solid
 .row{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap}.row button{padding:.6rem .9rem;border:0;border-radius:.6rem;background:#2563eb;color:#fff;font-weight:700;font-size:1rem;cursor:pointer;user-select:none}.row button:disabled{opacity:.4;cursor:not-allowed}.row button.s{background:#7c3aed}
 </style></head>
 <body><main><a href="../">← All games</a><h1>⚔️ Stick Legion</h1>
-<p>A birds-eye battle: the whole field is on screen and your army stands in organised ranks (tough fighters in front, archers and witches behind, necromancers at the back, and necromancers march forward with the army). Your miners and necromancers cannot be attacked. Press <strong>M</strong> to turn all your necromancers into miners. Miners dig gold automatically. Buy units with the buttons or keys <strong>1-9</strong>. <strong>Q</strong> switches your army between <em>Attack</em> (they march in formation) and <em>Defend</em>. <strong>R</strong> calls Arrow Rain on the enemy front. 100 levels in 10 story chapters! You are the Blue Brigade, rebelling against the cruel White Warriors. New units unlock as you go: Witch (level 4), Berserker (7), Ice Berserker (11) and Necromancer (15), who turns fallen bodies into zombies, and Creepy Necromancer (19), who turns them into exploding creepers instead. After a win, a fifth of each kind of surviving warrior stays with you for the next level (rounded up), and for every soldier kind you have none of, another fifth of your miners stays; the rest go home. Earn 🪙 coins from kills and wins, then buy permanent upgrades below the canvas.</p>
+<p>A birds-eye battle: the whole field is on screen and your army stands in organised ranks (tough fighters in front, archers and witches behind, necromancers at the back, and necromancers march forward with the army). Your miners and necromancers cannot be attacked. Every level opens with its own story chunk. Press <strong>M</strong> to turn all your necromancers into miners. Miners dig gold automatically. Buy units with the buttons or keys <strong>1-9</strong>. <strong>Q</strong> switches your army between <em>Attack</em> (they march in formation) and <em>Defend</em>. <strong>R</strong> calls Arrow Rain on the enemy front. 100 levels in 10 story chapters! You are the Blue Brigade, rebelling against the cruel White Warriors. New units unlock as you go: Witch (level 4), Berserker (7), Ice Berserker (11) and Necromancer (15), who turns fallen bodies into zombies, and Creepy Necromancer (19), who turns them into exploding creepers instead. After a win, a fifth of each kind of surviving warrior stays with you for the next level (rounded up), and for every soldier kind you have none of, another fifth of your miners stays; the rest go home. Earn 🪙 coins from kills and wins, then buy permanent upgrades below the canvas.</p>
 <canvas id="c" width="900" height="420" aria-label="Stick Legion game"></canvas>
 <div class="row" id="btns"></div>
 </main>
@@ -32,9 +32,110 @@ const STORY=[
 {t:"Chapter 8: The Iron Marshal",s:"The Empress sends her best: the Iron Marshal and his endless legions. They are stronger, more numerous and merciless. Stand firm, Commander. Every victory now is a legend."},
 {t:"Chapter 9: The Last Mountain",s:"Only the Last Mountain stands between the Blue Brigade and the capital. The White Warriors throw everything they have onto its slopes. Climb, fight, and do not look back."},
 {t:"Chapter 10: The White Throne",s:"The capital gleams white against the sky. Behind its gates sits the Empress on her white throne. This is it: the final ten battles. Win them and the Blue Brigade will finally be free."}];
-const ENDING="The last white statue falls. The Empress's throne is empty, the white banners come down, and blue flags fly over every mine and village. The rebellion is won, Commander. The Blue Brigade is free!";
+const LV=[
+"Old Brun hands you a rusty pickaxe and a blue rag for a flag. 'Every army starts small, Commander,' he grins. 'Ours starts with two miners.'",
+"The first white statue is just a quiet outpost on a hill, but the whole valley is watching. Win here and the villages will start to believe.",
+"Mira, a young scout, slips out of the reeds with news: the guards by the river change shifts at dusk. She joins your Brigade on the spot.",
+"A farmer leaves a basket of bread at your camp and says nothing. Hungry fighters are stubborn fighters. March on the next outpost.",
+"The White Warriors send archers to the old stone bridge. Mira whispers that the bridge is the only way across the gorge.",
+"Brun finds a vein of gold under the camp. 'Dig deep, dig fast,' he laughs. Gold buys swords, and swords buy freedom.",
+"Smoke rises from a village that refused to pay the White tax. You cannot save it tonight, but you can make sure it is the last one.",
+"Word spreads: the Blue Brigade has beaten five outposts. Strangers begin to hum an old tune about a blue banner at the campfire.",
+"The outpost ahead is guarded by a tall giant in white armour. Mira says he is slow, but his club cracks stone. Stay together.",
+"The last outpost of the border fort. Behind it lies the Frost Road. Raise the blue banner high, Commander. One more hill and the first chapter is won.",
+"Snow falls on the Frost Road. Your fighters wrap their hands in rags and keep marching. Mira says the northern guard never sleeps in the cold.",
+"A frozen lake blocks the way. White archers wait on the far shore, sure that nobody will dare to cross. Brun grins and tests the ice.",
+"Footprints in the snow lead to a hidden cabin. A retired soldier hands you his old shield and a map of the northern forts.",
+"A blizzard hides your army from the white scouts. You strike from the whiteness and the guards never see the blue coming.",
+"The northern guard captain challenges you to a fair fight. Mira laughs: the White Warriors have never fought fair in their lives.",
+"Your fighters trade their last gold for warm blankets from a mountain village. In return, ten brave villagers pick up spears and follow you.",
+"An ice cave glitters with strange blue crystals. Brun swears they hum when the Blue Brigade walks past. Take the fort above the cave.",
+"A white messenger offers a deal: put down the banner and your fighters will be forgiven. You send back one answer: your best archers.",
+"The frozen guard sends its toughest fighters down the mountain. Hold the pass and the northern road will belong to the Brigade.",
+"The last northern fort burns with a blue flame of victory. Spring is coming, but a strange hooded figure has been seen on the road south.",
+"The hooded figure waits at a crossroads and bows. 'I am Vesper,' she says. 'I can raise the fallen. Shall I show you what that means?'",
+"At night, a fallen soldier rises from the grass with eyes of green fire. Mira shivers. Vesper only smiles. 'Do not fear them. They fight for you.'",
+"The village elder begs you not to use dark magic. You promise the dead will rest when the war is over. It is a promise you mean to keep.",
+"A white patrol finds your camp. Your first zombies shuffle into the battle and the patrol runs back crying that the dead have joined the rebels.",
+"Brun mutters that mining was a lot less spooky. Still, the gold keeps flowing, and Vesper's followers never ask for a share.",
+"The battlefield at Greywater is full of the fallen. Vesper walks between the graves with her staff. 'Many hands make light work,' she says.",
+"Mira finds a diary in a white fort: the Empress is afraid of the Blue Brigade. She has ordered more statues built in every town.",
+"A white general tries to scare you with a giant statue of the Empress. Your fighters climb all over it and plant the blue flag on its nose.",
+"Vesper warns that necromancers can be reckless. She teaches the Brigade to keep them behind the shield line, where they are safe.",
+"The Greywater fort falls, and the white road to the south is open. Far below, the tunnels glow green, as if something is waiting.",
+"Deep in the mine tunnels you find a nest of glowing green creatures that hiss and burst. Vesper calls them creepers and her eyes light up.",
+"Brun refuses to go into the tunnel until you promise there are no more creepers. There are four. He goes in anyway, grumbling loudly.",
+"A creeper blows a hole in the tunnel wall and daylight spills in. The rebels pour out right behind a white outpost, to everyone's surprise.",
+"The Creepy Necromancer is born: a hooded wizard who raises exploding creepers. Mira jokes that the Brigade has gone from rebels to a fireworks show.",
+"The White Warriors learn the creepers' hiss and learn to run. But there are always more creepers than there are places to run.",
+"A white scientist sends a note: she wants to study the creepers. You send back a blue ribbon and a warning. She does not reply.",
+"A tunnel collapses and Mira is trapped. Brun and the miners dig all night, and at dawn they pull her out, dusty and furious that she missed a battle.",
+"Light at the end of the tunnel: a hidden white arsenal full of spears. The Blue Brigade has never been so well armed.",
+"Vesper confesses that creepers are a bit unpredictable. 'Just keep them pointed at the enemy,' she says. You nod. It is the best advice so far.",
+"The tunnels end beneath a huge white fortress. Above, the garrison is celebrating the Empress's birthday. A very loud surprise is on the way.",
+"The first great white city rises on the horizon. Its walls are twice as tall as any you have seen, and its towers are lined with archers.",
+"Brun inspects the walls with a miner's eye. 'Soft mortar,' he says. 'Hit them in the right place and the whole thing sings.'",
+"Mira sneaks into the city dressed as a baker. She comes back with a map of the garrison, and a loaf of bread she insists on sharing.",
+"The white city gates are opened by a brave guard who is tired of the Empress. Not every white soldier loves the white banner.",
+"A wall of white shields advances slowly across the plain. Hold your ranks, Commander. Patience wins sieges.",
+"A white siege tower rolls toward your camp. Your creepers politely suggest it is the wrong place to park.",
+"Citizens leave blue cloth on their doorsteps for the Brigade. Soon the whole city is hung with blue and the garrison is surrounded by the cheering.",
+"The city's high priest calls the rebels monsters. The next morning the people pelt him with blue petals. He leaves the city in a huff.",
+"The central tower of the white city is the last to fall. Its bell rings, and every village for a hundred miles rings back.",
+"The great white city is yours. Bakers, smiths and children cheer in the streets. Sadly, one member of your inner circle is not cheering at all.",
+"Kessan, your trusted lieutenant, has been quiet for days. Mira finds a white seal in his tent. She says nothing, but she watches him closely.",
+"A white ambush hits the supply wagons at night. Someone told them exactly where to look. The Brigade begins to whisper.",
+"Brun swears that the traitor must be somebody who has been eating all the good bread. Nobody laughs. The tension in camp is heavy.",
+"Mira follows Kessan into the forest and sees him hand a scroll to a hooded white spy. She runs back to warn you, but is too late.",
+"The White Warriors swarm out of the forest at dawn, led by Kessan, who wears a white sash. 'I am sorry,' he says. He is not.",
+"Many Blues fall in the ambush. Vesper's necromancers raise them again, and the Brigade fights on with a grim, quiet fury.",
+"Kessan escapes through a hidden tunnel. You find his abandoned helmet and a note: 'The Empress rewards loyalty.' You burn it.",
+"The Brigade is hurt, but not broken. Brun lifts his pickaxe. 'One coward does not make a rebellion.' The cheer that follows is real.",
+"A new recruit walks into camp: a young swordswoman who has never lost a duel. She says only 'I hate traitors.' You welcome her at once.",
+"The betrayal is behind you. Ahead, the road climbs into the dark hills. You are tired, but the whole land is waiting.",
+"The first snow of winter falls on burnt fields. The White Warriors have set fire to their own harvest to starve the rebels.",
+"The Brigade shares its last loaves. Each fighter eats a little less so that the villagers can eat a little more.",
+"Mira finds a hidden granary in a white fort. Hundreds of sacks of grain. You send them to the villages, with a blue ribbon on every one.",
+"Brun grumbles that winter is bad for the mines. Then he finds a warm spring and decides it is his favourite place in the world.",
+"A white blizzard-mage freezes the river behind you. Your fighters laugh: now they can walk across it and surprise the fort on the other side.",
+"Vesper's necromancers gather around a fire. Even the dead like the warmth, Brun jokes. The zombies shuffle closer and nobody complains.",
+"A frostbitten white soldier surrenders and asks for soup. You give him two bowls. By morning he is carrying a blue banner.",
+"The Empress sends a message: she will pardon every rebel who walks home. Not one fighter leaves the camp. Not one.",
+"The longest night of the year. You sit around the fire and tell stories of the first banner. Then you march on, in the middle of the night.",
+"The winter fort falls at dawn, and the sun comes out for the first time in a month. The snow starts to melt.",
+"Spring turns the roads to mud. The White Warriors do not care. They send the Iron Marshal's first legions to meet you.",
+"The Iron Marshal is a huge man in a polished helmet, said to be taller than a giant. 'Lay down your picks,' he calls. You decline politely.",
+"His legions march in perfect rows. Mira says they have never lost a battle. 'Then they are overdue,' says Brun, rolling up his sleeves.",
+"A white sniper shoots a blue banner off its pole. The swordswoman climbs up and puts it back. Both armies stop to watch.",
+"The Marshal offers a duel. You send the swordswoman. She wins in six strokes. The legions are stunned and quiet for a long time.",
+"The Marshal's heavy catapults rain boulders on your camp. Vesper's creepers climb up the ramparts and give the catapults a nasty surprise.",
+"A deserter tells you that the Marshal has not been paid in a year. The legions are loyal to gold, not to the Empress. You pay better.",
+"Brun brings you a strange map he dug up: ancient tunnels that run under the Marshal's camp. 'Convenient,' he says with a straight face.",
+"Fire on the horizon: the Marshal is burning bridges behind him. He has nowhere to retreat to. Neither do you. Hold the line.",
+"The Iron Marshal's last stand. He throws his helmet to the ground and shouts that the Empress will never forgive this. You almost feel sorry for him.",
+"The Last Mountain rises from the mist like a giant's tooth. A narrow road winds up, with white forts on every bend.",
+"Mira says the first climb is the easiest. 'Then why are you sweating?' asks Brun. She tells him to mind his own pickaxe.",
+"A rockslide blocks the pass. Vesper's necromancers raise the fallen from the road, and they clear the rocks without a single complaint.",
+"A white archer hits a blue flag from a quarter of a mile away. The swordswoman nods. 'Impressive,' she says. 'Now I want him on my team.'",
+"Halfway up, a hidden monastery offers shelter. The monks bless your banners and ask nothing in return but peace when you win.",
+"The wind is so strong on the ridge that arrows curve in the air. Your archers hold their fire and wait. Patience wins on mountains too.",
+"Brun finds gold in the mountain. 'Not now,' you say. 'Later,' he promises. He marks the spot on his map with a tiny blue flag.",
+"A white fortress sits on the summit like a crown. Its gates are tall. Its walls are tall. Its soldiers are very, very tall.",
+"Kessan appears on the wall, still in his white sash. He shouts something about loyalty. Nobody on your side bothers to listen.",
+"The Last Mountain falls. From the summit you can finally see it: the capital, shining white, and the throne of the Empress inside.",
+"The road to the capital is paved in white marble. Your boots leave blue dust on every step. The people in the streets stare at you in awe.",
+"White banners hang from every window. Some are torn, and some have a blue stitch sewn in secretly. The city is not as white as it looks.",
+"The Empress's guards are the finest in the land, each one a hundred times tougher than an ordinary soldier. They line up in front of the gate.",
+"Kessan challenges you to a duel in the plaza. The swordswoman steps in front of you. 'This one is mine,' she says. It does not take long.",
+"The Empress's court wizard summons a storm. Lightning cracks over the plaza. Vesper only smiles and raises her staff. The storm backs away.",
+"Brun and the miners dig under the capital while the army holds the gates. The ground trembles, and a section of the wall slowly leans.",
+"The wall falls. The Brigade pours into the capital with banners flying. Mira laughs and cries at the same time.",
+"Only the palace is left. Its great doors are shut and the Empress watches from the highest window. Her face is pale and her hands are shaking.",
+"The Empress offers you half her kingdom. You shake your head. 'We did not come for half,' you say. 'We came for freedom for everyone.'",
+"The final battle: the last white statue stands before the throne. The Brigade stands behind you, every fighter ready. Raise the blue banner, Commander."
+];const ENDING="The last white statue falls. The Empress's throne is empty, the white banners come down, and blue flags fly over every mine and village. The rebellion is won, Commander. The Blue Brigade is free!";
 let shown=-1,B=[],U,A,gold,statue,smax,stance,state,t,aiT,spawnCd,rain,rainFx,puffs,shake;
-function newGame(){U=[];A=[];B=[];gold=[300+up.g*100,200+Math.min(level,60)*60];smax=[1500*(1+up.s*.2),1200+Math.min(level,39)*350+Math.max(0,level-39)*150];statue=smax.slice();stance=0;state=level%10===0&&shown!==level?(shown=level,"story"):"play";t=0;aiT=2;spawnCd=0;rain=0;rainFx=[];puffs=[];shake=0;
+function newGame(){U=[];A=[];B=[];gold=[300+up.g*100,200+Math.min(level,60)*60];smax=[1500*(1+up.s*.2),1200+Math.min(level,39)*350+Math.max(0,level-39)*150];statue=smax.slice();stance=0;state=shown!==level?(shown=level,"story"):"play";t=0;aiT=2;spawnCd=0;rain=0;rainFx=[];puffs=[];shake=0;
  for(const k of carry)spawn(0,k);spawn(1,"miner");spawn(1,"miner");for(let i=0;i<Math.min(level,30);i++)spawn(1,i%3===2?"archer":"sword");formation()}
 function spawn(tm,ty,px,py){const d=T[ty],hm=tm?1+Math.max(0,level-30)*.015:1+up.h*.12;U.push({t:ty,tm,x:px!=null?px:BX[tm]+(tm?-60:60)+Math.random()*20,y:py!=null?py:CY+(Math.random()-.5)*240,hp:d.hp*hm,max:d.hp*hm,cd:0,sw:0,st:0,tmr:0,fa:tm?Math.PI:0,fx:0,fy:CY})}
 function pop(tm){return U.filter(u=>u.tm===tm).length}
@@ -152,7 +253,8 @@ function draw(){
  text(rain>0?`Arrow Rain ${Math.ceil(rain)}s`:"Arrow Rain ready (R)",W-12,28,16,rain>0?"#94a3b8":"#fbbf24","right");text(`White Warriors ${pop(1)}`,W-12,50,16,"#f1f5f9","right");
  if(state!=="play"){x.fillStyle="rgba(0,0,0,.6)";x.fillRect(0,0,W,H);
   if(state==="win"){text("VICTORY! 🎉",W/2,170,56,"#fde047");text(`${carry.length} of your warriors stay for the next battle`,W/2,200,18,"#bae6fd");if(level>=99){para(ENDING,W/2,236,760,24,18,"#fff");text("The Blue Brigade is free! 🎉",W/2,320,24,"#93c5fd")}else text("Click or press Space for the next level",W/2,230,22,"#fff")}
-  else if(state==="story"){const c=STORY[Math.floor(level/10)];text(c.t,W/2,90,30,"#fde047");para(c.s,W/2,140,780,26,18,"#fff");text("Click or press Space to begin",W/2,H-40,18,"#93c5fd")}
+  else if(state==="story"){const c=STORY[Math.floor(level/10)];let y=90;if(level%10===0){text(c.t,W/2,y,30,"#fde047");y=para(c.s,W/2,y+50,780,26,18,"#fff")+50}else text(c.t.replace(/^Chapter \d+: /,""),W/2,y,22,"#fde047");
+   text(`Level ${level+1}`,W/2,y+(level%10===0?0:50),level%10===0?22:30,"#fde047");para(LV[level],W/2,y+(level%10===0?36:100),780,26,18,"#e0f2fe");text("Click or press Space to begin",W/2,H-40,18,"#93c5fd")}
   else{text("DEFEAT 💀",W/2,170,56,"#fca5a5");text("Click or press Space to try again",W/2,230,22,"#fff")}}
 }
 const keys={};
