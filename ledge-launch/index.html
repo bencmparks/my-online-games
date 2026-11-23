@@ -6,147 +6,188 @@ canvas{display:block;width:100%;height:auto;margin:.6rem auto;border:.2rem solid
 .row{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap;margin:.4rem 0}.row button{padding:.6rem .9rem;border:0;border-radius:.6rem;background:#0e7490;color:#fff;font-weight:700;font-size:1rem;cursor:pointer;user-select:none;touch-action:none}
 </style></head>
 <body><main><a href="../">← All games</a><h1>🚀 Ledge Launch</h1>
-<p>Throw platforms at walls and climb to the 🌀 portal! <strong>Click or tap</strong> where you want to throw (or press <strong>E</strong> to throw forward). <strong>A/D or arrows</strong> move, <strong>W, Up or Space</strong> jump. A wall holds only <strong>one platform</strong>: throw another at the same wall block and the first one goes away. Don't fall in the pits!</p>
+<p>Throw platforms at walls and climb to the 🌀 portal! <strong>Click or tap</strong> to the left or right of you (or press <strong>E</strong>) to throw a platform straight out from right below your feet. Jump and throw in mid-air to build a staircase up tall walls. <strong>A/D or arrows</strong> move, <strong>W, Up or Space</strong> jump. Every wall block holds only <strong>one platform</strong>: throw another at the same block and the first one goes away. Avoid the spikes and pits!</p>
 <canvas id="c" width="960" height="540" aria-label="Ledge Launch game"></canvas>
 <div class="row"><button id="bl">◀</button><button id="bj">⤒ Jump</button><button id="br">▶</button><button id="be">🎯 Throw forward</button><button id="rs">↺ Restart level</button></div>
 </main>
 <script>
-const C=document.querySelector("#c"),x=C.getContext("2d"),W=960,H=540,GY=440,KEY="ledgeLaunchLevel";
-const PW=18,PH=30,BH=90,BW=60,PL=84,RANGE=480,SPIN=2.6;
-let level=+localStorage.getItem(KEY)||1;
-let seed=1,grounds,walls,S,plats,shots,fx,p,state,stateT,cam,portal,safeX,msg="",msgT=0,fade=0;
+(()=>{
+const C=document.querySelector("#c"),ctx=C.getContext("2d"),W=960,H=540;
+const GY=440,BH=90,BW=60,PL=84,PW=18,PH=30,RANGE=480,SHOT_SPEED=1100,SPIN=2.6,KEY="ledgeLaunchLevel";
+const G={level:+localStorage.getItem(KEY)||1};
 const keys={},mouse={x:W/2,y:H/2,has:false};
-const rnd=()=>(seed=(seed*1664525+1013904223)>>>0)/4294967296;
+let seed=1;const rnd=()=>(seed=(seed*1664525+1013904223)>>>0)/4294967296;
 const stars=Array.from({length:70},(_,i)=>({x:(i*137)%W,y:(i*89)%330,s:1+(i%3)}));
+let L,p,cam,state,stateT,flash,msg,msgT,deaths,clock,shots,plats,ghosts,sparks,coyote,buffer,safeX;
 
-function gen(lv){
-  seed=lv*7919+5;grounds=[];walls=[];
-  let c=-300,gx=-300;const n=3+Math.min(lv,7),tall=2+Math.min(lv>>1,5);
+// ---------- level generation ----------
+// Sections: a pit with a pillar to throw at, a tower of stacked blocks, or a patch of spikes.
+function build(lv){
+  seed=lv*7919+5;
+  const grounds=[],blocks=[],spikes=[];
+  let c=-300,gx=-300;
+  const n=3+Math.min(lv,7),tall=2+Math.min(lv>>1,5);
   c+=500;
   for(let i=0;i<n;i++){
     c+=260+rnd()*160;
-    if(rnd()<.5){
+    const t=rnd();
+    if(t<.4){
       grounds.push([gx,c]);c+=110+rnd()*(40+Math.min(lv*6,50));gx=c;
-      walls.push({x:c,y:GY-BH,w:BW,h:BH,plat:null});
+      blocks.push({x:c,y:GY-BH,w:BW,h:BH,plat:null});c+=BW;
+    }else if(t<.75){
+      for(let j=0;j<tall;j++)blocks.push({x:c,y:GY-BH*(j+1),w:BW,h:BH,plat:null});
       c+=BW;
     }else{
-      for(let j=0;j<tall;j++)walls.push({x:c,y:GY-BH*(j+1),w:BW,h:BH,plat:null});
-      c+=BW;
+      const w=50+rnd()*(25+Math.min(lv*3,15));spikes.push([c,c+w]);c+=w;
     }
   }
   c+=300;grounds.push([gx,c+200]);
-  portal={x:c+100,y:GY-34};
-  S=grounds.map(g=>({x:g[0],y:GY,w:g[1]-g[0],h:400})).concat(walls);
+  const solids=grounds.map(g=>({x:g[0],y:GY,w:g[1]-g[0],h:400})).concat(blocks);
+  return{grounds,blocks,spikes,solids,portal:{x:c+100,y:GY-34}};
 }
-function init(lv){
-  if(lv)level=lv;
-  gen(level);plats=[];shots=[];fx=[];
+function start(lv){
+  if(lv)G.level=lv;
+  L=build(G.level);plats=[];ghosts=[];shots=[];sparks=[];
   p={x:120,y:GY,vx:0,vy:0,f:1,g:true,rot:0,a:1,sc:1};
-  safeX=120;state="play";stateT=0;cam={x:p.x-W/2,y:GY-380};
-  msg=level===1?"Click a wall to throw a platform":"Level "+level;msgT=3;
+  cam={x:p.x-W/2,y:GY-380};
+  state="play";stateT=0;coyote=0;buffer=0;safeX=120;clock=0;deaths=0;
+  msg=G.level===1?"Click or press E to throw a platform at a wall":"Level "+G.level;msgT=3;
 }
-function hit(s,px,py){return px+PW/2>s.x&&px-PW/2<s.x+s.w&&py>s.y&&py-PH<s.y+s.h}
-function puff(px,py,col,n){for(let i=0;i<n;i++)fx.push({x:px,y:py,vx:(Math.random()-.5)*160,vy:(Math.random()-.5)*160,t:.5,col})}
 
-function throwAt(tx,ty){
-  if(state!=="play")return;
-  const ox=p.x,oy=p.y-PH/2;let dx=tx-ox,dy=ty-oy;const d=Math.hypot(dx,dy)||1;dx/=d;dy/=d;
-  if(Math.abs(dx)>.05)p.f=dx>0?1:-1;
-  shots.push({x:ox,y:oy,dx,dy,d:0});
-}
-function stick(w,s){
-  const side=Math.abs(s.dx)>.05?(s.dx>0?-1:1):-p.f;
-  const pl={x:side<0?w.x-PL:w.x+w.w,y:Math.min(Math.max(s.y,w.y+6),w.y+w.h-10),w:PL,h:10,t:0};
-  if(w.plat){const i=plats.indexOf(w.plat);if(i>=0)plats.splice(i,1);puff(w.plat.x+PL/2,w.plat.y,"#67e8f9",10)}
-  w.plat=pl;plats.push(pl);puff(s.x,s.y,"#a5f3fc",8);
-}
-function stepShots(dt){
-  for(const s of shots){
-    let left=900*dt;
-    while(left>0&&!s.dead){
-      const st=Math.min(4,left);left-=st;s.x+=s.dx*st;s.y+=s.dy*st;s.d+=st;
-      const w=walls.find(b=>s.x>b.x&&s.x<b.x+b.w&&s.y>b.y&&s.y<b.y+b.h);
-      if(w){stick(w,s);s.dead=true}
-      else if(s.y>=GY&&grounds.some(g=>s.x>g[0]&&s.x<g[1])||s.d>RANGE){puff(s.x,s.y,"#94a3b8",6);s.dead=true}
-    }
+// ---------- helpers ----------
+const overlap=(s,px,py)=>px+PW/2>s.x&&px-PW/2<s.x+s.w&&py>s.y&&py-PH<s.y+s.h;
+function puff(px,py,col,n){for(let i=0;i<n;i++)sparks.push({x:px,y:py,vx:(Math.random()-.5)*160,vy:(Math.random()-.5)*160,t:.5,col})}
+const platBox=q=>q.side<0?{l:q.wall.x-PL*q.ext,r:q.wall.x}:{l:q.wall.x+q.wall.w,r:q.wall.x+q.wall.w+PL*q.ext};
+
+// A thrown platform is resolved instantly along a ray and animated while it flies.
+function ray(ox,oy,dx,dy){
+  for(let d=0;d<=RANGE;d+=3){
+    const x=ox+dx*d,y=oy+dy*d;
+    const w=L.blocks.find(b=>x>b.x&&x<b.x+b.w&&y>b.y&&y<b.y+b.h);
+    if(w)return{w,x,y,d};
+    if(y>=GY&&L.grounds.some(g=>x>g[0]&&x<g[1]))return{x,y,d};
   }
-  shots=shots.filter(s=>!s.dead);
+  return{x:ox+dx*RANGE,y:oy+dy*RANGE,d:RANGE};
+}
+// platforms always fly straight out, level with the spot right below your feet (just above the ground when standing)
+function aim(dir){
+  const ox=p.x,oy=Math.min(p.y+4,GY-6);
+  return{ox,oy,dx:dir,dy:0,hit:ray(ox,oy,dir,0)};
+}
+function throwAt(tx){
+  if(state!=="play")return;
+  if(tx!==undefined&&Math.abs(tx-p.x)>4)p.f=tx>p.x?1:-1;
+  const a=aim(p.f);
+  shots.push({x0:a.ox,y0:a.oy,x1:a.hit.x,y1:a.hit.y,dx:a.dx,w:a.hit.w,t:0,dur:Math.max(.04,a.hit.d/SHOT_SPEED)});
+}
+function stick(s){
+  const w=s.w;
+  if(w.plat){ghosts.push({q:w.plat,t:.3});plats.splice(plats.indexOf(w.plat),1);puff(platBox(w.plat).l+PL/2,w.plat.y,"#67e8f9",10)}
+  const side=Math.abs(s.dx)>.05?(s.dx>0?-1:1):-p.f;
+  const q={wall:w,side,y:Math.max(s.y1,w.y+6),ext:0};
+  w.plat=q;plats.push(q);puff(s.x1,s.y1,"#a5f3fc",8);
+}
+
+// ---------- update ----------
+function die(msgText){
+  deaths++;p.x=safeX;p.y=GY;p.vx=p.vy=0;msg=msgText;msgT=1.5;
 }
 function physics(dt){
-  const L=keys.ArrowLeft||keys.KeyA,R=keys.ArrowRight||keys.KeyD;
-  p.vx=((R?1:0)-(L?1:0))*230;if(p.vx)p.f=p.vx>0?1:-1;
-  if((keys.ArrowUp||keys.KeyW||keys.Space)&&p.g){p.vy=-620;p.g=false}
+  const left=keys.ArrowLeft||keys.KeyA,right=keys.ArrowRight||keys.KeyD,jump=keys.ArrowUp||keys.KeyW||keys.Space;
+  p.vx=((right?1:0)-(left?1:0))*230;if(p.vx)p.f=p.vx>0?1:-1;
+  coyote=p.g?.1:coyote-dt;
+  if(jump&&!keys._j)buffer=.1;keys._j=jump;buffer-=dt;
+  if(buffer>0&&coyote>0){p.vy=-620;p.g=false;coyote=0;buffer=0}
   p.vy=Math.min(p.vy+1500*dt,1000);
   p.x+=p.vx*dt;
-  for(const s of S)if(hit(s,p.x,p.y)){p.x=p.vx>0?s.x-PW/2:s.x+s.w+PW/2;if(!p.vx)p.x=p.x<s.x+s.w/2?s.x-PW/2:s.x+s.w+PW/2}
-  const py=p.y;p.y+=p.vy*dt;p.g=false;
-  for(const s of S)if(hit(s,p.x,p.y)){if(p.vy>=0){p.y=s.y;p.g=true}else p.y=s.y+s.h+PH;p.vy=0}
-  if(p.vy>=0)for(const q of plats)if(p.x+PW/2>q.x&&p.x-PW/2<q.x+q.w&&py<=q.y+1&&p.y>=q.y){p.y=q.y;p.vy=0;p.g=true}
-  if(p.g&&p.y===GY){const g=grounds.find(g=>p.x>g[0]+25&&p.x<g[1]-25);if(g)safeX=p.x}
-  if(p.y>GY+380){p.x=safeX;p.y=GY;p.vx=p.vy=0;msg="Oops! Try again";msgT=1.5}
-  if(Math.abs(p.x-portal.x)<28&&Math.abs(p.y-PH/2-portal.y)<48){state="enter";stateT=0;p.sx=p.x;p.sy=p.y;shots=[]}
+  for(const s of L.solids)if(overlap(s,p.x,p.y))p.x=p.vx>0?s.x-PW/2:p.vx<0?s.x+s.w+PW/2:(p.x<s.x+s.w/2?s.x-PW/2:s.x+s.w+PW/2);
+  const prev=p.y;p.y+=p.vy*dt;p.g=false;
+  for(const s of L.solids)if(overlap(s,p.x,p.y)){if(p.vy>=0){p.y=s.y;p.g=true}else p.y=s.y+s.h+PH;p.vy=0}
+  if(p.vy>=0)for(const q of plats){const b=platBox(q);if(p.x+PW/2>b.l&&p.x-PW/2<b.r&&prev<=q.y+1&&p.y>=q.y){p.y=q.y;p.vy=0;p.g=true}}
+  if(p.g&&p.y===GY&&L.grounds.some(g=>p.x>g[0]+40&&p.x<g[1]-40)&&!L.spikes.some(s=>p.x>s[0]-70&&p.x<s[1]+70))safeX=p.x;
+  if(p.y>GY+380)die("Oops! Try again");
+  else if(p.y>GY-12&&L.spikes.some(s=>p.x+PW/2>s[0]&&p.x-PW/2<s[1]))die("Ouch! Spikes");
+  if(Math.abs(p.x-L.portal.x)<28&&Math.abs(p.y-PH/2-L.portal.y)<48){state="enter";stateT=0;p.sx=p.x;p.sy=p.y;shots=[]}
 }
 function update(dt){
   dt=Math.min(dt,1/20);
   if(msgT>0)msgT-=dt;
-  if(state==="play"){const n=Math.ceil(dt/(1/120));for(let i=0;i<n;i++){physics(dt/n);if(state!=="play")break}stepShots(dt)}
-  else if(state==="enter"){
+  if(state==="play"){
+    clock+=dt;
+    const n=Math.ceil(dt*120);for(let i=0;i<n&&state==="play";i++)physics(dt/n);
+    for(const s of shots){s.t+=dt/s.dur;if(s.t>=1){s.done=true;if(s.w)stick(s);else puff(s.x1,s.y1,"#94a3b8",6)}}
+    shots=shots.filter(s=>!s.done);
+  }else if(state==="enter"){
     stateT+=dt;const t=Math.min(stateT/SPIN,1);
-    p.x=p.sx+(portal.x-p.sx)*t;p.y=p.sy+(portal.y+PH/2-p.sy)*t;
+    p.x=p.sx+(L.portal.x-p.sx)*t;p.y=p.sy+(L.portal.y+PH/2-p.sy)*t;
     p.rot+=dt*(1.5+t*5);p.a=1-t;p.sc=1-.6*t;
-    if(t>=1){state="next";stateT=0;level++;try{localStorage.setItem(KEY,level)}catch(e){}}
-  }else if(state==="next"){stateT+=dt;fade=Math.min(stateT/.6,1);if(stateT>=.6){init();fade=1;state="play"}}
-  if(fade>0&&state==="play")fade=Math.max(0,fade-dt*2);
-  for(const f of fx){f.x+=f.vx*dt;f.y+=f.vy*dt;f.t-=dt}fx=fx.filter(f=>f.t>0);
-  const tx=Math.min(Math.max(p.x-W/2,-250),portal.x-W/2+250),ty=Math.min(GY-380,p.y-340);
+    if(t>=1){state="next";stateT=0;G.level++;try{localStorage.setItem(KEY,G.level)}catch(e){}}
+  }else if(state==="next"){
+    stateT+=dt;flash=Math.min(stateT/.6,1);
+    if(stateT>=.6){start();flash=1}
+  }
+  if(state==="play"&&flash>0)flash=Math.max(0,flash-dt*2);
+  for(const q of plats)q.ext=Math.min(1,q.ext+dt*8);
+  for(const g of ghosts)g.t-=dt;ghosts=ghosts.filter(g=>g.t>0);
+  for(const f of sparks){f.x+=f.vx*dt;f.y+=f.vy*dt;f.t-=dt}sparks=sparks.filter(f=>f.t>0);
+  const tx=Math.min(Math.max(p.x-W/2,-250),L.portal.x-W/2+250),ty=Math.min(GY-380,p.y-340);
   cam.x+=(tx-cam.x)*Math.min(1,dt*6);cam.y+=(ty-cam.y)*Math.min(1,dt*5);
 }
 
+// ---------- drawing ----------
 function draw(){
-  const cx=cam.x,cy=cam.y,sx=v=>v-cx,sy=v=>v-cy;
+  const x=ctx,cx=cam.x,cy=cam.y,sx=v=>v-cx,sy=v=>v-cy;
   const g=x.createLinearGradient(0,0,0,H);g.addColorStop(0,"#0f172a");g.addColorStop(1,"#1e3a5f");x.fillStyle=g;x.fillRect(0,0,W,H);
-  x.fillStyle="#cbd5e1";for(const s of stars){x.globalAlpha=.5;x.fillRect(((s.x-cx*.1)%W+W)%W,((s.y-cy*.1)%330+330)%330,s.s,s.s)}x.globalAlpha=1;
+  x.fillStyle="#cbd5e1";x.globalAlpha=.5;for(const s of stars)x.fillRect(((s.x-cx*.1)%W+W)%W,((s.y-cy*.1)%330+330)%330,s.s,s.s);x.globalAlpha=1;
   x.fillStyle="#172554";for(let i=-1;i<8;i++){const bx=i*260-((cx*.3)%260);x.beginPath();x.moveTo(bx,H);x.lineTo(bx+130,sy(GY)-150-((i*53)%60));x.lineTo(bx+260,H);x.fill()}
-  for(const s of grounds){x.fillStyle="#334155";x.fillRect(sx(s[0]),sy(GY),s[1]-s[0],H+400);x.fillStyle="#4ade80";x.fillRect(sx(s[0]),sy(GY),s[1]-s[0],7)}
-  for(const w of walls){
+  for(const s of L.grounds){x.fillStyle="#334155";x.fillRect(sx(s[0]),sy(GY),s[1]-s[0],H+400);x.fillStyle="#4ade80";x.fillRect(sx(s[0]),sy(GY),s[1]-s[0],7)}
+  x.fillStyle="#f87171";
+  for(const s of L.spikes)for(let a=s[0];a<s[1];a+=14){x.beginPath();x.moveTo(sx(a),sy(GY));x.lineTo(sx(Math.min(a+7,s[1])),sy(GY-16));x.lineTo(sx(Math.min(a+14,s[1])),sy(GY));x.fill()}
+  for(const w of L.blocks){
     x.fillStyle="#64748b";x.fillRect(sx(w.x),sy(w.y),w.w,w.h);x.strokeStyle="#334155";x.lineWidth=3;x.strokeRect(sx(w.x)+1.5,sy(w.y)+1.5,w.w-3,w.h-3);
     x.fillStyle="#94a3b8";x.fillRect(sx(w.x)+4,sy(w.y)+4,w.w-8,5);
   }
-  for(const q of plats){x.shadowColor="#22d3ee";x.shadowBlur=12;x.fillStyle="#22d3ee";x.fillRect(sx(q.x),sy(q.y),q.w,q.h);x.shadowBlur=0;x.fillStyle="#cffafe";x.fillRect(sx(q.x),sy(q.y),q.w,3)}
+  const drawPlat=(q,a)=>{const b=platBox(q);x.globalAlpha=a;x.shadowColor="#22d3ee";x.shadowBlur=12;x.fillStyle="#22d3ee";x.fillRect(sx(b.l),sy(q.y),b.r-b.l,10);x.shadowBlur=0;x.fillStyle="#cffafe";x.fillRect(sx(b.l),sy(q.y),b.r-b.l,3);x.globalAlpha=1};
+  for(const q of plats)drawPlat(q,1);
+  for(const gh of ghosts)drawPlat(gh.q,gh.t/.3);
   const tm=performance.now()/1000;
-  for(let i=0;i<4;i++){x.strokeStyle=["#a855f7","#6366f1","#22d3ee","#f0abfc"][i];x.lineWidth=4;x.beginPath();x.ellipse(sx(portal.x),sy(portal.y),16+i*6,34+i*4-(i%2)*3,tm*(i%2?-1:1)*(1+i*.4),0,Math.PI*1.6);x.stroke()}
+  for(let i=0;i<4;i++){x.strokeStyle=["#a855f7","#6366f1","#22d3ee","#f0abfc"][i];x.lineWidth=4;x.beginPath();x.ellipse(sx(L.portal.x),sy(L.portal.y),16+i*6,34+i*4-(i%2)*3,tm*(i%2?-1:1)*(1+i*.4),0,Math.PI*1.6);x.stroke()}
   if(state==="play"&&mouse.has){
-    const ox=p.x,oy=p.y-PH/2;let dx=mouse.x+cx-ox,dy=mouse.y+cy-oy;const d=Math.hypot(dx,dy)||1,l=Math.min(d,RANGE);
-    x.setLineDash([5,7]);x.strokeStyle="rgba(103,232,249,.7)";x.lineWidth=2;x.beginPath();x.moveTo(sx(ox),sy(oy));x.lineTo(sx(ox+dx/d*l),sy(oy+dy/d*l));x.stroke();x.setLineDash([]);
+    const a=aim(p.f);
+    x.setLineDash([5,7]);x.strokeStyle="rgba(103,232,249,.7)";x.lineWidth=2;x.beginPath();x.moveTo(sx(a.ox),sy(a.oy));x.lineTo(sx(a.hit.x),sy(a.hit.y));x.stroke();x.setLineDash([]);
+    if(a.hit.w){x.strokeStyle="#fff";x.lineWidth=2;x.beginPath();x.arc(sx(a.hit.x),sy(a.hit.y),7,0,7);x.stroke()}
   }
-  for(const s of shots){x.fillStyle="#fff";x.shadowColor="#22d3ee";x.shadowBlur=10;x.fillRect(sx(s.x)-7,sy(s.y)-2,14,4);x.shadowBlur=0}
-  if(state!=="next"||fade<1){
+  for(const s of shots){const px=s.x0+(s.x1-s.x0)*s.t,py=s.y0+(s.y1-s.y0)*s.t;x.fillStyle="#fff";x.shadowColor="#22d3ee";x.shadowBlur=10;x.fillRect(sx(px)-7,sy(py)-2,14,4);x.shadowBlur=0}
+  if(state!=="next"||flash<1){
     x.save();x.translate(sx(p.x),sy(p.y-PH/2));x.rotate(p.rot);x.scale(p.sc,p.sc);x.globalAlpha=Math.max(0,p.a);
     x.fillStyle="#f97316";x.beginPath();x.roundRect(-PW/2,-PH/2,PW,PH,6);x.fill();
     x.fillStyle="#fff";x.fillRect(p.f>0?1:-7,-PH/2+6,6,6);x.fillStyle="#111";x.fillRect(p.f>0?4:-7,-PH/2+8,3,3);
     x.restore();
   }
-  for(const f of fx){x.globalAlpha=Math.max(0,f.t*2);x.fillStyle=f.col;x.fillRect(sx(f.x),sy(f.y),3,3)}x.globalAlpha=1;
-  x.fillStyle="#000a";x.fillRect(0,0,150,30);x.fillStyle="#fff";x.font="bold 16px Arial";x.textAlign="left";x.fillText("Level "+level,10,21);
+  for(const f of sparks){x.globalAlpha=Math.max(0,f.t*2);x.fillStyle=f.col;x.fillRect(sx(f.x),sy(f.y),3,3)}x.globalAlpha=1;
+  x.fillStyle="#000a";x.fillRect(0,0,230,30);x.fillStyle="#fff";x.font="bold 16px Arial";x.textAlign="left";
+  x.fillText("Level "+G.level+"  ·  "+clock.toFixed(0)+"s  ·  Falls "+deaths,10,21);
   if(msgT>0){x.textAlign="center";x.font="bold 26px Arial";x.fillStyle="rgba(255,255,255,"+Math.min(1,msgT)+")";x.fillText(msg,W/2,80)}
-  if(fade>0){x.fillStyle="rgba(255,255,255,"+fade+")";x.fillRect(0,0,W,H)}
+  if(flash>0){x.fillStyle="rgba(255,255,255,"+flash+")";x.fillRect(0,0,W,H)}
 }
 
+// ---------- input and loop ----------
 let last=performance.now();
 function loop(t){update((t-last)/1000);last=t;draw();requestAnimationFrame(loop)}
-function pos(e){const r=C.getBoundingClientRect();return[(e.clientX-r.left)*W/r.width,(e.clientY-r.top)*H/r.height]}
-C.addEventListener("pointerdown",e=>{const[a,b]=pos(e);mouse.x=a;mouse.y=b;mouse.has=true;throwAt(a+cam.x,b+cam.y)});
+const pos=e=>{const r=C.getBoundingClientRect();return[(e.clientX-r.left)*W/r.width,(e.clientY-r.top)*H/r.height]};
+C.addEventListener("pointerdown",e=>{const[a,b]=pos(e);mouse.x=a;mouse.y=b;mouse.has=true;throwAt(a+cam.x)});
 C.addEventListener("pointermove",e=>{const[a,b]=pos(e);mouse.x=a;mouse.y=b;mouse.has=true});
 addEventListener("keydown",e=>{
   if(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Space"].includes(e.code))e.preventDefault();
-  keys[e.code]=true;if(e.code==="KeyE"&&!e.repeat)throwAt(p.x+p.f*300,p.y-PH/2);
+  keys[e.code]=true;if(e.code==="KeyE"&&!e.repeat)throwAt();
 });
 addEventListener("keyup",e=>keys[e.code]=false);
 const hold=(id,k)=>{const b=document.getElementById(id);b.onpointerdown=e=>{e.preventDefault();keys[k]=true};b.onpointerup=b.onpointerleave=b.onpointercancel=()=>keys[k]=false};
 hold("bl","ArrowLeft");hold("br","ArrowRight");hold("bj","ArrowUp");
-document.getElementById("be").onclick=()=>throwAt(p.x+p.f*300,p.y-PH/2);
-document.getElementById("rs").onclick=()=>{init();fade=0};
-init();requestAnimationFrame(loop);
+document.getElementById("be").onclick=()=>throwAt();
+document.getElementById("rs").onclick=()=>{start();flash=0};
+flash=0;start();requestAnimationFrame(loop);
+})();
 </script>
 <script src="../ads.js"></script>
 </body></html>
