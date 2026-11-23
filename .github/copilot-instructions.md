@@ -19,7 +19,7 @@ Keep a list of my games here.
 - Coloring Studio (`coloring-studio/`)
 - Word Dash (`word-dash/`)
 - Snake (`snake/`)
-- Game Party (`party/`, host/join with 4-letter code; host picks Tic-Tac-Toe, Connect 4, Rock Paper Scissors, Dice Duel, Mancala, Dots and Boxes or Checkers and who plays; members send requests; others spectate)
+- Game Party (`party/`, host/join with 4-letter code; host picks Tic-Tac-Toe, Connect 4, Rock Paper Scissors, Dice Duel, Mancala, Dots and Boxes or Checkers, or a Score battle of any other site game (both play it in an iframe for 90s, auto-read score, higher wins; list is read from the gateway cards) and who plays; members send requests; others spectate)
 - Tic-Tac-Toe (`tic-tac-toe/`)
 - Minesweeper (`minesweeper/`)
 - Space Mine Idle (`space-mine-idle/`)

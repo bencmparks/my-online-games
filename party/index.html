@@ -32,7 +32,8 @@ input,select{background:#fff;font-weight:normal}
 .ck{gap:0}.ckc{width:3.2rem;height:3.2rem;border-radius:0;border:0;padding:0;font-size:2rem;line-height:1}
 .ckc.light{background:#fde68a}.ckc.dark{background:#92400e}.ckc.sel{outline:3px solid #22d3ee;outline-offset:-3px}.ckc.dest{background:#16a34a;color:#fff}
 .pr{color:#ef4444;text-shadow:0 0 2px #fff}.pb{color:#0f172a;text-shadow:0 0 2px #fff}
-.req{display:flex;gap:.5rem;align-items:center;margin:.25rem 0}
+.sb iframe{width:100%;height:68vh;border:0;border-radius:.5rem;background:#000}.sb iframe.off{pointer-events:none;opacity:.35}
+.sb input{width:6rem}.req{display:flex;gap:.5rem;align-items:center;margin:.25rem 0}
 </style></head><body><main>
 <a href="../">← All games</a>
 <h1>🎉 Game Party</h1>
@@ -194,11 +195,44 @@ const GAMES={
       el.append(g);}}
 };
 let peer=null,conns=new Map(),isHost=false,myId=null,code="",myName="";
-let members=[],requests=[],match=null,hostState=null,nextId=1;
+let members=[],requests=[],match=null,hostState=null,nextId=1,matchSeq=0;
 const CHARS="ABCDEFGHJKLMNPQRSTUVWXYZ";
 const setStatus=t=>$("#status").textContent=t;
 const nameOf=id=>(members.find(m=>m.id===id)||{name:"(left)"}).name;
-for(const[k,g]of Object.entries(GAMES))for(const sel of["#gsel","#rsel"])$(sel).add(new Option(g.name,k));
+/* Score battle: any site game becomes a 2-player match. Both players play it at the same time for 90 seconds and the higher score wins. */
+const SB_TIME=90;
+function sbRead(f){try{const d=f.contentDocument;
+  for(const e of d.querySelectorAll('[id*="score" i]')){if(/best|high|hi\b/i.test(e.id))continue;const m=e.textContent.match(/-?\d[\d,]*/);if(m)return +m[0].replace(/,/g,"")}
+  const r=/(?<!best |high |top )score\D{0,3}(\d[\d,]*)/gi,tx=d.body.innerText;let m,v=null;while(m=r.exec(tx))v=+m[1].replace(/,/g,"");return v}catch(e){return null}}
+const sbGame=(path,title)=>({name:title,persist:true,
+  init:()=>({scores:[null,null],winner:-1}),
+  move(s,seat,m){if(s.winner>=0||m.a!=="score"||s.scores[seat]!==null||!Number.isFinite(m.v))return null;
+    s.scores[seat]=Math.max(0,Math.min(1e9,Math.round(m.v)));
+    const[a,b]=s.scores;if(a!==null&&b!==null)s.winner=a>b?0:b>a?1:2;return s;},
+  render(s,seat,send,el){let w=el.querySelector(".sb");
+    if(!w){w=document.createElement("div");w.className="sb";w.innerHTML='<p class="sbinfo"></p><div class="sbgame"></div><div class="sbform" hidden></div>';el.append(w);
+      if(seat>=0){const f=document.createElement("iframe");f.src="../"+path;f.title=path;w.querySelector(".sbgame").append(f);
+        const end=Date.now()+SB_TIME*1000,form=w.querySelector(".sbform");let over=false;
+        const finish=()=>{if(over)return;over=true;const v=sbRead(f);f.classList.add("off");form.hidden=false;
+          form.innerHTML='Time is up! Your score: <input type="number" min="0" value="'+(v===null?0:v)+'"> <button type="button">Submit score</button>'+(v===null?" (couldn't read it, type your score)":"");
+          form.querySelector("button").onclick=()=>send({a:"score",v:+form.querySelector("input").value});};
+        const done=document.createElement("button");done.type="button";done.textContent="I'm done";done.onclick=finish;w.querySelector(".sbgame").append(done);
+        w._t=setInterval(()=>{if(!w.isConnected){clearInterval(w._t);return}
+          const left=Math.max(0,Math.ceil((end-Date.now())/1000));w._left=left;
+          const i=w.querySelector(".sbtime");if(i)i.textContent=over?"":"⏱ "+left+"s left";if(!left)finish()},300);}}
+    const[n1,n2]=match.players.map(nameOf),sc=s.scores.map(v=>v===null?"…":v);
+    const mine=seat>=0?s.scores[seat]:null;
+    w.querySelector(".sbinfo").innerHTML=(s.winner>=0?(s.winner===2?"It's a draw! ":`${[n1,n2][s.winner]} wins! `):seat<0?"👀 You are watching. ":"")
+      +`${n1}: ${sc[0]} · ${n2}: ${sc[1]} <span class="sbtime"></span>`;
+    const form=w.querySelector(".sbform");
+    if(mine!==null&&mine!==undefined){form.hidden=false;form.textContent=s.winner>=0?"Final scores are in.":"Score submitted ("+mine+"). Waiting for the other player…";
+      const f=w.querySelector("iframe");if(f)f.classList.add("off")}}});
+function fillGames(){for(const sel of["#gsel","#rsel"]){const el=$(sel),v=el.value;el.replaceChildren();
+  const a=document.createElement("optgroup"),b=document.createElement("optgroup");a.label="Head-to-head";b.label="Score battle (play any game, best score wins)";
+  for(const[k,g]of Object.entries(GAMES))(k.startsWith("sb:")?b:a).append(new Option(g.name,k));el.append(a);if(b.children.length)el.append(b);if(GAMES[v])el.value=v}}
+fetch("../index.html").then(r=>r.text()).then(h=>{const d=new DOMParser().parseFromString(h,"text/html");
+  d.querySelectorAll("a.game-card").forEach(a=>{const p=a.getAttribute("href"),t=a.querySelector("h2");
+    if(t&&/^[\w-]+\/?$/.test(p)&&!p.startsWith("party"))GAMES["sb:"+p]=sbGame(p,t.textContent.trim())});fillGames()}).catch(()=>{});fillGames();
 let loading=null;
 function loadPeer(){if(window.Peer)return Promise.resolve();
   return loading||(loading=new Promise((ok,bad)=>{const s=document.createElement("script");s.src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js";
@@ -207,11 +241,11 @@ function enter(on){$("#entry").hidden=on;$("#party").hidden=!on;$("#hostPanel").
 function cleanup(msg){try{peer&&peer.destroy()}catch(e){}peer=null;conns.clear();members=[];requests=[];match=null;hostState=null;isHost=false;myId=null;enter(false);setStatus(msg||"")}
 
 /* host side */
-function publicMatch(){if(!match)return null;const g=GAMES[match.game];return{game:match.game,players:match.players,state:g.pub?g.pub(hostState):hostState}}
+function publicMatch(){if(!match)return null;const g=GAMES[match.game];return{game:match.game,id:match.id,players:match.players,state:g.pub?g.pub(hostState):hostState}}
 function broadcast(){const msg={t:"state",members,requests,match:publicMatch()};
   conns.forEach(c=>c.open&&c.send(msg));apply(msg)}
 function startMatch(game,p1,p2){if(p1===p2||!members.some(m=>m.id===p1)||!members.some(m=>m.id===p2)){setStatus("Pick two different players.");return}
-  match={game,players:[p1,p2]};hostState=GAMES[game].init();requests=requests.filter(r=>!(r.id===p1||r.id===p2));setStatus("");broadcast()}
+  match={game,id:++matchSeq,players:[p1,p2]};hostState=GAMES[game].init();requests=requests.filter(r=>!(r.id===p1||r.id===p2));setStatus("");broadcast()}
 function hostMove(id,m){if(!match)return;const seat=match.players.indexOf(id);if(seat<0)return;
   const r=GAMES[match.game].move(hostState,seat,m);if(r){hostState=r;broadcast()}}
 function removeMember(id){members=members.filter(m=>m.id!==id);requests=requests.filter(r=>r.id!==id);conns.delete(id);
@@ -249,7 +283,7 @@ function fill(sel){const v=sel.value;sel.replaceChildren(...members.map(m=>new O
 function render(){
   $("#members").replaceChildren(...members.map(m=>{const s=document.createElement("span");s.className="tag"+(m.id===myId?" me":"")+(m.host?" host":"");
     s.textContent=(m.host?"👑 ":"")+m.name;return s}));
-  const view=$("#view");view.replaceChildren();
+  const view=$("#view");
   if(isHost){const a=$("#p1").value,b=$("#p2").value;fill($("#p1"));fill($("#p2"));
     if(!a)$("#p1").value="host";if(!b&&members[1])$("#p2").value=members[1].id;
     $("#stop").disabled=!match;
@@ -260,15 +294,17 @@ function render(){
       const ok=document.createElement("button");ok.textContent="Play with them";ok.onclick=()=>{$("#gsel").value=r.game;$("#p1").value="host";$("#p2").value=r.id;startMatch(r.game,"host",r.id)};
       const no=document.createElement("button");no.textContent="Dismiss";no.onclick=()=>{requests=requests.filter(x=>x!==r);broadcast()};
       row.append(ok,no);box.append(row)});}
-  if(!match){$("#mtitle").textContent=isHost?"Pick a game and two players to start.":"Waiting for the host to pick a game…";return}
-  const g=GAMES[match.game],seat=match.players.indexOf(myId),s=match.state;
+  if(!match){view.replaceChildren();delete view.dataset.key;$("#mtitle").textContent=isHost?"Pick a game and two players to start.":"Waiting for the host to pick a game…";return}
+  const g=GAMES[match.game];if(!g){$("#mtitle").textContent="This game is not available on your device.";return}
+  const seat=match.players.indexOf(myId),s=match.state;
+  if(g.persist){if(view.dataset.key!==String(match.id)){view.replaceChildren();view.dataset.key=match.id}}else{view.replaceChildren();delete view.dataset.key}
   const [n1,n2]=match.players.map(nameOf);
-  $("#mtitle").textContent=`${g.name}: ${n1} vs ${n2}`;
+  $("#mtitle").textContent=`${g.name}: ${n1} vs ${n2}`;view.querySelectorAll(".rm").forEach(x=>x.remove());
   const info=document.createElement("p");
   info.textContent=s.winner>=0?(s.winner===2?"It's a draw!":`${[n1,n2][s.winner]} wins!`)
     :seat<0?"👀 You are watching.":s.turn===undefined?"Make your pick!":s.turn===seat?`Your turn!${g.marks?` (${g.marks[seat]})`:""}`:`Waiting for ${[n1,n2][s.turn]}…`;
-  view.append(info);g.render(s,seat,sendMove,view);
-  if(isHost&&s.winner>=0){const b=document.createElement("button");b.textContent="Rematch";b.onclick=()=>startMatch(match.game,match.players[0],match.players[1]);view.append(b)}
+  if(!g.persist)view.append(info);g.render(s,seat,sendMove,view);
+  if(isHost&&s.winner>=0){const b=document.createElement("button");b.className="rm";b.textContent="Rematch";b.onclick=()=>startMatch(match.game,match.players[0],match.players[1]);view.append(b)}
 }
 const begin=fn=>{myName=$("#name").value.trim()||"Player";localStorage.setItem("partyName",myName);setStatus("Connecting…");loadPeer().then(fn).catch(e=>setStatus(e.message))};
 $("#name").value=localStorage.getItem("partyName")||"";
