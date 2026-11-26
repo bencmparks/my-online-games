@@ -10,7 +10,7 @@ main{width:min(100%,44rem);margin:0 auto;padding:1.25rem;border:.2rem solid #fac
 .n{min-width:2.2rem;text-align:center;font-size:1.4rem;font-weight:800;color:#fde047}.tk{display:block;font-size:.8rem;line-height:1;word-break:break-all;margin-top:.2rem;min-height:.9rem}
 .go{padding:.7rem 1.6rem;border:0;border-radius:.7rem;background:#16a34a;color:#fff;font-size:1.1rem;font-weight:800;cursor:pointer;margin:.6rem .3rem}.go:disabled{background:#475569;cursor:default}
 #info{min-height:3rem;margin:.4rem 0;color:#a7f3d0}#info b{color:#fde047}.lost{color:#fca5a5}
-</style></head>
+</style><script src="more.js"></script></head>
 <body><main><a href="../">← All games</a><h1>🪙 Token Drop</h1>
 <p>Answer obscure true-fact questions. You start with <strong>20 tokens</strong>. Spread <strong>all of them</strong> over the answers you think are right: tokens on wrong answers <strong>vanish</strong>, and only what's on the right answer carries into the next question. Run out and it's over! Your best is the most questions you survive.</p>
 <div class="stats"><span id="rd"></span><span id="tk"></span><span id="bs"></span></div>
@@ -62,8 +62,12 @@ const QS=[
 const $=id=>document.getElementById(id);
 const BK="tokenDropBest";let best=+localStorage.getItem(BK)||0,order,qi,tokens,bets,cur,done;
 const shuf=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
-function newGame(){order=shuf(QS.filter(q=>q[2]));qi=0;tokens=20;done=false;ask()}
-function ask(){const q=order[qi];cur={q:q[0],ans:shuf([[q[1],1],[q[2],0],[q[3],0]]),fact:q[4]};bets=[0,0,0];
+const ALL=QS.concat(MORE),SK="tokenDropSeen";
+let seen=[];try{seen=JSON.parse(localStorage.getItem(SK))||[]}catch(e){}
+// questions you have already played are skipped until you have seen them all
+function newGame(){let pool=ALL.filter(q=>!seen.includes(q[0]));let note="";if(pool.length<5){seen=[];pool=ALL.slice();note="You have seen every question, so they start over!"}
+ order=shuf(pool);qi=0;tokens=20;done=false;ask();if(note)$("info").textContent=note}
+function ask(){const q=order[qi];seen.push(q[0]);try{localStorage.setItem(SK,JSON.stringify(seen))}catch(e){}cur={q:q[0],ans:shuf([[q[1],1],[q[2],0],[q[3],0]]),fact:q[4]};bets=[0,0,0];
  $("nx").hidden=true;$("ok").hidden=false;$("info").textContent="";draw()}
 const left=()=>tokens-bets.reduce((a,b)=>a+b,0);
 function draw(rev){$("rd").textContent="Question "+(qi+1)+"/"+order.length;$("tk").textContent="🪙 Tokens: "+tokens;$("bs").textContent="Best: "+best+" Qs";

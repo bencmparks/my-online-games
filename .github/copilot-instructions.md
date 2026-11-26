@@ -73,7 +73,7 @@ Keep a list of my games here.
 - Bowling (`bowling/`)
 - Fishing Frenzy (`fishing-frenzy/`)
 - Battleship (`battleship/`)
-- Token Drop (`token-drop/`, obscure true-fact trivia (e.g. Google was BackRub): 3 answers, spread all your tokens (start 20) over them, tokens on wrong answers vanish and only the right answer's tokens carry on; real facts few people know; best = most questions survived)
+- Token Drop (`token-drop/`, obscure true-fact trivia (e.g. Google was BackRub): 3 answers, spread all your tokens (start 20) over them, tokens on wrong answers vanish and only the right answer's tokens carry on; 127 real facts few people know, never repeating a question until all have been seen (saved in localStorage; more.js holds most); best = most questions survived)
 - Animal Lift (`animal-lift/`, type your weight, pick an animal and a world and see how many animals it takes to hold you; Planet mode compares every planet's gravity)
 - Life Clicker (`life-clicker/`, grow a body; when fully grown make another person to build a Crowd view)
 - Cosmic Pinball (`pinball/`)
