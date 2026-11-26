@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Animal Lift | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{margin:0;min-height:100vh;padding:1rem;background:radial-gradient(circle at 50% 0,#14532d,#0b1020 70%)}
+main{width:min(100%,50rem);margin:0 auto;padding:1.25rem;border:.2rem solid #4ade80;border-radius:1.25rem;background:rgb(8 12 30 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.5rem 0;color:#bbf7d0}
+.form{display:flex;flex-wrap:wrap;gap:.6rem;justify-content:center;margin:1rem 0}label{display:grid;gap:.2rem;color:#fde68a;font-size:.9rem;text-align:left}
+input,select{padding:.5rem;border-radius:.5rem;border:1px solid #6b7280;background:#0b1020;color:#fff;font-size:1rem}
+.modes{display:flex;gap:.5rem;justify-content:center;margin:.5rem 0}.modes button{padding:.5rem 1rem;border:0;border-radius:.6rem;background:#475569;color:#fff;font-weight:700;cursor:pointer}.modes button.on{background:#16a34a}
+#out{background:#1e1b2e;border-radius:.8rem;padding:1rem;margin-top:.5rem;color:#a7f3d0}#out b{color:#fde047}
+.big{font-size:1.4rem;margin-bottom:.4rem}.stage{margin:.6rem 0;min-height:4rem}.person{font-size:2.4rem;animation:bob 1.2s ease-in-out infinite}@keyframes bob{50%{transform:translateY(-6px)}}
+.herd{font-size:1.5rem;line-height:1.15;word-break:break-all}
+table{width:100%;border-collapse:collapse;margin-top:.5rem;text-align:left}td{padding:.3rem .4rem;border-bottom:1px solid #374151}
+</style></head>
+<body><main><a href="../">← All games</a><h1>🐘 Animal Lift</h1>
+<p>Type how heavy you are, pick an animal, and see how many of them it would take to <strong>hold you up</strong>! Switch to <strong>Planet mode</strong> to see what happens on other planets, where gravity changes how heavy you are.</p>
+<div class="modes"><button id="m1" class="on">🌍 One world</button><button id="m2">🪐 Planet mode</button></div>
+<div class="form">
+<label>How heavy are you?<input id="wt" type="number" min="1" value="50" step="any"></label>
+<label>Unit<select id="wu"><option value="1">kg</option><option value="0.45359237">lb</option></select></label>
+<label>Animal<select id="an"></select></label>
+<label id="wl">World<select id="wd"></select></label>
+</div>
+<div id="out"></div>
+</main>
+<script>
+// capacity = rough load in kg that one animal can carry on Earth
+const ANIMALS=[["🐜","Ant",.0003],["🐝","Bee",.0001],["🐭","Mouse",.05],["🐦","Pigeon",.3],["🐓","Chicken",1],["🐈","Cat",2],["🦅","Eagle",4],["🐕","Dog",25],["🐻","Bear",200],["🐴","Horse",150],["🐪","Camel",250],["🦍","Gorilla",400],["🐂","Ox",450],["🐘","Elephant",600]];
+const WORLDS=[["Earth",9.81],["Moon",1.62],["Mercury",3.7],["Venus",8.87],["Mars",3.71],["Jupiter",24.79],["Saturn",10.44],["Uranus",8.69],["Neptune",11.15],["Pluto",.62],["Sun",274]];
+const $=id=>document.getElementById(id);let all=false;
+$("an").innerHTML=ANIMALS.map((a,i)=>`<option value="${i}">${a[0]} ${a[1]}</option>`).join("");
+$("wd").innerHTML=WORLDS.map((w,i)=>`<option value="${i}">${w[0]} (${w[1]} m/s²)</option>`).join("");
+const need=(kg,a,w)=>kg*w[1]/(9.81*a[2]),nf=n=>n>=1e6?n.toExponential(2):Math.ceil(n-1e-9).toLocaleString();
+const herd=(a,n)=>{const k=Math.min(Math.ceil(n),150);return`<div class="herd">${a[0].repeat(k)}</div>`+(n>k?`<div>…and ${nf(n-k)} more</div>`:"")};
+function go(){const kg=+$("wt").value*+$("wu").value,a=ANIMALS[+$("an").value],w=WORLDS[+$("wd").value],out=$("out");
+ $("wl").hidden=all;
+ if(!(kg>0)){out.textContent="Type how heavy you are!";return}
+ if(all){out.innerHTML=`<div class="big">🪐 ${a[0]} ${a[1]}s needed to hold you</div>Each row is a different planet: gravity changes how heavy you feel.<table>`+WORLDS.map(x=>`<tr><td>${x[0]}</td><td>${x[1]} m/s²</td><td>you weigh like ${(kg*x[1]/9.81).toFixed(1)} kg</td><td><b>${nf(need(kg,a,x))}</b> ${a[0]}</td></tr>`).join("")+"</table>";return}
+ const n=need(kg,a,w);
+ out.innerHTML=`<div class="big">It takes <b>${nf(n)}</b> ${a[0]} ${a[1]}${Math.ceil(n-1e-9)==1?"":"s"} to hold you!</div>On <b>${w[0]}</b> you weigh like <b>${(kg*w[1]/9.81).toFixed(1)} kg</b>.`+(n<1?` One ${a[1]} is strong enough: you only use ${(n*100).toFixed(n<.01?3:1)}% of its strength.`:"")+`<div class="stage"><div class="person">🧍</div>${herd(a,n)}</div>`}
+["wt","wu","an","wd"].forEach(id=>$(id).oninput=go);
+$("m1").onclick=()=>{all=false;$("m1").classList.add("on");$("m2").classList.remove("on");go()};
+$("m2").onclick=()=>{all=true;$("m2").classList.add("on");$("m1").classList.remove("on");go()};
+go();
+</script><script src="../ads.js"></script></body></html>
