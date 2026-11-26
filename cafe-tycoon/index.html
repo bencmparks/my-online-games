@@ -67,7 +67,7 @@ const P={x:300,y:430,items:[],pk:0},keys={},cam={x:0,y:0};
 const guards=[0,1,2].map(i=>({x:DOOR.x-120+i*120,y:DOOR.y-80,pt:i*2.1,stun:0})),GD=()=>guards.slice(0,s.up.guard);
 const COL=["#ef4444","#f97316","#facc15","#22c55e","#06b6d4","#6366f1","#d946ef"];
 // a caught vandal vanishes in a puff of coloured smoke that stuns the guard if he is close
-function poof(px,py){smoke.push({x:px,y:py,l:2.2,hit:false,pf:Array.from({length:16},(_,i)=>({a:Math.random()*6.28,r:8+Math.random()*30,s:14+Math.random()*14,c:COL[i%7]}))})}
+function poof(px,py){smoke.push({x:px,y:py,l:3,hit:false,pf:Array.from({length:44},(_,i)=>({a:Math.random()*6.28,r:10+Math.random()*60,s:18+Math.random()*26,c:COL[i%7],u:30+Math.random()*60})),sp:Array.from({length:14},(_,i)=>({a:i/14*6.28+Math.random()*.4,v:110+Math.random()*120}))});fl(px,py-60,"💥 POOF!","#f0abfc")}
 let smoke=[],vands=[],tag={},tagT={},vT=40,drops=[],prod,mach,shelf,custs,queues,piles,payT,workers,floats,spawnT,last=0,hudKey="",speed=+localStorage.getItem(SPK)||1;
 function initWorld(){prod={};mach={};shelf={};for(const p of PRODS){prod[p]={n:p==="banana"?4:0,t:0};mach[p]={in:0,out:0,t:0};shelf[p]=0}
  custs=[];drops=[];vands=[];smoke=[];guards.forEach(g=>g.stun=0);tag={};tagT={};vT=40;queues=[[],[],[]];piles=[0,0,0];payT=[0,0,0];workers=[];floats=[];spawnT=2;P.items=[]}
@@ -131,7 +131,7 @@ function update(dt){
   if(gt)gt={x:gt.x,y:gt.y};else{guard.pt+=dt;const a=guard.pt*.25;gt={x:DOOR.x+Math.cos(a)*300,y:DOOR.y-160+Math.sin(a*1.7)*90}}
   const d=Math.hypot(gt.x-guard.x,gt.y-guard.y);if(d>2&&guard.stun<=0){const m=Math.min(d,(gd<1e9?200:70)*dt);guard.x+=(gt.x-guard.x)/d*m;guard.y+=(gt.y-guard.y)/d*m}}
  vands=vands.filter(v=>!v.gone&&!(v.st==="flee"&&v.y>=DOOR.y-2));
-for(const c of smoke){c.l-=dt;if(!c.hit&&GD().some(g=>Math.hypot(g.x-c.x,g.y-c.y)<80)){c.hit=true;for(const o of GD())if(Math.hypot(o.x-c.x,o.y-c.y)<80){o.stun=3;fl(o.x,o.y-50,"😵 Stunned by smoke!","#a855f7")}}}
+for(const c of smoke){c.l-=dt;if(!c.hit&&GD().some(g=>Math.hypot(g.x-c.x,g.y-c.y)<110)){c.hit=true;for(const o of GD())if(Math.hypot(o.x-c.x,o.y-c.y)<110){o.stun=3;fl(o.x,o.y-50,"😵 Stunned by smoke!","#a855f7")}}}
 smoke=smoke.filter(c=>c.l>0);
  for(const p of PRODS){if(tag[p]&&Math.hypot(P.x-INFO[p].sx,P.y-INFO[p].sy)<85){tagT[p]+=dt;if(tagT[p]>=1.5){tag[p]=0;tagT[p]=0;fl(INFO[p].sx,INFO[p].sy-40,"Cleaned!","#16a34a")}}else tagT[p]=0}
  for(const w of workers){const go=(px,py)=>{const d=Math.hypot(px-w.x,py-w.y);if(d<=3)return true;w.x+=(px-w.x)/d*Math.min(d,150*dt);w.y+=(py-w.y)/d*Math.min(d,150*dt);return false};
@@ -191,7 +191,10 @@ function draw(){apeI=0;
  for(const v of vands){ape(v.x,v.y+4,"#2b2b2b","#111",{hat:"cap",cap:"#dc2626"});text(v.st==="spray"?"🎨💦":"🎨",v.x,v.y-34,18,"#000")}
  for(const d of drops)text("💰",d.x,d.y,16,"#000");
  for(const c of custs){const k=skin(c),vo=c.vip?-14:0;ape(c.x,c.y+4,c.vip?"#d4a017":FUR[k%5],c.vip?"#facc15":SHIRT[k%6],{hat:c.vip?"top":""});if(c.mood)text(c.mood,c.x+20,c.y-24+vo,18,"#000");else if(c.st==="queue"){text("💵",c.x,c.y-34+vo,16,"#000")}else if(c.st!=="leave"){const it=c.list[c.i];x.fillStyle=c.vip?"#fde68a":"#fff";x.fillRect(c.x-24,c.y-62+vo,48,22);text(INFO[it.p].e+(it.q-it.got>1?"x"+(it.q-it.got):""),c.x,c.y-45+vo,15,"#000")}}
- for(const c of smoke)for(const q of c.pf){const k=1-c.l/2.2;x.globalAlpha=Math.max(0,c.l/2.2)*.7;x.fillStyle=q.c;x.beginPath();x.arc(c.x+Math.cos(q.a)*q.r*(1+k),c.y+Math.sin(q.a)*q.r*(1+k)-k*30,q.s*(1+k),0,7);x.fill()}x.globalAlpha=1;
+ for(const c of smoke){const k=1-c.l/3;if(k<.15){x.globalAlpha=(.15-k)/.15*.8;x.fillStyle="#fff";x.beginPath();x.arc(c.x,c.y,50+k*500,0,7);x.fill()}
+x.globalAlpha=Math.max(0,.5-k*.5);x.strokeStyle="#fff";x.lineWidth=6;x.beginPath();x.arc(c.x,c.y,k*190,0,7);x.stroke();
+for(const q of c.pf){x.globalAlpha=Math.max(0,1-k*k)*.75;x.fillStyle=q.c;x.beginPath();x.arc(c.x+Math.cos(q.a)*q.r*(1+k*2.2),c.y+Math.sin(q.a)*q.r*(1+k*2.2)-k*q.u,q.s*(1+k*1.5),0,7);x.fill()}
+x.globalAlpha=Math.max(0,1-k*2);for(const q of c.sp){text("✨",c.x+Math.cos(q.a)*q.v*k*1.6,c.y+Math.sin(q.a)*q.v*k*1.6-k*40,16,"#fff")}}x.globalAlpha=1;
 for(const guard of GD()){ape(guard.x,guard.y+4,"#6b4423","#1e3a8a",{hat:"cap",cap:"#1e3a8a"});text(guard.stun>0?"😵‍💫":"👮",guard.x,guard.y-34,18,"#000")}
  for(const w of workers){ape(w.x,w.y+4,FUR[2],"#16a34a",{hat:"cap",cap:"#15803d"});w.items.forEach((p,i)=>text(INFO[p].e,w.x,w.y-36-i*9,15,"#000"))}
  ape(P.x,P.y+4,"#7a4a1f","#ef4444",{hat:"cap",cap:"#facc15",still:!(keys.KeyW||keys.KeyA||keys.KeyS||keys.KeyD||keys.ArrowUp||keys.ArrowDown||keys.ArrowLeft||keys.ArrowRight||P.mt)});
