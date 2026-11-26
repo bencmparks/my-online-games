@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Token Drop | My Online Games</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{margin:0;min-height:100vh;padding:1rem;background:radial-gradient(circle at 50% 0,#713f12,#0b1020 70%)}
+main{width:min(100%,44rem);margin:0 auto;padding:1.25rem;border:.2rem solid #facc15;border-radius:1.25rem;background:rgb(8 12 30 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.5rem 0;color:#fde68a}
+.stats{display:flex;justify-content:center;gap:1.5rem;font-weight:700;color:#fde047;margin:.5rem 0}
+#q{font-size:1.35rem;font-weight:700;margin:1rem 0;min-height:3.5rem}
+.opt{display:grid;grid-template-columns:1fr auto;gap:.6rem;align-items:center;padding:.7rem;margin:.5rem 0;border-radius:.8rem;background:#1e1b2e;border:2px solid #334155;text-align:left;font-size:1.1rem}
+.opt.good{border-color:#22c55e;background:#14532d}.opt.bad{border-color:#ef4444;background:#450a0a}
+.ctl{display:flex;align-items:center;gap:.4rem}.ctl button{width:2.4rem;height:2.4rem;border:0;border-radius:.5rem;background:#7c3aed;color:#fff;font-size:1.3rem;font-weight:800;cursor:pointer}.ctl button:disabled{background:#475569;cursor:default}
+.n{min-width:2.2rem;text-align:center;font-size:1.4rem;font-weight:800;color:#fde047}.tk{display:block;font-size:.8rem;line-height:1;word-break:break-all;margin-top:.2rem;min-height:.9rem}
+.go{padding:.7rem 1.6rem;border:0;border-radius:.7rem;background:#16a34a;color:#fff;font-size:1.1rem;font-weight:800;cursor:pointer;margin:.6rem .3rem}.go:disabled{background:#475569;cursor:default}
+#info{min-height:3rem;margin:.4rem 0;color:#a7f3d0}#info b{color:#fde047}.lost{color:#fca5a5}
+</style></head>
+<body><main><a href="../">← All games</a><h1>🪙 Token Drop</h1>
+<p>Answer obscure true-fact questions. You start with <strong>20 tokens</strong>. Spread <strong>all of them</strong> over the answers you think are right: tokens on wrong answers <strong>vanish</strong>, and only what's on the right answer carries into the next question. Run out and it's over! Your best is the most questions you survive.</p>
+<div class="stats"><span id="rd"></span><span id="tk"></span><span id="bs"></span></div>
+<div id="q"></div><div id="opts"></div>
+<div id="info"></div>
+<button class="go" id="ok">Lock in</button><button class="go" id="nx" hidden>Next ▶</button>
+</main>
+<script>
+// [question, right answer, wrong, wrong, fact]
+const QS=[
+["What was Google originally called?","BackRub","SearchRocket","WebCrawler One","Larry Page and Sergey Brin's search engine was named BackRub for its analysis of backlinks."],
+["What was Pepsi originally called?","Brad's Drink","Cola Fizz","Dr. Kola","Pharmacist Caleb Bradham sold it as Brad's Drink before renaming it Pepsi-Cola in 1898."],
+["What was Amazon originally called?","Cadabra","Bezos Books","River.com","Jeff Bezos started as Cadabra.com, but a lawyer misheard it as cadaver."],
+["What did Nintendo originally make when it was founded in 1889?","Playing cards","Fishing rods","Toy trains","Nintendo began as a maker of Japanese hanafuda playing cards."],
+["What was the original name of the Mario character?","Jumpman","Plumber Pete","Mr. Video","He was Jumpman in Donkey Kong and was renamed after Nintendo's landlord, Mario Segale."],
+["What did Nokia first produce in 1865?","Paper pulp","Radios","Rubber boots","Nokia started as a pulp mill in Finland and later also made rubber boots and cables."],
+["Which company was originally a tractor maker before building sports cars?","Lamborghini","Ferrari","Porsche","Ferruccio Lamborghini made tractors, and started building cars after a dispute with Enzo Ferrari."],
+["What was Instagram originally called?","Burbn","Snapbook","PicShare","Instagram grew out of Burbn, a check-in app, once its founders kept only the photo feature."],
+["What was Twitter's original working name?","twttr","Chirper","Pingo","The 2006 prototype was named twttr, like Flickr, with no vowels."],
+["What was Play-Doh first sold as?","Wallpaper cleaner","Window putty","Soap dough","It was a wall cleaner for coal soot until teachers found kids loved it as clay."],
+["What was bubble wrap first meant to be?","Wallpaper","Packing for glass","A greenhouse cover","In 1957 its inventors tried to sell it as textured wallpaper, and only later as packaging."],
+["What does the 'WD' in WD-40 stand for?","Water Displacement","Wear Defense","Wet Dry","The 40 is because it was the 40th formula tried."],
+["What does the company name SEGA stand for?","Service Games","Super Electronic Game Arcade","Southern East Games Association","It comes from Service Games, which sold coin-operated machines to US military bases."],
+["Starbucks is named after a character in which novel?","Moby-Dick","Treasure Island","Around the World in 80 Days","Starbuck is the first mate of the Pequod in Moby-Dick."],
+["What does IKEA's name come from?","Founder's initials plus his farm and village","A Swedish word for 'home'","The inventor of flat packing","Ingvar Kamprad, Elmtaryd, Agunnaryd."],
+["What did YouTube begin as?","A video dating site","A music chart","A security camera network","It launched in 2005 with the slogan 'Tune In, Hook Up'."],
+["Atari's name comes from a term in which game?","Go","Chess","Mahjong","Atari means 'about to be captured' in Go, similar to check in chess."],
+["What does the name LEGO come from?","Danish for 'play well'","Latin for 'I build'","A founder's surname","'Leg godt' is Danish for 'play well'."],
+["Where was Hawaiian pizza invented?","Canada","Hawaii","Italy","Sam Panopoulos topped a pizza with pineapple in Chatham, Ontario in 1962."],
+["What happened in the shortest war in history, in 1896?","Anglo-Zanzibar War: about 40 minutes","A Pacific naval war: 2 days","A Balkan war: 1 hour","Britain bombarded the Zanzibar palace until the sultan surrendered after roughly 38 to 45 minutes."],
+["Which country has more pyramids than Egypt?","Sudan","Mexico","Peru","The Nubian kingdom of Kush built over 200 steep pyramids, more than Egypt."],
+["Cleopatra lived closer in time to which event?","The Moon landing","The building of the Great Pyramid of Giza","The founding of Babylon","The Great Pyramid was built about 2,500 years before Cleopatra, and the Moon landing came about 2,000 years after her."],
+["Oxford University began teaching before which empire was founded?","The Aztec Empire","The Roman Empire","The Mongol Empire","Teaching at Oxford dates to about 1096, and Tenochtitlan was founded in 1325."],
+["Which animal's poop is cube-shaped?","Wombat","Capybara","Sloth","Wombat intestines shape their droppings into cubes, which keeps them from rolling away."],
+["How many hearts does an octopus have?","Three","Two","Five","Two pump blood through the gills and one pumps it to the body."],
+["What is the oldest known living vertebrate?","Greenland shark","Giant tortoise","Bowhead whale","Greenland sharks can live about 400 years."],
+["A group of flamingos is called a...?","Flamboyance","Parade","Blush","A flamboyance of flamingos."],
+["Which of these is botanically a berry?","Banana","Strawberry","Raspberry","Bananas are berries; strawberries and raspberries are not."],
+["Which animal is the national animal of Scotland?","Unicorn","Red deer","Golden eagle","The unicorn has been on the Scottish royal coat of arms since the 1100s."],
+["The highest point from Earth's center is not Everest. Which mountain is it?","Chimborazo","Denali","Kilimanjaro","Earth bulges at the equator, so Ecuador's Chimborazo's peak is farthest from the center."],
+["What is odd about a day and a year on Venus?","Its day is longer than its year","Its year is 30 Earth days","Its day is exactly 24 hours","Venus spins once in about 243 Earth days and orbits the Sun in about 225."],
+["How far apart are Russia and the USA at their closest point?","About 4 km","About 400 km","About 40 km","The Diomede Islands are about 3.8 km (2.4 miles) apart."],
+["What does the Eiffel Tower do in summer?","Grows up to 15 cm taller","Leans 1 metre toward the sun","Shrinks by 15 cm","Iron expands in the heat."],
+["What did the US Supreme Court decide in 1893 about tomatoes?","They are legally vegetables","They are legally fruits","They are legally herbs","Nix v. Hedden ruled that tomatoes count as vegetables for import taxes."],
+["Which are older, sharks or trees?","Sharks","Trees","They are the same age","Sharks are about 400 million years old and trees about 350 million."],
+["What famous food never spoils when stored sealed?","Honey","Bread","Butter","Edible honey has been found in ancient Egyptian tombs."],
+["What did the Great Wall of China builders use in some mortar?","Sticky rice","Egg whites","Ox blood","Rice soup was added to lime mortar, which made it very strong."]
+];
+const $=id=>document.getElementById(id);
+const BK="tokenDropBest";let best=+localStorage.getItem(BK)||0,order,qi,tokens,bets,cur,done;
+const shuf=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+function newGame(){order=shuf(QS.filter(q=>q[2]));qi=0;tokens=20;done=false;ask()}
+function ask(){const q=order[qi];cur={q:q[0],ans:shuf([[q[1],1],[q[2],0],[q[3],0]]),fact:q[4]};bets=[0,0,0];
+ $("nx").hidden=true;$("ok").hidden=false;$("info").textContent="";draw()}
+const left=()=>tokens-bets.reduce((a,b)=>a+b,0);
+function draw(rev){$("rd").textContent="Question "+(qi+1)+"/"+order.length;$("tk").textContent="🪙 Tokens: "+tokens;$("bs").textContent="Best: "+best+" Qs";
+ $("q").textContent=cur.q;
+ $("opts").innerHTML=cur.ans.map((a,i)=>`<div class="opt ${rev?(a[1]?"good":"bad"):""}"><div>${a[0]}<span class="tk">${"🪙".repeat(bets[i])}</span></div><div class="ctl"><button data-i="${i}" data-d="-1" ${rev||!bets[i]?"disabled":""}>−</button><span class="n">${bets[i]}</span><button data-i="${i}" data-d="1" ${rev||!left()?"disabled":""}>+</button></div></div>`).join("");
+ if(!rev){$("info").innerHTML=left()?`Place <b>${left()}</b> more token${left()==1?"":"s"} (all must be used)`:"All tokens placed. Lock in!";$("ok").disabled=left()>0}}
+$("opts").onclick=e=>{const b=e.target.closest("button");if(!b||b.disabled||done)return;const i=+b.dataset.i,d=+b.dataset.d;if(d>0&&!left())return;bets[i]=Math.max(0,bets[i]+d);draw()};
+$("ok").onclick=()=>{if(left()>0)return;const ri=cur.ans.findIndex(a=>a[1]),lost=tokens-bets[ri];tokens=bets[ri];$("ok").hidden=true;draw(true);
+ const surv=tokens>0?qi+1:qi;if(surv>best){best=surv;try{localStorage.setItem(BK,best)}catch(e){}}let msg=`The answer: <b>${cur.ans[ri][0]}</b>. ${cur.fact}<br>`+(lost?`<span class="lost">💨 ${lost} token${lost==1?"":"s"} vanished.</span> `:"Perfect, you kept every token! ")+`You keep <b>${tokens}</b>.`;
+ if(tokens<=0){done=true;msg+=`<br><b>Game over!</b> You made it through ${qi} question${qi==1?"":"s"}.`;$("nx").textContent="Play again";}
+ else if(qi+1>=order.length){done=true;msg+=`<br>🎉 <b>You finished every question with ${tokens} tokens!</b>`;$("nx").textContent="Play again"}
+ else $("nx").textContent="Next ▶";
+ $("info").innerHTML=msg;$("nx").hidden=false;$("tk").textContent="🪙 Tokens: "+tokens;$("bs").textContent="Best: "+best+" Qs"};
+$("nx").onclick=()=>{if(done)newGame();else{qi++;ask()}};
+newGame();
+</script><script src="../ads.js"></script></body></html>
