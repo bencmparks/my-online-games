@@ -73,7 +73,7 @@ Keep a list of my games here.
 - Bowling (`bowling/`)
 - Fishing Frenzy (`fishing-frenzy/`)
 - Battleship (`battleship/`)
-- Life Clicker (`life-clicker/`)
+- Life Clicker (`life-clicker/`, grow a body; when fully grown make another person to build a Crowd view; "How many animals?" game: type your weight, pick an animal and a world, see how many animals hold you, plus a Planet mode comparing every planet's gravity)
 - Cosmic Pinball (`pinball/`)
 - Word Guess (`word-guess/`)
 - Guess Who (`guess-who/`)
