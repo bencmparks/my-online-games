@@ -60,7 +60,7 @@ Keep a list of my games here.
 - Mini Golf (`mini-golf/`)
 - Cannon Blast (`cannon-blast/`)
 - Maze Runner (`maze-runner/`)
-- Baseball (`baseball/`, hit by pitch, Running/Holding runners toggle (R), custom team name/colour/logo/flag, Exhibition or 8-team Tournament bracket)
+- Baseball (`baseball/`, hit by pitch, Running/Holding runners toggle (R), design your own team (name, colour, logo shape/colour/emoji, flag design/colours/emblem; naming it ME COOL unlocks real MLB-style teams and much better players), Exhibition or 8-team Tournament bracket)
 - Plinko (`plinko/`)
 - Plonk Escape (`plonk-escape/`, Poki Plonky-style trap platformer: 100 unique levels (14 handmade plus 86 generated), checkpoints, saws, spikes, swinging and climbable ropes, TNT, crushers, buttons and gates, pushable boxes, skins (Classic, Funcraft, Freeze Tag, Frozen, Zombie, Ninja, Robot; press C))
 - Horse Derby (`horse-derby/`)
