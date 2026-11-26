@@ -4,11 +4,14 @@
 main{width:min(100%,52rem);padding:1.25rem;border:.2rem solid #86efac;border-radius:1.25rem;background:rgb(8 12 30 / 94%);text-align:center}a{color:#7dd3fc}h1{margin:.5rem 0;color:#bbf7d0;font-size:1.6rem}
 canvas{display:block;width:100%;max-width:50rem;height:auto;margin:.8rem auto;border:.2rem solid #475569;border-radius:.4rem;background:#1e3a8a;touch-action:none;cursor:crosshair}
 .row{display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap}.row button{padding:.6rem 1.4rem;border:0;border-radius:.6rem;background:#f97316;color:#fff;font-weight:700;font-size:1rem;cursor:pointer}
+.team label{display:grid;gap:.15rem;font-size:.8rem;color:#fde68a;text-align:left}.team input,.team select{padding:.3rem;border-radius:.4rem;border:1px solid #6b7280;background:#0b1020;color:#fff;font-size:.95rem}.team input[type=color]{padding:0;height:2rem;width:3.5rem}.row2{margin-top:.6rem}
 </style></head>
 <body><main><a href="../">← All games</a><h1>⚾ Baseball</h1>
-<p>Step up to bat! <strong>Move the mouse</strong> (or <strong>arrow keys</strong>, or <strong>drag your finger</strong>) to line the bat circle up with the ball, then <strong>click</strong> (or <strong>lift your finger</strong>) or press <strong>Space</strong> to swing just as it reaches the plate. Good timing and aim mean bigger hits. With a runner on, press <strong>S</strong> (or the Steal Base button) as the pitch is thrown to try to steal — but get caught and it's an out. Each inning you bat, then you pitch and play defence: aim the red crosshair (mouse or arrows), choose Fastball, Curveball or Changeup (<strong>1</strong>/<strong>2</strong>/<strong>3</strong>), and click or press Space when the meter is centered for an accurate pitch. Corners and mixing up pitches fool the CPU; centered, repeated pitches get hit. Then move your fielder onto the red target to catch its hits. 3 innings — outscore the CPU!</p>
+<p>Step up to bat! <strong>Move the mouse</strong> (or <strong>arrow keys</strong>, or <strong>drag your finger</strong>) to line the bat circle up with the ball, then <strong>click</strong> (or <strong>lift your finger</strong>) or press <strong>Space</strong> to swing just as it reaches the plate. Good timing and aim mean bigger hits. With a runner on, press <strong>S</strong> (or the Steal Base button) as the pitch is thrown to try to steal — but get caught and it's an out. Each inning you bat, then you pitch and play defence: aim the red crosshair (mouse or arrows), choose Fastball, Curveball or Changeup (<strong>1</strong>/<strong>2</strong>/<strong>3</strong>), and click or press Space when the meter is centered for an accurate pitch. Corners and mixing up pitches fool the CPU; centered, repeated pitches get hit. Then move your fielder onto the red target to catch its hits. A pitch can also <strong>hit the batter</strong> (free base, for you and the CPU). Turn on <strong>Runners: Running</strong> (or press <strong>R</strong>) and your runners take off on every pitch to steal, or leave it on Holding to stay safe. Make your own team (name, colour, logo and flag), play an <strong>Exhibition</strong>, or enter the 8-team <strong>Tournament</strong> bracket: win the quarterfinal, semifinal and final! 3 innings per game — outscore the CPU!</p>
 <canvas id="c" width="800" height="500" aria-label="Baseball game"></canvas>
 <div class="row"><button id="swing" style="min-height:48px">🏏 Swing!</button><button id="steal">🏃 Steal Base</button><button id="mode">Mode: Easy</button><button id="eye">🦅 Eagle Eye: Off</button></div>
+<div class="row team row2" id="team"><label>Team name<input id="tn" maxlength="14"></label><label>Color<input id="tc" type="color"></label><label>Logo<select id="tl"></select></label><label>Flag<select id="tf"></select></label></div>
+<div class="row row2"><button id="ex">⚾ Exhibition</button><button id="tr">🏆 Tournament</button><button id="run">🏃 Runners: Holding</button></div>
 <div class="row" id="ptypes" style="display:none;margin-top:.6rem"><button data-p="fast">1 ⚡ Fastball</button><button data-p="curve">2 🌀 Curveball</button><button data-p="change">3 🐢 Changeup</button></div>
 </main>
 <script>
@@ -19,6 +22,19 @@ const D={
  hard:{spd:.55,dec:.1,tim:.04,pos:22,ang:.025,fThr:.02,fP:.75,outQ:.3,catchR:22,fSpd:260,hitT:1.2,cpuK:.1}};
 let diff="easy";try{if(localStorage.getItem("baseballDiff")==="hard")diff="hard"}catch(e){}
 let P=D[diff];
+const LOGOS=["⚾","🦅","🐯","🦈","🐺","🐻","🐉","🔥","⚡","⭐","👑","🚀"],FLAGS=["stripes","cross","circle","diagonal","triangle","checks"];
+const TEAMS=[{n:"Tigers",c:"#ea580c",l:"🐯",f:"stripes"},{n:"Sharks",c:"#0284c7",l:"🦈",f:"diagonal"},{n:"Wolves",c:"#64748b",l:"🐺",f:"cross"},{n:"Eagles",c:"#16a34a",l:"🦅",f:"triangle"},{n:"Bears",c:"#92400e",l:"🐻",f:"checks"},{n:"Dragons",c:"#b91c1c",l:"🐉",f:"circle"},{n:"Knights",c:"#7c3aed",l:"👑",f:"stripes"},{n:"Rockets",c:"#0d9488",l:"🚀",f:"diagonal"}];
+let me={n:"My Team",c:"#dc2626",l:"⚾",f:"stripes"};try{Object.assign(me,JSON.parse(localStorage.getItem("baseballTeam")))}catch(e){}
+let opp=TEAMS[1],tour=null,running=false;
+const shade=(h,k)=>{const n=parseInt(h.slice(1),16);return"#"+[16,8,0].map(s=>Math.round(((n>>s)&255)*k).toString(16).padStart(2,"0")).join("")};
+function drawFlag(f,c,X,Y,w,h){x.save();x.fillStyle="#fff";x.fillRect(X,Y,w,h);x.fillStyle=c;
+ if(f==="stripes"){x.fillRect(X,Y,w,h/3);x.fillRect(X,Y+2*h/3,w,h/3)}
+ else if(f==="cross"){x.fillRect(X,Y,w,h);x.fillStyle="#fff";x.fillRect(X+w*.4,Y,w*.2,h);x.fillRect(X,Y+h*.4,w,h*.2)}
+ else if(f==="circle"){x.beginPath();x.arc(X+w/2,Y+h/2,h*.32,0,6.3);x.fill()}
+ else if(f==="diagonal"){x.beginPath();x.moveTo(X,Y);x.lineTo(X+w,Y);x.lineTo(X,Y+h);x.fill()}
+ else if(f==="triangle"){x.beginPath();x.moveTo(X,Y);x.lineTo(X+w*.55,Y+h/2);x.lineTo(X,Y+h);x.fill()}
+ else{for(let i=0;i<4;i+=1)for(let j=0;j<3;j+=1)if((i+j)%2===0)x.fillRect(X+i*w/4,Y+j*h/3,w/4,h/3)}
+ x.strokeStyle="#0f172a";x.lineWidth=1.5;x.strokeRect(X,Y,w,h);x.restore()}
 function loadBest(){best=0;try{best=+localStorage.getItem(KEY+diff)||0}catch(e){}}
 loadBest();
 const rnd=(a,b)=>a+Math.random()*(b-a);
@@ -27,9 +43,11 @@ function say(s,d=1.4){msg=s;msgT=d}
 function newPitch(){
  const type=["fast","fast","curve","change"][Math.floor(Math.random()*4)],sp=P.spd*(1-(inn-1)*P.dec);
  const strike=Math.random()<.68,zoneX=rnd(-60,60),zoneY=rnd(-62,62);
- const tx=400+(strike?zoneX:(Math.random()<.5?-1:1)*rnd(85,125)),ty=380+(strike?zoneY:(Math.random()<.5?-1:1)*rnd(80,115));
- pitch={type,dur:({fast:.95,curve:1.2,change:1.5})[type]*sp,tx,ty,curve:type==="curve"?rnd(-1,1)*1.1:0,drop:type==="curve"?rnd(25,45):0,strike,p:0};
- mode="pitch";say(type==="fast"?"Fastball!":type==="curve"?"Curveball!":"Changeup!",.7)}
+ const hbp=!strike&&Math.random()<.14;
+ const tx=hbp?rnd(300,332):400+(strike?zoneX:(Math.random()<.5?-1:1)*rnd(85,125)),ty=hbp?rnd(345,430):380+(strike?zoneY:(Math.random()<.5?-1:1)*rnd(80,115));
+ pitch={type,dur:({fast:.95,curve:1.2,change:1.5})[type]*sp,tx,ty,curve:type==="curve"?rnd(-1,1)*1.1:0,drop:type==="curve"?rnd(25,45):0,strike,hbp,p:0};
+ mode="pitch";say(type==="fast"?"Fastball!":type==="curve"?"Curveball!":"Changeup!",.7);
+ if(running&&half==="bat"&&bases.some(Boolean))steal()}
 function ballPos(p){
  const e=p.p,sx=400,sy=205;
  return{x:sx+(p.tx-sx)*e+p.curve*Math.sin(Math.PI*e)*60,y:sy+(p.ty-sy)*e-p.drop*Math.sin(Math.PI*e)*-1+0,r:4+22*e*e}}
@@ -46,7 +64,7 @@ function throwPitch(){
  const es=(diff==="easy"?40:60)+(pt==="curve"?12:0),err=Math.abs(Math.sin(mt))*es,a=rnd(0,6.283),tx=Math.max(250,Math.min(550,bat.x+Math.cos(a)*err)),ty=Math.max(280,Math.min(480,bat.y+Math.sin(a)*err));
  const dx=Math.abs(tx-400),dy=Math.abs(ty-380),inZone=dx<=65&&dy<=65,corner=Math.max(dx,dy)/65,rep=pt===lastPt;lastPt=pt;
  let out;
- if(!inZone){if(Math.random()<(diff==="easy"?.2:.4)*(corner<1.5?1:.4)){const r=Math.random();out=r<.6?"whiff":r<.85?"foul":"weak"}else out="ball"}
+ if(!inZone){if(Math.random()<(diff==="easy"?.2:.4)*(corner<1.5?1:.4)){const r=Math.random();out=r<.6?"whiff":r<.85?"foul":"weak"}else out=corner>1.2&&Math.random()<.25?"hbp":"ball"}
  else if(Math.random()>(diff==="easy"?.8:.9))out="called";
  else{const c=Math.max(.08,(diff==="easy"?.5:.72)*(1-.4*corner)+(rep?.15:0)-(pt==="curve"?.05:0)-(pt==="change"?.08:0));
   out=Math.random()>c?"whiff":Math.random()<.2?"foul":"contact"}
@@ -61,6 +79,7 @@ function resolveCpu(){
  else if(o==="called")cpuStrike("Called strike");
  else if(o==="foul"){if(strikes<2)strikes+=1;say("Foul ball",1)}
  else if(o==="weak"){say("Weak grounder — out!",1.3);addOut()}
+ else if(o==="hbp")walk("Hit by pitch! CPU batter takes first")
  else ball()}
 function cpuHit(c){
  const homer=Math.random()<.1*(1-c),dist=homer?rnd(350,420):rnd(60,250)*(1-.2*c),ang=rnd(-42,42);
@@ -79,12 +98,12 @@ function advance(n){let sc=0;
   for(let i=2;i>=0;i-=1)if(bases[i]){const d=i+1+n;if(d>=4)sc+=1;else nb[d-1]=1}
   nb[n-1]=1;bases=nb}
  runs+=sc;return sc}
-function walk(){
+function walk(m="Ball four — take your base!"){
  if(bases[0]&&bases[1]&&bases[2])runs+=1;
- if(bases[0]&&bases[1])bases[2]=1;if(bases[0])bases[1]=1;bases[0]=1;balls=0;strikes=0;say("Ball four — take your base!",1.4)}
+ if(bases[0]&&bases[1])bases[2]=1;if(bases[0])bases[1]=1;bases[0]=1;balls=0;strikes=0;say(m,1.4)}
 function strike(s){strikes+=1;say(s,1);if(strikes>=3){say("Strike three — you're out!",1.4);addOut()}}
 function ball(){balls+=1;say("Ball",.9);if(balls>=4)walk()}
-function resolveTake(){const s=pitch.strike;pitch=null;mode="ready";wait=.7;if(s)strike("Called strike");else ball()}
+function resolveTake(){const s=pitch.strike,h=pitch.hbp;pitch=null;mode="ready";wait=.7;if(h)walk("Hit by pitch! Take your base");else if(s)strike("Called strike");else ball()}
 function steal(){
  if(mode!=="pitch"||half!=="bat"||pitch.stole||swingT>0||pitch.p>.8)return;
  const i=!bases[2]&&bases[1]?1:!bases[1]&&bases[0]?0:bases[2]?2:-1;
@@ -93,8 +112,30 @@ function steal(){
  const ok=Math.random()<(i===2?.25:diff==="easy"?.7:.55);
  if(ok){bases[i]=0;if(i===2){runs+=1;say("Stole home! +1 run",1.4)}else{bases[i+1]=1;say(`Stolen base! Safe at ${i?"third":"second"}`,1.4)}}
  else{bases[i]=0;pitch=null;mode="ready";wait=.8;say("Caught stealing!",1.4);addOut()}}
+const pickOpp=()=>{const l=TEAMS.filter(t=>t.n!==me.n);return l[Math.floor(Math.random()*l.length)]};
+function startExh(){tour=null;opp=pickOpp();reset()}
+function startTour(){if(!["title","over","bracket"].includes(mode)){say("Start a tournament between games",1.4);return}
+ const o=TEAMS.filter(t=>t.n!==me.n).sort(()=>Math.random()-.5).slice(0,7);tour={slots:[[me,...o],[],[],[]],r:0,out:false,champ:false};mode="bracket"}
+function simRound(win){const s=tour.slots[tour.r];for(let i=0;i<s.length;i+=2){const a=s[i],b=s[i+1];tour.slots[tour.r+1].push(a===me||b===me?(win?me:a===me?b:a):(Math.random()<.5?a:b))}tour.r+=1}
+function bracketGo(){if(tour.out||tour.champ){tour=null;mode="title";return}opp=tour.slots[tour.r][1];reset()}
+function afterGame(){if(!tour){startExh();return}
+ if(runs===oRuns){opp=tour.slots[tour.r][1];reset();return}
+ const win=runs>oRuns;simRound(win);if(!win){tour.out=true;while(tour.r<3)simRound(false)}else if(tour.r>=3)tour.champ=true;mode="bracket"}
+function drawBracket(){
+ x.fillStyle="#0f172a";x.fillRect(0,0,W,H);text("🏆 TOURNAMENT",W/2,38,30,"#fde047");
+ const cx=[14,214,414,614],ys=[[]];for(let i=0;i<8;i+=1)ys[0].push(78+i*46);
+ for(let r=1;r<4;r+=1){ys[r]=[];for(let i=0;i<8>>r;i+=1)ys[r].push((ys[r-1][2*i]+ys[r-1][2*i+1])/2)}
+ for(let r=0;r<4;r+=1)for(let i=0;i<8>>r;i+=1){const tm=tour.slots[r][i],X=cx[r],Y=ys[r][i];
+  if(r<3&&(tour.slots[r+1].length||r===0)){x.strokeStyle="#475569";x.lineWidth=2;x.beginPath();x.moveTo(X+172,Y);x.lineTo(X+192,Y);x.lineTo(X+192,(ys[r][i^1]+Y)/2);x.lineTo(X+200,(ys[r][i^1]+Y)/2);x.stroke()}
+  if(!tm){x.fillStyle="#1e293b";x.beginPath();x.roundRect(X,Y-18,172,36,8);x.fill();text("?",X+86,Y+7,18,"#64748b");continue}
+  x.fillStyle=shade(tm.c,.55);x.beginPath();x.roundRect(X,Y-18,172,36,8);x.fill();x.strokeStyle=tm===me?"#fde047":tm.c;x.lineWidth=tm===me?4:2;x.stroke();
+  x.font="20px Arial";x.textAlign="left";x.fillStyle="#fff";x.fillText(tm.l,X+8,Y+7);text(tm.n,X+36,Y+6,15,"#fff","left");drawFlag(tm.f,tm.c,X+140,Y-8,24,16)}
+ const lab=["Quarterfinal","Semifinal","Final"];
+ text(tour.champ?"🏆 YOU ARE THE CHAMPIONS! Click to continue":tour.out?"You were knocked out. Click to continue":`Next: ${lab[tour.r]} vs ${tour.slots[tour.r][1].n} — click or press Space to play`,W/2,H-14,17,"#bbf7d0")}
 function swing(){
- if(mode==="over"||mode==="title"){reset();return}
+ if(mode==="title"){startExh();return}
+ if(mode==="over"){afterGame();return}
+ if(mode==="bracket"){bracketGo();return}
  if(mode==="aim"){throwPitch();return}
  if(mode!=="pitch"||swingT>0)return;
  swingT=.25;
@@ -140,21 +181,22 @@ function update(dt){
 function text(s,a,b,size,color,al="center"){x.font=`bold ${size}px Arial`;x.textAlign=al;x.fillStyle=color;x.lineWidth=5;x.strokeStyle="#0f172a";x.lineJoin="round";x.strokeText(s,a,b);x.fillText(s,a,b)}
 function drawStadium(){
  const g=x.createLinearGradient(0,0,0,300);g.addColorStop(0,"#38bdf8");g.addColorStop(1,"#bae6fd");x.fillStyle=g;x.fillRect(0,0,W,300);
+ x.fillStyle="#94a3b8";x.fillRect(58,100,4,120);x.fillRect(738,100,4,120);drawFlag(me.f,me.c,62,104,48,30);drawFlag(opp.f,opp.c,690,104,48,30);
  x.fillStyle="#475569";x.fillRect(0,150,W,70);x.fillStyle="#334155";for(let i=0;i<40;i+=1){x.fillStyle=`hsl(${(i*37)%360},60%,${50+(i%3)*8}%)`;x.fillRect(i*20+4,160+(i%4)*12,10,10)}
  x.fillStyle="#16a34a";x.fillRect(0,220,W,H-220);x.fillStyle="#15803d";for(let i=0;i<8;i+=1)x.fillRect(0,230+i*40,W,20);
  x.fillStyle="#a16207";x.beginPath();x.ellipse(400,215,70,22,0,0,6.3);x.fill();
  x.fillStyle="#d97706";x.beginPath();x.moveTo(250,H);x.lineTo(550,H);x.lineTo(470,300);x.lineTo(330,300);x.fill();
  x.fillStyle="#fff";x.beginPath();x.moveTo(375,455);x.lineTo(425,455);x.lineTo(430,475);x.lineTo(400,490);x.lineTo(370,475);x.fill()}
 function drawPitcher(){
- x.fillStyle="#1d4ed8";x.fillRect(385,170,30,40);x.fillStyle="#fcd9b6";x.beginPath();x.arc(400,160,10,0,6.3);x.fill();x.fillStyle="#1e3a8a";x.fillRect(388,148,24,7)}
+ x.fillStyle=opp.c;x.fillRect(385,170,30,40);x.fillStyle="#fcd9b6";x.beginPath();x.arc(400,160,10,0,6.3);x.fill();x.fillStyle=shade(opp.c,.6);x.fillRect(388,148,24,7);x.font="16px Arial";x.textAlign="center";x.fillStyle="#fff";x.fillText(opp.l,400,196)}
 function drawBatter(){
  const bx=292,sw=swingT>0?1-swingT/.25:0,hx=bx+22+sw*10,hy=372;
  x.fillStyle="rgba(0,0,0,.25)";x.beginPath();x.ellipse(bx,470,34,9,0,0,6.3);x.fill();
  x.fillStyle="#1e293b";x.fillRect(bx-17,418,13,50);x.fillRect(bx+4,418,13,50);
  x.fillStyle="#fff";x.fillRect(bx-20,462,19,8);x.fillRect(bx+2,462,19,8);
- x.fillStyle="#dc2626";x.beginPath();x.roundRect(bx-22,350,44,72,8);x.fill();
+ x.fillStyle=me.c;x.beginPath();x.roundRect(bx-22,350,44,72,8);x.fill();x.font="22px Arial";x.textAlign="center";x.fillStyle="#fff";x.fillText(me.l,bx,396);
  x.fillStyle="#fcd9b6";x.beginPath();x.arc(bx,334,14,0,6.3);x.fill();
- x.fillStyle="#991b1b";x.beginPath();x.arc(bx,330,15,Math.PI,0);x.fill();x.fillRect(bx-3,326,22,5);
+ x.fillStyle=shade(me.c,.6);x.beginPath();x.arc(bx,330,15,Math.PI,0);x.fill();x.fillRect(bx-3,326,22,5);
  x.strokeStyle="#fcd9b6";x.lineWidth=9;x.lineCap="round";x.beginPath();x.moveTo(bx+14,360);x.lineTo(hx,hy);x.stroke();x.lineCap="butt"}
 function drawEagle(){
  x.fillStyle="#166534";x.fillRect(0,0,W,H);x.fillStyle="#15803d";for(let i=0;i<10;i+=1)x.fillRect(0,i*50,W,25);
@@ -183,15 +225,16 @@ function drawField(){
  x.fillStyle="#16a34a";x.save();x.translate(400,430);x.rotate(Math.PI/4);x.fillRect(-100,-100,200,200);x.restore();
  x.fillStyle="#fff";for(const[a,b]of[[400,430],[520,310],[400,190],[280,310]]){x.save();x.translate(a,b);x.rotate(Math.PI/4);x.fillRect(-9,-9,18,18);x.restore()}
  x.strokeStyle="rgba(255,255,255,.8)";x.lineWidth=3;x.beginPath();x.moveTo(400,430);x.lineTo(40,70);x.moveTo(400,430);x.lineTo(760,70);x.stroke();
- bases.forEach((o,i)=>{if(o){const p=[[520,310],[400,190],[280,310]][i];x.fillStyle="#f97316";x.beginPath();x.arc(p[0],p[1],14,0,6.3);x.fill()}});
+ bases.forEach((o,i)=>{if(o){const p=[[520,310],[400,190],[280,310]][i];x.fillStyle=half==="bat"?me.c:opp.c;x.beginPath();x.arc(p[0],p[1],14,0,6.3);x.fill();x.strokeStyle="#fff";x.lineWidth=2;x.stroke()}});
  if(half==="field"){if(hit&&!hit.homer){const l=landing(),pu=6*Math.sin(frame/6);x.strokeStyle="#ef4444";x.lineWidth=3;x.beginPath();x.arc(l.x,l.y,P.catchR+pu,0,6.3);x.stroke();x.beginPath();x.moveTo(l.x-8,l.y-8);x.lineTo(l.x+8,l.y+8);x.moveTo(l.x+8,l.y-8);x.lineTo(l.x-8,l.y+8);x.stroke()}
-  x.fillStyle="#1d4ed8";x.beginPath();x.arc(fl.x,fl.y,14,0,6.3);x.fill();x.strokeStyle="#fde047";x.lineWidth=3;x.stroke();x.fillStyle="#92400e";x.beginPath();x.arc(fl.x+13,fl.y,7,0,6.3);x.fill();
+  x.fillStyle=me.c;x.beginPath();x.arc(fl.x,fl.y,14,0,6.3);x.fill();x.strokeStyle="#fde047";x.lineWidth=3;x.stroke();x.fillStyle="#92400e";x.beginPath();x.arc(fl.x+13,fl.y,7,0,6.3);x.fill();
   if(!hit)return}
  const a=hit.ang*Math.PI/180,r=hit.dist*1.6,e=Math.min(1,hit.t),px=400+Math.sin(a)*r*e,py=430-Math.cos(a)*r*e,h=Math.sin(Math.PI*e)*(hit.foul?20:Math.min(110,hit.dist*.5));
  x.fillStyle="rgba(0,0,0,.3)";x.beginPath();x.ellipse(px,py,8,4,0,0,6.3);x.fill();
  x.fillStyle="#fff";x.strokeStyle="#dc2626";x.lineWidth=2;x.beginPath();x.arc(px,py-h,8,0,6.3);x.fill();x.stroke()}
 function draw(){
- if(mode==="title"){drawStadium();text("⚾ BASEBALL",W/2,200,60,"#fde047");text("Time your swing and hit it out of the park!",W/2,260,24,"#fff");text(`Mode: ${diff==="easy"?"Easy":"Hard"} (press M to switch)  Best: ${best}`,W/2,310,20,"#bbf7d0");text("Click or press Space to play ball",W/2,370,24,"#fff");return}
+ if(mode==="bracket"){drawBracket();return}
+ if(mode==="title"){drawStadium();text("⚾ BASEBALL",W/2,200,60,"#fde047");text("Time your swing and hit it out of the park!",W/2,260,24,"#fff");text(`Mode: ${diff==="easy"?"Easy":"Hard"} (press M to switch)  Best: ${best}`,W/2,310,20,"#bbf7d0");text("Click or press Space to play ball",W/2,370,24,"#fff");text(`${me.l} ${me.n}`,W/2,420,22,"#fff");return}
  const pv=mode==="aim"||mode==="pthrow";
  if(half==="field"&&mode!=="over"&&!pv||mode==="hit"){drawField()}
  else{
@@ -207,13 +250,15 @@ function draw(){
    x.fillStyle="rgba(15,23,42,.8)";x.fillRect(560,12,220,34);x.fillStyle="#16a34a";x.fillRect(650,16,40,26);x.fillStyle="#fde047";x.fillRect(667,16,6,26);x.fillStyle="#fff";x.fillRect(670+Math.sin(mt)*104,14,4,30);
    text(`Pitch: ${PT[pt].n}`,W/2,40,18,"#fff")}}}
  // scoreboard
- x.fillStyle="rgba(15,23,42,.8)";x.fillRect(8,8,250,78);
+ x.fillStyle="rgba(15,23,42,.8)";x.fillRect(8,8,300,100);
  const mine=half==="bat"?runs:oRuns,cpu=half==="bat"?oRuns:runs;
- text(`Inning ${inn}/${INN} ${half==="bat"?"▲":"▼"}`,18,32,15,"#fff","left");text(`You ${mine}  CPU ${cpu}`,18,58,18,"#fde047","left");text(`Best ${best}`,18,80,14,"#bbf7d0","left");
- text(`B ${balls} S ${strikes} O ${Math.min(outs,3)}`,175,32,14,"#fff","left");
- for(let i=0;i<3;i+=1){const p=[[225,66],[205,48],[185,66]][i];x.fillStyle=bases[i]?"#f97316":"#475569";x.save();x.translate(p[0],p[1]);x.rotate(Math.PI/4);x.fillRect(-6,-6,12,12);x.restore()}
+ text(`Inning ${inn}/${INN} ${half==="bat"?"▲":"▼"}`,18,30,15,"#fff","left");
+ drawFlag(me.f,me.c,18,40,26,16);text(`${me.l} ${me.n}  ${mine}`,52,54,16,"#fde047","left");
+ drawFlag(opp.f,opp.c,18,62,26,16);text(`${opp.l} ${opp.n}  ${cpu}`,52,76,16,"#fff","left");text(`Best ${best}`,18,98,13,"#bbf7d0","left");
+ text(`B ${balls} S ${strikes} O ${Math.min(outs,3)}`,150,30,14,"#fff","left");
+ for(let i=0;i<3;i+=1){const p=[[285,80],[265,62],[245,80]][i];x.fillStyle=bases[i]?"#f97316":"#475569";x.save();x.translate(p[0],p[1]);x.rotate(Math.PI/4);x.fillRect(-6,-6,12,12);x.restore()}
  if(msgT>0)text(msg,W/2,110,34,"#fff");
- if(mode==="over"){x.fillStyle="rgba(2,6,23,.78)";x.fillRect(0,0,W,H);text("Game Over",W/2,200,56,"#fde047");text(`You ${runs} – CPU ${oRuns}`,W/2,260,30,"#fff");text(runs>oRuns?"You win! 🎉":runs<oRuns?"CPU wins":"Tie game",W/2,225,26,"#fff");text(runs>=best&&runs>0?"New best!":`Best: ${best}`,W/2,305,22,"#bbf7d0");text("Click or press Space to play again",W/2,370,22,"#fff")}}
+ if(mode==="over"){x.fillStyle="rgba(2,6,23,.78)";x.fillRect(0,0,W,H);text("Game Over",W/2,200,56,"#fde047");text(`${me.n} ${runs} – ${opp.n} ${oRuns}`,W/2,260,30,"#fff");text(runs>oRuns?"You win! 🎉":runs<oRuns?opp.n+" wins":"Tie game",W/2,225,26,"#fff");text(runs>=best&&runs>0?"New best!":`Best: ${best}`,W/2,305,22,"#bbf7d0");text(tour?(runs===oRuns?"Tie! Click to replay the game":"Click or press Space to see the bracket"):"Click or press Space to play again",W/2,370,22,"#fff")}}
 let last=performance.now();
 function loop(ts){const dt=Math.min(.05,(ts-last)/1000);last=ts;update(dt);draw();requestAnimationFrame(loop)}
 function pos(e){const r=C.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*W,y:(e.clientY-r.top)/r.height*H}}
@@ -230,7 +275,13 @@ const modeB=document.querySelector("#mode");
 function setDiff(d){diff=d;P=D[d];loadBest();modeB.textContent="Mode: "+(d==="easy"?"Easy":"Hard");try{localStorage.setItem("baseballDiff",d)}catch(e){}}
 function toggleDiff(){modeB.blur();if(mode==="title"||mode==="over")setDiff(diff==="easy"?"hard":"easy");else say("Change mode between games",1.4)}
 modeB.onclick=toggleDiff;setDiff(diff);
-addEventListener("keydown",e=>{if(e.code.startsWith("Arrow")){e.preventDefault();keys[e.code]=true}if(e.code==="KeyV")toggleEye();if(e.code==="Digit1")pt="fast";if(e.code==="Digit2")pt="curve";if(e.code==="Digit3")pt="change";if(e.code==="KeyS")steal();if(e.code==="KeyM")toggleDiff();if(e.code==="Space"||e.code==="Enter"){e.preventDefault();swing()}});
+const runB=document.querySelector("#run"),saveTeam=()=>{try{localStorage.setItem("baseballTeam",JSON.stringify(me))}catch(e){}};
+function toggleRun(){running=!running;runB.textContent="🏃 Runners: "+(running?"Running":"Holding");runB.blur()}
+runB.onclick=toggleRun;document.querySelector("#ex").onclick=function(){this.blur();if(["title","over"].includes(mode))startExh();else say("Finish this game first",1.4)};document.querySelector("#tr").onclick=function(){this.blur();startTour()};
+const $tl=document.querySelector("#tl"),$tf=document.querySelector("#tf");$tl.innerHTML=LOGOS.map(l=>`<option>${l}</option>`).join("");$tf.innerHTML=FLAGS.map(f=>`<option>${f}</option>`).join("");
+const tn=document.querySelector("#tn"),tc=document.querySelector("#tc");tn.value=me.n;tc.value=me.c;$tl.value=me.l;$tf.value=me.f;
+[tn,tc,$tl,$tf].forEach(el=>el.oninput=()=>{me.n=tn.value.trim()||"My Team";me.c=tc.value;me.l=$tl.value;me.f=$tf.value;saveTeam()});
+addEventListener("keydown",e=>{if(e.target.matches("input,select"))return;if(e.code==="KeyR")toggleRun();if(e.code.startsWith("Arrow")){e.preventDefault();keys[e.code]=true}if(e.code==="KeyV")toggleEye();if(e.code==="Digit1")pt="fast";if(e.code==="Digit2")pt="curve";if(e.code==="Digit3")pt="change";if(e.code==="KeyS")steal();if(e.code==="KeyM")toggleDiff();if(e.code==="Space"||e.code==="Enter"){e.preventDefault();swing()}});
 addEventListener("keyup",e=>{keys[e.code]=false});
 requestAnimationFrame(loop);
 </script><script src="../ads.js"></script></body></html>
